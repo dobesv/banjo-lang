@@ -14,7 +14,23 @@ import banjo.parser.util.ParserReader;
 
 public class TestNumberLiteralParser {
 
+	// TODO Check for failure cases ...
 	
+	@Test
+	public void nonNumbers() throws IOException {
+		testNonNumber("a");
+		testNonNumber("*");
+		testNonNumber(";");
+		testNonNumber("_1");
+		testNonNumber("_.1");
+	}
+	
+	private void testNonNumber(String inStr) throws IOException {
+		Collection<BanjoParseException> errors = new ArrayList<>();
+		final NumberLiteral node = NumberLiteral.parseNumberLiteral(ParserReader.fromString("<test>", inStr), errors);
+		assertNull("Should not parse as number: "+inStr, node);
+	}
+
 	@Test
 	public void ints() throws IOException {
 		testInt(0);
@@ -77,6 +93,8 @@ public class TestNumberLiteralParser {
 		testDecimal(".1", "0.1");
 		testDecimal("1.", "1");
 		testDecimal("1.000000000000000000000001");
+		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789");
+		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
 	}
 
 	private void testDecimal(String inStr) throws IOException {

@@ -74,6 +74,7 @@ public class NumberLiteral extends Expr {
 				}
 			} else if(isNumber && cp == '_') {
 				// Allow underscore to "break up" long numbers, like in Java
+				cp = in.read();
 			} else if(cp == 'e' || cp == 'E') {
 				// Can't start a number with an exponent
 				if(!isNumber) {
@@ -90,6 +91,9 @@ public class NumberLiteral extends Expr {
 				if(negexp || cp == '+')
 					cp = in.read();
 				for(int expDigits = 0; expDigits < 10; expDigits++) {
+					if(cp == '_' && expDigits > 0) {
+						cp = in.read();
+					}
 					int digitValue = Character.digit(cp, 10); // Always base 10
 					if(digitValue == -1) {
 						in.seek(afterDigits);
