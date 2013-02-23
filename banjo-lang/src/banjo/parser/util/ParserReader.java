@@ -38,7 +38,7 @@ public class ParserReader extends Reader {
 		}
 		public void assign(FilePos filePos) {
 			this.line = filePos.line;
-			this.col = filePos.col;
+			this.col = filePos.column;
 			this.offset = filePos.offset;
 		}
 		
@@ -514,7 +514,7 @@ public class ParserReader extends Reader {
 		StringBuffer sb = new StringBuffer();
 		sb.append(readLineContaining(start)).append("\n");
 		for(int i=0; i <= readLineContaining(start).length(); i++) {
-			sb.append((i+1)==start.col?'^':' ');
+			sb.append((i+1)==start.column?'^':' ');
 		}
 		sb.append('\n');
 		seek(start);

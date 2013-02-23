@@ -29,7 +29,7 @@ public class TestNumberLiteralParser {
 	
 	private void testNonNumber(String inStr) throws IOException {
 		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString("<test>", inStr), errors);
+		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
 		assertNull("Should not parse as number: "+inStr, node);
 	}
 
@@ -47,7 +47,7 @@ public class TestNumberLiteralParser {
 	private void testInt(int n) throws IOException {
 		String inStr = String.valueOf(n);
 		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString("<test>", inStr), errors);
+		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
 		assertEquals(0, errors.size());
 		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
@@ -69,7 +69,7 @@ public class TestNumberLiteralParser {
 	private void testLong(long n) throws IOException {
 		String inStr = String.valueOf(n);
 		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString("<test>", inStr), errors);
+		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
 		assertEquals(0, errors.size());
 		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
@@ -104,7 +104,7 @@ public class TestNumberLiteralParser {
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
 		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString("<test>", inStr), errors);
+		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
 		assertEquals(0, errors.size());
 		assertEquals(outStr, String.valueOf(node.getNumber()));

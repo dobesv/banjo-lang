@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.regex.Pattern;
 
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.Expr.Precedence;
 import banjo.parser.ast.IdRef;
 import banjo.parser.ast.Let;
+import banjo.parser.ast.ListLiteral;
 import banjo.parser.ast.NumberLiteral;
+import banjo.parser.ast.ObjectLiteral;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.util.FilePos;
@@ -34,7 +38,7 @@ public class BanjoParser {
 	}
 	public static Pattern whitespace = Pattern.compile("([ \r\n]*|//[^\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
 	public static Pattern idPattern = Pattern.compile("[\\p{Alpha}_-][\\p{Alnum}_-]*");
-	public static Pattern opPattern = Pattern.compile("((=|\\+|-|/|\\*|&|^|>>|<<|\\^|\\$|\\#|\\@|!|\\|)=?|\\(|\\)|\\{|\\}|\\[|\\])");
+	public static Pattern opPattern = Pattern.compile("[=+-/*&^><^$#@!\\-:]+");
 	public static Pattern sepPattern = Pattern.compile("[;,]");
 	/**
 	 * Attempt to parse an ID token; returns null on failure.
@@ -58,15 +62,21 @@ public class BanjoParser {
 	}
 
 	/**
-	 * Check whether the given operator follows.  If so, consume it and return true.  If not, return the stream in the
-	 * same position and return false;
+	 * Check whether the given operator follows.  If so, consume it and return true.  If not, rewind the stream to the
+	 * same position as before the function was called and return false;
 	 */
-	public static boolean checkOperator(ParserReader in, String op) throws IOException {
+	public static boolean checkOperator(ParserReader in, String op, int minColumn, Collection<BanjoParseException> errors) throws IOException {
 		FilePos startPos = in.getFilePos();
 		String ignored = consumeWhitespace(in);
 		Token token = in.checkNextToken(opPattern, ignored);
 		boolean result = token != null && token.getText().equals(op);
-		if(!result) in.seek(startPos);
+		if(!result) {
+			in.seek(startPos);
+		} else {
+			if(in.getCurrentLineNumber() > startPos.line && in.getCurrentColumnNumber() < minColumn) {
+				errors.add(new IncorrectIndentation(in.getFileRange(startPos), minColumn));
+			}
+		}
 		return result;
 	}
 
@@ -77,8 +87,8 @@ public class BanjoParser {
 	 * @param in Source input
 	 * @param sep Seperator we are looking for; e.g. ";"
 	 * @param indentColumn If a newline is used as a separator, the indentation must be at least this much or a parse exception will be thrown 
-	 * @param errors 
-	 * @return
+	 * @param errors If a newline separator is used but the next line starts at the wrong indentation level, an error will be added to this collection
+	 * @return True if the separator was found, false otherwise
 	 * @throws IOException
 	 * @throws IncorrectIndentation 
 	 */
@@ -91,7 +101,7 @@ public class BanjoParser {
 	    if(!result) {
 	    	if(tokenStartPos.line > startPos.line) {
 	    		in.seek(tokenStartPos);
-	    		if(tokenStartPos.col != indentColumn)
+	    		if(tokenStartPos.column != indentColumn)
 	    			errors.add(new IncorrectIndentation(in.getFileRange(in.getFilePos().lineStart()), indentColumn));
 	    		return true;
 	    	} else {
@@ -112,10 +122,33 @@ public class BanjoParser {
 		}
 
 		public int getStartLine() { return range.getStart().line; }
-		public int getStartColumn() { return range.getStart().col; }
+		public int getStartColumn() { return range.getStart().column; }
 		public int getEndLine() { return range.getEnd().line; }
-		public int getEndColumn() { return range.getEnd().col; }
+		public int getEndColumn() { return range.getEnd().column; }
 	}
+	public static class ExpectedElement extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public ExpectedElement(FileRange range) {
+			super("Expected comma, newline, or ']'", range);
+		}
+	}
+	public static class ExpectedField extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public ExpectedField(FileRange range) {
+			super("Expected key : value pair or '}'", range);
+		}
+	}
+
+	public static class ExpectedColon extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public ExpectedColon(String key, FileRange range) {
+			super("Expected ':' after key '"+key+"'", range);
+		}
+	}
+	
 	public static class ExpectedSemiColonOrNewline extends BanjoParseException {
 		private static final long serialVersionUID = 1L;
 
@@ -127,7 +160,7 @@ public class BanjoParser {
 		private static final long serialVersionUID = 1L;
 
 		public IncorrectIndentation(FileRange range, int indentColumn) {
-			super("Expected indentation to column "+indentColumn+" but indentation was "+range.getEnd().col+" columns.", range);
+			super("Expected indentation to column "+indentColumn+" but indentation was "+range.getEnd().column+" columns.", range);
 		}
 	}
 	
@@ -153,7 +186,6 @@ public class BanjoParser {
 
 		public UnexpectedExponent(String message, FileRange range) {
 			super(message, range);
-			// TODO Auto-generated constructor stub
 		}
 	
 	}
@@ -162,6 +194,26 @@ public class BanjoParser {
 
 		public UnexpectedSecondDecimalPoint(String message, FileRange range) {
 			super(message, range);
+		}
+	
+	}
+
+	public static class MissingWhitespace extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+
+		public MissingWhitespace(String message, FileRange range) {
+			super(message, range);
+		}
+	
+	}
+	/**
+	 * Generic kind of "I have no idea what you've typed in here" error.
+	 */
+	public static class SyntaxError extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public SyntaxError(FileRange range) {
+			super("Syntax error", range);
 		}
 	
 	}
@@ -210,15 +262,16 @@ public class BanjoParser {
 		String ignored = BanjoParser.consumeWhitespace(in);
 		
 		int cp = in.read();
-		if(cp != '"') {
+		if(cp != '"' && cp != '\'') {
 			in.seek(startPos);
 			return null;
 		}
+		int quoteType = cp;
 			
 		FilePos tokenStartPos = in.getFilePos();
 	    StringBuffer buf = new StringBuffer(in.remaining());
 	    while((cp = in.read()) != -1) {
-	    	if(cp == '"')
+	    	if(cp == quoteType)
 	    		break; // End of string
 	        if(cp != '\\') {
 	            buf.appendCodePoint(cp);
@@ -456,13 +509,13 @@ public class BanjoParser {
 		if(identifier == null)
 			return null;
 		
-		if(!checkOperator(in, "=")) {
+		if(!checkOperator(in, "=", identifier.getFileRange().getStart().column, errors)) {
 			in.seek(startPos);
 			return null;
 		}
 		
 		Expr value = parseAnyExpr(in, Precedence.ASSIGNMENT, errors);
-		if(!checkSeparatorOrNewline(in, ";", identifier.getFileRange().getStart().col, errors)) {
+		if(!checkSeparatorOrNewline(in, ";", identifier.getFileRange().getStart().column, errors)) {
 			// Variable value should be followed by semicolon or a newly indented line
 			throw new BanjoParser.ExpectedSemiColonOrNewline(in.getFilePosAsRange());
 		}
@@ -497,6 +550,8 @@ public class BanjoParser {
 		if(strLit != null) return strLit;
 		NumberLiteral numLit = parseNumberLiteral(in, errors);
 		if(numLit != null) return numLit;
+		ListLiteral listLit = parseListLiteral(in, errors);
+		if(listLit != null) return listLit;
 		
 		// Assignment / let
 		if(minimumPrecedence.isLowerOrEqual(Precedence.ASSIGNMENT)) {
@@ -506,4 +561,229 @@ public class BanjoParser {
 		
 		return null;
 	}
+
+	static final int BULLET = '\u2022';
+	
+	/**
+	 * Parse a list literal.  A list literal comes in two forms:
+	 * 
+	 * <ul>
+	 * <li><code>[x,y,z]</code> - A comma-separated list surrounded with square brackets</li>
+	 * <li>A series of bullets, aligned vertically:
+	 *     <ul><li>x</li><li>y</li><li>z</li></ul></li>
+	 * </ul>
+	 */
+	public static ListLiteral parseListLiteral(ParserReader in, Collection<BanjoParseException> errors) throws IOException, BanjoParseException {
+		FilePos startPos = in.getFilePos();
+		consumeWhitespace(in);
+		FilePos listStartPos = in.getFilePos();
+		int cp = in.read();
+		ArrayList<Expr> elements = new ArrayList<>();
+		if(cp == BULLET) {
+			int bulletColumn = listStartPos.column;
+			for(;;) {
+				String ws = consumeWhitespace(in);
+				if(ws.isEmpty()) {
+					errors.add(new MissingWhitespace("Expected whitespace after bullet.", in.getFilePosAsRange()));
+				}
+				Expr elt = parseAnyExpr(in, Precedence.lowest(), errors);
+				if(elt == null) {
+					// TODO We could try to find a matching bullet for the next element and mark everything in between as a recoverable error
+					throw new SyntaxError(in.getFilePosAsRange());
+				} else {
+					elements.add(elt);
+				}
+				
+				FilePos afterElements = in.getFilePos();
+				consumeWhitespace(in);
+				int col = in.getCurrentColumnNumber();
+				if(col < bulletColumn) {
+					// Dedent, so we're done
+					in.seek(afterElements);
+					break;
+				}
+				cp = in.read();
+				if(cp != BULLET) {
+					in.seek(afterElements);
+					break;
+				}
+				if(col > bulletColumn) {
+					// Unexpected indent; most likely explanation is a missing operator of some sort; we should abort
+					throw new IncorrectIndentation(in.getFilePosAsRange(), bulletColumn);
+				}
+			}
+			return new ListLiteral(elements);
+		} else if(cp == '[') {
+			consumeWhitespace(in);
+			int eltColumn = in.getCurrentColumnNumber();
+			for(;;) {
+				Expr elt = parseAnyExpr(in, Precedence.lowest(), errors);
+				if(elt == null) {
+					consumeWhitespace(in);
+					cp = in.read();
+					if(cp == ',') {
+						continue;
+					}
+					if(cp == ']') {
+						break;
+					}
+					// TODO We could try to find a matching comma for the next element and mark everything in between as a recoverable error of sorts
+					throw new SyntaxError(in.getFilePosAsRange());
+				} else {
+					elements.add(elt);
+				}
+				FilePos prevElementEnd = in.getFilePos();
+				consumeWhitespace(in);
+				final boolean newLine = prevElementEnd.line != in.getCurrentLineNumber();
+				if(newLine) {
+					if(in.getCurrentColumnNumber() != eltColumn)
+						errors.add(new IncorrectIndentation(in.getFileRange(prevElementEnd), eltColumn));	// All the list elements should be lined up vertically if they are not on the same line
+					continue;
+				}
+				cp = in.read();
+				if(cp == ']') {
+					break;
+				}
+				if(cp == ',') {
+					consumeWhitespace(in);
+					boolean newLineAfterComma = in.getCurrentLineNumber() > prevElementEnd.line;
+					if(newLineAfterComma && in.getCurrentColumnNumber() != eltColumn) {
+						errors.add(new IncorrectIndentation(in.getFileRange(prevElementEnd), eltColumn));
+					}
+					continue;
+				}
+				// Missing separator - should be either a newline or a comma between elements
+				throw new ExpectedElement(in.getFilePosAsRange());
+			}
+			return new ListLiteral(elements);
+		} else {
+			in.seek(startPos);
+			return null;
+		}
+	}
+	
+	/**
+	 * Parse an object literal.  An object literal comes in two forms:
+	 * 
+	 * k1: value1
+	 * k2: value2
+	 * 
+	 * or
+	 * 
+	 * { k1: value1, k2:value2 }
+	 * 
+	 * In the second form, commas are optional if there is a newline and indent to the same column as the first key on the first line.
+	 * 
+	 * @param in Source code to parse
+	 * @param errors Collection to add recoverable errors to (i.e. indentation problems)
+	 * @return A newly parsed object literal expression, or null if the stream doesn't look like an object
+	 * @throws IOException
+	 * @throws BanjoParseException In case of a 
+	 */
+	public static ObjectLiteral parseObjectLiteral(ParserReader in, Collection<BanjoParseException> errors) throws IOException, BanjoParseException {
+		FilePos startPos = in.getFilePos();
+		LinkedHashMap<String,ObjectLiteral.Field> fields = new LinkedHashMap<>();
+		
+		Token identifier = BanjoParser.parseID(in);
+		if(identifier != null) {
+			if(!checkOperator(in, ":", identifier.getFileRange().getStart().column, errors)) {
+				in.seek(startPos);
+				return null;
+			}
+			
+			// Looks like a key/value pair to me!
+			int keyColumn = identifier.getStartColumn();
+			for(;;) {
+				Expr valueExpr = parseAnyExpr(in, Precedence.lowest(), errors);
+				if(valueExpr == null) {
+					// TODO We could try to find a matching bullet for the next element and mark everything in between as an error
+					throw new SyntaxError(in.getFilePosAsRange());
+				} else {
+					fields.put(identifier.getText(), new ObjectLiteral.Field(identifier, valueExpr));
+				}
+				
+				FilePos afterField = in.getFilePos();
+				consumeWhitespace(in);
+				identifier = BanjoParser.parseID(in);
+				if(identifier == null || identifier.getStartColumn() < keyColumn || !checkOperator(in, ":", identifier.getFileRange().getStart().column, errors)) {
+					// Doesn't look like we have another field coming ...
+					in.seek(afterField);
+					break;
+				}
+				if(identifier.getStartColumn() > keyColumn) {
+					// Unexpected indent; most likely explanation is a missing operator of some sort; we should abort
+					throw new IncorrectIndentation(in.getFilePosAsRange(), keyColumn);
+				}
+			}
+			return new ObjectLiteral(fields);
+		}
+		
+		// Not a vertical one, perhaps it is a {} style object
+		in.seek(startPos);
+		consumeWhitespace(in);
+		int cp = in.read();
+		if(cp == '{') {
+			consumeWhitespace(in);
+			int eltColumn = in.getCurrentColumnNumber();
+			for(;;) {
+				identifier = BanjoParser.parseID(in);
+				if(identifier == null) {
+					consumeWhitespace(in);
+					cp = in.read();
+					if(cp == ',') {
+						continue; // Ignoring extra commas here, not sure if that is wise
+					}
+					if(cp == '}') {
+						break;
+					}
+					if(fields.isEmpty()) {
+						in.seek(startPos);
+						return null;
+					} else {
+						throw new ExpectedField(in.getFilePosAsRange());
+					}
+				}
+				final int idStartColumn = identifier.getFileRange().getStart().column;
+				if(!checkOperator(in, ":", idStartColumn, errors)) {
+					throw new ExpectedColon(identifier.getText(), in.getFilePosAsRange());
+				}
+				
+				// Looks like a key/value thing
+				Expr valueExpr = parseAnyExpr(in, Precedence.lowest(), errors);
+				if(valueExpr == null) {
+					// TODO We could try to find a matching comma for the next element and mark everything in between as a recoverable error of sorts
+					throw new SyntaxError(in.getFilePosAsRange());
+				} else {
+					fields.put(identifier.getText(), new ObjectLiteral.Field(identifier, valueExpr));
+				}
+				FilePos prevElementEnd = in.getFilePos();
+				consumeWhitespace(in);
+				final boolean newLine = prevElementEnd.line < in.getCurrentLineNumber();
+				if(newLine) {
+					if(in.getCurrentColumnNumber() != eltColumn)
+						errors.add(new IncorrectIndentation(in.getFileRange(prevElementEnd), eltColumn));	// All the list elements should be lined up vertically if they are not on the same line
+					continue;
+				}
+				cp = in.read();
+				if(cp == '}') {
+					break;
+				}
+				if(cp == ',') {
+					consumeWhitespace(in);
+					boolean newLineAfterComma = in.getCurrentLineNumber() > prevElementEnd.line;
+					if(newLineAfterComma && in.getCurrentColumnNumber() != eltColumn) {
+						errors.add(new IncorrectIndentation(in.getFileRange(prevElementEnd), eltColumn));
+					}
+					continue;
+				}
+				// Missing separator - should be either a newline or a comma between elements
+				throw new ExpectedField(in.getFilePosAsRange());
+			}
+			return new ObjectLiteral(fields);
+		} else {
+			in.seek(startPos);
+			return null;
+		}
+	}
+	
 }

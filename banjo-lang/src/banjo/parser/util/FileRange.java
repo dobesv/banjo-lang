@@ -1,7 +1,7 @@
 package banjo.parser.util;
 
 
-public class FileRange {
+public final class FileRange {
 	private final String filename;
 	private final FilePos start;
 	private final FilePos end;

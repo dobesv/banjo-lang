@@ -15,4 +15,9 @@ public class NumberLiteral extends Expr {
 	public Number getNumber() {
 		return number;
 	}
+	
+	@Override
+	public String toString() {
+		return token.getText();
+	}
 }

@@ -24,7 +24,7 @@ public class TestLetParser {
 
 	private void simpleHelloTest(String sourceString, int expectedErrorCount) throws IOException,
 			BanjoParseException {
-		ParserReader in = ParserReader.fromString("<test>", sourceString);
+		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
 		Collection<BanjoParseException> errors = new ArrayList<>();
 		Let node = BanjoParser.parseLet(in, errors);
 		assertEquals(expectedErrorCount, errors.size());

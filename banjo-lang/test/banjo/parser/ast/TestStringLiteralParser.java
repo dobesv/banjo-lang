@@ -26,7 +26,7 @@ public class TestStringLiteralParser {
 
 	private void testParser(String sourceString, String expectedParsedString,
 			int expectedErrorCount) throws IOException {
-		ParserReader in = ParserReader.fromString("test1", sourceString);
+		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
 		Collection<BanjoParseException> errors = new ArrayList<>();
 		StringLiteral node = BanjoParser.parseStringLiteral(in, errors);
 		assertEquals(expectedErrorCount, errors.size());

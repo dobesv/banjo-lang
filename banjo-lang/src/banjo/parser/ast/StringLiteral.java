@@ -26,4 +26,9 @@ public class StringLiteral extends Expr {
 	public String getString() {
 		return string;
 	}
+	
+	@Override
+	public String toString() {
+		return token.toString();
+	}
 }

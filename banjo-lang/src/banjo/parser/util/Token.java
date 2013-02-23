@@ -24,7 +24,7 @@ public class Token {
 	
 	@Override
 	public String toString() {
-		return getText().replace("\n", "\\n").replace("\r", "\\r")+")"; //+"@("+fileRange+")";
+		return getText().replace("\n", "\\n").replace("\r", "\\r"); //+"@("+fileRange+")";
 	}
 
 	
@@ -68,5 +68,13 @@ public class Token {
 	 */
 	public String getIgnoredPrefix() {
 		return ignoredPrefix;
+	}
+
+	public int getStartColumn() {
+		return getStartPos().column;
+	}
+
+	private FilePos getStartPos() {
+		return getFileRange().getStart();
 	}
 }

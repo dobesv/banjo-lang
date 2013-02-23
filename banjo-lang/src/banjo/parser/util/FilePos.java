@@ -1,18 +1,27 @@
 package banjo.parser.util;
 
-public class FilePos {
+public final class FilePos {
 	/** Absolute file position in characters; this is the count of characters coming BEFORE this position */
 	public final int offset;
 	/** Line number in the file.  This is the count of line feeds coming before this line, plus 1 for this line (the first line is 1) */
 	public final int line;
 	/** Column number in the line.  This is the count of characters since the last line feed or the start of the file, plus one (the first column is 1) */
-	public final int col;
+	public final int column;
 	
+	public int getOffset() {
+		return offset;
+	}
+	public int getLine() {
+		return line;
+	}
+	public int getColumn() {
+		return column;
+	}
 	public FilePos(int charsRead, int line, int col) {
 		super();
 		this.offset = charsRead;
 		this.line = line;
-		this.col = col;
+		this.column = col;
 	}
 	
 	/**
@@ -47,29 +56,29 @@ public class FilePos {
 	
 	@Override
 	public String toString() {
-		return "line "+line+" col "+col; //+ " offset "+offset;
+		return "line "+line+" col "+column; //+ " offset "+offset;
 	}
 	public String toString(FilePos start) {
 		if(start.line == this.line)
-			return "col "+col; //+" offset "+offset;
+			return "col "+column; //+" offset "+offset;
 		else
-			return "line "+line+" col "+col; //+ " offset "+offset;
+			return "line "+line+" col "+column; //+ " offset "+offset;
 	}
 	public void toString(StringBuffer sb) {
-		sb.append("line ").append(line).append(" col ").append(col);//.append(" offset ").append(offset);
+		sb.append("line ").append(line).append(" col ").append(column);//.append(" offset ").append(offset);
 	}
 	public void toString(FilePos start, StringBuffer sb) {
 		if(start.line != this.line) {
 			sb.append("line ").append(line);
 		}		
-		sb.append(" col ").append(col);//.append(" offset ").append(offset);
+		sb.append(" col ").append(column);//.append(" offset ").append(offset);
 	}
 	
 	/**
 	 * Calculate the file position for the first column of the same line.
 	 */
 	public FilePos lineStart() {
-		if(col == 1) return this;
-		return new FilePos(offset-col+1, line, 1);
+		if(column == 1) return this;
+		return new FilePos(offset-column+1, line, 1);
 	}
 }
