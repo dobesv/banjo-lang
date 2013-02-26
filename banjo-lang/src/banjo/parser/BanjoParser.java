@@ -9,8 +9,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.regex.Pattern;
 
+import banjo.parser.BanjoParser.BanjoParseException;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.Expr.Precedence;
+import banjo.parser.ast.Field;
+import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
 import banjo.parser.ast.Let;
 import banjo.parser.ast.ListLiteral;
@@ -126,6 +129,13 @@ public class BanjoParser {
 		public int getEndLine() { return range.getEnd().line; }
 		public int getEndColumn() { return range.getEnd().column; }
 	}
+	public static class ExpectedExpression extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+
+		public ExpectedExpression(FileRange fileRange) {
+			super("Invalid expression after this position", fileRange);
+		}
+	}
 	public static class ExpectedElement extends BanjoParseException {
 		private static final long serialVersionUID = 1L;
 	
@@ -141,6 +151,18 @@ public class BanjoParser {
 		}
 	}
 
+	public static class ExpectedFunctionArgsBodySeparator extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public ExpectedFunctionArgsBodySeparator(String message, FileRange range) {
+			super(message, range);
+		}
+	
+		public ExpectedFunctionArgsBodySeparator(int followedBy, FileRange fileRange) {
+			this(new StringBuffer().append("Expected function argument list to be separated from body with '").appendCodePoint(followedBy).append("'").toString(), fileRange);
+		}
+	
+	}
 	public static class ExpectedColon extends BanjoParseException {
 		private static final long serialVersionUID = 1L;
 	
@@ -149,6 +171,22 @@ public class BanjoParser {
 		}
 	}
 	
+	public static class UnexpectedCloseParen extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public UnexpectedCloseParen(FileRange range) {
+			super("Unexpected ')'", range);
+		}
+	
+	}
+	public static class MissingCloseParen extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+	
+		public MissingCloseParen(FileRange range) {
+			super("Missing ')'", range);
+		}
+	
+	}
 	public static class ExpectedSemiColonOrNewline extends BanjoParseException {
 		private static final long serialVersionUID = 1L;
 
@@ -682,7 +720,7 @@ public class BanjoParser {
 	 */
 	public static ObjectLiteral parseObjectLiteral(ParserReader in, Collection<BanjoParseException> errors) throws IOException, BanjoParseException {
 		FilePos startPos = in.getFilePos();
-		LinkedHashMap<String,ObjectLiteral.Field> fields = new LinkedHashMap<>();
+		LinkedHashMap<String,Field> fields = new LinkedHashMap<>();
 		
 		Token identifier = BanjoParser.parseID(in);
 		if(identifier != null) {
@@ -699,7 +737,7 @@ public class BanjoParser {
 					// TODO We could try to find a matching bullet for the next element and mark everything in between as an error
 					throw new SyntaxError(in.getFilePosAsRange());
 				} else {
-					fields.put(identifier.getText(), new ObjectLiteral.Field(identifier, valueExpr));
+					fields.put(identifier.getText(), new Field(identifier, valueExpr));
 				}
 				
 				FilePos afterField = in.getFilePos();
@@ -754,7 +792,7 @@ public class BanjoParser {
 					// TODO We could try to find a matching comma for the next element and mark everything in between as a recoverable error of sorts
 					throw new SyntaxError(in.getFilePosAsRange());
 				} else {
-					fields.put(identifier.getText(), new ObjectLiteral.Field(identifier, valueExpr));
+					fields.put(identifier.getText(), new Field(identifier, valueExpr));
 				}
 				FilePos prevElementEnd = in.getFilePos();
 				consumeWhitespace(in);
@@ -786,4 +824,147 @@ public class BanjoParser {
 		}
 	}
 	
+	static final int LITERAL_FUNCTION_ARROW = 0x21a6;
+	/**
+	 * <p>Parse a function literal.  A function literal looks roughly like: </p>
+	 *  
+	 * <p>Shortest form:
+	 * 
+	 * <ul><li><code>a↦a*a</code></li>
+	 *     <li><code>a,b↦a+b</code></li></ul>
+	 * </p>
+	 * <p> Arguments can be surrounded with parentheses:
+	 * 
+	 * <ul><li><code>(a)↦a*a</code></li>
+	 *     <li><code>(a,b)↦a+b</code></li></ul>
+	 * </p>
+	 * 
+	 * <p>A function with no arguments (aka a lazy value) can omit the argument list:
+	 * 
+	 * <ul><li><code>↦ x+5</code></li></ul>
+	 * </p>
+	 * 
+	 * <p> Notes:
+	 * <ul><li>Arrow (->) is unicode 0x2192.  In mathematical notation the arrow represents the domain and range of a function</li>  
+	 *     <li>Arrow from bar (|->) is 0x21a6.  In mathematical notation this is used to describe the computation of a function</li></ul>
+	 * </p>
+	 * 
+	 * @param in Source file input stream
+	 * @param errors Collection to add recoverable errors to
+	 * @return A new FunctionLiteral if found, otherwise null
+	 * @throws IOException If there's a problem reading the underlying stream
+	 * @throws BanjoParseException If there's a non-recoverable parse error
+	 */
+	public static FunctionLiteral parseFunctionLiteral(ParserReader in, Collection<BanjoParseException> errors) throws IOException, BanjoParseException {
+		LinkedHashMap<String, Token> args = parseArgumentList(in, LITERAL_FUNCTION_ARROW, errors);
+		if(args == null) {
+			// Check for a lazy value (i.e. missing parameter list)
+			FilePos startPos = in.getFilePos();
+			consumeWhitespace(in);
+			if(in.read() == LITERAL_FUNCTION_ARROW) {
+				args = new LinkedHashMap<>(); // Empty argument list in this case
+			} else {
+				in.seek(startPos);
+				return null;
+			}
+		}
+		Expr body = parseAnyExpr(in, Precedence.lowest(), errors);
+		if(body == null) {
+			throw new ExpectedExpression(in.getFilePosAsRange());
+		}
+		return new FunctionLiteral(args, body);
+	}
+
+	/**
+	 * <p> Parse a function argument list.  It may or may not be surrounded by parentheses.
+	 * 
+	 * <p> If the input looks like a function argument list, this returns it.  Otherwise, the input stream is reset
+	 * to the same as before the call and this returns null.
+	 * 
+	 * <p> This is shared between the code to parse a let and to parse a function literal.
+	 * 
+	 * <p> This will not detect an empty parameter list unless there are parentheses around it.  For lazy value syntax,
+	 *     the caller should check if this fails (or even before calling this, depending). </p>
+	 *     
+	 * @param in Source file input stream
+	 * @param errors Collection to add recoverable errors to
+	 * @param followedBy Expect this character to follow the argument list; would be '=' for a let, or arrow for a function literal.
+	 * 
+	 * @return Parsed function argument list.
+	 * @throws IOException 
+	 * @throws SyntaxError 
+	 */
+	private static LinkedHashMap<String, Token> parseArgumentList(
+			ParserReader in, int followedBy, Collection<BanjoParseException> errors) throws IOException {
+		FilePos startPos = in.getFilePos();
+		consumeWhitespace(in);
+		int startChar = in.read();
+		boolean foundOpenParen = (startChar == '(');
+		if(!foundOpenParen) {
+			in.seek(startPos);
+		}
+		
+		Token id = parseID(in);
+		if(id == null) {
+			// Possibly an empty pair of parens: (); if the right separator follows it, then accept it as a parameter list
+			if(foundOpenParen) {
+				consumeWhitespace(in);
+				if(in.read() == ')') {
+					consumeWhitespace(in);
+					if(in.read() == followedBy) {
+						return new LinkedHashMap<>();
+					}
+				}
+			}
+			in.seek(startPos);
+			return null;
+		}
+		LinkedHashMap<String, Token> args = new LinkedHashMap<>();
+		for(;;) {
+			args.put(id.getText(), id);
+			
+			FilePos afterArg = in.getFilePos();
+			
+			// We read an argument name - now check for a comma or newline 
+			if(!checkSeparatorOrNewline(in, ",", id.getStartColumn(), errors) || (id = parseID(in)) == null) {
+				
+				// No comma or no newline or no ID following those. Perhaps we'll find that separator we're looking for, or a close paren
+				consumeWhitespace(in);
+				int cp = in.read();
+				if(cp == ')') {
+					FilePos afterCloseParen = in.getFilePos();
+					if(foundOpenParen) {
+						consumeWhitespace(in);
+						cp = in.read();
+						if(cp != followedBy) {
+							// All good!
+							errors.add(new ExpectedFunctionArgsBodySeparator(followedBy, in.getFileRange(afterCloseParen)));
+							in.seek(afterCloseParen);
+						}
+					} else {
+						errors.add(new UnexpectedCloseParen(in.getFileRange(afterArg)));
+					}
+					return args;
+				} else if(cp == followedBy) {
+					if(foundOpenParen) {
+						errors.add(new MissingCloseParen(in.getFileRange(afterArg)));
+					}
+					return args;
+				} else if(foundOpenParen && args.size() > 1) {
+					// If there's an open parenthesis and two or more elements then we can assume this is
+					// an argument list of some sort and report errors.
+					// This might be a forgotten close parenthesis but it might also be a badly formed
+					// argument.
+					// TODO Could be smarter here - scan ahead for the close paren or the arrow, maybe
+					errors.add(new MissingCloseParen(in.getFileRange(afterArg)));
+					errors.add(new ExpectedFunctionArgsBodySeparator(followedBy, in.getFileRange(afterArg)));
+					return args;
+				} else {
+					// Probably not an argument list after all
+					in.seek(startPos);
+					return null;
+				}
+			}
+		}
+	}
 }

@@ -34,7 +34,7 @@ public class TestObjectLiteralParser {
 		assertNotNull(node);
 		assertEquals(expectedErrorCount, errors.size());
 		assertEquals(0, in.remaining());
-		final ObjectLiteral.Field[] eltsArray = node.getFields().values().toArray(new ObjectLiteral.Field[3]);
+		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getValue().getClass());
 		assertEquals(1L, ((NumberLiteral)eltsArray[0].getValue()).getNumber().longValue());
