@@ -1,6 +1,7 @@
 package banjo.parser.ast;
 
 
+import banjo.parser.util.FileRange;
 import banjo.parser.util.Token;
 
 public class Let extends Expr {
@@ -10,7 +11,7 @@ public class Let extends Expr {
 	private final Expr body;
 	
 	public Let(Token nameToken, Expr value, Expr body) {
-		super();
+		super(new FileRange(nameToken.getFileRange(), body.getFileRange()));
 		this.nameToken = nameToken;
 		this.name = nameToken.getText();
 		this.value = value;

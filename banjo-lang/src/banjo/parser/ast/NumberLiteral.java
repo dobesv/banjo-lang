@@ -8,6 +8,7 @@ public class NumberLiteral extends Expr {
 	final Number number;
 	
 	public NumberLiteral(Token token, Number number) {
+		super(token.getFileRange());
 		this.token = token;
 		this.number = number;
 	}

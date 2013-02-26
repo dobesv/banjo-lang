@@ -4,8 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 import org.junit.Test;
 
@@ -28,11 +26,11 @@ public class TestObjectLiteralParser {
 	}
 
 	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		Collection<BanjoParseException> errors = new ArrayList<>();
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		ObjectLiteral node = BanjoParser.parseObjectLiteral(in, errors);
+		final BanjoParser parser = new BanjoParser(in);
+		ObjectLiteral node = parser.parseObjectLiteral();
 		assertNotNull(node);
-		assertEquals(expectedErrorCount, errors.size());
+		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals(0, in.remaining());
 		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
 		assertEquals(3, eltsArray.length);

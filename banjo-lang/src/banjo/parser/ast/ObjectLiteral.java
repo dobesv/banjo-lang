@@ -2,13 +2,15 @@ package banjo.parser.ast;
 
 import java.util.LinkedHashMap;
 
+import banjo.parser.util.FileRange;
+
 
 public class ObjectLiteral extends Expr {
 	
 	private final LinkedHashMap<String, Field> fields;
 
-	public ObjectLiteral(LinkedHashMap<String, Field> fields) {
-		super();
+	public ObjectLiteral(FileRange fileRange, LinkedHashMap<String, Field> fields) {
+		super(fileRange);
 		this.fields = fields;
 	}
 

@@ -15,11 +15,11 @@ import banjo.parser.util.ParserReader;
 public class TestFunctionLiteralParser {
 
 	public FunctionLiteral testParse(String source, int expectedErrors, int expectedArgCount, String expectedArgNames, String expectedArgReturned) throws BanjoParseException, IOException {
-		Collection<BanjoParseException> errors = new ArrayList<>();
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		FunctionLiteral node = BanjoParser.parseFunctionLiteral(in, errors);
+		final BanjoParser parser = new BanjoParser(in);
+		FunctionLiteral node = parser.parseFunctionLiteral();
 		assertNotNull(node);
-		assertEquals(expectedErrors, errors.size());
+		assertEquals(expectedErrors, parser.getErrors().size());
 		assertEquals(expectedArgCount, node.getArgs().size());
 		assertEquals("["+expectedArgNames+"]", node.getArgs().keySet().toString());
 		assertEquals(IdRef.class, node.getBody().getClass());

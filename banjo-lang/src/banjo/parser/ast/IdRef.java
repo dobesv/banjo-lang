@@ -7,7 +7,7 @@ public class IdRef extends Expr {
 	final Token token;
 	final String id;
 	public IdRef(Token token, String id) {
-		super();
+		super(token.getFileRange());
 		this.token = token;
 		this.id = id;
 	}

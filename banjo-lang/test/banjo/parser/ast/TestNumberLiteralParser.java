@@ -5,14 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 import org.junit.Test;
 
 import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.BanjoParseException;
-import banjo.parser.util.ParserReader;
 
 public class TestNumberLiteralParser {
 
@@ -28,8 +24,7 @@ public class TestNumberLiteralParser {
 	}
 	
 	private void testNonNumber(String inStr) throws IOException {
-		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
+		final NumberLiteral node = new BanjoParser(inStr).parseNumberLiteral();
 		assertNull("Should not parse as number: "+inStr, node);
 	}
 
@@ -46,10 +41,10 @@ public class TestNumberLiteralParser {
 
 	private void testInt(int n) throws IOException {
 		String inStr = String.valueOf(n);
-		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
+		final BanjoParser parser = new BanjoParser(inStr);
+		final NumberLiteral node = parser.parseNumberLiteral();
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, errors.size());
+		assertEquals(0, parser.getErrors().size());
 		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
 	}
 	
@@ -68,10 +63,10 @@ public class TestNumberLiteralParser {
 
 	private void testLong(long n) throws IOException {
 		String inStr = String.valueOf(n);
-		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
+		final BanjoParser parser = new BanjoParser(inStr);
+		final NumberLiteral node = parser.parseNumberLiteral();
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, errors.size());
+		assertEquals(0, parser.getErrors().size());
 		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
 	}
 
@@ -103,10 +98,10 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		Collection<BanjoParseException> errors = new ArrayList<>();
-		final NumberLiteral node = BanjoParser.parseNumberLiteral(ParserReader.fromString(getClass().getName(), inStr), errors);
+		final BanjoParser parser = new BanjoParser(inStr);
+		final NumberLiteral node = parser.parseNumberLiteral();
 		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, errors.size());
+		assertEquals(0, parser.getErrors().size());
 		assertEquals(outStr, String.valueOf(node.getNumber()));
 	}
 	

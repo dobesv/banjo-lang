@@ -58,6 +58,12 @@ public class ParserReader extends Reader {
 		public FilePos toFilePos() {
 			return new FilePos(offset, line, col);
 		}
+		
+		@Override
+		public String toString() {
+			return "line "+line+" col "+col+ " offset "+offset;
+		}
+		
 	}
 	
 	final Reader delegate;

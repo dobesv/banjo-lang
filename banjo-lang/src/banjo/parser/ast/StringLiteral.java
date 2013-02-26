@@ -10,7 +10,7 @@ public class StringLiteral extends Expr {
 	private final String string;
 	
 	public StringLiteral(Token token, String string) {
-		super();
+		super(token.getFileRange());
 		this.token = token;
 		this.string = string;
 	}

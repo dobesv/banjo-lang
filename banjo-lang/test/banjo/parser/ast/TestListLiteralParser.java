@@ -1,10 +1,9 @@
 package banjo.parser.ast;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 import org.junit.Test;
 
@@ -26,10 +25,10 @@ public class TestListLiteralParser {
 	}
 
 	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		Collection<BanjoParseException> errors = new ArrayList<>();
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		ListLiteral node = BanjoParser.parseListLiteral(in, errors);
-		assertEquals(expectedErrorCount, errors.size());
+		final BanjoParser parser = new BanjoParser(in);
+		ListLiteral node = parser.parseListLiteral();
+		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals(-1, in.read());
 		assertNotNull(node);
 		final Object[] eltsArray = node.getElements().toArray();

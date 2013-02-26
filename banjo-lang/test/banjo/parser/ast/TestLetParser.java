@@ -25,9 +25,9 @@ public class TestLetParser {
 	private void simpleHelloTest(String sourceString, int expectedErrorCount) throws IOException,
 			BanjoParseException {
 		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
-		Collection<BanjoParseException> errors = new ArrayList<>();
-		Let node = BanjoParser.parseLet(in, errors);
-		assertEquals(expectedErrorCount, errors.size());
+		final BanjoParser parser = new BanjoParser(in);
+		Let node = parser.parseLet();
+		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals("hello", node.getName());
 		assertEquals(StringLiteral.class, node.getValue().getClass());
 		assertEquals("world", ((StringLiteral)node.getValue()).getString());
