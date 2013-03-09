@@ -7,7 +7,7 @@ public final class FilePos {
 	public final int line;
 	/** Column number in the line.  This is the count of characters since the last line feed or the start of the file, plus one (the first column is 1) */
 	public final int column;
-	
+
 	public int getOffset() {
 		return offset;
 	}
@@ -23,7 +23,7 @@ public final class FilePos {
 		this.line = line;
 		this.column = col;
 	}
-	
+
 	/**
 	 * Create a FilePos for the start of the file.
 	 */
@@ -81,4 +81,5 @@ public final class FilePos {
 		if(column == 1) return this;
 		return new FilePos(offset-column+1, line, 1);
 	}
+	
 }

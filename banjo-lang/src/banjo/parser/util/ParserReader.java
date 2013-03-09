@@ -21,10 +21,12 @@ import java.util.regex.Pattern;
  */
 public class ParserReader extends Reader {
 
-	static class Pos {
+	public static class Pos {
 		int line=1;
 		int col=1;
 		int offset=0;
+		int indentLevel=0;
+		boolean startOfLine;
 		
 		public Pos() {
 		}
@@ -35,6 +37,7 @@ public class ParserReader extends Reader {
 			this.line = other.line;
 			this.col = other.col;
 			this.offset = other.offset;
+			this.indentLevel = other.indentLevel;
 		}
 		public void assign(FilePos filePos) {
 			this.line = filePos.line;
@@ -44,24 +47,50 @@ public class ParserReader extends Reader {
 		
 		
 		private void accumulate(int ch) {
-			if(ch == -1)
+			if(ch == -1) {
+				if(col != 1) {
+					line++;
+					col = 1;
+				}
 				return;
+			}
 			
 			if(ch == '\n') {
 				line++;
 				col = 1;
+				startOfLine=true;
 			} else {
 				col++;
+				if(ch == ' ' && startOfLine) indentLevel++;
+				else startOfLine = false;
 			}
 			offset++;
 		}
 		public FilePos toFilePos() {
 			return new FilePos(offset, line, col);
 		}
+		public Pos clone() {
+			return new Pos(this);
+		}
 		
 		@Override
 		public String toString() {
 			return "line "+line+" col "+col+ " offset "+offset;
+		}
+		public int getLine() {
+			return line;
+		}
+		public int getColumn() {
+			return col;
+		}
+		public int getOffset() {
+			return offset;
+		}
+		public int getIndentLevel() {
+			return indentLevel;
+		}
+		public boolean isStartOfLine() {
+			return startOfLine;
 		}
 		
 	}
@@ -70,6 +99,7 @@ public class ParserReader extends Reader {
 	final String filename;
 	
 	final Pos current = new Pos();
+	final Pos previous = new Pos(); // Previous position
 	final Pos mark = new Pos();
 	public final int fileSize; // In chars
 	
@@ -89,6 +119,7 @@ public class ParserReader extends Reader {
 	}
 
 	private void accumulate(int ch) {
+		previous.assign(current);
 		current.accumulate(ch);
 	}
 
@@ -135,6 +166,7 @@ public class ParserReader extends Reader {
 	 */
 	public void reset() throws IOException {
 		delegate.reset();
+		previous.assign(current);
 		current.assign(mark);
 	}
 
@@ -161,6 +193,8 @@ public class ParserReader extends Reader {
 		} else if(offset == mark.offset) {
 			// Jump back to the mark
 			reset();
+		} else if(offset == previous.offset) {
+			seek(previous);
 		} else if(offset > mark.offset) {
 			// Save some line/column calculations if we're seeking back within the current line
 			int charsBack = current.offset - offset;
@@ -198,8 +232,6 @@ public class ParserReader extends Reader {
 		} else if(offset.offset == mark.offset) {
 			// Jump back to the mark
 			reset();
-		} else if(offset.offset > current.offset){
-			skip(offset.offset - current.offset);
 		} else if(offset.offset > mark.offset){
 			delegate.reset();
 			delegate.skip(offset.offset-mark.offset);
@@ -223,6 +255,8 @@ public class ParserReader extends Reader {
 		} else if(filePos.offset == mark.offset) {
 			// Jump back to the mark
 			reset();
+		} else if(filePos.offset == previous.offset) {
+			seek(previous);
 		} else if(filePos.offset > current.offset) {
 			skip(filePos.offset - current.offset);
 		} else if(filePos.offset > mark.offset){
@@ -242,10 +276,25 @@ public class ParserReader extends Reader {
 	 * immediately following the provided token.
 	 * 
 	 * @param token Token to use as a reference.
-	 * @throws IOException If bytes had to be read from the the file and an errors occurs while doing so
+	 * @throws IOException If bytes had to be read from the the file and an error occurred while doing so
 	 */
 	public void seekPast(Token token) throws IOException {
-		this.seek(token.getFileRange().getEnd());
+		final FileRange fileRange = token.getFileRange();
+		seekPast(fileRange);
+	}
+
+	/**
+	 * Seek to the end of the given range.  The range is assumed to have come from
+	 * this file and to have a correct end line and column in it.
+	 * <p>
+	 * After this call, the file position will be set to read the character
+	 * immediately following the provided range.
+	 * 
+	 * @param range Range to use as a reference.
+	 * @throws IOException If bytes had to be read from the the file and an error occurred while doing so
+	 */
+	public void seekPast(final FileRange fileRange) throws IOException {
+		this.seek(fileRange.getEnd());
 	}
 	
 	/**
@@ -312,18 +361,17 @@ public class ParserReader extends Reader {
 	 * or in the original position if the match fails.
 	 * This will not match an empty string even if the regular expression
 	 * would allow it.
-	 * 
 	 * @param ignoredTokens Tokens that were ignored as comments/whitespace immediately before this one 
 	 */
-	public Token checkNextToken(Pattern re, String ignored) throws IOException {
-		FilePos start = getFilePos();
+	public Token checkNextToken(Pattern re) throws IOException {
+		Pos start = getCurrentPosition(new Pos());
 		Matcher m = matcher(re);
 		if(m.lookingAt() && m.end() > m.start()) {
 			// Position just at the end of the token that was matched
 			String text = m.group();
 			seek(start);
 			skip(m.end());
-			return new Token(getFileRange(start), text, ignored);
+			return new Token(getFileRange(start), text);
 		}
 		seek(start);
 		return null;
@@ -400,6 +448,13 @@ public class ParserReader extends Reader {
 	 */
 	public FileRange getFileRange(FilePos from) {
 		return new FileRange(filename, from, current.toFilePos());
+	}
+
+	/**
+	 * Return the file range from the given position to the current position.
+	 */
+	public FileRange getFileRange(Pos from) {
+		return new FileRange(filename, from.toFilePos(), current.toFilePos());
 	}
 
 	public String getFilename() {
@@ -571,19 +626,45 @@ public class ParserReader extends Reader {
 	 * Read a token starting at the given file position up to the current position.  Useful if you have been parsing some stuff
 	 * and want to bundle up everything you parsed into a new Token.
 	 * 
-	 * @param tokenStartPos Start position of the token to read
-	 * @param ignored Any whitespace ignored just prior to that token
+	 * @param start Start position of the token to read
 	 * @return A new Token taken from that range
 	 * @throws IOException If there's a problem reading the data
 	 */
-	public Token readTokenFrom(FilePos tokenStartPos, String ignored) throws IOException {
+	public Token readTokenFrom(Pos start) throws IOException {
 		int endOffset = current.offset;
-		seek(tokenStartPos);
-		String text = readString(endOffset - tokenStartPos.offset);
-		FileRange range = getFileRange(tokenStartPos);
-		return new Token(range, text, ignored);
+		seek(start);
+		String text = readString(endOffset - start.offset);
+		FileRange range = getFileRange(start);
+		return new Token(range, text);
 	}
 	
+	/**
+	 * @return true if we've seen nothing but space characters since the last newline.
+	 */
+	public boolean isAtStartOfLine() { return current.startOfLine; }
+
+	/**
+	 * Copy the current position into the given position object.
+	 * <p>
+	 * Returns its argument.
+	 */
+	public Pos getCurrentPosition(Pos into) {
+		into.assign(current);
+		return into;
+	}
 	
-	
+	/**
+	 * Copy the position we were at prior to the last read().
+	 */
+	public Pos getPreviousPosition(Pos into) {
+		into.assign(previous);
+		return into;
+	}
+
+	/**
+	 * Reset the read position to before the last code point read.
+	 */
+	public void unread() throws IOException {
+		seek(previous);
+	}
 }

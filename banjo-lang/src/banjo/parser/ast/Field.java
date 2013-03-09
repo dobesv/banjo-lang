@@ -1,19 +1,24 @@
 package banjo.parser.ast;
 
-import banjo.parser.util.Token;
+import banjo.parser.util.FileRange;
 
 public class Field {
-	final Token identifier;
-	final Expr value;
-	public Field(Token identifier, Expr value) {
-		super();
+	private final String identifier;
+	private final Expr value;
+	private final FileRange identifierRange;
+	public Field(FileRange identifierRange, String identifier, Expr valueExpr) {
+		this.identifierRange = identifierRange;
 		this.identifier = identifier;
-		this.value = value;
-	}
-	public Token getIdentifier() {
-		return identifier;
+		this.value = valueExpr;
 	}
 	public Expr getValue() {
 		return value;
 	}
+	public String getIdentifier() {
+		return identifier;
+	}
+	public FileRange getIdentifierRange() {
+		return identifierRange;
+	}
+	
 }

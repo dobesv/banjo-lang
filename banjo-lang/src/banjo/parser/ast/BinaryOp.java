@@ -5,9 +5,9 @@ import banjo.parser.util.FileRange;
 public class BinaryOp extends Expr {
 	private final Expr left;
 	private final Expr right;
-	private final Operator operator;
+	private final BinaryOperator operator;
 	
-	public BinaryOp(Operator op, Expr left, Expr right) {
+	public BinaryOp(BinaryOperator op, Expr left, Expr right) {
 		super(new FileRange(left.getFileRange(), right.getFileRange()));
 		this.operator = op;
 		this.left = left;
@@ -20,7 +20,7 @@ public class BinaryOp extends Expr {
 	public Expr getRight() {
 		return right;
 	}
-	public Operator getOp() {
+	public BinaryOperator getOperator() {
 		return operator;
 	}
 
@@ -29,5 +29,17 @@ public class BinaryOp extends Expr {
 		return left.getStartColumn();
 	}
 	
+	public void toSource(StringBuffer sb) {
+		left.toSource(sb, getPrecedence());
+		sb.append(' ');
+		sb.append(operator.getOp());
+		sb.append(' ');
+		right.toSource(sb, getPrecedence());
+	}
 	
+	@Override
+	public Precedence getPrecedence() {
+		return operator.getPrecedence();
+	}
+
 }

@@ -2,11 +2,11 @@ package banjo.parser.ast;
 
 public enum Precedence {
 	// Listed here from HIGHEST to LOWEST
-	ATOM, // Identifier, string/number/character/object literal/constructor 
+	ATOM, // Identifier, string/number/character/object literal/constructor, parenthesized expr 
 	SUFFIX, // array index, member access, function/method call
 	UNARY_PREFIX, // +, -, ~
 	MULDIV, // *, /, %
-	ADDSUB, // binary +, -
+	ADDSUB, // +, -
 	BITSHIFT, // <<, >>, >>>
 	ORDERING, // <, <=, >, >=
 	EQUALITY, // ==, !=
@@ -16,7 +16,12 @@ public enum Precedence {
 	LOGICAL_AND, // &&
 	LOGICAL_OR, // ||
 	TERNARY, // ? :
-	ASSIGNMENT; // let, =, +=, *=, ...
+	BULLET, // Bullets list
+	COMMA, // ',' "sequence operator"
+	FUNCTION, // ->
+	ASSIGNMENT, // let, =, +=, *=, ...
+	COND, // '=>' implication / cond
+	SEMICOLON; // ';' "sequence operator"
 	
 	public boolean isHigherThan(Precedence other) {
 		return ordinal() < other.ordinal();

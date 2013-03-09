@@ -3,21 +3,15 @@ package banjo.parser.util;
 public class Token {
 	private final String text;
 	private final FileRange fileRange;
-	private final String ignoredPrefix;
 	
-	public Token(FileRange fileRange, String text, String ignoredPrefix) {
+	public Token(FileRange fileRange, String text) {
 		if(fileRange == null) throw new NullPointerException();
 		if(text == null) throw new NullPointerException();
 		if(text.length() != fileRange.length()) throw new IllegalStateException();
 		this.fileRange = fileRange;
 		this.text = text;
-		this.ignoredPrefix = ignoredPrefix;
 	}
 	
-	public Token(FileRange fileRange, String text) {
-		this(fileRange, text, "");
-	}
-
 	public FileRange getFileRange() {
 		return fileRange;
 	}
@@ -60,14 +54,6 @@ public class Token {
 
 	public String getText() {
 		return text;
-	}
-
-	/**
-	 * Any text that was consumed immediately before this token but not used as part of parsing.  Typically
-	 * this is whitespace and comments.
-	 */
-	public String getIgnoredPrefix() {
-		return ignoredPrefix;
 	}
 
 	public int getStartColumn() {

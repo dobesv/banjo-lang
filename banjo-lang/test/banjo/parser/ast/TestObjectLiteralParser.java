@@ -1,5 +1,6 @@
 package banjo.parser.ast;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -26,22 +27,34 @@ public class TestObjectLiteralParser {
 	}
 
 	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		final BanjoParser parser = new BanjoParser(in);
-		ObjectLiteral node = parser.parseObjectLiteral();
-		assertNotNull(node);
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		assertEquals(0, in.remaining());
+		ObjectLiteral node = parse(source, expectedErrorCount);
 		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getValue().getClass());
 		assertEquals(1L, ((NumberLiteral)eltsArray[0].getValue()).getNumber().longValue());
-		assertEquals("a", eltsArray[0].getIdentifier().getText());
+		assertEquals("a", eltsArray[0].getIdentifier());
 		assertEquals(NumberLiteral.class, eltsArray[1].getValue().getClass());
 		assertEquals(2L, ((NumberLiteral)eltsArray[1].getValue()).getNumber().longValue());
-		assertEquals("b", eltsArray[1].getIdentifier().getText());
+		assertEquals("b", eltsArray[1].getIdentifier());
 		assertEquals(NumberLiteral.class, eltsArray[2].getValue().getClass());
 		assertEquals(3L, ((NumberLiteral)eltsArray[2].getValue()).getNumber().longValue());
-		assertEquals("c", eltsArray[2].getIdentifier().getText());
+		assertEquals("c", eltsArray[2].getIdentifier());
+	}
+
+	public ObjectLiteral parse(String source, int expectedErrorCount)
+			throws IOException, BanjoParseException {
+		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
+		final BanjoParser parser = new BanjoParser(in);
+		ObjectLiteral node = (ObjectLiteral) parser.parseExpr();
+		assertNotNull(node);
+		assertEquals(expectedErrorCount, parser.getErrors().size());
+		assertEquals(0, in.remaining());
+		return node;
+	}
+	
+	@Test
+	public void testEmpty() throws Exception {
+		ObjectLiteral node = parse("{}", 0);
+		assertTrue(node.getFields().isEmpty());
 	}
 }

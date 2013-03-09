@@ -84,5 +84,8 @@ public final class FileRange {
 	public String getFilename() {
 		return filename;
 	}
+	public int getEndLine() {
+		return end.line;
+	}
 
 }

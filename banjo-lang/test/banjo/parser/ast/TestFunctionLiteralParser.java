@@ -17,14 +17,18 @@ public class TestFunctionLiteralParser {
 	public FunctionLiteral testParse(String source, int expectedErrors, int expectedArgCount, String expectedArgNames, String expectedArgReturned) throws BanjoParseException, IOException {
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
 		final BanjoParser parser = new BanjoParser(in);
-		FunctionLiteral node = parser.parseFunctionLiteral();
-		assertNotNull(node);
+		final Expr node = parser.parseExpr();
+		System.out.println(node.toSource());
+		assertEquals(FunctionLiteral.class, node.getClass());
+		FunctionLiteral func = (FunctionLiteral) node;
+		assertNotNull(func);
+		assertTrue(in.read() == -1);
 		assertEquals(expectedErrors, parser.getErrors().size());
-		assertEquals(expectedArgCount, node.getArgs().size());
-		assertEquals("["+expectedArgNames+"]", node.getArgs().keySet().toString());
-		assertEquals(IdRef.class, node.getBody().getClass());
-		assertEquals(expectedArgReturned, ((IdRef)node.getBody()).getId());
-		return node;
+		assertEquals(expectedArgCount, func.getArgs().size());
+		assertEquals("["+expectedArgNames+"]", func.getArgs().toString());
+		assertEquals(IdRef.class, func.getBody().getClass());
+		assertEquals(expectedArgReturned, ((IdRef)func.getBody()).getId());
+		return func;
 	}
 	@Test
 	public void test1() throws Exception {

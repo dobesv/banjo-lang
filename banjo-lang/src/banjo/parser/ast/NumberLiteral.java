@@ -21,4 +21,16 @@ public class NumberLiteral extends Expr {
 	public String toString() {
 		return token.getText();
 	}
+	
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		sb.append(number.toString());
+	}
+	
+	
 }

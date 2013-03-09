@@ -1,26 +1,60 @@
 package banjo.parser.ast;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import banjo.parser.util.FileRange;
 import banjo.parser.util.Token;
 
 public class FunctionLiteral extends Expr {
 
-	final LinkedHashMap<String, Token> args;
-	final Expr body;
+	private final List<FunctionArg> args;
+	private final Expr contract;
+	private final Expr body;
 	
-	public FunctionLiteral(FileRange range, LinkedHashMap<String, Token> args, Expr body) {
+	public FunctionLiteral(FileRange range, List<FunctionArg> args, Expr contract, Expr body) {
 		super(range);
-		this.args = args;
+		this.args = Collections.unmodifiableList(args);
+		this.contract = contract;
 		this.body = body;
 	}
 
-	public LinkedHashMap<String, Token> getArgs() {
+	public List<FunctionArg> getArgs() {
 		return args;
 	}
 
 	public Expr getBody() {
 		return body;
+	}
+	
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.FUNCTION;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		if(!args.isEmpty()) {
+			sb.append('(');
+			boolean first = true;
+			for(FunctionArg arg : args) {
+				if(first) first = false;
+				else sb.append(", ");
+				arg.toSource(sb, Precedence.COMMA);
+			}
+			sb.append(')');
+		}
+		if(contract != null) {
+			sb.append(" : ");
+			contract.toSource(sb, Precedence.FUNCTION);
+		}
+		sb.append(" -> ");
+		
+		body.toSource(sb, Precedence.FUNCTION);
+	}
+
+	public Expr getContract() {
+		return contract;
 	}
 }

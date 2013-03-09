@@ -1,20 +1,21 @@
 package banjo.parser.ast;
 
-import java.util.LinkedHashMap;
+import java.util.Collections;
+import java.util.Map;
 
 import banjo.parser.util.FileRange;
 
 
 public class ObjectLiteral extends Expr {
 	
-	private final LinkedHashMap<String, Field> fields;
+	private final Map<String, Field> fields;
 
-	public ObjectLiteral(FileRange fileRange, LinkedHashMap<String, Field> fields) {
+	public ObjectLiteral(FileRange fileRange, Map<String, Field> fields) {
 		super(fileRange);
-		this.fields = fields;
+		this.fields = Collections.unmodifiableMap(fields);
 	}
 
-	public LinkedHashMap<String, Field> getFields() {
+	public Map<String, Field> getFields() {
 		return fields;
 	}
 	
@@ -26,4 +27,22 @@ public class ObjectLiteral extends Expr {
 		return fields.get(name).getValue();
 	}
 	
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		sb.append('{');
+		boolean first = true;
+		for(Field f : fields.values()) {
+			if(first) first = false;
+			else sb.append(", ");
+			sb.append(f.getIdentifier());
+			sb.append(": ");
+			f.getValue().toSource(sb, Precedence.ASSIGNMENT);
+		}
+		sb.append('}');
+	}
 }

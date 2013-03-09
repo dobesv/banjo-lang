@@ -2,35 +2,39 @@ package banjo.parser.ast;
 
 
 import banjo.parser.util.FileRange;
-import banjo.parser.util.Token;
 
 public class Let extends Expr {
-	private final Token nameToken;
+	private final FileRange nameRange;
 	private final String name;
 	private final Expr value;
-	private final Expr body;
 	
-	public Let(Token nameToken, Expr value, Expr body) {
-		super(new FileRange(nameToken.getFileRange(), body.getFileRange()));
-		this.nameToken = nameToken;
-		this.name = nameToken.getText();
+	public Let(FileRange nameRange, String name, Expr value) {
+		super(new FileRange(nameRange, value.getFileRange()));
+		this.nameRange = nameRange;
+		this.name = name;
 		this.value = value;
-		this.body = body;
-	}
-
-	public Expr getBody() {
-		return body;
 	}
 
 	public Expr getValue() {
 		return value;
 	}
 
-	public Token getNameToken() {
-		return nameToken;
-	}
-
 	public String getName() {
 		return name;
+	}
+
+	public FileRange getNameRange() {
+		return nameRange;
+	}
+	
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ASSIGNMENT;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		sb.append(name).append(" = ");
+		value.toSource(sb, Precedence.ASSIGNMENT);
 	}
 }

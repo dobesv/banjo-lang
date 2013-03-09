@@ -9,14 +9,31 @@ import banjo.parser.util.FileRange;
 public class Parens extends Expr {
 
 	private final Expr expression;
+	private final ParenType parenType;
 
-	public Parens(FileRange range, Expr expr) {
+	public Parens(FileRange range, Expr expr, ParenType parenType) {
 		super(range);
 		this.expression = expr;
+		this.parenType = parenType;
 	}
 
 	public Expr getExpression() {
 		return expression;
 	}
 
+	public ParenType getParenType() {
+		return parenType;
+	}
+
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		sb.append(parenType.getStartChar());
+		expression.toSource(sb);
+		sb.append(parenType.getEndChar());
+	}
 }

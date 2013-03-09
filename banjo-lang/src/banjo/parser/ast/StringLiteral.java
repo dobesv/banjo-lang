@@ -31,4 +31,15 @@ public class StringLiteral extends Expr {
 	public String toString() {
 		return token.toString();
 	}
+	
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
+	}
+	
+	@Override
+	public void toSource(StringBuffer sb) {
+		// TODO String escaping ...
+		sb.append(token.toString());
+	}
 }
