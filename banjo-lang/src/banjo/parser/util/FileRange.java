@@ -17,7 +17,7 @@ public final class FileRange {
 	public FileRange(FileRange head, FileRange tail) {
 		this(head.getFilename(), head.getStart(), tail.getEnd());
 		if(!head.getFilename().equals(tail.getFilename())) throw new IllegalStateException(); // Don't expect parse trees to span multiple files, do we?
-		if(!head.before(tail)) throw new IllegalStateException(); // Don't expect nodes to be out of order in that array
+		if(end.before(start)) throw new IllegalStateException("Range end comes before start"); // Don't expect nodes to be out of order in that array
 	}
 	
 	@Override
@@ -46,7 +46,7 @@ public final class FileRange {
 			return false;
 		return true;
 	}
-	public boolean before(FileRange tail) {
+	public boolean startsBefore(FileRange tail) {
 		return getStart().before(tail.getStart());
 	}
 	

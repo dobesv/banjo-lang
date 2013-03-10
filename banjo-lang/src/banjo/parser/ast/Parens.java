@@ -32,8 +32,8 @@ public class Parens extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(parenType.getStartChar());
+		sb.appendCodePoint(parenType.getStartChar());
 		expression.toSource(sb);
-		sb.append(parenType.getEndChar());
+		sb.appendCodePoint(parenType.getEndChar());
 	}
 }

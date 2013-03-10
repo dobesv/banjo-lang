@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 
 public enum BinaryOperator {
-	MUL("*", Precedence.MULDIV),
+	MUL("*", 0x00D7, Precedence.MULDIV),
 	DIV("/", 0x00F7, Precedence.MULDIV),
 	ADD("+", Precedence.ADDSUB),
 	SUB("-", Precedence.ADDSUB),
@@ -49,7 +49,7 @@ public enum BinaryOperator {
 		if(op == null)
 			return null;
 		for(BinaryOperator operator : values()) {
-			if(op.equals(operator.op) || (op.length() == 1 && op.codePointAt(0) == operator.codePoint)) {
+			if(op.equals(operator.op) || (operator.codePoint > 0 && op.length() == 1 && op.codePointAt(0) == operator.codePoint)) {
 				return operator;
 			}
 		}

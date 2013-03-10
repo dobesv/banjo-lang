@@ -2,7 +2,9 @@ package banjo.parser.ast;
 
 public enum ParenType {
 	PARENS('(', ')'),
+	/** Braces, aka curly brackets, are used to denote object literals */
 	BRACES('{', '}'),
+	/** Brackets, aka square brackets, are used to denote list literals */
 	BRACKETS('[', ']');
 	
 	private int startChar;

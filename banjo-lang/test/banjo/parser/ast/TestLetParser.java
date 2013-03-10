@@ -26,7 +26,7 @@ public class TestLetParser {
 			BanjoParseException {
 		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
 		final BanjoParser parser = new BanjoParser(in);
-		Let node = parser.parseLet();
+		Let node = parser.parseExpr();
 		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals("hello", node.getName());
 		assertEquals(StringLiteral.class, node.getValue().getClass());

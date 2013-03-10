@@ -755,7 +755,7 @@ public class BanjoParser {
 		return new IdRef(identRange, identifier);
 	}
 
-	static class PartialBinaryOp {
+	class PartialBinaryOp {
 		final BinaryOperator operator;
 		final Expr operand;
 		public PartialBinaryOp(BinaryOperator operator, Expr operand) {
@@ -764,6 +764,10 @@ public class BanjoParser {
 			this.operand = operand;
 		}
 		public BinaryOp makeOp(Expr secondOperand) {
+			// The second operand must be indented to at least the same position as the first
+			if(secondOperand.getStartColumn() < getStartColumn()) {
+				errors.add(new IncorrectIndentation(secondOperand.getFileRange(), getStartColumn(), true));
+			}
 			return new BinaryOp(operator, operand, secondOperand);
 		}
 		public Precedence getPrecedence() {
@@ -771,6 +775,10 @@ public class BanjoParser {
 		}
 		public int getStartColumn() {
 			return operand.getStartColumn();
+		}
+		@Override
+		public String toString() {
+			return "(" + operand.toSource()+" "+operator.getOp() +")";
 		}
 	}
 	
@@ -790,6 +798,11 @@ public class BanjoParser {
 		}
 		public Precedence getPrecedence() {
 			return operator.getPrecedence();
+		}
+		
+		@Override
+		public String toString() {
+			return "(+)";
 		}
 	}
 	
@@ -820,26 +833,6 @@ public class BanjoParser {
 		  	   (operand = parseNumberLiteral()) == null && 
 		  	   (operand = parseParentheses()) == null) {
 				throw new ExpectedExpression(in.getFileRange(beforeToken));
-			}
-			
-			// Now if we get a de-dent we have to move up the operator stack
-			if(beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
-				int column = in.getCurrentColumnNumber();
-				while(!unaryOpStack.isEmpty() 
-						&& unaryOpStack.getFirst().getStartColumn() > column) {
-					operand = unaryOpStack.pop().makeOp(operand);
-				}
-				while(!binaryOpStack.isEmpty() 
-						&& binaryOpStack.getFirst().getStartColumn() > column) {
-					operand = binaryOpStack.pop().makeOp(operand);
-				}
-				
-				// If we de-dented back to an exact match on the column of an enclosing
-				// expression, insert a virtual comma
-				if(operand.getStartColumn() == column) {
-					binaryOpStack.push(new PartialBinaryOp(BinaryOperator.COMMA, operand));
-					continue;
-				}
 			}
 			
 			// a + b
@@ -876,8 +869,29 @@ public class BanjoParser {
 				return enrich(operand);
 			}
 			
-			// Now we are expecting some sort of operator...
 			in.getCurrentPosition(beforeToken);
+			// Now if we get a de-dent we have to move up the operator stack
+			if(beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
+				int column = in.getCurrentColumnNumber();
+				while(!unaryOpStack.isEmpty() 
+						&& unaryOpStack.getFirst().getStartColumn() >= column) {
+					operand = unaryOpStack.pop().makeOp(operand);
+				}
+				while(!binaryOpStack.isEmpty() 
+						&& binaryOpStack.getFirst().getStartColumn() >= column) {
+					operand = binaryOpStack.pop().makeOp(operand);
+				}
+				
+				// If we de-dented back to an exact match on the column of an enclosing
+				// expression, insert a virtual comma
+				if(operand.getStartColumn() == column) {
+					binaryOpStack.push(new PartialBinaryOp(BinaryOperator.COMMA, operand));
+					continue;
+				}
+			}
+			
+			
+			// Now we are expecting some sort of operator...
 			String binaryOp = matchOperator();
 			if(binaryOp == null) {
 				Expr expr = parseExpr();
@@ -932,24 +946,16 @@ public class BanjoParser {
 		} else if(node instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) node;
 			// Comma outside of a parentheses should be a list or map without the braces/brackets
+			final FileRange range = op.getFileRange();
 			if(op.getOperator() == BinaryOperator.COMMA) {
 				LinkedList<Expr> exprs = new LinkedList<>();
 				flattenCommas(op, exprs);
 				Expr first = exprs.get(0);
 				if(isPair(first)) {
-					return exprsToObjectLiteral(op.getFileRange(), exprs);
+					return exprsToObjectLiteral(range, exprs);
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
-					ArrayList<Expr> elements = new ArrayList<>();
-					for(Expr e : exprs) {
-						if(!isListElement(e)) {
-							errors.add(new ExpectedElement(e.getFileRange()));
-							continue;
-						}
-						Expr eltValue = enrich(((UnaryOp)e).getOperand());
-						elements.add(eltValue);
-					}
-					return new ListLiteral(op.getFileRange(), elements);
+					return exprListToListLiteral(range, exprs, true);
 				} else {
 					// Everything else - treat as a series of steps
 					
@@ -958,10 +964,51 @@ public class BanjoParser {
 			} else if(op.getOperator() == BinaryOperator.FUNCTION) {
 				return enrichFunctionLiteral(op);
 			} else if(op.getOperator() == BinaryOperator.COLON) {
-				return exprsToObjectLiteral(op.getFileRange(), Collections.<Expr>singletonList(op));
+				return exprsToObjectLiteral(range, Collections.<Expr>singletonList(op));
+			}
+		} else if(node instanceof Parens) {
+			Parens p = (Parens)node;
+			Expr e = enrich(p.getExpression());
+			switch(p.getParenType()) {
+			case BRACES: // Expecting an object
+				if(e instanceof ObjectLiteral)
+					return e;
+				else 
+					errors.add(new ExpectedField(e.getFileRange()));
+				break;
+			case BRACKETS: // Expecting a list
+				if(e instanceof ListLiteral) {
+					return e;
+				} else {
+					LinkedList<Expr> exprs = new LinkedList<>();
+					flattenCommas(e, exprs);
+					return exprListToListLiteral(e.getFileRange(), exprs, false);
+				}
+			case PARENS:
+				return e; // Eliminate parentheses, they don't mean anything by now
 			}
 		}
 		return node;
+	}
+
+	public Expr exprListToListLiteral(final FileRange range,
+			LinkedList<Expr> exprs, boolean requireBullet) {
+		ArrayList<Expr> elements = new ArrayList<>();
+		if(!exprs.isEmpty()) {
+			for(Expr e : exprs) {
+				Expr eltValue;
+				if(isListElement(e)) {
+					eltValue = enrich(((UnaryOp)e).getOperand());
+				} else {
+					if(requireBullet) {
+						errors.add(new ExpectedElement(e.getFileRange()));
+					}
+					eltValue = enrich(e);
+				}
+				elements.add(eltValue);
+			}
+		}
+		return new ListLiteral(range, elements);
 	}
 
 	public Expr exprsToObjectLiteral(FileRange range, Collection<Expr> pairs) {

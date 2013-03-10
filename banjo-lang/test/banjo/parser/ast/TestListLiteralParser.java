@@ -15,20 +15,28 @@ public class TestListLiteralParser {
 
 	@Test
 	public void test123() throws Exception {
+		test123("\u2022 1\n\u2022 2\n\u2022 3", 0);
+		test123("* 1\n* 2\n* 3", 0);
 		test123("[1\n 2\n 3]", 0);
 		test123("[1,2,3]", 0);
-		test123("[1,2,3,]", 0);
-		test123("\u2022 1\n\u2022 2\n\u2022 3", 0);
 		test123("[1\n 2,\n 3]", 0);
-		test123("[1,2,\n3]", 1);
+		test123("[1,2,\n3]", 1); // Expect an error since the 3 is at less indentation than the 1 and 2
 		
+		// TODO Trailing comma ... support or not?
+		// test123("[1,2,3,]", 0);
 	}
 
 	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
 		final BanjoParser parser = new BanjoParser(in);
-		ListLiteral node = parser.parseListLiteral();
+		final Expr parsed = parser.parseExpr();
+		for(Exception e : parser.getErrors()) {
+			System.out.println(e.toString());
+		}
 		assertEquals(expectedErrorCount, parser.getErrors().size());
+		System.out.println(parsed.toSource());
+		assertEquals(ListLiteral.class, parsed.getClass());
+		ListLiteral node = (ListLiteral) parsed;
 		assertEquals(-1, in.read());
 		assertNotNull(node);
 		final Object[] eltsArray = node.getElements().toArray();

@@ -23,7 +23,7 @@ public enum UnaryOperator {
 		if(op == null)
 			return null;
 		for(UnaryOperator operator : values()) {
-			if(op.equals(operator.getOp()) || (op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
+			if(op.equals(operator.getOp()) || (operator.codePoint > 0 && op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
 				return operator;
 			}
 		}
