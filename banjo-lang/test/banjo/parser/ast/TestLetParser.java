@@ -27,7 +27,7 @@ public class TestLetParser {
 	
 
 	@Test public void f1() { func("f(x) = x", 0, "f = (x) -> x"); }
-	@Test public void f2() { func("f(x,y) = x", 0, "f = (x,y) -> x"); }
+	@Test public void f2() { func("f(x,y) = x", 0, "f = (x, y) -> x"); }
 	@Test public void f3() { func("f() = x", 0, "f = () -> x"); }
 	//@Test public void f4() { func("f() = x", 0, "f = () -> x"); }
 	
