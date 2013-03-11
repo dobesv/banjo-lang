@@ -38,4 +38,19 @@ public enum ParenType {
 		}
 		return null;
 	}
+
+	public static boolean isOpenParen(int codePoint) {
+		for(ParenType t : values()) {
+			if(codePoint == t.startChar)
+				return true;
+		}
+		return false;
+	}
+	public static boolean isCloseParen(int codePoint) {
+		for(ParenType t : values()) {
+			if(codePoint == t.endChar)
+				return true;
+		}
+		return false;
+	}
 }

@@ -20,7 +20,7 @@ public enum BinaryOperator {
 	COMMA(",", Precedence.COMMA),
 	FUNCTION("->", 0x21A6, Precedence.FUNCTION),
 	ASSIGNMENT("=", Precedence.ASSIGNMENT),
-	COLON(":", Precedence.ASSIGNMENT),
+	COLON(":", Precedence.BULLET),
 	COND("=>", 0x21D2, Precedence.COND),
 	SEMICOLON(";", Precedence.SEMICOLON);
 	

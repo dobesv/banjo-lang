@@ -18,7 +18,7 @@ import banjo.parser.ast.Call;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.Field;
 import banjo.parser.ast.FieldRef;
-import banjo.parser.ast.FunctionArg;
+import banjo.parser.ast.FunArg;
 import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
 import banjo.parser.ast.Let;
@@ -779,7 +779,7 @@ public class BanjoParser {
 
 	class PartialBinaryOp {
 		final BinaryOperator operator;
-		final Expr operand;
+		private final Expr operand;
 		public PartialBinaryOp(BinaryOperator operator, Expr operand) {
 			super();
 			this.operator = operator;
@@ -790,17 +790,23 @@ public class BanjoParser {
 			if(secondOperand.getStartColumn() < getStartColumn()) {
 				errors.add(new IncorrectIndentation(secondOperand.getFileRange(), getStartColumn(), true));
 			}
-			return new BinaryOp(operator, operand, secondOperand);
+			return new BinaryOp(operator, getOperand(), secondOperand);
 		}
 		public Precedence getPrecedence() {
 			return operator.getPrecedence();
 		}
 		public int getStartColumn() {
-			return operand.getStartColumn();
+			return getOperand().getStartColumn();
 		}
 		@Override
 		public String toString() {
-			return "(" + operand.toSource()+" "+operator.getOp() +" _)";
+			return "(" + getOperand().toSource()+" "+operator.getOp() +" _)";
+		}
+		public BinaryOperator getOperator() {
+			return operator;
+		}
+		public Expr getOperand() {
+			return operand;
 		}
 	}
 	
@@ -859,15 +865,28 @@ public class BanjoParser {
 		  	   (operand = parseNumberLiteral()) == null && 
 		  	   (operand = parseParentheses()) == null) {
 				
-				String butGot = matchOperator();
-				if(butGot == null) {
-					try {
-						butGot = in.readString(1);
-					} catch(EOFException e) {
-						butGot = "<EOF>";
+				// Allow trailing comma / semicolon before close paren
+				int codePoint = in.peek();
+				if(isCloseParenOrEof(codePoint) &&
+					!binaryOpStack.isEmpty() && 
+					(binaryOpStack.getFirst().getOperator() == BinaryOperator.COMMA ||
+					 binaryOpStack.getFirst().getOperator() == BinaryOperator.SEMICOLON)) {
+					operand = binaryOpStack.pop().getOperand();
+				} else if(codePoint == -1) {
+					errors.add(new PrematureEndOfFile("Unexpected end of file/input", in.getFilePosAsRange()));
+				} else if(isCloseParen(codePoint)) {
+					errors.add(new UnexpectedCloseParen(in.getFileRange(beforeToken)));
+				} else {
+					String butGot = matchOperator();
+					errors.add(new ExpectedExpression(in.getFileRange(beforeToken), butGot));
+				}
+				if(operand == null) {
+					if(!binaryOpStack.isEmpty()) {
+						operand = binaryOpStack.pop().getOperand();
+					} else {
+						operand = new UnitRef(in.getFileRange(beforeToken), ParenType.BRACES);
 					}
 				}
-				throw new ExpectedExpression(in.getFileRange(beforeToken), butGot);
 			}
 			
 			// a + b
@@ -893,7 +912,7 @@ public class BanjoParser {
 			in.unread();
 
 			// Check for close brackets / end of file
-			if(cp == -1 || cp == ')' || cp == ']' || cp == '}') {
+			if(isCloseParenOrEof(cp)) {
 				// Current operand is the rightmost operand
 				while(!unaryOpStack.isEmpty()) {
 					operand = unaryOpStack.pop().makeOp(operand);
@@ -961,6 +980,14 @@ public class BanjoParser {
 		}
 	}
 
+	public boolean isCloseParenOrEof(int cp) {
+		return cp == -1 || cp == ')' || cp == ']' || cp == '}';
+	}
+
+	private boolean isCloseParen(int codePoint) {
+		return ParenType.isCloseParen(codePoint);
+	}
+
 	/**
 	 * Coming in we have a tree of basically just unary and binary operations and parens and atoms.  
 	 * Let's enrich that a bit so we can have ObjectLiteral, ListLiteral, Let, FunctionLiteral,
@@ -976,7 +1003,7 @@ public class BanjoParser {
 			if(op.getOperator() == UnaryOperator.BULLET) {
 				return new ListLiteral(op.getFileRange(), Collections.singletonList(operand));
 			} else if(op.getOperator() == UnaryOperator.LAZY) {
-				return new FunctionLiteral(op.getFileRange(), Collections.<FunctionArg>emptyList(), null, operand);
+				return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
 			} else {
 				return op.withNewOperand(operand);
 			}
@@ -1050,6 +1077,8 @@ public class BanjoParser {
 			case BRACKETS: // Expecting a list
 				if(e instanceof ListLiteral) {
 					return e;
+				} else if(e instanceof Steps) {
+					return exprListToListLiteral(e.getFileRange(), ((Steps)e).getSteps(), false);
 				} else {
 					LinkedList<Expr> exprs = new LinkedList<>();
 					flattenCommasOrSemicolons(e, exprs);
@@ -1058,15 +1087,22 @@ public class BanjoParser {
 			case PARENS:
 				return e; // Eliminate parentheses, they don't mean anything by now
 			}
+		} else if(node instanceof UnitRef) {
+			UnitRef u = (UnitRef) node;
+			switch(((UnitRef) node).getParenType()) {
+			case BRACES: return new ObjectLiteral(node.getFileRange(), Collections.<String,Field>emptyMap());
+			case BRACKETS: return new ListLiteral(u.getFileRange(), Collections.<Expr>emptyList());
+			case PARENS: errors.add(new ExpectedExpression(node.getFileRange(), node.toSource())); break;
+			}
 		}
 		return node;
 	}
 
 	public Expr exprListToListLiteral(final FileRange range,
-			LinkedList<Expr> exprs, boolean requireBullet) {
+			List<Expr> list, boolean requireBullet) {
 		ArrayList<Expr> elements = new ArrayList<>();
-		if(!exprs.isEmpty()) {
-			for(Expr e : exprs) {
+		if(!list.isEmpty()) {
+			for(Expr e : list) {
 				Expr eltValue;
 				if(isListElement(e)) {
 					eltValue = enrich(((UnaryOp)e).getOperand());
@@ -1098,7 +1134,7 @@ public class BanjoParser {
 			} else if(keyExpr instanceof StringLiteral) {
 				key = ((StringLiteral)keyExpr).getString();
 			} else {
-				errors.add(new ExpectedFieldName("Expected identifier or string", keyExpr.getFileRange()));
+				errors.add(new ExpectedFieldName("Expected identifier or string; got '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
 				continue;
 			}
 			Expr valueExpr = enrich(fieldOp.getRight());
@@ -1110,7 +1146,7 @@ public class BanjoParser {
 	public Expr enrichFunctionLiteral(BinaryOp op) {
 		FileRange range = op.getFileRange();
 		// Args should be comma-separated
-		LinkedList<Expr> exprs = new LinkedList<>();
+		List<Expr> exprs = new LinkedList<>();
 		Expr argsDef = op.getLeft();
 		final Expr body = op.getRight();
 		Expr returnContract = null;
@@ -1123,15 +1159,19 @@ public class BanjoParser {
 		if((argsDef instanceof Parens) && ((Parens)argsDef).getParenType() == ParenType.PARENS) {
 			argsDef = ((Parens)argsDef).getExpression();
 		}
-		if(!(argsDef instanceof UnitRef)) {
+		if(argsDef instanceof Steps) {
+			exprs = ((Steps)argsDef).getSteps();
+		} else if(!(argsDef instanceof UnitRef)) {
 			flattenCommas(argsDef, BinaryOperator.COMMA, exprs);
+		} else {
+			// Leave the list empty
 		}
 		return makeFunctionLiteral(range, exprs, body, returnContract);
 	}
 
 	public Expr makeFunctionLiteral(FileRange range, List<Expr> exprs,
 			final Expr body, Expr returnContract) {
-		List<FunctionArg> args = exprs.isEmpty() ? Collections.<FunctionArg>emptyList() : new ArrayList<FunctionArg>(exprs.size());
+		List<FunArg> args = exprs.isEmpty() ? Collections.<FunArg>emptyList() : new ArrayList<FunArg>(exprs.size());
 		for(Expr argExpr : exprs) {
 			String name = null;
 			Expr nameExpr = argExpr;
@@ -1146,7 +1186,7 @@ public class BanjoParser {
 				errors.add(new ExpectedIdentifier(nameExpr));
 				continue;
 			}
-			args.add(new FunctionArg(nameExpr.getFileRange(), name, contract));
+			args.add(new FunArg(nameExpr.getFileRange(), name, contract));
 		}
 		return new FunctionLiteral(range, args, returnContract, body);
 	}
@@ -1193,16 +1233,16 @@ public class BanjoParser {
 		return operand;
 	}
 	
-	private void flattenCommas(Expr arg, BinaryOperator type, LinkedList<Expr> list) {
+	private void flattenCommas(Expr arg, BinaryOperator type, List<Expr> exprs) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp bop = (BinaryOp) arg;
 			if(bop.getOperator() == type) {
-				flattenCommas(bop.getLeft(), type, list);
-				flattenCommas(bop.getRight(), type, list);
+				flattenCommas(bop.getLeft(), type, exprs);
+				flattenCommas(bop.getRight(), type, exprs);
 				return;
 			}
 		}
-		list.add(arg);
+		exprs.add(arg);
 	}
 
 	private void flattenCommasOrSemicolons(Expr arg, LinkedList<Expr> list) {

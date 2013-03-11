@@ -9,18 +9,18 @@ import banjo.parser.util.Token;
 
 public class FunctionLiteral extends Expr {
 
-	private final List<FunctionArg> args;
+	private final List<FunArg> args;
 	private final Expr contract;
 	private final Expr body;
 	
-	public FunctionLiteral(FileRange range, List<FunctionArg> args, Expr contract, Expr body) {
+	public FunctionLiteral(FileRange range, List<FunArg> args, Expr contract, Expr body) {
 		super(range);
 		this.args = Collections.unmodifiableList(args);
 		this.contract = contract;
 		this.body = body;
 	}
 
-	public List<FunctionArg> getArgs() {
+	public List<FunArg> getArgs() {
 		return args;
 	}
 
@@ -38,7 +38,7 @@ public class FunctionLiteral extends Expr {
 		if(!args.isEmpty()) {
 			sb.append('(');
 			boolean first = true;
-			for(FunctionArg arg : args) {
+			for(FunArg arg : args) {
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb, Precedence.COMMA);

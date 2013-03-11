@@ -667,4 +667,15 @@ public class ParserReader extends Reader {
 	public void unread() throws IOException {
 		seek(previous);
 	}
+
+	/**
+	 * Read, unread, and return the next character.  The file position is
+	 * left unchanged although the unread() position is affected.
+	 * @throws IOException 
+	 */
+	public int peek() throws IOException {
+		int cp = read();
+		unread();
+		return cp;
+	}
 }

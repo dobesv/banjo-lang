@@ -2,10 +2,10 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class FunctionArg extends Expr {
+public class FunArg extends Expr {
 	private final String name;
 	private final Expr contract;
-	public FunctionArg(FileRange range, String name, Expr contract) {
+	public FunArg(FileRange range, String name, Expr contract) {
 		super(range);
 		this.name = name;
 		this.contract = contract;

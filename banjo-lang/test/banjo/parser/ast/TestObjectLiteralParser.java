@@ -15,16 +15,14 @@ import banjo.parser.util.ParserReader;
 public class TestObjectLiteralParser {
 
 
-	@Test
-	public void test123() throws Exception {
-		test123("{a:1\n b:2\n c:3}", 0);
-		test123("{a:1,b:2,c:3}", 0);
-		test123("{a:1,b:2,c:3,}", 0);
-		test123(" a: 1\n b : 2\n c :3", 0);
-		test123("{a:1\n b:2,\n c:3}", 0);
-		test123("{a:1,b:2,\nc:3}", 1);
-		
-	}
+	@Test public void testNewlineSeparated() throws Exception { test123("{a:1\n b:2\n c:3}", 0); }
+	@Test public void testCommaSeparator() throws Exception { test123("{a:1,b:2,c:3}", 0); }
+	@Test public void testNoCurliesOrCommas() throws Exception { test123(" a: 1\n b : 2\n c :3", 0); }
+	@Test public void testMixCommasNewlines() throws Exception { test123("{a:1\n b:2,\n c:3}", 0); }
+	@Test public void testBackdentError() throws Exception { test123("{a:1,b:2,\nc:3}", 1); }
+	
+	@Test public void testTrailingComma() throws Exception { test123("{a:1,b:2,c:3,}", 0); }
+	
 
 	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
 		ObjectLiteral node = parse(source, expectedErrorCount);
@@ -45,7 +43,12 @@ public class TestObjectLiteralParser {
 			throws IOException, BanjoParseException {
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
 		final BanjoParser parser = new BanjoParser(in);
-		ObjectLiteral node = (ObjectLiteral) parser.parseExpr();
+		final Expr parsed = parser.parseExpr();
+		for(Exception e : parser.getErrors()) {
+			System.out.println(e.toString());
+		}
+		System.out.println(parsed.toSource());
+		ObjectLiteral node = (ObjectLiteral) parsed;
 		assertNotNull(node);
 		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals(0, in.remaining());

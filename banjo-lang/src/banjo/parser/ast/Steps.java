@@ -1,5 +1,6 @@
 package banjo.parser.ast;
 
+import java.util.Collections;
 import java.util.List;
 
 import banjo.parser.util.FileRange;
@@ -14,7 +15,7 @@ public class Steps extends Expr {
 	
 	public Steps(FileRange range, List<Expr> steps) {
 		super(range);
-		this.steps = steps;
+		this.steps = Collections.unmodifiableList(steps);
 	}
 
 	@Override
