@@ -15,6 +15,8 @@ public class TestCondParser {
 	@Test public void testBadCond1() { testParseCond("a=>b\nc", 1, 1, "a => b"); }
 	@Test public void testBadCond2() { testParseCond("a=>b\n  c", 1, 2, "a => b"); }
 
+	@Test public void testSingleCond() { testParseCond("false => true", 1, 0, "false => true"); }
+	
 	public static void testParseCond(String source, int expectedCases,
 			int expectedErrors, String expectedSource) {
 		Cond node = ParseTestUtils.testParse(source, expectedErrors, Cond.class, expectedSource);

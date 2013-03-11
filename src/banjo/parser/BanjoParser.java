@@ -778,7 +778,7 @@ public class BanjoParser {
 	 * @param node
 	 * @return
 	 */
-	private Expr enrich(Expr node) {
+	public Expr enrich(Expr node) {
 		if(node instanceof UnaryOp) {
 			UnaryOp op = (UnaryOp) node;
 			final Expr operand = enrich(op.getOperand());
@@ -822,6 +822,8 @@ public class BanjoParser {
 			case ASSIGNMENT:
 				// Convert to "Let"
 				return enrichLet(op);
+			case COND:
+				return new Cond(op.getFileRange(), Collections.singletonList(new CondCase(op.getFileRange(), op.getLeft(), op.getRight())));
 			default:
 				return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
 			}
