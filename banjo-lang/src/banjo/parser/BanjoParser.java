@@ -1,5 +1,6 @@
 package banjo.parser;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -8,6 +9,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import banjo.parser.ast.BinaryOp;
@@ -19,6 +21,7 @@ import banjo.parser.ast.FieldRef;
 import banjo.parser.ast.FunctionArg;
 import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
+import banjo.parser.ast.Let;
 import banjo.parser.ast.ListLiteral;
 import banjo.parser.ast.Lookup;
 import banjo.parser.ast.NumberLiteral;
@@ -26,6 +29,7 @@ import banjo.parser.ast.ObjectLiteral;
 import banjo.parser.ast.ParenType;
 import banjo.parser.ast.Parens;
 import banjo.parser.ast.Precedence;
+import banjo.parser.ast.Steps;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.ast.UnaryOp;
@@ -112,14 +116,6 @@ public class BanjoParser {
 		this(ParserReader.fromString("<string>", inStr));
 	}
 
-	public Expr parse(ParserReader in, Collection<BanjoParseException> errors) throws IOException, BanjoParseException {
-		try {
-			return parseExpr();
-		} catch(BanjoParseException pe) {
-			errors.add(pe);
-			return null;
-		}
-	}
 	public static Pattern whitespace = Pattern.compile("([ \r\n]*|//[^\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
 	public static Pattern idPattern = Pattern.compile("[\\p{Alpha}_-][\\p{Alnum}_-]*");
 	public static Pattern opPattern = Pattern.compile("[=+-/*&^><!\\-:]+");
@@ -163,16 +159,23 @@ public class BanjoParser {
 				return buf.toString();
 			}
 			buf.appendCodePoint(cp);
-			cp = in.read();
 		}
 	}
 	
 	public static final boolean isOperatorChar(int codePoint) {
-		int t = Character.getType(codePoint);
-		return (t == Character.MATH_SYMBOL || 
-				t == Character.OTHER_SYMBOL || 
-				t == Character.CONNECTOR_PUNCTUATION || 
-				t == Character.OTHER_PUNCTUATION);
+		switch(codePoint) {
+		case '"': case '\'': return false;
+		default:
+		}
+		switch(Character.getType(codePoint)) {
+		case Character.MATH_SYMBOL:
+		case Character.OTHER_SYMBOL:
+		case Character.CONNECTOR_PUNCTUATION:
+		case Character.OTHER_PUNCTUATION:
+			return true;
+		default:
+			return false;
+		}
 	}
 	public String matchOperator() throws IOException {
 		int first = in.read();
@@ -314,12 +317,20 @@ public class BanjoParser {
 		public int getStartColumn() { return range.getStart().column; }
 		public int getEndLine() { return range.getEnd().line; }
 		public int getEndColumn() { return range.getEnd().column; }
+		
+		@Override
+		public String toString() {
+			return range.toString()+": "+getLocalizedMessage();
+		}
 	}
 	public static class ExpectedExpression extends BanjoParseException {
 		private static final long serialVersionUID = 1L;
 
 		public ExpectedExpression(FileRange fileRange) {
-			super("Invalid expression after this position", fileRange);
+			super("Expected expression", fileRange);
+		}
+		public ExpectedExpression(FileRange fileRange, String butGot) {
+			super("Expected expression here; found '"+butGot+"'", fileRange);
 		}
 	}
 	public static class ExpectedIdentifier extends BanjoParseException {
@@ -331,6 +342,17 @@ public class BanjoParser {
 
 		public ExpectedIdentifier(Expr gotInstead) {
 			super("Expected identifier; got '"+gotInstead+"'", gotInstead.getFileRange());
+		}
+	}
+	public static class ExpectedOperator extends BanjoParseException {
+		private static final long serialVersionUID = 1L;
+
+		public ExpectedOperator(FileRange fileRange) {
+			super("Expected operator", fileRange);
+		}
+
+		public ExpectedOperator(Expr gotInstead) {
+			super("Expected operator before '"+gotInstead.toSource(Precedence.COMMA)+"'", gotInstead.getFileRange());
 		}
 	}
 	
@@ -399,7 +421,7 @@ public class BanjoParser {
 			this(range, indentColumn, false);
 		}
 		public IncorrectIndentation(FileRange range, int indentColumn, boolean orMore) {
-			super("Expected indentation to column "+indentColumn+(orMore?" or more":"")+" but indentation was "+range.getEnd().column+" columns.", range);
+			super("Expected indentation to column "+indentColumn+(orMore?" or more":"")+" but indentation was "+range.getStart().column+" columns.", range);
 		}
 	}
 	
@@ -778,11 +800,11 @@ public class BanjoParser {
 		}
 		@Override
 		public String toString() {
-			return "(" + operand.toSource()+" "+operator.getOp() +")";
+			return "(" + operand.toSource()+" "+operator.getOp() +" _)";
 		}
 	}
 	
-	static class PartialUnaryOp {
+	class PartialUnaryOp {
 		final UnaryOperator operator;
 		final FileRange range;
 		public PartialUnaryOp(UnaryOperator operator, FileRange range) {
@@ -791,6 +813,10 @@ public class BanjoParser {
 			this.range = range;
 		}
 		public UnaryOp makeOp(Expr operand) {
+			if(operand.getStartColumn() < getStartColumn()) {
+				// Operand should be at the same level or higher indentation as the unary operator itself
+				errors.add(new IncorrectIndentation(operand.getFileRange(), getStartColumn(), true));
+			}
 			return new UnaryOp(new FileRange(range,operand.getFileRange()), operator, operand);
 		}
 		public int getStartColumn() {
@@ -802,7 +828,7 @@ public class BanjoParser {
 		
 		@Override
 		public String toString() {
-			return "(+)";
+			return "(+ _)";
 		}
 	}
 	
@@ -832,7 +858,16 @@ public class BanjoParser {
 			   (operand = parseStringLiteral()) == null &&
 		  	   (operand = parseNumberLiteral()) == null && 
 		  	   (operand = parseParentheses()) == null) {
-				throw new ExpectedExpression(in.getFileRange(beforeToken));
+				
+				String butGot = matchOperator();
+				if(butGot == null) {
+					try {
+						butGot = in.readString(1);
+					} catch(EOFException e) {
+						butGot = "<EOF>";
+					}
+				}
+				throw new ExpectedExpression(in.getFileRange(beforeToken), butGot);
 			}
 			
 			// a + b
@@ -857,7 +892,7 @@ public class BanjoParser {
 			// Not a suffix character, put it back
 			in.unread();
 
-			// Check for separator / close brackets / end of file
+			// Check for close brackets / end of file
 			if(cp == -1 || cp == ')' || cp == ']' || cp == '}') {
 				// Current operand is the rightmost operand
 				while(!unaryOpStack.isEmpty()) {
@@ -896,7 +931,9 @@ public class BanjoParser {
 			if(binaryOp == null) {
 				Expr expr = parseExpr();
 				if(expr != null) {
-					throw new SyntaxError("Missing operator before expression", expr.getFileRange());
+					binaryOp = ";";
+					errors.add(new ExpectedOperator(expr));
+					in.seek(beforeToken);
 				} else {
 					throw new SyntaxError("Missing operand after expression", operand.getFileRange());
 				}
@@ -947,9 +984,11 @@ public class BanjoParser {
 			BinaryOp op = (BinaryOp) node;
 			// Comma outside of a parentheses should be a list or map without the braces/brackets
 			final FileRange range = op.getFileRange();
-			if(op.getOperator() == BinaryOperator.COMMA) {
+			switch(op.getOperator()) {
+			case COMMA:
+			case SEMICOLON:
 				LinkedList<Expr> exprs = new LinkedList<>();
-				flattenCommas(op, exprs);
+				flattenCommas(op, op.getOperator(), exprs);
 				Expr first = exprs.get(0);
 				if(isPair(first)) {
 					return exprsToObjectLiteral(range, exprs);
@@ -958,13 +997,45 @@ public class BanjoParser {
 					return exprListToListLiteral(range, exprs, true);
 				} else {
 					// Everything else - treat as a series of steps
-					
-					
+					ArrayList<Expr> stepsList = new ArrayList<>(exprs.size());
+					for(Expr e : exprs) {
+						stepsList.add(enrich(e));
+					}
+					return new Steps(op.getFileRange(), stepsList);
 				}
-			} else if(op.getOperator() == BinaryOperator.FUNCTION) {
+			case FUNCTION:
 				return enrichFunctionLiteral(op);
-			} else if(op.getOperator() == BinaryOperator.COLON) {
+			case COLON:
 				return exprsToObjectLiteral(range, Collections.<Expr>singletonList(op));
+			case ASSIGNMENT:
+				// Convert to "Let"
+				Expr target = op.getLeft();
+				Expr value = op.getRight();
+				Expr contract = null;
+				String name = null;
+				FileRange nameRange = null;
+				if(isPair(target)) {
+					final BinaryOp targetBOp = (BinaryOp)target;
+					target = targetBOp.getLeft();
+					contract = targetBOp.getRight();
+				}
+				if(target instanceof Call) {
+					Call call = (Call) target;
+					value = makeFunctionLiteral(op.getFileRange(), call.getArguments(), value, contract);
+					target = call.getCallee();
+					contract = null;
+				}
+				if(target instanceof IdRef) {
+					IdRef id = (IdRef) target;
+					name = id.getId();
+					nameRange = id.getFileRange();
+					// TODO If contract != null, what then ?
+					return new Let(nameRange, name, enrich(value));
+				} else {
+					errors.add(new ExpectedIdentifier(target));
+				}
+			default:
+				return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
 			}
 		} else if(node instanceof Parens) {
 			Parens p = (Parens)node;
@@ -981,7 +1052,7 @@ public class BanjoParser {
 					return e;
 				} else {
 					LinkedList<Expr> exprs = new LinkedList<>();
-					flattenCommas(e, exprs);
+					flattenCommasOrSemicolons(e, exprs);
 					return exprListToListLiteral(e.getFileRange(), exprs, false);
 				}
 			case PARENS:
@@ -1041,6 +1112,7 @@ public class BanjoParser {
 		// Args should be comma-separated
 		LinkedList<Expr> exprs = new LinkedList<>();
 		Expr argsDef = op.getLeft();
+		final Expr body = op.getRight();
 		Expr returnContract = null;
 		// Optional return type/contract
 		if(isPair(argsDef)) {
@@ -1051,27 +1123,32 @@ public class BanjoParser {
 		if((argsDef instanceof Parens) && ((Parens)argsDef).getParenType() == ParenType.PARENS) {
 			argsDef = ((Parens)argsDef).getExpression();
 		}
-		ArrayList<FunctionArg> args = new ArrayList<>(exprs.size());
 		if(!(argsDef instanceof UnitRef)) {
-			flattenCommas(argsDef, exprs);
-			for(Expr argExpr : exprs) {
-				String name = null;
-				Expr nameExpr = argExpr;
-				Expr contract = null;
-				if(isPair(nameExpr)) {
-					nameExpr = ((BinaryOp) nameExpr).getLeft();
-					contract = ((BinaryOp) nameExpr).getRight();
-				}
-				if(nameExpr instanceof IdRef) {
-					name = ((IdRef) nameExpr).getId();
-				} else {
-					errors.add(new ExpectedIdentifier(nameExpr));
-					continue;
-				}
-				args.add(new FunctionArg(nameExpr.getFileRange(), name, contract));
-			}
+			flattenCommas(argsDef, BinaryOperator.COMMA, exprs);
 		}
-		return new FunctionLiteral(range, args, returnContract, op.getRight());
+		return makeFunctionLiteral(range, exprs, body, returnContract);
+	}
+
+	public Expr makeFunctionLiteral(FileRange range, List<Expr> exprs,
+			final Expr body, Expr returnContract) {
+		List<FunctionArg> args = exprs.isEmpty() ? Collections.<FunctionArg>emptyList() : new ArrayList<FunctionArg>(exprs.size());
+		for(Expr argExpr : exprs) {
+			String name = null;
+			Expr nameExpr = argExpr;
+			Expr contract = null;
+			if(isPair(nameExpr)) {
+				nameExpr = ((BinaryOp) nameExpr).getLeft();
+				contract = ((BinaryOp) nameExpr).getRight();
+			}
+			if(nameExpr instanceof IdRef) {
+				name = ((IdRef) nameExpr).getId();
+			} else {
+				errors.add(new ExpectedIdentifier(nameExpr));
+				continue;
+			}
+			args.add(new FunctionArg(nameExpr.getFileRange(), name, contract));
+		}
+		return new FunctionLiteral(range, args, returnContract, body);
 	}
 
 	public boolean isListElement(Expr e) {
@@ -1106,7 +1183,7 @@ public class BanjoParser {
 		// Function call
 		Expr arg = parseExpr();
 		LinkedList<Expr> args = new LinkedList<>();
-		flattenCommas(arg, args);
+		flattenCommas(arg, BinaryOperator.COMMA, args);
 		// TODO Verify indentation of arguments
 		if(in.read() != ')') {
 			throw new SyntaxError("Expected ')'", in.getFilePosAsRange());
@@ -1116,18 +1193,28 @@ public class BanjoParser {
 		return operand;
 	}
 	
-	private void flattenCommas(Expr arg, LinkedList<Expr> list) {
+	private void flattenCommas(Expr arg, BinaryOperator type, LinkedList<Expr> list) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp bop = (BinaryOp) arg;
-			if(bop.getOperator() == BinaryOperator.COMMA) {
-				flattenCommas(bop.getLeft(), list);
-				flattenCommas(bop.getRight(), list);
+			if(bop.getOperator() == type) {
+				flattenCommas(bop.getLeft(), type, list);
+				flattenCommas(bop.getRight(), type, list);
 				return;
 			}
 		}
 		list.add(arg);
 	}
 
+	private void flattenCommasOrSemicolons(Expr arg, LinkedList<Expr> list) {
+		if(arg instanceof BinaryOp) {
+			BinaryOp op = (BinaryOp) arg;
+			if(op.getOperator() == BinaryOperator.COMMA || op.getOperator() == BinaryOperator.SEMICOLON) {
+				flattenCommas(op, op.getOperator(), list);
+				return;
+			}
+		}
+		list.add(arg);
+	}
 	private Expr parseParentheses() throws BanjoParseException, IOException {
 		ParenType parenType = ParenType.forCodePoint(in.read());
 		if(parenType == null) {

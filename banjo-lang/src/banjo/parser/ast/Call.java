@@ -1,15 +1,15 @@
 package banjo.parser.ast;
 
-import java.util.Collection;
+import java.util.List;
 
 import banjo.parser.util.FileRange;
 
 public class Call extends Expr {
 
 	private final Expr callee;
-	private final Collection<Expr> arguments;
+	private final List<Expr> arguments;
 
-	public Call(FileRange range, Expr callee, Collection<Expr> arguments) {
+	public Call(FileRange range, Expr callee, List<Expr> arguments) {
 		super(range);
 		this.callee = callee;
 		this.arguments = arguments;
@@ -19,7 +19,7 @@ public class Call extends Expr {
 		return callee;
 	}
 
-	public Collection<Expr> getArguments() {
+	public List<Expr> getArguments() {
 		return arguments;
 	}
 
