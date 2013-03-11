@@ -681,7 +681,7 @@ public class BanjoParser {
 			for(;;) {
 				skipWhitespace();
 				
-				cp = in.read();
+				cp = in.readIfIn("([.");
 				if(cp == '(') {
 					operand = parseFunctionCall(operand);
 				} else if(cp == '[') {
@@ -693,9 +693,6 @@ public class BanjoParser {
 				}
 			}
 				
-			// Not a suffix character, put it back
-			in.unread();
-
 			// Check for close brackets / end of file
 			if(isCloseParenOrEof(cp)) {
 				// Current operand is the rightmost operand
@@ -824,31 +821,7 @@ public class BanjoParser {
 				return exprsToObjectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT:
 				// Convert to "Let"
-				Expr target = op.getLeft();
-				Expr value = op.getRight();
-				Expr contract = null;
-				String name = null;
-				FileRange nameRange = null;
-				if(isPair(target)) {
-					final BinaryOp targetBOp = (BinaryOp)target;
-					target = targetBOp.getLeft();
-					contract = targetBOp.getRight();
-				}
-				if(target instanceof Call) {
-					Call call = (Call) target;
-					value = makeFunctionLiteral(op.getFileRange(), call.getArguments(), value, contract);
-					target = call.getCallee();
-					contract = null;
-				}
-				if(target instanceof IdRef) {
-					IdRef id = (IdRef) target;
-					name = id.getId();
-					nameRange = id.getFileRange();
-					// TODO If contract != null, what then ?
-					return new Let(nameRange, name, enrich(value));
-				} else {
-					errors.add(new ExpectedIdentifier(target));
-				}
+				return enrichLet(op);
 			default:
 				return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
 			}
@@ -884,6 +857,35 @@ public class BanjoParser {
 			}
 		}
 		return node;
+	}
+
+	public Expr enrichLet(BinaryOp op) {
+		Expr target = op.getLeft();
+		Expr value = op.getRight();
+		Expr contract = null;
+		String name = null;
+		FileRange nameRange = null;
+		if(isPair(target)) {
+			final BinaryOp targetBOp = (BinaryOp)target;
+			target = targetBOp.getLeft();
+			contract = targetBOp.getRight();
+		}
+		if(target instanceof Call) {
+			Call call = (Call) target;
+			value = makeFunctionLiteral(op.getFileRange(), call.getArguments(), value, contract);
+			target = call.getCallee();
+			contract = null;
+		}
+		if(target instanceof IdRef) {
+			IdRef id = (IdRef) target;
+			name = id.getId();
+			nameRange = id.getFileRange();
+			// TODO If contract != null, what then ?
+			return new Let(nameRange, name, enrich(value));
+		} else {
+			errors.add(new ExpectedIdentifier(target));
+			return op;
+		}
 	}
 
 	private Expr exprListToCond(FileRange range, LinkedList<Expr> exprs) {
@@ -1015,8 +1017,7 @@ public class BanjoParser {
 	public Expr parseLookup(Expr operand) throws IOException,
 			BanjoParseException, ExpectedCloseBracket {
 		Expr key = parseExpr();
-		int close = in.read();
-		if(close != ']') {
+		if(!in.checkNextChar(']')) {
 			throw new ExpectedCloseBracket("Expected ']'.", in.getFilePosAsRange());
 		}
 		FileRange range = in.getFileRange(operand.getFileRange().getStart());
@@ -1026,13 +1027,22 @@ public class BanjoParser {
 
 	public Expr parseFunctionCall(Expr operand) throws IOException,
 			BanjoParseException, PrematureEndOfFile, SyntaxError {
-		// Function call
-		Expr arg = parseExpr();
+		
 		LinkedList<Expr> args = new LinkedList<>();
-		flattenCommas(arg, BinaryOperator.COMMA, args);
-		// TODO Verify indentation of arguments
-		if(in.read() != ')') {
-			throw new SyntaxError("Expected ')'", in.getFilePosAsRange());
+		
+		// First check for empty argument list
+		skipWhitespace(tokenStartPos);
+		if(!in.checkNextChar(')')) {
+			// Parse args
+			Expr arg = parseExpr();
+			if(arg instanceof Steps) {
+				args.addAll(((Steps)arg).getSteps());
+			} else {
+				flattenCommasOrSemicolons(arg, args);
+			}
+			if(!in.checkNextChar(')')) {
+				throw new SyntaxError("Expected ')'", in.getFilePosAsRange());
+			}
 		}
 		FileRange callRange = in.getFileRange(operand.getFileRange().getStart());
 		operand = new Call(callRange, operand, args);
@@ -1043,7 +1053,7 @@ public class BanjoParser {
 		if(arg instanceof BinaryOp) {
 			BinaryOp bop = (BinaryOp) arg;
 			if(isElementSeparator(bop)) {
-				if(bop.getOperator() != type) {
+				if(bop.getOperator() != type && bop.getOperator() != BinaryOperator.NEWLINE) {
 					if(type == BinaryOperator.NEWLINE) type = bop.getOperator();
 					else errors.add(new MixedSemicolonAndComma(bop));
 				}

@@ -678,4 +678,31 @@ public class ParserReader extends Reader {
 		unread();
 		return cp;
 	}
+
+	/**
+	 * If the next character matches the given code point, consume it
+	 * and return true.  Otherwise, unread() it and return false.
+	 */
+	public boolean checkNextChar(int codePoint) throws IOException {
+		if(read() == codePoint) {
+			return true;
+		} else {
+			unread();
+			return false;
+		}
+	}
+
+	/**
+	 * Check if the next character is in the given string.  If so, consume it
+	 * and return it.  If not, unread() it and return it.
+	 * @param string
+	 * @return
+	 * @throws IOException 
+	 */
+	public int readIfIn(String string) throws IOException {
+		int cp = read();
+		if(string.indexOf(cp) == -1)
+			unread();
+		return cp;
+	}
 }

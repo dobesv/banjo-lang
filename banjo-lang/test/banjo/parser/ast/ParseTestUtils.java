@@ -15,6 +15,7 @@ public class ParseTestUtils {
 
 	public static <T extends Expr> T testParse(String source, int expectedErrors,
 			Class<T> expectedClass, String expectedSource) {
+		System.out.println("<< "+source.replace("\n", "\n<< "));
 		BanjoParser parser = new BanjoParser(source);
 		Expr parsed;
 		try {
@@ -24,11 +25,13 @@ public class ParseTestUtils {
 		} catch (IOException e1) {
 			throw new Error(e1);
 		}
-		assertTrue(parser.reachedEof());
-		System.out.println(parsed.toSource());
+		System.out.println("  >> " + parsed.toSource().replace("\n", "\n  >> "));
 		for(Exception e : parser.getErrors()) {
-			System.out.println(e);
+			System.out.println("  !! "+e);
 		}
+		assertTrue(parser.reachedEof());
+		if(expectedErrors==0 && !parser.getErrors().isEmpty())
+			throw new Error(parser.getErrors().iterator().next());
 		assertEquals(expectedErrors, parser.getErrors().size());
 		if(expectedSource != null)
 			assertEquals(expectedSource, parsed.toSource());
