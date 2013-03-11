@@ -18,7 +18,7 @@ public class TestCallParser {
 	@Test public void mixed3() { call("a(b,c\n  d;e)", "a(b, c, d, e)", 4, 1); }
 	
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
-		Call call = ParseTestUtils.testParse(source, 0, Call.class, expectedSource);
+		Call call = ParseTestUtils.testParse(source, expectedErrors, Call.class, expectedSource);
 		assertEquals(numArgs, call.getArguments().size());
 	}
 }
