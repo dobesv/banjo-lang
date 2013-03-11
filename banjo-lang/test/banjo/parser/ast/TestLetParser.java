@@ -2,36 +2,18 @@ package banjo.parser.ast;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-
 import org.junit.Test;
 
-import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.BanjoParseException;
-import banjo.parser.util.ParserReader;
-
 public class TestLetParser {
-	@Test
-	public void simpleTests() throws Exception {
-		simpleHelloTest("hello = \"world\" ; hello", 0);
-		simpleHelloTest("hello = \"world\"\nhello", 0);
-		simpleHelloTest("   hello = \"world\"\n   hello", 0);
-		simpleHelloTest("   hello = \"world\"\nhello", 2); // Backdent here should be reported as an error
-		simpleHelloTest(" hello = \"world\"\n   hello", 1); // Indent here should be reported as an error
-	}
+	@Test public void oneLine()         { simpleHelloTest("hello = \"world\" ; hello", 0); }
+	@Test public void twoLine()         { simpleHelloTest("hello = \"world\"\nhello", 0); }
+	@Test public void twoLineIndented() { simpleHelloTest("   hello = \"world\"\n   hello", 0); }
+	@Test public void badBackdent()     { simpleHelloTest("   hello = \"world\"\nhello", 2); } // Backdent here should be reported as an error
+	@Test public void badIndent()       { simpleHelloTest(" hello = \"world\"\n   hello", 1); } // Indent here should be reported as an error
+	
 
-	private void simpleHelloTest(String sourceString, int expectedErrorCount) throws IOException,
-			BanjoParseException {
-		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
-		final BanjoParser parser = new BanjoParser(in);
-		final Expr parsed = parser.parseExpr();
-		System.out.println(parsed.toSource());
-		for(Exception e : parser.getErrors()) {
-			System.out.println(e.toString());
-		}
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		assertEquals(Steps.class, parsed.getClass());
-		Steps node = (Steps) parsed;
+	private void simpleHelloTest(String source, int expectedErrorCount) {
+		Steps node = ParseTestUtils.testParse(source, expectedErrorCount, Steps.class, "hello = \"world\"; hello");
 		assertEquals(2, node.getSteps().size());
 		Let let = (Let) node.getSteps().get(0);
 		

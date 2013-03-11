@@ -1,6 +1,5 @@
 package banjo.parser;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -15,6 +14,8 @@ import java.util.regex.Pattern;
 import banjo.parser.ast.BinaryOp;
 import banjo.parser.ast.BinaryOperator;
 import banjo.parser.ast.Call;
+import banjo.parser.ast.Cond;
+import banjo.parser.ast.CondCase;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.Field;
 import banjo.parser.ast.FieldRef;
@@ -35,6 +36,27 @@ import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.ast.UnaryOp;
 import banjo.parser.ast.UnaryOperator;
 import banjo.parser.ast.UnitRef;
+import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.ExpectedCase;
+import banjo.parser.errors.ExpectedCloseBrace;
+import banjo.parser.errors.ExpectedCloseBracket;
+import banjo.parser.errors.ExpectedCloseParen;
+import banjo.parser.errors.ExpectedElement;
+import banjo.parser.errors.ExpectedExpression;
+import banjo.parser.errors.ExpectedField;
+import banjo.parser.errors.ExpectedFieldName;
+import banjo.parser.errors.ExpectedIdentifier;
+import banjo.parser.errors.ExpectedOperator;
+import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.MixedSemicolonAndComma;
+import banjo.parser.errors.PrematureEndOfFile;
+import banjo.parser.errors.SyntaxError;
+import banjo.parser.errors.UnexpectedCloseParen;
+import banjo.parser.errors.UnexpectedDecimalPoint;
+import banjo.parser.errors.UnexpectedExponent;
+import banjo.parser.errors.UnexpectedSecondDecimalPoint;
+import banjo.parser.errors.UnsupportedBinaryOperator;
+import banjo.parser.errors.UnsupportedUnaryOperator;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
@@ -45,64 +67,6 @@ import banjo.parser.util.Token;
  * Change input into an AST.
  */
 public class BanjoParser {
-
-	public static class UnsupportedUnaryOperator extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public UnsupportedUnaryOperator(String op, FileRange range) {
-			super("Unsupported unary operator '"+op+"'", range);
-		}
-	}
-	public static class UnsupportedBinaryOperator extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public UnsupportedBinaryOperator(String op, FileRange range) {
-			super("Unsupported binary operator '"+op+"'", range);
-		}
-	}
-	public static class ExpectedCloseBracket extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedCloseBracket(String message, FileRange range) {
-			super(message, range);
-		}
-		public ExpectedCloseBracket(FileRange range) {
-			this("Expected ']'", range);
-		}
-
-	}
-	public static class ExpectedCloseParen extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedCloseParen(String message, FileRange range) {
-			super(message, range);
-		}
-
-		public ExpectedCloseParen(FileRange range) {
-			this("Expected ')'", range);
-		}
-
-	}
-	public static class ExpectedCloseBrace extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedCloseBrace(String message, FileRange range) {
-			super(message, range);
-		}
-
-		public ExpectedCloseBrace(FileRange range) {
-			this("Expected '}'", range);
-		}
-
-	}
-	public static class ExpectedFieldName extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedFieldName(String message, FileRange range) {
-			super(message, range);
-		}
-
-	}
 
 	final ParserReader in;
 	private final LinkedList<BanjoParseException> errors = new LinkedList<>();
@@ -304,185 +268,6 @@ public class BanjoParser {
 	    return true;
 	}
 	
-	public static class BanjoParseException extends java.text.ParseException {
-		private static final long serialVersionUID = 1L;
-		private final FileRange range;
-
-		public BanjoParseException(String message, FileRange range) {
-			super(message, range.getStartOffset());
-			this.range = range;
-		}
-
-		public int getStartLine() { return range.getStart().line; }
-		public int getStartColumn() { return range.getStart().column; }
-		public int getEndLine() { return range.getEnd().line; }
-		public int getEndColumn() { return range.getEnd().column; }
-		
-		@Override
-		public String toString() {
-			return range.toString()+": "+getLocalizedMessage();
-		}
-	}
-	public static class ExpectedExpression extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedExpression(FileRange fileRange) {
-			super("Expected expression", fileRange);
-		}
-		public ExpectedExpression(FileRange fileRange, String butGot) {
-			super("Expected expression here; found '"+butGot+"'", fileRange);
-		}
-	}
-	public static class ExpectedIdentifier extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedIdentifier(FileRange fileRange) {
-			super("Expected identifier here", fileRange);
-		}
-
-		public ExpectedIdentifier(Expr gotInstead) {
-			super("Expected identifier; got '"+gotInstead+"'", gotInstead.getFileRange());
-		}
-	}
-	public static class ExpectedOperator extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedOperator(FileRange fileRange) {
-			super("Expected operator", fileRange);
-		}
-
-		public ExpectedOperator(Expr gotInstead) {
-			super("Expected operator before '"+gotInstead.toSource(Precedence.COMMA)+"'", gotInstead.getFileRange());
-		}
-	}
-	
-	public static class ExpectedElement extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public ExpectedElement(FileRange range) {
-			super("Expected comma, newline, or ']'", range);
-		}
-	}
-	public static class ExpectedField extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public ExpectedField(FileRange range) {
-			super("Expected key : value pair or '}'", range);
-		}
-	}
-
-	public static class ExpectedFunctionArgsBodySeparator extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public ExpectedFunctionArgsBodySeparator(String message, FileRange range) {
-			super(message, range);
-		}
-	
-		public ExpectedFunctionArgsBodySeparator(int followedBy, FileRange fileRange) {
-			this(new StringBuffer().append("Expected function argument list to be separated from body with '").appendCodePoint(followedBy).append("'").toString(), fileRange);
-		}
-	
-	}
-	public static class ExpectedColon extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public ExpectedColon(String key, FileRange range) {
-			super("Expected ':' after key '"+key+"'", range);
-		}
-	}
-	
-	public static class UnexpectedCloseParen extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public UnexpectedCloseParen(FileRange range) {
-			super("Unexpected ')'", range);
-		}
-	
-	}
-	public static class MissingCloseParen extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public MissingCloseParen(FileRange range) {
-			super("Missing ')'", range);
-		}
-	
-	}
-	public static class ExpectedSemiColonOrNewline extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public ExpectedSemiColonOrNewline(FileRange range) {
-			super("Expected semicolon or newline", range);
-		}
-	}
-	public static class IncorrectIndentation extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public IncorrectIndentation(FileRange range, int indentColumn) {
-			this(range, indentColumn, false);
-		}
-		public IncorrectIndentation(FileRange range, int indentColumn, boolean orMore) {
-			super("Expected indentation to column "+indentColumn+(orMore?" or more":"")+" but indentation was "+range.getStart().column+" columns.", range);
-		}
-	}
-	
-	public static class PrematureEndOfFile extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public PrematureEndOfFile(String message, FileRange range) {
-			super(message, range);
-		}
-	
-	}
-
-	public static class UnexpectedDecimalPoint extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public UnexpectedDecimalPoint(String message, FileRange range) {
-			super(message, range);
-		}
-	
-	}
-	public static class UnexpectedExponent extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public UnexpectedExponent(String message, FileRange range) {
-			super(message, range);
-		}
-	
-	}
-	public static class UnexpectedSecondDecimalPoint extends UnexpectedDecimalPoint {
-		private static final long serialVersionUID = 1L;
-
-		public UnexpectedSecondDecimalPoint(String message, FileRange range) {
-			super(message, range);
-		}
-	
-	}
-
-	public static class MissingWhitespace extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-
-		public MissingWhitespace(String message, FileRange range) {
-			super(message, range);
-		}
-	
-	}
-	/**
-	 * Generic kind of "I have no idea what you've typed in here" error.
-	 */
-	public static class SyntaxError extends BanjoParseException {
-		private static final long serialVersionUID = 1L;
-	
-		public SyntaxError(FileRange range) {
-			super("Syntax error", range);
-		}
-
-		public SyntaxError(String message, FileRange range) {
-			super(message, range);
-		}
-	}
-
-
 	/**
 	 * Skip whitespace and attempt to parse the next token by matching the given regular
 	 * expression.  If the regular expression doesn't match, rewaind to before any skipped
@@ -586,7 +371,7 @@ public class BanjoParser {
 	            }
 	        }
 	    }
-	    if(cp == -1) getErrors().add(new BanjoParser.PrematureEndOfFile("End of file in string literal", in.getFileRange(tokenStartPos)));
+	    if(cp == -1) getErrors().add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(tokenStartPos)));
 		return new StringLiteral(in.readTokenFrom(tokenStartPos), buf.toString());
 	}
 
@@ -657,7 +442,7 @@ public class BanjoParser {
 		for(;;) {
 			if(cp == '.') {
 				if(radix != 10) {
-					getErrors().add(new BanjoParser.UnexpectedDecimalPoint("Decimal point found in "+formatName+" number", in.getFileRange(afterDigits)));
+					getErrors().add(new UnexpectedDecimalPoint("Decimal point found in "+formatName+" number", in.getFileRange(afterDigits)));
 					radix = 10;
 				}
 				if(digitsLeftOfDecimalPoint != -1) {
@@ -665,7 +450,7 @@ public class BanjoParser {
 						in.seek(tokenStartPos);
 						return null;
 					} else {
-						getErrors().add(new BanjoParser.UnexpectedSecondDecimalPoint("Second decimal point in number", in.getFileRange(afterDigits)));
+						getErrors().add(new UnexpectedSecondDecimalPoint("Second decimal point in number", in.getFileRange(afterDigits)));
 						in.seek(afterDigits);
 						break;
 					}
@@ -684,7 +469,7 @@ public class BanjoParser {
 				}
 				// Exponent
 				if(radix != 10) {
-					getErrors().add(new BanjoParser.UnexpectedExponent("Exponent found in "+formatName+" number", in.getFileRange(afterDigits)));
+					getErrors().add(new UnexpectedExponent("Exponent found in "+formatName+" number", in.getFileRange(afterDigits)));
 					// Continue to consume any number that follow anyway, we might recover somewhat
 				}
 				cp = in.read();
@@ -937,9 +722,9 @@ public class BanjoParser {
 				}
 				
 				// If we de-dented back to an exact match on the column of an enclosing
-				// expression, insert a virtual comma
+				// expression, insert a virtual semicolon
 				if(operand.getStartColumn() == column) {
-					binaryOpStack.push(new PartialBinaryOp(BinaryOperator.COMMA, operand));
+					binaryOpStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, operand));
 					continue;
 				}
 			}
@@ -1014,6 +799,7 @@ public class BanjoParser {
 			switch(op.getOperator()) {
 			case COMMA:
 			case SEMICOLON:
+			case NEWLINE:
 				LinkedList<Expr> exprs = new LinkedList<>();
 				flattenCommas(op, op.getOperator(), exprs);
 				Expr first = exprs.get(0);
@@ -1022,6 +808,8 @@ public class BanjoParser {
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
 					return exprListToListLiteral(range, exprs, true);
+				} else if(isCondCase(first)) {
+					return exprListToCond(range, exprs);
 				} else {
 					// Everything else - treat as a series of steps
 					ArrayList<Expr> stepsList = new ArrayList<>(exprs.size());
@@ -1098,6 +886,24 @@ public class BanjoParser {
 		return node;
 	}
 
+	private Expr exprListToCond(FileRange range, LinkedList<Expr> exprs) {
+		List<CondCase> cases = new ArrayList<>(exprs.size());
+		for(Expr e : exprs) {
+			if(!isCondCase(e)) {
+				errors.add(new ExpectedCase(e));
+				continue;
+			}
+			BinaryOp caseOp = (BinaryOp)e;
+			CondCase c = new CondCase(e.getFileRange(), caseOp.getLeft(), caseOp.getRight());
+			cases.add(c);
+		}
+		return new Cond(range, cases);
+	}
+
+	private final boolean isCondCase(Expr e) {
+		return (e instanceof BinaryOp) && ((BinaryOp)e).getOperator() == BinaryOperator.COND;
+	}
+
 	public Expr exprListToListLiteral(final FileRange range,
 			List<Expr> list, boolean requireBullet) {
 		ArrayList<Expr> elements = new ArrayList<>();
@@ -1161,10 +967,10 @@ public class BanjoParser {
 		}
 		if(argsDef instanceof Steps) {
 			exprs = ((Steps)argsDef).getSteps();
-		} else if(!(argsDef instanceof UnitRef)) {
-			flattenCommas(argsDef, BinaryOperator.COMMA, exprs);
-		} else {
+		} else if(argsDef instanceof UnitRef) {
 			// Leave the list empty
+		} else {
+			flattenCommas(argsDef, BinaryOperator.COMMA, exprs);
 		}
 		return makeFunctionLiteral(range, exprs, body, returnContract);
 	}
@@ -1236,7 +1042,11 @@ public class BanjoParser {
 	private void flattenCommas(Expr arg, BinaryOperator type, List<Expr> exprs) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp bop = (BinaryOp) arg;
-			if(bop.getOperator() == type) {
+			if(isElementSeparator(bop)) {
+				if(bop.getOperator() != type) {
+					if(type == BinaryOperator.NEWLINE) type = bop.getOperator();
+					else errors.add(new MixedSemicolonAndComma(bop));
+				}
 				flattenCommas(bop.getLeft(), type, exprs);
 				flattenCommas(bop.getRight(), type, exprs);
 				return;
@@ -1248,12 +1058,20 @@ public class BanjoParser {
 	private void flattenCommasOrSemicolons(Expr arg, LinkedList<Expr> list) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) arg;
-			if(op.getOperator() == BinaryOperator.COMMA || op.getOperator() == BinaryOperator.SEMICOLON) {
+			if(isElementSeparator(op)) {
 				flattenCommas(op, op.getOperator(), list);
 				return;
 			}
 		}
 		list.add(arg);
+	}
+
+	public static boolean isElementSeparator(BinaryOp op) {
+		return isElementSeparator(op.getOperator());
+	}
+
+	public static boolean isElementSeparator(final BinaryOperator operator) {
+		return operator == BinaryOperator.COMMA || operator == BinaryOperator.SEMICOLON || operator == BinaryOperator.NEWLINE;
 	}
 	private Expr parseParentheses() throws BanjoParseException, IOException {
 		ParenType parenType = ParenType.forCodePoint(in.read());
@@ -1291,5 +1109,12 @@ public class BanjoParser {
 	}
 	public Collection<BanjoParseException> getErrors() {
 		return errors;
+	}
+
+	/**
+	 * @return true iff we have reached the end of the input
+	 */
+	public boolean reachedEof() {
+		return in.remaining() == 0;
 	}
 }

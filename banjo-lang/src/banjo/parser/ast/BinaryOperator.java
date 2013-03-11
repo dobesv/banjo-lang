@@ -22,7 +22,8 @@ public enum BinaryOperator {
 	ASSIGNMENT("=", Precedence.ASSIGNMENT),
 	COLON(":", Precedence.BULLET),
 	COND("=>", 0x21D2, Precedence.COND),
-	SEMICOLON(";", Precedence.SEMICOLON);
+	SEMICOLON(";", Precedence.SEMICOLON),
+	NEWLINE("\n", Precedence.SEMICOLON); // Newline and indent
 	
 	private final String op;
 	private final int codePoint;

@@ -1,11 +1,9 @@
 package banjo.parser.ast;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 
 import banjo.parser.util.FileRange;
-import banjo.parser.util.Token;
 
 public class FunctionLiteral extends Expr {
 
@@ -35,16 +33,15 @@ public class FunctionLiteral extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		if(!args.isEmpty()) {
-			sb.append('(');
-			boolean first = true;
-			for(FunArg arg : args) {
-				if(first) first = false;
-				else sb.append(", ");
-				arg.toSource(sb, Precedence.COMMA);
-			}
-			sb.append(')');
+		sb.append('(');
+		boolean first = true;
+		for(FunArg arg : args) {
+			if(first) first = false;
+			else sb.append(", ");
+			arg.toSource(sb, Precedence.COMMA);
 		}
+		sb.append(')');
+		
 		if(contract != null) {
 			sb.append(" : ");
 			contract.toSource(sb, Precedence.FUNCTION);

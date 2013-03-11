@@ -23,14 +23,14 @@ public class Steps extends Expr {
 		boolean first = true;
 		for(Expr step : steps) {
 			if(first) first = false;
-			else sb.append(", ");
-			step.toSource(sb, Precedence.COMMA);
+			else sb.append("; ");
+			step.toSource(sb, Precedence.SEMICOLON);
 		}
 	}
 
 	@Override
 	public Precedence getPrecedence() {
-		return Precedence.COMMA;
+		return Precedence.SEMICOLON;
 	}
 
 	public List<Expr> getSteps() {

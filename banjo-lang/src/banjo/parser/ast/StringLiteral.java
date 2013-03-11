@@ -1,7 +1,7 @@
 package banjo.parser.ast;
 
 
-import banjo.parser.BanjoParser.BanjoParseException;
+import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.Token;
 

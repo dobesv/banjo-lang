@@ -9,7 +9,6 @@ import java.util.Collection;
 import org.junit.Test;
 
 import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.BanjoParseException;
 import banjo.parser.util.ParserReader;
 
 public class TestStringLiteralParser {
