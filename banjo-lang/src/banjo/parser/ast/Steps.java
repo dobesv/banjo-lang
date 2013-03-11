@@ -19,7 +19,7 @@ public class Steps extends Expr {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		boolean first = false;
+		boolean first = true;
 		for(Expr step : steps) {
 			if(first) first = false;
 			else sb.append(", ");
