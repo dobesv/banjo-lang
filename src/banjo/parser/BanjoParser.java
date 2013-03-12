@@ -135,6 +135,7 @@ public class BanjoParser {
 		switch(codePoint) {
 		case '"': 
 		case '\'':
+		case '_':
 		case '.': // Handled specially
 			return false;
 		case '-':
@@ -438,9 +439,11 @@ public class BanjoParser {
 		if(cp == '0') {
 			isNumber = true;
 			cp = in.read();
-			if(cp == 'x' || cp == 'X') { radix = 16; maxLongDigits=15; formatName="hexadecimal"; }
-			else if(cp == 'b' || cp == 'B') { radix = 2; maxLongDigits=62; formatName="binary"; }
-			else if(cp == 'o' || cp == 'O') { radix = 8; maxLongDigits=20; formatName="octal"; }
+			switch(cp) {
+			case 'x': case 'X': radix = 16; maxLongDigits=15; formatName="hexadecimal"; cp = in.read(); break;
+			case 'b': case 'B': radix = 2; maxLongDigits=62; formatName="binary"; cp = in.read(); break;
+			case 'o': case 'O': radix = 8; maxLongDigits=20; formatName="octal"; cp = in.read(); break;
+			}
 		}
 		FilePos afterDigits = in.getFilePos();
 		int digits = 0;
@@ -468,19 +471,14 @@ public class BanjoParser {
 					digitsLeftOfDecimalPoint = digits;
 					cp = in.read();
 				}
-			} else if(isNumber && cp == '_') {
+			} else if(digits > 0 && cp == '_') {
 				// Allow underscore to "break up" long numbers, like in Java
 				cp = in.read();
-			} else if(cp == 'e' || cp == 'E') {
+			} else if(radix==10 && (cp == 'e' || cp == 'E')) {
 				// Can't start a number with an exponent
 				if(!isNumber) {
 					in.seek(tokenStartPos);
 					return null;
-				}
-				// Exponent
-				if(radix != 10) {
-					getErrors().add(new UnexpectedExponent("Exponent found in "+formatName+" number", in.getFileRange(afterDigits)));
-					// Continue to consume any number that follow anyway, we might recover somewhat
 				}
 				cp = in.read();
 				boolean negexp = cp == '-';
@@ -824,12 +822,10 @@ public class BanjoParser {
 		if(node instanceof UnaryOp) {
 			UnaryOp op = (UnaryOp) node;
 			final Expr operand = enrich(op.getOperand());
-			if(op.getOperator() == UnaryOperator.BULLET) {
-				return new ListLiteral(op.getFileRange(), Collections.singletonList(operand));
-			} else if(op.getOperator() == UnaryOperator.LAZY) {
-				return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
-			} else {
-				return op.withNewOperand(operand);
+			switch(op.getOperator()) {
+			case BULLET: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
+			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
+			default: return op.withNewOperand(enrich(operand));
 			}
 		} else if(node instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) node;

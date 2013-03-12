@@ -1,14 +1,13 @@
 package banjo.parser.ast;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 
 import org.junit.Test;
 
 import banjo.parser.BanjoParser;
+import banjo.parser.errors.BanjoParseException;
 
 public class TestNumberLiteralParser {
 
@@ -19,13 +18,22 @@ public class TestNumberLiteralParser {
 		testNonNumber("a");
 		testNonNumber("*");
 		testNonNumber(";");
-		testNonNumber("_1");
+		testNonNumber("1.");
+		testNonNumber("1.foo");
 		testNonNumber("_.1");
+		testNonNumber("_1");
 	}
 	
-	private void testNonNumber(String inStr) throws IOException {
-		final NumberLiteral node = new BanjoParser(inStr).parseNumberLiteral();
-		assertNull("Should not parse as number: "+inStr, node);
+	private void testNonNumber(String inStr) {
+		try {
+			Expr node = new BanjoParser(inStr).parseExpr();
+			assertFalse(node instanceof NumberLiteral);
+			assertFalse(node instanceof UnaryOp && ((UnaryOp) node).getOperand() instanceof NumberLiteral);
+		} catch (BanjoParseException e) {
+			// OK
+		} catch (IOException e) {
+			throw new Error(e);
+		}
 	}
 
 	@Test
@@ -40,12 +48,18 @@ public class TestNumberLiteralParser {
 	}
 
 	private void testInt(int n) throws IOException {
-		String inStr = String.valueOf(n);
-		final BanjoParser parser = new BanjoParser(inStr);
-		final NumberLiteral node = parser.parseNumberLiteral();
-		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, parser.getErrors().size());
-		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
+		String dec = String.valueOf(n);
+		final String hex = "0x"+Integer.toHexString(n);
+		if(n >= 0) {
+			assertEquals(n, parseNumber(dec).getNumber().intValue());
+			assertEquals(n, parseNumber(hex).getNumber().intValue());
+		} else {
+			UnaryOp op = ParseTestUtils.testParse(dec, 0, UnaryOp.class, dec);
+			assertEquals(UnaryOperator.NEGATE, op.getOperator());
+			NumberLiteral num = (NumberLiteral) op.getOperand();
+			assertEquals(-n, num.getNumber().intValue());
+			
+		}
 	}
 	
 	@Test
@@ -62,12 +76,22 @@ public class TestNumberLiteralParser {
 	}
 
 	private void testLong(long n) throws IOException {
-		String inStr = String.valueOf(n);
-		final BanjoParser parser = new BanjoParser(inStr);
-		final NumberLiteral node = parser.parseNumberLiteral();
-		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, parser.getErrors().size());
-		assertEquals(String.valueOf(n), String.valueOf(node.getNumber()));
+		String dec = String.valueOf(n);
+		final String hex = "0x"+Long.toHexString(n);
+		if(n >= 0) {
+			assertEquals(n, parseNumber(dec).getNumber().longValue());
+			assertEquals(n, parseNumber(hex).getNumber().longValue());
+		} else {
+			UnaryOp op = ParseTestUtils.testParse(dec, 0, UnaryOp.class, dec);
+			assertEquals(UnaryOperator.NEGATE, op.getOperator());
+			NumberLiteral num = (NumberLiteral) op.getOperand();
+			assertEquals(-n, num.getNumber().longValue());
+			
+		}
+	}
+
+	public NumberLiteral parseNumber(String inStr) throws IOException {
+		return ParseTestUtils.testParse(inStr, 0, NumberLiteral.class, null);
 	}
 
 	@Test
@@ -88,7 +112,6 @@ public class TestNumberLiteralParser {
 		testDecimal("123.4e-4", "0.01234");
 		testDecimal(".001", "0.001");
 		testDecimal(".1", "0.1");
-		testDecimal("1.", "1");
 		testDecimal("1.000000000000000000000001");
 		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789");
 		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
@@ -98,11 +121,7 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		final BanjoParser parser = new BanjoParser(inStr);
-		final NumberLiteral node = parser.parseNumberLiteral();
-		assertNotNull("Failed to parse '"+inStr+"' as number", node);
-		assertEquals(0, parser.getErrors().size());
-		assertEquals(outStr, String.valueOf(node.getNumber()));
+		final boolean negative = outStr.charAt(0)=='-';
+		ParseTestUtils.testParse(inStr, 0, negative?UnaryOp.class:NumberLiteral.class, outStr);
 	}
-	
 }

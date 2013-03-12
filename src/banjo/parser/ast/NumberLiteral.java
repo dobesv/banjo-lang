@@ -31,6 +31,4 @@ public class NumberLiteral extends Expr {
 	public void toSource(StringBuffer sb) {
 		sb.append(number.toString());
 	}
-	
-	
 }
