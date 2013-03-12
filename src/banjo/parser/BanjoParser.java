@@ -54,6 +54,7 @@ import banjo.parser.errors.MixedSemicolonAndComma;
 import banjo.parser.errors.PrematureEndOfFile;
 import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedCloseParen;
+import banjo.parser.errors.UnexpectedContract;
 import banjo.parser.errors.UnexpectedDecimalPoint;
 import banjo.parser.errors.UnexpectedExponent;
 import banjo.parser.errors.UnexpectedSecondDecimalPoint;
@@ -920,7 +921,9 @@ public class BanjoParser {
 			IdRef id = (IdRef) target;
 			name = id.getId();
 			nameRange = id.getFileRange();
-			// TODO If contract != null, what then ?
+			if(contract != null) {
+				errors.add(new UnexpectedContract(contract));
+			}
 			return new Let(nameRange, name, enrich(value));
 		} else {
 			errors.add(new ExpectedIdentifier(target));
@@ -977,6 +980,22 @@ public class BanjoParser {
 			final BinaryOp fieldOp = (BinaryOp)e;
 			Expr keyExpr = fieldOp.getLeft();
 			String key;
+			Expr valueExpr = fieldOp.getRight();
+			Expr contract = null;
+			if(isPair(keyExpr)) {
+				final BinaryOp targetBOp = (BinaryOp)keyExpr;
+				keyExpr = targetBOp.getLeft();
+				contract = targetBOp.getRight();
+			}
+			if(keyExpr instanceof Call) {
+				Call call = (Call) keyExpr;
+				valueExpr = makeFunctionLiteral(fieldOp.getFileRange(), call.getArguments(), valueExpr, contract);
+				keyExpr = call.getCallee();
+				contract = null;
+			}
+			if(contract != null) {
+				errors.add(new UnexpectedContract(contract));
+			}
 			if(keyExpr instanceof IdRef) {
 				key = ((IdRef)keyExpr).getId();
 			} else if(keyExpr instanceof StringLiteral) {
@@ -985,8 +1004,7 @@ public class BanjoParser {
 				errors.add(new ExpectedFieldName("Expected identifier or string; got '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
 				continue;
 			}
-			Expr valueExpr = enrich(fieldOp.getRight());
-			fields.put(key, new Field(keyExpr.getFileRange(), key, valueExpr));
+			fields.put(key, new Field(keyExpr.getFileRange(), key, enrich(valueExpr)));
 		}
 		return new ObjectLiteral(range, fields);
 	}

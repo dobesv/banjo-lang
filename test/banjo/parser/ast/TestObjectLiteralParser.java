@@ -1,31 +1,25 @@
 package banjo.parser.ast;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.io.IOException;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-
-import banjo.parser.BanjoParser;
-import banjo.parser.errors.BanjoParseException;
-import banjo.parser.util.ParserReader;
 
 public class TestObjectLiteralParser {
 
 
-	@Test public void testNewlineSeparated() throws Exception { test123("{a:1\n b:2\n c:3}", 0); }
-	@Test public void testCommaSeparator() throws Exception { test123("{a:1,b:2,c:3}", 0); }
-	@Test public void testNoCurliesOrCommas() throws Exception { test123(" a: 1\n b : 2\n c :3", 0); }
-	@Test public void testMixCommasNewlines() throws Exception { test123("{a:1\n b:2,\n c:3}", 0); }
-	@Test public void testBackdentError() throws Exception { test123("{a:1,b:2,\nc:3}", 1); }
+	@Test public void newlineSeparated()  { abc("{a:1\n b:2\n c:3}", 0); }
+	@Test public void commaSeparator()    { abc("{a:1,b:2,c:3}", 0); }
+	@Test public void noCurliesOrCommas() { abc(" a: 1\n b : 2\n c :3", 0); }
+	@Test public void mixCommasNewlines() { abc("{a:1\n b:2,\n c:3}", 0); }
+	@Test public void backdentError()     { abc("{a:1,b:2,\nc:3}", 1); }
 	
-	@Test public void testTrailingComma() throws Exception { test123("{a:1,b:2,c:3,}", 0); }
-	
+	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
 
-	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		ObjectLiteral node = parse(source, expectedErrorCount);
+	@Test public void method() { parse("{f(x): x}", 0, "{f: (x) -> x}"); }
+
+	private void abc(String source, int expectedErrorCount) {
+		ObjectLiteral node = parse(source, expectedErrorCount, "{a: 1, b: 2, c: 3}");
 		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getValue().getClass());
@@ -39,25 +33,13 @@ public class TestObjectLiteralParser {
 		assertEquals("c", eltsArray[2].getIdentifier());
 	}
 
-	public ObjectLiteral parse(String source, int expectedErrorCount)
-			throws IOException, BanjoParseException {
-		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		final BanjoParser parser = new BanjoParser(in);
-		final Expr parsed = parser.parseExpr();
-		for(Exception e : parser.getErrors()) {
-			System.out.println(e.toString());
-		}
-		System.out.println(parsed.toSource());
-		ObjectLiteral node = (ObjectLiteral) parsed;
-		assertNotNull(node);
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		assertEquals(0, in.remaining());
-		return node;
+	public ObjectLiteral parse(String source, int expectedErrorCount, String expectedSource) {
+		return ParseTestUtils.testParse(source, expectedErrorCount, ObjectLiteral.class, expectedSource);
 	}
 	
 	@Test
-	public void testEmpty() throws Exception {
-		ObjectLiteral node = parse("{}", 0);
+	public void testEmpty() {
+		ObjectLiteral node = parse("{}", 0, null);
 		assertTrue(node.getFields().isEmpty());
 	}
 }
