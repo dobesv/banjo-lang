@@ -25,13 +25,13 @@ public class SetLiteral extends Expr {
 	}
 	
 	public void toSource(StringBuffer sb) {
-		sb.append('[');
+		sb.append('{');
 		boolean first = true;
 		for(Expr elt : elements) {
 			if(first) first = false;
 			else sb.append(", ");
 			elt.toSource(sb);
 		}
-		sb.append(']');
+		sb.append('}');
 	}
 }
