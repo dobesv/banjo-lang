@@ -10,10 +10,10 @@ import banjo.parser.util.FileRange;
  * steps should operate as if they were run in order from first to last.  The value
  * of the expression is the evaluated result of the last expression.
  */
-public class Steps extends Expr {
+public class ExprList extends Expr {
 	private final List<Expr> steps;
 	
-	public Steps(FileRange range, List<Expr> steps) {
+	public ExprList(FileRange range, List<Expr> steps) {
 		super(range);
 		this.steps = Collections.unmodifiableList(steps);
 	}

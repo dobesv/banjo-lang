@@ -13,7 +13,7 @@ public class TestLetParser {
 	
 
 	private void hello(String source, int expectedErrorCount) {
-		Steps node = ParseTestUtils.testParse(source, expectedErrorCount, Steps.class, "hello = \"world\"; hello");
+		ExprList node = ParseTestUtils.testParse(source, expectedErrorCount, ExprList.class, "hello = \"world\"; hello");
 		assertEquals(2, node.getSteps().size());
 		Let let = (Let) node.getSteps().get(0);
 		

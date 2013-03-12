@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import banjo.parser.ast.BinaryOp;
 import banjo.parser.ast.BinaryOperator;
@@ -32,7 +31,8 @@ import banjo.parser.ast.ObjectLiteral;
 import banjo.parser.ast.ParenType;
 import banjo.parser.ast.Parens;
 import banjo.parser.ast.Precedence;
-import banjo.parser.ast.Steps;
+import banjo.parser.ast.SetLiteral;
+import banjo.parser.ast.ExprList;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.ast.UnaryOp;
@@ -56,7 +56,6 @@ import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedCloseParen;
 import banjo.parser.errors.UnexpectedContract;
 import banjo.parser.errors.UnexpectedDecimalPoint;
-import banjo.parser.errors.UnexpectedExponent;
 import banjo.parser.errors.UnexpectedSecondDecimalPoint;
 import banjo.parser.errors.UnsupportedBinaryOperator;
 import banjo.parser.errors.UnsupportedUnaryOperator;
@@ -83,11 +82,6 @@ public class BanjoParser {
 		this(ParserReader.fromString("<string>", inStr));
 	}
 
-	public static Pattern whitespace = Pattern.compile("([ \r\n]*|//[^\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
-	public static Pattern idPattern = Pattern.compile("[\\p{Alpha}_-][\\p{Alnum}_-]*");
-	public static Pattern opPattern = Pattern.compile("[=+-/*&^><!\\-:]+");
-	public static Pattern sepPattern = Pattern.compile("[;,]");
-	
 	static boolean isIdentifierStart(int cp) {
 		return cp == '_' || cp == '$' || Character.isLetter(cp);
 	}
@@ -231,69 +225,6 @@ public class BanjoParser {
 		}
 	}
 
-	/**
-	 * Check whether the given operator follows.  If so, consume it and return true.  If not, rewind the stream to the
-	 * same position as before the function was called and return false;
-	 */
-	public boolean checkOperator(String op, int minColumn) throws IOException {
-		FilePos startPos = in.getFilePos();
-		skipWhitespace();
-		Token token = in.checkNextToken(opPattern);
-		boolean result = token != null && token.getText().equals(op);
-		if(!result) {
-			in.seek(startPos);
-		} else {
-			if(in.getCurrentLineNumber() > startPos.line && in.getCurrentColumnNumber() < minColumn) {
-				getErrors().add(new IncorrectIndentation(in.getFileRange(startPos), minColumn));
-			}
-		}
-		return result;
-	}
-
-	/**
-	 * Check whether the given separator follows.  If so, consume it and return true.  If not, but the next non-whitespace character
-	 * is on a new line from where we started, consume the whitespace and return true.  If that fails, rewind and return false.
-	 * @param sep Seperator we are looking for; e.g. ";"
-	 * @param indentColumn If a newline is used as a separator, the indentation must be at least this much or a parse exception will be thrown 
-	 * 
-	 * @return True if the separator was found, false otherwise
-	 * @throws IOException
-	 * @throws IncorrectIndentation 
-	 */
-	public boolean checkSeparatorOrNewline(String sep, int indentColumn) throws IOException {
-		FilePos startPos = in.getFilePos();
-		skipWhitespace();
-		FilePos tokenStartPos = in.getFilePos();
-		Token token = in.checkNextToken(sepPattern);
-	    boolean result = token != null && token.getText().equals(sep);
-	    if(!result) {
-	    	if(tokenStartPos.line > startPos.line) {
-	    		in.seek(tokenStartPos);
-	    		if(tokenStartPos.column != indentColumn)
-	    			getErrors().add(new IncorrectIndentation(in.getFileRange(in.getFilePos().lineStart()), indentColumn));
-	    		return true;
-	    	} else {
-		    	in.seek(startPos);
-		    	return false;
-	    	}
-	    }
-	    return true;
-	}
-	
-	/**
-	 * Skip whitespace and attempt to parse the next token by matching the given regular
-	 * expression.  If the regular expression doesn't match, rewaind to before any skipped
-	 * whitespace and return null.  If it does match, consume the token and return it.
-	 */
-	public Token checkPattern(Pattern p) throws IOException {
-		FilePos startPos = in.getFilePos();
-		skipWhitespace();
-		Token tok = in.checkNextToken(p);
-		if(tok == null)
-			in.seek(startPos);
-		return tok;
-	}
-
 	private final Pos tokenStartPos = new Pos();
 	
 	/**
@@ -317,8 +248,6 @@ public class BanjoParser {
 	 * <tr><td>uXXXX</td><td></td><td>Four hex digits give a unicode character in the range 0-65535</td></tr>
 	 * </tbody>
 	 * </table>
-	 *
-	 * TODO: Error reporting ...
 	 */
 	
 	public StringLiteral parseStringLiteral() throws IOException {
@@ -710,7 +639,6 @@ public class BanjoParser {
 			// a + b
 			// c + d 
 			// Parse suffixes like '.', call ()'s, array/map []'s as well as a dedent after the operand
-			int cp;
 			suffixes: for(;;) {
 				skipWhitespace(beforeToken);
 				
@@ -746,7 +674,7 @@ public class BanjoParser {
 					}
 				}
 				
-				switch(cp = in.read()) {
+				switch(in.read()) {
 				case '(': operand = parseFunctionCall(operand); break;
 				case '[': operand = parseLookup(operand); break;
 				case '.': operand = parseFieldRef(operand); break;
@@ -852,7 +780,7 @@ public class BanjoParser {
 					for(Expr e : exprs) {
 						stepsList.add(enrich(e));
 					}
-					return new Steps(op.getFileRange(), stepsList);
+					return new ExprList(op.getFileRange(), stepsList);
 				}
 			case FUNCTION:
 				return enrichFunctionLiteral(op);
@@ -873,14 +801,16 @@ public class BanjoParser {
 			case BRACES: // Expecting an object
 				if(e instanceof ObjectLiteral)
 					return e;
+				else if(e instanceof ExprList)
+					return new SetLiteral(node.getFileRange(), ((ExprList)e).getSteps());
 				else 
 					errors.add(new ExpectedField(e.getFileRange()));
 				break;
 			case BRACKETS: // Expecting a list
 				if(e instanceof ListLiteral) {
 					return e;
-				} else if(e instanceof Steps) {
-					return exprListToListLiteral(e.getFileRange(), ((Steps)e).getSteps(), false);
+				} else if(e instanceof ExprList) {
+					return exprListToListLiteral(e.getFileRange(), ((ExprList)e).getSteps(), false);
 				} else {
 					LinkedList<Expr> exprs = new LinkedList<>();
 					flattenCommasOrSemicolons(e, exprs);
@@ -1025,8 +955,8 @@ public class BanjoParser {
 		if((argsDef instanceof Parens) && ((Parens)argsDef).getParenType() == ParenType.PARENS) {
 			argsDef = ((Parens)argsDef).getExpression();
 		}
-		if(argsDef instanceof Steps) {
-			exprs = ((Steps)argsDef).getSteps();
+		if(argsDef instanceof ExprList) {
+			exprs = ((ExprList)argsDef).getSteps();
 		} else if(argsDef instanceof UnitRef) {
 			// Leave the list empty
 		} else {
@@ -1093,8 +1023,8 @@ public class BanjoParser {
 		if(!in.checkNextChar(')')) {
 			// Parse args
 			Expr arg = parseExpr();
-			if(arg instanceof Steps) {
-				args.addAll(((Steps)arg).getSteps());
+			if(arg instanceof ExprList) {
+				args.addAll(((ExprList)arg).getSteps());
 			} else {
 				flattenCommasOrSemicolons(arg, args);
 			}
