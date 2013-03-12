@@ -692,17 +692,4 @@ public class ParserReader extends Reader {
 		}
 	}
 
-	/**
-	 * Check if the next character is in the given string.  If so, consume it
-	 * and return it.  If not, unread() it and return it.
-	 * @param string
-	 * @return
-	 * @throws IOException 
-	 */
-	public int readIfIn(String string) throws IOException {
-		int cp = read();
-		if(string.indexOf(cp) == -1)
-			unread();
-		return cp;
-	}
 }

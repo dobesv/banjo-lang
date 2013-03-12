@@ -24,7 +24,8 @@ public class UnaryOp extends Expr {
 	
 	public void toSource(StringBuffer sb) {
 		sb.append(operator.getOp());
-		sb.append(' ');
+		if(operator.getPrecedence() != Precedence.UNARY_PREFIX)
+			sb.append(' '); // Put a space for bullets
 		operand.toSource(sb, getPrecedence());
 	}
 	

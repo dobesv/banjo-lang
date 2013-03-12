@@ -1,5 +1,6 @@
 package banjo.parser;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -16,6 +17,7 @@ import banjo.parser.ast.BinaryOperator;
 import banjo.parser.ast.Call;
 import banjo.parser.ast.Cond;
 import banjo.parser.ast.CondCase;
+import banjo.parser.ast.Ellipsis;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.Field;
 import banjo.parser.ast.FieldRef;
@@ -91,6 +93,9 @@ public class BanjoParser {
 	
 	static final int NBSP = '\u00A0';
 	static final int NNBSP = '\u202F';
+	static final int ELLIPSIS = '\u2026';
+	
+	
 	static boolean isIdentifierPart(int cp) {
 		return isIdentifierStart(cp) 
 				|| Character.isDigit(cp)
@@ -128,7 +133,12 @@ public class BanjoParser {
 	
 	public static final boolean isOperatorChar(int codePoint) {
 		switch(codePoint) {
-		case '"': case '\'': return false;
+		case '"': 
+		case '\'':
+		case '.': // Handled specially
+			return false;
+		case '-':
+			return true;
 		default:
 		}
 		switch(Character.getType(codePoint)) {
@@ -554,12 +564,28 @@ public class BanjoParser {
 	 * @throws IOException
 	 */
 	public IdRef parseIdRef() throws IOException {
-		Pos startPos = in.getCurrentPosition(new Pos());
+		in.getCurrentPosition(tokenStartPos);
 		String identifier = matchID();
 		if(identifier == null)
 			return null;
-		FileRange identRange = in.getFileRange(startPos);
+		FileRange identRange = in.getFileRange(tokenStartPos);
 		return new IdRef(identRange, identifier);
+	}
+	
+	/**
+	 * Check for an Eliipsis at the current parse position.
+	 */
+	public Ellipsis parseEllipsis() throws IOException {
+		if(in.checkNextChar('.')) {
+			in.getCurrentPosition(tokenStartPos);
+			if(in.read() == '.' && in.read() == '.') {
+				return new Ellipsis(in.getFileRange(tokenStartPos));
+			}
+			in.seek(tokenStartPos);
+		} else if(in.checkNextChar(ELLIPSIS)) {
+			return new Ellipsis(in.getFileRange(in.getPreviousPosition(tokenStartPos)));
+		}
+		return null;
 	}
 
 	class PartialBinaryOp {
@@ -631,7 +657,7 @@ public class BanjoParser {
 		LinkedList<PartialBinaryOp> binaryOpStack = new LinkedList<>();
 		LinkedList<PartialUnaryOp> unaryOpStack = new LinkedList<>();
 		Pos beforeToken = new Pos();
-		for(;;) {
+		parseExprLoop: for(;;) {
 			skipWhitespace(beforeToken);
 			
 			String unaryOp = matchOperator();
@@ -648,21 +674,29 @@ public class BanjoParser {
 			if((operand = parseIdRef()) == null &&
 			   (operand = parseStringLiteral()) == null &&
 		  	   (operand = parseNumberLiteral()) == null && 
-		  	   (operand = parseParentheses()) == null) {
+		  	   (operand = parseParentheses()) == null &&
+		  	   (operand = parseEllipsis()) == null) {
 				
 				// Allow trailing comma / semicolon before close paren
 				int codePoint = in.peek();
-				if(isCloseParenOrEof(codePoint) &&
+				final boolean trailingSeparator = isCloseParenOrEof(codePoint) &&
 					!binaryOpStack.isEmpty() && 
-					(binaryOpStack.getFirst().getOperator() == BinaryOperator.COMMA ||
-					 binaryOpStack.getFirst().getOperator() == BinaryOperator.SEMICOLON)) {
+					isListSeparator(binaryOpStack.getFirst().getOperator());
+				if(trailingSeparator) {
 					operand = binaryOpStack.pop().getOperand();
 				} else if(codePoint == -1) {
-					errors.add(new PrematureEndOfFile("Unexpected end of file/input", in.getFilePosAsRange()));
+					throw new PrematureEndOfFile("Unexpected end of file/input", in.getFilePosAsRange());
 				} else if(isCloseParen(codePoint)) {
 					errors.add(new UnexpectedCloseParen(in.getFileRange(beforeToken)));
 				} else {
 					String butGot = matchOperator();
+					if(butGot == null) {
+						try {
+							butGot = in.readString(1);
+						} catch(EOFException e) {
+							butGot = "<EOF>";
+						}
+					}
 					errors.add(new ExpectedExpression(in.getFileRange(beforeToken), butGot));
 				}
 				if(operand == null) {
@@ -678,53 +712,50 @@ public class BanjoParser {
 			// c + d 
 			// Parse suffixes like '.', call ()'s, array/map []'s as well as a dedent after the operand
 			int cp;
-			for(;;) {
-				skipWhitespace();
+			suffixes: for(;;) {
+				skipWhitespace(beforeToken);
 				
-				cp = in.readIfIn("([.");
-				if(cp == '(') {
-					operand = parseFunctionCall(operand);
-				} else if(cp == '[') {
-					operand = parseLookup(operand);
-				} else if(cp == '.') {
-					operand = parseFieldRef(operand);
-				} else {
-					break;
+				// Check for close brackets / end of file
+				if(isCloseParenOrEof(in.peek())) {
+					// Current operand is the rightmost operand
+					while(!unaryOpStack.isEmpty()) {
+						operand = unaryOpStack.pop().makeOp(operand);
+					}
+					while(! binaryOpStack.isEmpty()) {
+						operand = binaryOpStack.pop().makeOp(operand);
+					}
+					return enrich(operand);
+				}
+
+				// Now if we get a de-dent we have to move up the operator stack
+				if(beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
+					int column = in.getCurrentColumnNumber();
+					while(!unaryOpStack.isEmpty() 
+							&& unaryOpStack.getFirst().getStartColumn() >= column) {
+						operand = unaryOpStack.pop().makeOp(operand);
+					}
+					while(!binaryOpStack.isEmpty() 
+							&& binaryOpStack.getFirst().getStartColumn() >= column) {
+						operand = binaryOpStack.pop().makeOp(operand);
+					}
+					
+					// If we de-dented back to an exact match on the column of an enclosing
+					// expression, insert a virtual semicolon
+					if(operand.getStartColumn() == column) {
+						binaryOpStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, operand));
+						continue parseExprLoop;
+					}
+				}
+				
+				switch(cp = in.read()) {
+				case '(': operand = parseFunctionCall(operand); break;
+				case '[': operand = parseLookup(operand); break;
+				case '.': operand = parseFieldRef(operand); break;
+				default: in.unread(); break suffixes;
 				}
 			}
 				
-			// Check for close brackets / end of file
-			if(isCloseParenOrEof(cp)) {
-				// Current operand is the rightmost operand
-				while(!unaryOpStack.isEmpty()) {
-					operand = unaryOpStack.pop().makeOp(operand);
-				}
-				while(! binaryOpStack.isEmpty()) {
-					operand = binaryOpStack.pop().makeOp(operand);
-				}
-				return enrich(operand);
-			}
 			
-			in.getCurrentPosition(beforeToken);
-			// Now if we get a de-dent we have to move up the operator stack
-			if(beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
-				int column = in.getCurrentColumnNumber();
-				while(!unaryOpStack.isEmpty() 
-						&& unaryOpStack.getFirst().getStartColumn() >= column) {
-					operand = unaryOpStack.pop().makeOp(operand);
-				}
-				while(!binaryOpStack.isEmpty() 
-						&& binaryOpStack.getFirst().getStartColumn() >= column) {
-					operand = binaryOpStack.pop().makeOp(operand);
-				}
-				
-				// If we de-dented back to an exact match on the column of an enclosing
-				// expression, insert a virtual semicolon
-				if(operand.getStartColumn() == column) {
-					binaryOpStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, operand));
-					continue;
-				}
-			}
 			
 			
 			// Now we are expecting some sort of operator...
@@ -759,6 +790,17 @@ public class BanjoParser {
 			
 			// Push this operator onto the stack.
 			binaryOpStack.push(new PartialBinaryOp(binOp, operand));
+		}
+	}
+
+	private boolean isListSeparator(BinaryOperator operator) {
+		switch(operator) {
+		case COMMA:
+		case SEMICOLON:
+		case NEWLINE:
+			return true;
+		default:
+			return false;
 		}
 	}
 

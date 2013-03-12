@@ -13,15 +13,15 @@ import banjo.parser.util.ParserReader;
 
 public class TestListLiteralParser {
 
-	@Test public void testUnicodeBullet() throws Exception { test123("\u2022 1\n\u2022 2\n\u2022 3", 0); }
-	@Test public void testStars() throws Exception { test123("* 1\n* 2\n* 3", 0); }
-	@Test public void testBracketsNewlines() throws Exception { test123("[1\n 2\n 3]", 0); }
-	@Test public void testBracketsCommas() throws Exception { test123("[1,2,3]", 0); }
-	@Test public void testBracketsMixedNewlinesCommas() throws Exception { test123("[1\n 2,\n 3]", 0); }
-	@Test public void testInvalidDedent() throws Exception { test123("[1,2,\n3]", 1); } // Expect an error since the 3 is at less indentation than the 1 and 2
-	@Test public void testBracketsTrailingComma() throws Exception {  test123("[1,2,3,]", 0); }
+	@Test public void bullets() throws Exception { list("\u2022 1\n\u2022 2\n\u2022 3", 0); }
+	@Test public void stars() throws Exception { list("* 1\n* 2\n* 3", 0); }
+	@Test public void bracketsNewlines() throws Exception { list("[1\n 2\n 3]", 0); }
+	@Test public void bracketsCommas() throws Exception { list("[1,2,3]", 0); }
+	@Test public void bracketsMixedNewlinesCommas() throws Exception { list("[1\n 2,\n 3]", 0); }
+	@Test public void invalidDedent() throws Exception { list("[1,2,\n3]", 1); } // Expect an error since the 3 is at less indentation than the 1 and 2
+	@Test public void bracketsTrailingComma() throws Exception {  list("[1,2,3,]", 0); }
 
-	private void test123(String source, int expectedErrorCount) throws IOException, BanjoParseException {
+	private void list(String source, int expectedErrorCount) throws IOException, BanjoParseException {
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
 		final BanjoParser parser = new BanjoParser(in);
 		final Expr parsed = parser.parseExpr();
