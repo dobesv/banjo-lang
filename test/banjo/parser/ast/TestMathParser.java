@@ -54,4 +54,18 @@ public class TestMathParser {
 		assertEquals(src, expr.toSource());
 	}
 	
+	@Test public void unaries1() throws Exception { unaries("+ - ~1"); }
+	@Test public void unaries2() throws Exception { unaries("+\n -\n  ~\n   1"); }
+	@Test public void unaries3() throws Exception { unaries("  +  -  ~ 1"); }
+
+	public void unaries(String src) {
+		final UnaryOp op1 = ParseTestUtils.testParse(src, 0, UnaryOp.class, "+ - ~1");
+		assertEquals(UnaryOperator.PLUS, op1.getOperator());
+		final UnaryOp op2 = (UnaryOp) op1.getOperand();
+		assertEquals(UnaryOperator.NEGATE, op2.getOperator());
+		final UnaryOp op3 = (UnaryOp) op2.getOperand();
+		assertEquals(UnaryOperator.COMPLEMENT, op3.getOperator());
+		final NumberLiteral num = (NumberLiteral) op3.getOperand();
+		assertEquals(1L, num.getNumber().longValue());
+	}
 }
