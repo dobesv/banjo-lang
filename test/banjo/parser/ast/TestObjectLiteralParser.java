@@ -18,6 +18,7 @@ public class TestObjectLiteralParser {
 	@Test public void stringKey() { abc("{\"a\":1,\"b\":2,\"c\":3}", 0); }
 
 	@Test public void keys() { parse("{:x,:y}", 0, "{x: {}, y: {}}"); }
+	@Test public void enum_() { parse(" : x\n : y", 0, "{x: {}, y: {}}"); }
 	@Test public void method() { parse("{f(x): x}", 0, "{f: (x) -> x}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", 0, "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
