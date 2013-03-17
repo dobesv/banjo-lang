@@ -3,6 +3,7 @@ package banjo.parser.ast;
 import java.util.Collections;
 import java.util.Map;
 
+import banjo.parser.BanjoParser;
 import banjo.parser.util.FileRange;
 
 
@@ -39,10 +40,23 @@ public class ObjectLiteral extends Expr {
 		for(Field f : fields.values()) {
 			if(first) first = false;
 			else sb.append(", ");
-			sb.append(f.getIdentifier());
+			maybeQuoteKey(f.getIdentifier(), sb);
 			sb.append(": ");
 			f.getValue().toSource(sb, Precedence.ASSIGNMENT);
 		}
 		sb.append('}');
+	}
+
+	public static StringBuffer maybeQuoteKey(String identifier, StringBuffer sb) {
+		for(int i=0; i < identifier.length(); i++) {
+			int cp = identifier.codePointAt(i);
+			if(cp > Character.MAX_VALUE) i++; // Actually a pair of characters
+			boolean ok = i==0 ? BanjoParser.isIdentifierStart(cp):BanjoParser.isIdentifierPart(cp);
+			if(!ok) {
+				return StringLiteral.toSource(identifier, sb);
+			}
+		}
+		sb.append(identifier);
+		return sb;
 	}
 }

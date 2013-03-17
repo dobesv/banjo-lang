@@ -8,7 +8,7 @@ public class UnitRef extends Expr {
 
 	public UnitRef(FileRange range) {
 		super(range);
-		this.parenType = null;
+		this.parenType = ParenType.BRACES;
 	}
 
 	public UnitRef(FileRange fileRange, ParenType parenType) {
@@ -27,7 +27,7 @@ public class UnitRef extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(parenType.getStartChar()).append(parenType.getEndChar());
+		sb.appendCodePoint(parenType.getStartChar()).appendCodePoint(parenType.getEndChar());
 	}
 
 }

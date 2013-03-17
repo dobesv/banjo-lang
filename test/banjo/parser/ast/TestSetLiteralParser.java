@@ -18,6 +18,7 @@ public class TestSetLiteralParser {
 	@Test public void bracketsMixedNewlinesCommas() throws Exception { set("{1\n 2,\n 3}", 0); }
 	@Test public void invalidDedent() throws Exception { set("{1,2,\n3}", 1); } // Expect an error since the 3 is at less indentation than the 1 and 2
 	@Test public void bracketsTrailingComma() throws Exception {  set("{1,2,3,}", 0); }
+	@Test public void pipes() throws Exception {  set("|1\n|2\n|3", 0); }
 
 	private void set(String source, int expectedErrorCount) throws IOException, BanjoParseException {
 		final ParserReader in = ParserReader.fromString(getClass().getName(), source);

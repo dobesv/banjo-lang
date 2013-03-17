@@ -10,11 +10,11 @@ public enum Precedence {
 	BITSHIFT, // <<, >>, >>>
 	ORDERING, // <, <=, >, >=
 	EQUALITY, // ==, !=
-	BITWISE_AND, // &
-	BITWISE_XOR, // ^
-	BITWISE_OR, // |
-	LOGICAL_AND, // &&
-	LOGICAL_OR, // ||
+	INTERSECT, // &
+	XOR, // ^
+	UNION, // |
+	LAZY_AND, // &&
+	LAZY_OR, // ||
 	TERNARY, // ? :
 	BULLET, // Bullets list
 	COMMA, // ',' "sequence operator"

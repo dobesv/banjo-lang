@@ -1,6 +1,7 @@
 package banjo.parser.ast;
 
 
+import banjo.parser.BanjoParser;
 import banjo.parser.util.FileRange;
 
 public class IdRef extends Expr {
@@ -20,7 +21,16 @@ public class IdRef extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(id);
+		for(int i=0; i < id.length(); i++) {
+			int cp = id.codePointAt(i);
+			if(cp > Character.MAX_VALUE) i++;
+			boolean ok = i==0?BanjoParser.isIdentifierStart(cp):
+				              BanjoParser.isIdentifierPart(cp);
+			if(!ok) {
+				sb.append('\\');
+			}
+			sb.appendCodePoint(cp);
+		}
 	}
 	
 }

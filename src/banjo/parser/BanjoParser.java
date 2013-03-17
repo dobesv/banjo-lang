@@ -82,8 +82,8 @@ public class BanjoParser {
 		this(ParserReader.fromString("<string>", inStr));
 	}
 
-	static boolean isIdentifierStart(int cp) {
-		return cp == '_' || cp == '$' || Character.isLetter(cp);
+	public static boolean isIdentifierStart(int cp) {
+		return cp == '_' || cp == '$' || cp == '\\' || Character.isLetter(cp);
 	}
 	
 	static final int NBSP = '\u00A0';
@@ -91,7 +91,7 @@ public class BanjoParser {
 	static final int ELLIPSIS = '\u2026';
 	
 	
-	static boolean isIdentifierPart(int cp) {
+	public static boolean isIdentifierPart(int cp) {
 		return isIdentifierStart(cp) 
 				|| Character.isDigit(cp)
 				|| cp == NBSP
@@ -114,15 +114,20 @@ public class BanjoParser {
 			in.unread();
 			return null;
 		}
+		boolean escape = first == '\\';
 		buf.setLength(0); // Reset buffer
 		buf.appendCodePoint(first);
 		for(;;) {
 			int cp = in.read();
-			if(!isIdentifierPart(cp)) {
-				in.unread();
-				return buf.toString();
+			if(cp == '\\') {
+				escape = true;
+			} else {
+				if(cp == -1 || !(escape || isIdentifierPart(cp))) {
+					in.unread();
+					return buf.toString();
+				}
+				buf.appendCodePoint(cp);
 			}
-			buf.appendCodePoint(cp);
 		}
 	}
 	
@@ -131,7 +136,8 @@ public class BanjoParser {
 		case '"': 
 		case '\'':
 		case '_':
-		case '.': // Handled specially
+		case '.':
+		case '\\':
 			return false;
 		case '-':
 			return true;
@@ -752,7 +758,8 @@ public class BanjoParser {
 			UnaryOp op = (UnaryOp) node;
 			final Expr operand = enrich(op.getOperand());
 			switch(op.getOperator()) {
-			case BULLET: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
+			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
+			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
 			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
 			default: return op.withNewOperand(enrich(operand));
 			}
@@ -767,11 +774,14 @@ public class BanjoParser {
 				LinkedList<Expr> exprs = new LinkedList<>();
 				flattenCommas(op, op.getOperator(), exprs);
 				Expr first = exprs.get(0);
-				if(isPair(first)) {
+				if(isPair(first) || isKeyword(first)) {
 					return exprsToObjectLiteral(range, exprs);
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
 					return exprListToListLiteral(range, exprs, true);
+				} else if(isSetElement(first)) {
+					// Bulleted set item - treat as a list
+					return exprListToSetLiteral(range, exprs, true);
 				} else if(isCondCase(first)) {
 					return exprListToCond(range, exprs);
 				} else {
@@ -899,18 +909,44 @@ public class BanjoParser {
 		return new ListLiteral(range, elements);
 	}
 
+	public Expr exprListToSetLiteral(final FileRange range,
+			List<Expr> list, boolean requireBullet) {
+		ArrayList<Expr> elements = new ArrayList<>();
+		if(!list.isEmpty()) {
+			for(Expr e : list) {
+				Expr eltValue;
+				if(isSetElement(e)) {
+					eltValue = enrich(((UnaryOp)e).getOperand());
+				} else {
+					if(requireBullet) {
+						errors.add(new ExpectedElement(e.getFileRange()));
+					}
+					eltValue = enrich(e);
+				}
+				elements.add(eltValue);
+			}
+		}
+		return new SetLiteral(range, elements);
+	}
+
 	public Expr exprsToObjectLiteral(FileRange range, Collection<Expr> pairs) {
 		// Key/value pair - treat as an object
 		LinkedHashMap<String, Field> fields = new LinkedHashMap<>(pairs.size()*2);
 		for(Expr e : pairs) {
-			if(!isPair(e)) {
+			Expr keyExpr;
+			Expr valueExpr;
+			if(isPair(e)) {
+				final BinaryOp fieldOp = (BinaryOp)e;
+				keyExpr = fieldOp.getLeft();
+				valueExpr = fieldOp.getRight();
+			} else if(isKeyword(e)) {
+				final UnaryOp fieldOp = (UnaryOp)e;
+				keyExpr = fieldOp.getOperand();
+				valueExpr = new UnitRef(fieldOp.getFileRange());
+			} else {
 				errors.add(new ExpectedField(e.getFileRange()));
 				continue;
 			}
-			final BinaryOp fieldOp = (BinaryOp)e;
-			Expr keyExpr = fieldOp.getLeft();
-			String key;
-			Expr valueExpr = fieldOp.getRight();
 			Expr contract = null;
 			if(isPair(keyExpr)) {
 				final BinaryOp targetBOp = (BinaryOp)keyExpr;
@@ -919,13 +955,14 @@ public class BanjoParser {
 			}
 			if(keyExpr instanceof Call) {
 				Call call = (Call) keyExpr;
-				valueExpr = makeFunctionLiteral(fieldOp.getFileRange(), call.getArguments(), valueExpr, contract);
+				valueExpr = makeFunctionLiteral(e.getFileRange(), call.getArguments(), valueExpr, contract);
 				keyExpr = call.getCallee();
 				contract = null;
 			}
 			if(contract != null) {
 				errors.add(new UnexpectedContract(contract));
 			}
+			String key;
 			if(keyExpr instanceof IdRef) {
 				key = ((IdRef)keyExpr).getId();
 			} else if(keyExpr instanceof StringLiteral) {
@@ -988,11 +1025,17 @@ public class BanjoParser {
 	}
 
 	public boolean isListElement(Expr e) {
-		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.BULLET;
+		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.LIST_ELEMENT;
+	}
+	public boolean isSetElement(Expr e) {
+		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.SET_ELEMENT;
 	}
 
 	public boolean isPair(Expr e) {
 		return (e instanceof BinaryOp) && ((BinaryOp) e).getOperator() == BinaryOperator.COLON;
+	}
+	public boolean isKeyword(Expr e) {
+		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.KEYWORD;
 	}
 
 	public Expr parseFieldRef(Expr operand) throws IOException {
