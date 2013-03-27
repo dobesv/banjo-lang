@@ -4,7 +4,7 @@ public enum UnaryOperator implements Operator {
 	PLUS("+", Precedence.UNARY_PREFIX),
 	NEGATE("-", Precedence.UNARY_PREFIX),
 	COMPLEMENT("~", Precedence.UNARY_PREFIX),
-	KEYWORD(":", Precedence.UNARY_PREFIX),	
+	ENUM_ELEMENT(":", Precedence.UNARY_PREFIX),	
 	LIST_ELEMENT("*", 0x2022, Precedence.BULLET),
 	SET_ELEMENT("|", Precedence.BULLET),
 	LAZY("->", 0x21a6, Precedence.FUNCTION),

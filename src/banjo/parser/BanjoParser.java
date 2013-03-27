@@ -835,17 +835,17 @@ public class BanjoParser {
 			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
 			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
 			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
-			case KEYWORD: return exprsToObjectLiteral(op.getFileRange(), Collections.singletonList(operand));
+			case ENUM_ELEMENT: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
 			case PARENS: return operand;
 			case LIST_LITERAL:
 				if(operand instanceof ListLiteral) {
 					return operand;
 				} else if(operand instanceof ExprList) {
-					return exprListToListLiteral(operand.getFileRange(), ((ExprList)operand).getSteps(), false);
+					return listLiteral(operand.getFileRange(), ((ExprList)operand).getSteps(), null);
 				} else {
 					LinkedList<Expr> exprs = new LinkedList<>();
 					flattenCommasOrSemicolons(operand, exprs);
-					return exprListToListLiteral(operand.getFileRange(), exprs, false);
+					return listLiteral(operand.getFileRange(), exprs, null);
 				}
 			case OBJECT_OR_SET_LITERAL: // Expecting an object or set
 				if(operand instanceof ObjectLiteral)
@@ -870,14 +870,25 @@ public class BanjoParser {
 				LinkedList<Expr> exprs = new LinkedList<>();
 				flattenCommas(op, op.getOperator(), exprs);
 				Expr first = exprs.get(0);
-				if(isPair(first) || isKeyword(first) || isTableHeader(first)) {
-					return exprsToObjectLiteral(range, exprs);
+				if(isTableHeader(first)) {
+					Expr second = exprs.get(1);
+					if(isPair(second) || isEnumElement(second)) {
+						return objectLiteral(range, exprs);
+					} else if(isSetElement(second)){
+						return setLiteral(range, exprs, ((UnaryOp)second).getOperator());
+					} else if(isListElement(second)) {
+						return listLiteral(range, exprs, ((UnaryOp)second).getOperator());
+					} else {
+						return listLiteral(range, exprs, null);
+					}
+				} else if(isPair(first) || isEnumElement(first)) {
+					return objectLiteral(range, exprs);
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
-					return exprListToListLiteral(range, exprs, true);
+					return listLiteral(range, exprs, ((UnaryOp)first).getOperator());
 				} else if(isSetElement(first)) {
 					// Bulleted set item - treat as a list
-					return exprListToSetLiteral(range, exprs, true);
+					return setLiteral(range, exprs, ((UnaryOp)first).getOperator());
 				} else if(isCondCase(first)) {
 					return exprListToCond(range, exprs);
 				} else {
@@ -902,7 +913,7 @@ public class BanjoParser {
 				return enrichFunctionLiteral(op);
 			case PAIR:
 			case TABLE_PAIR:
-				return exprsToObjectLiteral(range, Collections.<Expr>singletonList(op));
+				return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT:
 				// Convert to "Let"
 				return enrichLet(op);
@@ -980,47 +991,44 @@ public class BanjoParser {
 		return (e instanceof BinaryOp) && ((BinaryOp)e).getOperator() == BinaryOperator.COND;
 	}
 
-	private Expr exprListToListLiteral(final FileRange range,
-			List<Expr> list, boolean requireBullet) {
-		ArrayList<Expr> elements = new ArrayList<>();
-		if(!list.isEmpty()) {
-			for(Expr e : list) {
-				Expr eltValue;
-				if(isListElement(e)) {
-					eltValue = enrich(((UnaryOp)e).getOperand());
-				} else {
-					if(requireBullet) {
-						errors.add(new ExpectedElement(e.getFileRange()));
-					}
-					eltValue = enrich(e);
-				}
-				elements.add(eltValue);
-			}
-		}
-		return new ListLiteral(range, elements);
+	private Expr listLiteral(final FileRange range, List<Expr> list, UnaryOperator requireBullet) {
+		return new ListLiteral(range, elements(list, requireBullet));
 	}
 
-	private Expr exprListToSetLiteral(final FileRange range,
-			List<Expr> list, boolean requireBullet) {
-		ArrayList<Expr> elements = new ArrayList<>();
-		if(!list.isEmpty()) {
-			for(Expr e : list) {
-				Expr eltValue;
-				if(isSetElement(e)) {
-					eltValue = enrich(((UnaryOp)e).getOperand());
-				} else {
-					if(requireBullet) {
-						errors.add(new ExpectedElement(e.getFileRange()));
-					}
-					eltValue = enrich(e);
-				}
-				elements.add(eltValue);
-			}
-		}
-		return new SetLiteral(range, elements);
+	private Expr setLiteral(final FileRange range, List<Expr> list, UnaryOperator requireBullet) {
+		return new SetLiteral(range, elements(list, requireBullet));
 	}
 
-	private Expr exprsToObjectLiteral(FileRange range, Collection<Expr> pairs) {
+	private ArrayList<Expr> elements(List<Expr> list, UnaryOperator requireBullet) {
+		ArrayList<Expr> elements = new ArrayList<>();
+		List<Expr> headings = null;
+		if(!list.isEmpty()) {
+			for(Expr e : list) {
+				if(isTableHeader(e)) {
+					final UnaryOp headerOp = (UnaryOp)e;
+					headings = flattenCommasOrSemicolons(headerOp.getOperand(), new ArrayList<Expr>());
+					continue;
+				}
+				Expr eltExpr;
+				if(requireBullet != null && isUnaryOp(e, requireBullet)) {
+					eltExpr = ((UnaryOp)e).getOperand();
+				} else {
+					if(requireBullet != null) {
+						// TODO Wrong error
+						errors.add(new ExpectedElement(e.getFileRange()));
+					}
+					eltExpr = e;
+				}
+				if(headings != null) {
+					eltExpr = makeRow(headings, eltExpr);
+				}
+				elements.add(enrich(eltExpr));
+			}
+		}
+		return elements;
+	}
+
+	private Expr objectLiteral(FileRange range, Collection<Expr> pairs) {
 		// Key/value pair - treat as an object
 		LinkedHashMap<String, Field> fields = new LinkedHashMap<>(pairs.size()*2);
 		List<Expr> headings = null;
@@ -1031,11 +1039,11 @@ public class BanjoParser {
 				final BinaryOp fieldOp = (BinaryOp)e;
 				keyExpr = fieldOp.getLeft();
 				valueExpr = fieldOp.getRight();
-			} else if(isKeyword(e)) {
+			} else if(isEnumElement(e)) {
 				final UnaryOp fieldOp = (UnaryOp)e;
 				keyExpr = fieldOp.getOperand();
 				// TODO Come up with a better opaque unique object system
-				valueExpr = new IdRef(keyExpr.getFileRange(), "$unique");
+				valueExpr = new StringLiteral(keyExpr.getFileRange(), keyExpr.toSource());
 			} else if(isTableHeader(e)) {
 				final UnaryOp headerOp = (UnaryOp)e;
 				headings = flattenCommasOrSemicolons(headerOp.getOperand(), new ArrayList<Expr>());
@@ -1070,24 +1078,39 @@ public class BanjoParser {
 			}
 			// If this is a table, construct the row
 			if(headings != null) {
-				List<Expr> values = flattenCommasOrSemicolons(valueExpr, new ArrayList<Expr>(headings.size()));
-				for(int i=headings.size(); i < values.size(); i++) {
-					final Expr val = values.get(i);
-					errors.add(new ExtraTableColumn(i, headings.size(), val.toSource(), val.getFileRange()));
-				}
-				if(values.size() < headings.size()) {
-					errors.add(new MissingValueForTableColumn(values.size(), headings.size(), valueExpr.getFileRange(), headings.get(values.size()).toSource()));
-					continue;
-				}
-				ArrayList<Expr> fieldOps = new ArrayList<>(headings.size());
-				for(int i=0; i < headings.size(); i++) {
-					fieldOps.add(new BinaryOp(BinaryOperator.PAIR, headings.get(i), values.get(i)));
-				}
-				valueExpr = exprsToObjectLiteral(valueExpr.getFileRange(), fieldOps);
+				valueExpr = makeRow(headings, valueExpr);
 			}
 			fields.put(key, new Field(keyExpr.getFileRange(), key, enrich(valueExpr)));
 		}
 		return new ObjectLiteral(range, fields);
+	}
+
+	private Expr makeRow(List<Expr> headings, Expr valueExpr) {
+		List<Expr> values = flattenCommasOrSemicolons(stripParens(valueExpr), new ArrayList<Expr>(headings.size()));
+		for(int i=headings.size(); i < values.size(); i++) {
+			final Expr val = values.get(i);
+			errors.add(new ExtraTableColumn(i, headings.size(), val.toSource(), val.getFileRange()));
+		}
+		if(values.size() < headings.size()) {
+			errors.add(new MissingValueForTableColumn(values.size(), headings.size(), valueExpr.getFileRange(), headings.get(values.size()).toSource()));
+		}
+		ArrayList<Expr> fieldOps = new ArrayList<>(headings.size());
+		for(int i=0; i < values.size(); i++) {
+			fieldOps.add(new BinaryOp(BinaryOperator.PAIR, headings.get(i), values.get(i)));
+		}
+		valueExpr = objectLiteral(valueExpr.getFileRange(), fieldOps);
+		return valueExpr;
+	}
+
+	/**
+	 * If the expression is wrapped in parenthesis, remove them.
+	 * @param valueExpr
+	 * @return
+	 */
+	private Expr stripParens(Expr valueExpr) {
+		if(isUnaryOp(valueExpr, UnaryOperator.PARENS))
+			return ((UnaryOp)valueExpr).getOperand();
+		return valueExpr;
 	}
 
 	private Expr enrichFunctionLiteral(BinaryOp op) {
@@ -1160,8 +1183,8 @@ public class BanjoParser {
 				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR ||
 				 ((BinaryOp) e).getOperator() == BinaryOperator.TABLE_PAIR);
 	}
-	private boolean isKeyword(Expr e) {
-		return isUnaryOp(e, UnaryOperator.KEYWORD);
+	private boolean isEnumElement(Expr e) {
+		return isUnaryOp(e, UnaryOperator.ENUM_ELEMENT);
 	}
 	private boolean isTableHeader(Expr e) {
 		return isUnaryOp(e, UnaryOperator.TABLE_HEADER);

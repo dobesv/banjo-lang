@@ -17,12 +17,13 @@ public class TestObjectLiteralParser {
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
 	@Test public void stringKey() { abc("{\"a\":1,\"b\":2,\"c\":3}", 0); }
 
-	@Test public void keys() { parse("{:x,:y}", 0, "{x: $unique, y: $unique}"); }
-	@Test public void enum_() { parse(" : x\n : y", 0, "{x: $unique, y: $unique}"); }
+	@Test public void keys() { parse("{:x,:y}", 0, "{x: \"x\", y: \"y\"}"); }
+	@Test public void enum_() { parse(" : x\n : y", 0, "{x: \"x\", y: \"y\"}"); }
 	@Test public void method() { parse("{f(x): x}", 0, "{f: (x) -> x}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", 0, "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
-	@Test public void table() { parse("#::a,b,c\nabc::1,2,3", 0, "{abc: {a: 1, b: 2, c: 3}}"); }
+	@Test public void table1() { parse("#::a,b,c\nabc::1,2,3", 0, "{abc: {a: 1, b: 2, c: 3}}"); }
+	@Test public void table2() { parse("#::a,b\n\"12\"::1,2\n\"34\"::3,4\n\"56\"::5,6", 0, "{\"12\": {a: 1, b: 2}, \"34\": {a: 3, b: 4}, \"56\": {a: 5, b: 6}}"); }
 	
 	private void abc(String source, int expectedErrorCount) {
 		ObjectLiteral node = parse(source, expectedErrorCount, "{a: 1, b: 2, c: 3}");

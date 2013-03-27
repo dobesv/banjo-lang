@@ -1,15 +1,8 @@
 package banjo.parser.ast;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.io.IOException;
 
 import org.junit.Test;
-
-import banjo.parser.BanjoParser;
-import banjo.parser.errors.BanjoParseException;
-import banjo.parser.util.ParserReader;
 
 public class TestListLiteralParser {
 
@@ -20,20 +13,15 @@ public class TestListLiteralParser {
 	@Test public void bracketsMixedNewlinesCommas() throws Exception { list("[1\n 2,\n 3]", 0); }
 	@Test public void invalidDedent() throws Exception { list("[1,2,\n3]", 1); } // Expect an error since the 3 is at less indentation than the 1 and 2
 	@Test public void bracketsTrailingComma() throws Exception {  list("[1,2,3,]", 0); }
+	@Test public void table1() { parse("#::a,b\n* 1,2\n* 3,4\n* 5,6", 0, "[{a: 1, b: 2}, {a: 3, b: 4}, {a: 5, b: 6}]"); }
+	@Test public void table2() { parse("#::a,b\n(1,2)\n(3,4)\n(5,6)", 0, "[{a: 1, b: 2}, {a: 3, b: 4}, {a: 5, b: 6}]"); }
 
-	private void list(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		final BanjoParser parser = new BanjoParser(in);
-		final Expr parsed = parser.parseExpr();
-		for(Exception e : parser.getErrors()) {
-			System.out.println(e.toString());
-		}
-		System.out.println(parsed.toSource());
-		assertEquals(-1, in.read());
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		assertEquals(ListLiteral.class, parsed.getClass());
-		ListLiteral node = (ListLiteral) parsed;
-		assertNotNull(node);
+	public ListLiteral parse(String source, int expectedErrorCount, String expectedSource) {
+		return ParseTestUtils.testParse(source, expectedErrorCount, ListLiteral.class, expectedSource);
+	}
+
+	private void list(String source, int expectedErrorCount) {
+		ListLiteral node = ParseTestUtils.testParse(source, expectedErrorCount, ListLiteral.class, null);
 		final Object[] eltsArray = node.getElements().toArray();
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getClass());
