@@ -20,7 +20,8 @@ public abstract class Expr {
 	public abstract void toSource(StringBuffer sb);
 	public abstract Precedence getPrecedence();
 	public void toSource(StringBuffer sb, Precedence outerPrec) {
-		boolean needParens = outerPrec.isHigherThan(getPrecedence());
+		final Precedence prec = getPrecedence();
+		boolean needParens = prec != Precedence.ATOM && outerPrec != prec && outerPrec.isHigherThan(prec);
 		if(needParens) sb.append('(');
 		toSource(sb);
 		if(needParens) sb.append(')');

@@ -7,31 +7,23 @@ public enum ParenType {
 	/** Brackets, aka square brackets, are used to denote list literals */
 	BRACKETS('[', ']');
 	
-	private int startChar;
-	private int endChar;
+	private final char startChar;
+	private final char endChar;
 
-	ParenType(int startCh, int endCh) {
+	ParenType(char startCh, char endCh) {
 		this.startChar = startCh;
 		this.endChar = endCh;
 	}
 
-	public int getStartChar() {
+	public char getStartChar() {
 		return startChar;
 	}
 
-	public void setStartChar(int startChar) {
-		this.startChar = startChar;
-	}
-
-	public int getEndChar() {
+	public char getEndChar() {
 		return endChar;
 	}
 
-	public void setEndChar(int endChar) {
-		this.endChar = endChar;
-	}
-	
-	public static ParenType forCodePoint(int startChar) {
+	public static ParenType forChar(char startChar) {
 		for(ParenType t : values()) {
 			if(startChar == t.startChar)
 				return t;
@@ -39,6 +31,14 @@ public enum ParenType {
 		return null;
 	}
 
+	public static ParenType forCloseChar(char endChar) {
+		for(ParenType t : values()) {
+			if(endChar == t.endChar)
+				return t;
+		}
+		return null;
+	}
+	
 	public static boolean isOpenParen(int codePoint) {
 		for(ParenType t : values()) {
 			if(codePoint == t.startChar)

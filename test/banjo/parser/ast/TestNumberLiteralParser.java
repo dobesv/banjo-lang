@@ -8,6 +8,10 @@ import org.junit.Test;
 
 import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.ExpectedExpression;
+import banjo.parser.errors.ExpectedOperator;
+import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
+import banjo.parser.errors.SyntaxError;
 
 public class TestNumberLiteralParser {
 
@@ -16,20 +20,34 @@ public class TestNumberLiteralParser {
 	@Test
 	public void nonNumbers() throws IOException {
 		testNonNumber("a");
-		testNonNumber("*");
-		testNonNumber(";");
-		testNonNumber("1.");
-		testNonNumber("1.foo");
-		testNonNumber("_.1");
+		testNonNumber("*", ExpectedExpression.class);
+		testNonNumber(";", ExpectedExpression.class);
+		testNonNumber("1.", MissingDigitsAfterDecimalPoint.class);
+		testNonNumber("1.foo", SyntaxError.class); // ???
+		testNonNumber("_.1", ExpectedOperator.class);
 		testNonNumber("_1");
 	}
 	
 	private void testNonNumber(String inStr) {
+		testNonNumber(inStr, null);
+	}
+	private void testNonNumber(String inStr, Class<? extends BanjoParseException> eClass) {
 		try {
-			Expr node = new BanjoParser(inStr).parseExpr();
+			final BanjoParser parser = new BanjoParser(inStr);
+			Expr node = parser.parseExpr();
+			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
+			for(Exception e : parser.getErrors()) {
+				System.out.println(e.toString());
+			}
+			if(parser.getErrors().isEmpty()) {
+				assertNull("Expecting "+eClass, eClass); // Should have thrown, if an exception type was provided
+			} else {
+				throw parser.getErrors().iterator().next();
+			}
 			assertFalse(node instanceof NumberLiteral);
 			assertFalse(node instanceof UnaryOp && ((UnaryOp) node).getOperand() instanceof NumberLiteral);
 		} catch (BanjoParseException e) {
+			if(eClass == null || !eClass.isInstance(e)) throw new Error("Not expecting this exception", e);
 			// OK
 		} catch (IOException e) {
 			throw new Error(e);

@@ -28,11 +28,11 @@ public class TestListLiteralParser {
 		for(Exception e : parser.getErrors()) {
 			System.out.println(e.toString());
 		}
-		assertEquals(expectedErrorCount, parser.getErrors().size());
 		System.out.println(parsed.toSource());
+		assertEquals(-1, in.read());
+		assertEquals(expectedErrorCount, parser.getErrors().size());
 		assertEquals(ListLiteral.class, parsed.getClass());
 		ListLiteral node = (ListLiteral) parsed;
-		assertEquals(-1, in.read());
 		assertNotNull(node);
 		final Object[] eltsArray = node.getElements().toArray();
 		assertEquals(3, eltsArray.length);

@@ -1,5 +1,6 @@
 package banjo.parser.errors;
 
+import banjo.parser.ast.ParenType;
 import banjo.parser.util.FileRange;
 
 public class UnexpectedCloseParen extends BanjoParseException {
@@ -9,4 +10,8 @@ public class UnexpectedCloseParen extends BanjoParseException {
 		super("Unexpected ')'", range);
 	}
 
+	public UnexpectedCloseParen(FileRange range, ParenType type) {
+		super("Unexpected '"+(char)type.getEndChar()+"'", range);
+	}
+	
 }

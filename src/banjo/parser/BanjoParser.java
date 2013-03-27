@@ -1,6 +1,5 @@
 package banjo.parser;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -18,21 +17,20 @@ import banjo.parser.ast.Cond;
 import banjo.parser.ast.CondCase;
 import banjo.parser.ast.Ellipsis;
 import banjo.parser.ast.Expr;
+import banjo.parser.ast.ExprList;
 import banjo.parser.ast.Field;
-import banjo.parser.ast.FieldRef;
 import banjo.parser.ast.FunArg;
 import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
 import banjo.parser.ast.Let;
 import banjo.parser.ast.ListLiteral;
-import banjo.parser.ast.Lookup;
 import banjo.parser.ast.NumberLiteral;
 import banjo.parser.ast.ObjectLiteral;
+import banjo.parser.ast.Operator;
+import banjo.parser.ast.OperatorRef;
 import banjo.parser.ast.ParenType;
-import banjo.parser.ast.Parens;
 import banjo.parser.ast.Precedence;
 import banjo.parser.ast.SetLiteral;
-import banjo.parser.ast.ExprList;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.ast.UnaryOp;
@@ -40,9 +38,6 @@ import banjo.parser.ast.UnaryOperator;
 import banjo.parser.ast.UnitRef;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedCase;
-import banjo.parser.errors.ExpectedCloseBrace;
-import banjo.parser.errors.ExpectedCloseBracket;
-import banjo.parser.errors.ExpectedCloseParen;
 import banjo.parser.errors.ExpectedElement;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedField;
@@ -50,6 +45,8 @@ import banjo.parser.errors.ExpectedFieldName;
 import banjo.parser.errors.ExpectedIdentifier;
 import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
+import banjo.parser.errors.MissingValueForTableColumn;
 import banjo.parser.errors.MixedSemicolonAndComma;
 import banjo.parser.errors.PrematureEndOfFile;
 import banjo.parser.errors.SyntaxError;
@@ -155,14 +152,15 @@ public class BanjoParser {
 	}
 	public String matchOperator() throws IOException {
 		int first = in.read();
-		// These separators are always taken one at a time
-		if(first == ';' || first == ',') {
-			return Character.toString((char)first);
-		}
 		if(!isOperatorChar(first)) {
 			in.unread();
 			return null;
 		}
+		switch(first) {
+			case ',': return ",";
+			case ';': return ";";
+		}
+			
 		buf.setLength(0);
 		buf.appendCodePoint(first);
 		for(;;) {
@@ -267,7 +265,7 @@ public class BanjoParser {
 		int quoteType = cp;
 			
 		
-	    StringBuffer buf = new StringBuffer(in.remaining());
+	    buf.setLength(0);
 	    while((cp = in.read()) != -1) {
 	    	if(cp == quoteType)
 	    		break; // End of string
@@ -313,13 +311,13 @@ public class BanjoParser {
 	            }
 	
 	            default:  {
-	                getErrors().add(new BadStringEscapeSequence("Unknown escape sequence "+new String(Character.toChars(cp)), in.getFileRange(afterBackslash)));
+	                getErrors().add(new BadStringEscapeSequence("Unknown escape sequence "+codePointToString(cp), in.getFileRange(afterBackslash)));
 	                break;
 	            }
 	        }
 	    }
 	    if(cp == -1) getErrors().add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(tokenStartPos)));
-		return new StringLiteral(in.readTokenFrom(tokenStartPos), buf.toString());
+		return new StringLiteral(in.getFileRange(tokenStartPos), buf.toString());
 	}
 
 	private void readHexEscape(StringBuffer buf, final int digitCount) throws IOException {
@@ -462,8 +460,17 @@ public class BanjoParser {
 				}
 			}
 		}
-		final boolean isInteger = digitsLeftOfDecimalPoint == -1;
-		final int scale = (isInteger ? 0 : digits - digitsLeftOfDecimalPoint) - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
+		final boolean isInteger = digitsLeftOfDecimalPoint == -1;		
+		final int digitsRightOfDecimalPoint = digits - digitsLeftOfDecimalPoint;
+		if(!isInteger && digitsRightOfDecimalPoint == 0) {
+			if(!isNumber) {
+				in.seek(tokenStartPos);
+				return null;
+			} else {
+				getErrors().add(new MissingDigitsAfterDecimalPoint("Missing digits after decimal point", in.getFileRange(tokenStartPos)));
+			}
+		}
+		final int scale = (isInteger ? 0 : digitsRightOfDecimalPoint) - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
 		Number number;
 		if(intValBig == null) {
 			if(negative) {
@@ -495,9 +502,8 @@ public class BanjoParser {
 	 * position and returns null.
 	 * 
 	 * @return An IdRef if the parse is successful; null otherwise.
-	 * @throws IOException
 	 */
-	public IdRef parseIdRef() throws IOException {
+	private IdRef parseIdRef() throws IOException {
 		in.getCurrentPosition(tokenStartPos);
 		String identifier = matchID();
 		if(identifier == null)
@@ -505,9 +511,25 @@ public class BanjoParser {
 		FileRange identRange = in.getFileRange(tokenStartPos);
 		return new IdRef(identRange, identifier);
 	}
+
+	/**
+	 * Parse an operator.  If the current parse position has an operator,
+	 * this consumes it and returns it.  Otherwise, this resets the parse
+	 * position and returns null.
+	 * 
+	 * @return An OperatorRef if the parse is successful; null otherwise
+	 */
+	private OperatorRef parseOperatorRef() throws IOException {
+		in.getCurrentPosition(tokenStartPos);
+		String operator = matchOperator();
+		if(operator == null)
+			return null;
+		FileRange opRange = in.getFileRange(tokenStartPos);
+		return new OperatorRef(opRange, operator);
+	}
 	
 	/**
-	 * Check for an Eliipsis at the current parse position.
+	 * Check for an Ellipsis at the current parse position.
 	 */
 	public Ellipsis parseEllipsis() throws IOException {
 		if(in.checkNextChar('.')) {
@@ -522,23 +544,39 @@ public class BanjoParser {
 		return null;
 	}
 
-	class PartialBinaryOp {
-		final BinaryOperator operator;
+	abstract class PartialOp {
+		abstract Expr makeOp(Expr operand) throws BanjoParseException;
+		abstract int getStartColumn();
+		abstract Operator getOperator();
+		ParenType getParenType() { return getOperator().getParenType(); }
+		Precedence getPrecedence() { return getOperator().getPrecedence(); }
+		public boolean isOpenParen(ParenType closeParenType) {
+			return closeParenType == getParenType();
+		}
+	}
+	class PartialBinaryOp extends PartialOp {
+		private final BinaryOperator operator;
 		private final Expr operand;
-		public PartialBinaryOp(BinaryOperator operator, Expr operand) {
+		private final FileRange opRange;
+		public PartialBinaryOp(BinaryOperator operator, FileRange opRange, Expr operand) {
 			super();
 			this.operator = operator;
 			this.operand = operand;
+			this.opRange = opRange;
 		}
-		public BinaryOp makeOp(Expr secondOperand) {
+		public Expr makeOp(Expr secondOperand) throws ExpectedExpression {
+			if(secondOperand == null) {
+				if(operator == BinaryOperator.CALL) {
+					return new UnaryOp(in.getFileRange(opRange.getStart()), UnaryOperator.CALL, operand);
+				} else {
+					throw new ExpectedExpression(in.getFileRange(opRange.getEnd()));
+				}
+			}
 			// The second operand must be indented to at least the same position as the first
 			if(secondOperand.getStartColumn() < getStartColumn()) {
 				errors.add(new IncorrectIndentation(secondOperand.getFileRange(), getStartColumn(), true));
 			}
 			return new BinaryOp(operator, getOperand(), secondOperand);
-		}
-		public Precedence getPrecedence() {
-			return operator.getPrecedence();
 		}
 		public int getStartColumn() {
 			return getOperand().getStartColumn();
@@ -553,179 +591,223 @@ public class BanjoParser {
 		public Expr getOperand() {
 			return operand;
 		}
+		public FileRange getOpRange() {
+			return opRange;
+		}
 	}
 	
-	class PartialUnaryOp {
+	class PartialUnaryOp extends PartialOp {
 		final UnaryOperator operator;
-		final FileRange range;
-		public PartialUnaryOp(UnaryOperator operator, FileRange range) {
+		final FileRange opRange;
+		public PartialUnaryOp(UnaryOperator operator, FileRange opRange) {
 			super();
 			this.operator = operator;
-			this.range = range;
+			this.opRange = opRange;
 		}
-		public UnaryOp makeOp(Expr operand) {
+		public Expr makeOp(Expr operand) throws BanjoParseException {
+			if(operand == null) {
+				if(operator.isParen()) {
+					return new UnitRef(in.getFileRange(opRange.getStart()), operator.getParenType());
+				} else {
+					throw new ExpectedExpression(in.getFileRange(opRange.getStart()));
+				}
+			}
 			if(operand.getStartColumn() < getStartColumn()) {
 				// Operand should be at the same level or higher indentation as the unary operator itself
 				errors.add(new IncorrectIndentation(operand.getFileRange(), getStartColumn(), true));
 			}
-			return new UnaryOp(new FileRange(range,operand.getFileRange()), operator, operand);
+			return new UnaryOp(new FileRange(opRange,operand.getFileRange()), operator, operand);
 		}
 		public int getStartColumn() {
-			return range.getStart().getColumn();
+			return opRange.getStart().getColumn();
 		}
-		public Precedence getPrecedence() {
-			return operator.getPrecedence();
+		public UnaryOperator getOperator() {
+			return operator;
 		}
-		
 		@Override
 		public String toString() {
-			return "(+ _)";
+			return "("+operator.getOp()+" _)";
 		}
+	}
+	
+	public Expr parseExpr() throws IOException, BanjoParseException {
+		return enrich(parseExpr(null));
 	}
 	
 	/**
-	 * shunting-yard algorithm
+	 * Parse input until we match the given parentheses or reach EOF.  
+	 * 
+	 * If inParen is null,
+	 * EOF is considered success; otherwise, EOF is an error.
+	 * 
+	 * @param inParen If set, assume we are inside that kind of parentheses
 	 */
 	
-	public Expr parseExpr() throws IOException, BanjoParseException {
-		LinkedList<PartialBinaryOp> binaryOpStack = new LinkedList<>();
-		LinkedList<PartialUnaryOp> unaryOpStack = new LinkedList<>();
+	private Expr parseExpr(ParenType inParen) throws IOException, BanjoParseException {
+		LinkedList<PartialOp> opStack = new LinkedList<>();
 		Pos beforeToken = new Pos();
-		parseExprLoop: for(;;) {
+		Expr operand = null;
+		for(;;) {
 			skipWhitespace(beforeToken);
 			
-			String unaryOp = matchOperator();
-			if(unaryOp != null) {
-				UnaryOperator operator = UnaryOperator.fromOp(unaryOp);
-				if(operator != null) {
-					unaryOpStack.push(new PartialUnaryOp(operator, in.getFileRange(beforeToken)));
-				} else {
-					errors.add(new UnsupportedUnaryOperator(unaryOp, in.getFileRange(beforeToken)));
+			// Now if we get a de-dent we have to move up the operator stack
+			if(operand != null && beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
+				int column = in.getCurrentColumnNumber();
+				while(!opStack.isEmpty() 
+						&& opStack.getFirst().getStartColumn() >= column) {
+					operand = opStack.pop().makeOp(operand);
 				}
-				continue;
-			}
-			Expr operand;
-			if((operand = parseIdRef()) == null &&
-			   (operand = parseStringLiteral()) == null &&
-		  	   (operand = parseNumberLiteral()) == null && 
-		  	   (operand = parseParentheses()) == null &&
-		  	   (operand = parseEllipsis()) == null) {
 				
-				// Allow trailing comma / semicolon before close paren
-				int codePoint = in.peek();
-				final boolean trailingSeparator = isCloseParenOrEof(codePoint) &&
-					!binaryOpStack.isEmpty() && 
-					isListSeparator(binaryOpStack.getFirst().getOperator());
-				if(trailingSeparator) {
-					operand = binaryOpStack.pop().getOperand();
-				} else if(codePoint == -1) {
-					throw new PrematureEndOfFile("Unexpected end of file/input", in.getFilePosAsRange());
-				} else if(isCloseParen(codePoint)) {
-					errors.add(new UnexpectedCloseParen(in.getFileRange(beforeToken)));
-				} else {
-					String butGot = matchOperator();
-					if(butGot == null) {
-						try {
-							butGot = in.readString(1);
-						} catch(EOFException e) {
-							butGot = "<EOF>";
-						}
-					}
-					errors.add(new ExpectedExpression(in.getFileRange(beforeToken), butGot));
-				}
-				if(operand == null) {
-					if(!binaryOpStack.isEmpty()) {
-						operand = binaryOpStack.pop().getOperand();
-					} else {
-						operand = new UnitRef(in.getFileRange(beforeToken), ParenType.BRACES);
-					}
+				// If we de-dented back to an exact match on the column of an enclosing
+				// expression, insert a newline operator
+				if(operand.getStartColumn() == column) {
+					opStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, in.getFilePosAsRange(), operand));
+					operand = null;
 				}
 			}
 			
-			// a + b
-			// c + d 
-			// Parse suffixes like '.', call ()'s, array/map []'s as well as a dedent after the operand
-			suffixes: for(;;) {
-				skipWhitespace(beforeToken);
-				
-				// Check for close brackets / end of file
-				if(isCloseParenOrEof(in.peek())) {
-					// Current operand is the rightmost operand
-					while(!unaryOpStack.isEmpty()) {
-						operand = unaryOpStack.pop().makeOp(operand);
-					}
-					while(! binaryOpStack.isEmpty()) {
-						operand = binaryOpStack.pop().makeOp(operand);
-					}
-					return enrich(operand);
-				}
-
-				// Now if we get a de-dent we have to move up the operator stack
-				if(beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
-					int column = in.getCurrentColumnNumber();
-					while(!unaryOpStack.isEmpty() 
-							&& unaryOpStack.getFirst().getStartColumn() >= column) {
-						operand = unaryOpStack.pop().makeOp(operand);
-					}
-					while(!binaryOpStack.isEmpty() 
-							&& binaryOpStack.getFirst().getStartColumn() >= column) {
-						operand = binaryOpStack.pop().makeOp(operand);
+			Expr token = parseAtom();
+			
+			if(token != null) {
+				operand = parseExprToken(opStack, operand, token);
+			} else {
+				// Not an atom, binary operator, or unary operator
+				// Should be a paren, brace, bracket, or EOF
+				int cp = in.read();
+				ParenType closeParenType = cp < Character.MAX_VALUE ? ParenType.forCloseChar((char)cp) : null;
+				if(closeParenType != null || cp == -1) {
+					// If there is a trailing comma, semicolon, or newline we can pop it off the stack
+					if(operand == null &&
+					   !opStack.isEmpty() && 
+				       (opStack.getFirst() instanceof PartialBinaryOp) &&
+					   isListSeparator(((PartialBinaryOp) opStack.getFirst()).getOperator())) {
+						operand = ((PartialBinaryOp) opStack.pop()).getOperand();
 					}
 					
-					// If we de-dented back to an exact match on the column of an enclosing
-					// expression, insert a virtual semicolon
-					if(operand.getStartColumn() == column) {
-						binaryOpStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, operand));
-						continue parseExprLoop;
+					// Now pop 
+					boolean matchedOpen = false;
+					while(!opStack.isEmpty()) {
+						PartialOp po = opStack.pop();
+						operand = po.makeOp(operand);
+						if(po.isOpenParen(closeParenType)) {
+							matchedOpen = true;
+							break;
+						} else if(po.getParenType() != null) {
+							errors.add(new UnexpectedCloseParen(in.getFileRange(beforeToken), closeParenType));
+						}
+					}
+					if(!matchedOpen) {
+						if(closeParenType == inParen) {
+							return operand;
+						} else if(cp == -1 && inParen != null) {
+							throw new PrematureEndOfFile("Found EOF, was expecting '"+(char)inParen.getEndChar()+"'", in.getFilePosAsRange());
+						} else if(errors.size() > 0) {
+							throw errors.removeLast();
+						} else {
+							throw new ExpectedExpression(in.getFilePosAsRange());
+						}
+					}
+				} else {
+					ParenType parenType = cp < Character.MAX_VALUE ? ParenType.forChar((char)cp) : null;
+					if(parenType != null) {
+						if(operand == null) {
+							UnaryOperator operator = UnaryOperator.fromParenType(parenType);
+							if(operator == null) {
+								// Currently all parens are valid on their own, so this shouldn't happen really
+								throw new SyntaxError(in.getFileRange(tokenStartPos));
+							}
+							opStack.push(new PartialUnaryOp(operator, in.getFileRange(tokenStartPos)));
+						} else {
+							// Call/lookup
+							BinaryOperator operator = BinaryOperator.fromParenType(parenType);
+							if(operator == null) {
+								final UnaryOperator unaryParenType = UnaryOperator.fromParenType(parenType);
+								if(unaryParenType == null) {
+									throw new SyntaxError(in.getFilePosAsRange());
+								}
+								
+								// Insert "missing" operator and continue
+								final FileRange betweenRange = between(operand, token);
+								errors.add(new ExpectedOperator(betweenRange));
+								pushPartialBinaryOp(BinaryOperator.MISSING, betweenRange, operand, opStack);
+								opStack.push(new PartialUnaryOp(unaryParenType, in.getFileRange(tokenStartPos)));
+							} else {
+								pushPartialBinaryOp(operator, in.getFileRange(tokenStartPos), operand, opStack);
+							}
+							operand = null;
+						}
+					} else {
+						throw new SyntaxError(in.getFilePosAsRange());
 					}
 				}
-				
-				switch(in.read()) {
-				case '(': operand = parseFunctionCall(operand); break;
-				case '[': operand = parseLookup(operand); break;
-				case '.': operand = parseFieldRef(operand); break;
-				default: in.unread(); break suffixes;
-				}
 			}
-				
-			
-			
-			
-			// Now we are expecting some sort of operator...
-			String binaryOp = matchOperator();
-			if(binaryOp == null) {
-				Expr expr = parseExpr();
-				if(expr != null) {
-					binaryOp = ";";
-					errors.add(new ExpectedOperator(expr));
-					in.seek(beforeToken);
-				} else {
-					throw new SyntaxError("Missing operand after expression", operand.getFileRange());
-				}
-			}
-			
-			BinaryOperator binOp = BinaryOperator.fromOp(binaryOp);
-			if(binOp == null) {
-				errors.add(new UnsupportedBinaryOperator(binaryOp, in.getFileRange(beforeToken)));
-				binOp = BinaryOperator.MUL;
-			}
-			
-			// Current operand is the rightmost operand for anything of higher precedence than the
-			// operator we just got.
-			while(!unaryOpStack.isEmpty()
-					&& unaryOpStack.getFirst().getPrecedence().isHigherOrEqual(binOp.getPrecedence())) {
-				operand = unaryOpStack.pop().makeOp(operand);
-			}
-			while(!binaryOpStack.isEmpty() 
-					&& binaryOpStack.getFirst().getPrecedence().isHigherOrEqual(binOp.getPrecedence())) {
-				operand = binaryOpStack.pop().makeOp(operand);
-			}
-			
-			// Push this operator onto the stack.
-			binaryOpStack.push(new PartialBinaryOp(binOp, operand));
 		}
 	}
 
+	private Expr parseExprToken(LinkedList<PartialOp> opStack, Expr operand,
+			Expr token) throws BanjoParseException {
+		if(token instanceof OperatorRef) {
+			final OperatorRef opRef = (OperatorRef)token;
+			if(operand != null) {
+				// Infix position
+				BinaryOperator operator = BinaryOperator.fromOp(opRef.getOp());
+				if(operator == null) {
+					errors.add(new UnsupportedBinaryOperator(opRef.getOp(), opRef.getFileRange()));
+					operator = BinaryOperator.INVALID;
+				}
+				pushPartialBinaryOp(operator, opRef.getFileRange(), operand, opStack);
+			} else {
+				// Prefix position
+				UnaryOperator operator = UnaryOperator.fromOp(opRef.getOp());
+				if(operator == null) {
+					errors.add(new UnsupportedUnaryOperator(opRef.getOp(), opRef.getFileRange()));
+					operator = UnaryOperator.INVALID;
+				}
+				opStack.push(new PartialUnaryOp(operator, opRef.getFileRange()));
+			}
+			return null;
+		} else {
+			if(operand != null) {
+				errors.add(new ExpectedOperator(between(operand, token)));
+			}
+			return token;
+		}
+	}
+
+	private void pushPartialBinaryOp(BinaryOperator operator, FileRange range, Expr operand, LinkedList<PartialOp> opStack) throws BanjoParseException {
+		// Note: should be a binary op here ...
+		// Current operand is the rightmost operand for anything of higher precedence than the
+		// operator we just got.
+		Precedence prec = operator.getPrecedence();
+		while(!opStack.isEmpty() 
+				&& opStack.getFirst().getOperator().isParen() == false
+				&& opStack.getFirst().getPrecedence().isHigherOrEqual(prec)) {
+			operand = opStack.pop().makeOp(operand);
+		}
+		
+		opStack.push(new PartialBinaryOp(operator, range, operand));
+	}
+
+	private FileRange between(Expr a, Expr b) {
+		return new FileRange(a.getFileRange().getFilename(), a.getFileRange().getEnd(), b.getFileRange().getStart());
+	}
+
+	public String codePointToString(int cp) {
+		return new String(Character.toChars(cp));
+	}
+
+	private Expr parseAtom() throws IOException {
+		Expr operand = null;
+		if((operand = parseIdRef()) == null &&
+			(operand = parseOperatorRef()) == null &&
+			(operand = parseStringLiteral()) == null &&
+			(operand = parseNumberLiteral()) == null && 
+			(operand = parseEllipsis()) == null) {
+			return null;
+		}
+		return operand;
+    }
+	
 	private boolean isListSeparator(BinaryOperator operator) {
 		switch(operator) {
 		case COMMA:
@@ -737,14 +819,6 @@ public class BanjoParser {
 		}
 	}
 
-	public boolean isCloseParenOrEof(int cp) {
-		return cp == -1 || cp == ')' || cp == ']' || cp == '}';
-	}
-
-	private boolean isCloseParen(int codePoint) {
-		return ParenType.isCloseParen(codePoint);
-	}
-
 	/**
 	 * Coming in we have a tree of basically just unary and binary operations and parens and atoms.  
 	 * Let's enrich that a bit so we can have ObjectLiteral, ListLiteral, Let, FunctionLiteral,
@@ -753,7 +827,7 @@ public class BanjoParser {
 	 * @param node
 	 * @return
 	 */
-	public Expr enrich(Expr node) {
+	private Expr enrich(Expr node) {
 		if(node instanceof UnaryOp) {
 			UnaryOp op = (UnaryOp) node;
 			final Expr operand = enrich(op.getOperand());
@@ -761,7 +835,29 @@ public class BanjoParser {
 			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
 			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
 			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
-			default: return op.withNewOperand(enrich(operand));
+			case KEYWORD: return exprsToObjectLiteral(op.getFileRange(), Collections.singletonList(operand));
+			case PARENS: return operand;
+			case LIST_LITERAL:
+				if(operand instanceof ListLiteral) {
+					return operand;
+				} else if(operand instanceof ExprList) {
+					return exprListToListLiteral(operand.getFileRange(), ((ExprList)operand).getSteps(), false);
+				} else {
+					LinkedList<Expr> exprs = new LinkedList<>();
+					flattenCommasOrSemicolons(operand, exprs);
+					return exprListToListLiteral(operand.getFileRange(), exprs, false);
+				}
+			case OBJECT_OR_SET_LITERAL: // Expecting an object or set
+				if(operand instanceof ObjectLiteral)
+					return operand;
+				else if(operand instanceof ExprList)
+					return new SetLiteral(node.getFileRange(), ((ExprList)operand).getSteps());
+				else 
+					errors.add(new ExpectedField(operand.getFileRange()));
+				break;
+			case CALL:
+				return new Call(op.getFileRange(), operand, Collections.<Expr>emptyList());
+			default: return op.withNewOperand(operand);
 			}
 		} else if(node instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) node;
@@ -770,11 +866,11 @@ public class BanjoParser {
 			switch(op.getOperator()) {
 			case COMMA:
 			case SEMICOLON:
-			case NEWLINE:
+			case NEWLINE: {
 				LinkedList<Expr> exprs = new LinkedList<>();
 				flattenCommas(op, op.getOperator(), exprs);
 				Expr first = exprs.get(0);
-				if(isPair(first) || isKeyword(first)) {
+				if(isPair(first) || isKeyword(first) || isTableHeader(first)) {
 					return exprsToObjectLiteral(range, exprs);
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
@@ -786,15 +882,26 @@ public class BanjoParser {
 					return exprListToCond(range, exprs);
 				} else {
 					// Everything else - treat as a series of steps
-					ArrayList<Expr> stepsList = new ArrayList<>(exprs.size());
+					ArrayList<Expr> exprList = new ArrayList<>(exprs.size());
 					for(Expr e : exprs) {
-						stepsList.add(enrich(e));
+						exprList.add(enrich(e));
 					}
-					return new ExprList(op.getFileRange(), stepsList);
+					return new ExprList(op.getFileRange(), exprList);
 				}
+			}
+			case CALL: {
+				List<Expr> args = new ArrayList<Expr>();
+				// TODO Can't distinguish between a(()) and a() in this system...
+				List<Expr> exprs = flattenCommasOrSemicolons(op.getRight(), new LinkedList<Expr>());
+				for(Expr expr : exprs) {
+					args.add(enrich(expr));
+				}
+				return new Call(op.getFileRange(), enrich(op.getLeft()), args);
+			}
 			case FUNCTION:
 				return enrichFunctionLiteral(op);
-			case COLON:
+			case PAIR:
+			case TABLE_PAIR:
 				return exprsToObjectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT:
 				// Convert to "Let"
@@ -803,31 +910,6 @@ public class BanjoParser {
 				return new Cond(op.getFileRange(), Collections.singletonList(new CondCase(op.getFileRange(), op.getLeft(), op.getRight())));
 			default:
 				return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
-			}
-		} else if(node instanceof Parens) {
-			Parens p = (Parens)node;
-			Expr e = enrich(p.getExpression());
-			switch(p.getParenType()) {
-			case BRACES: // Expecting an object
-				if(e instanceof ObjectLiteral)
-					return e;
-				else if(e instanceof ExprList)
-					return new SetLiteral(node.getFileRange(), ((ExprList)e).getSteps());
-				else 
-					errors.add(new ExpectedField(e.getFileRange()));
-				break;
-			case BRACKETS: // Expecting a list
-				if(e instanceof ListLiteral) {
-					return e;
-				} else if(e instanceof ExprList) {
-					return exprListToListLiteral(e.getFileRange(), ((ExprList)e).getSteps(), false);
-				} else {
-					LinkedList<Expr> exprs = new LinkedList<>();
-					flattenCommasOrSemicolons(e, exprs);
-					return exprListToListLiteral(e.getFileRange(), exprs, false);
-				}
-			case PARENS:
-				return e; // Eliminate parentheses, they don't mean anything by now
 			}
 		} else if(node instanceof UnitRef) {
 			UnitRef u = (UnitRef) node;
@@ -840,7 +922,7 @@ public class BanjoParser {
 		return node;
 	}
 
-	public Expr enrichLet(BinaryOp op) {
+	private Expr enrichLet(BinaryOp op) {
 		Expr target = op.getLeft();
 		Expr value = op.getRight();
 		Expr contract = null;
@@ -851,10 +933,15 @@ public class BanjoParser {
 			target = targetBOp.getLeft();
 			contract = targetBOp.getRight();
 		}
-		if(target instanceof Call) {
-			Call call = (Call) target;
-			value = makeFunctionLiteral(op.getFileRange(), call.getArguments(), value, contract);
-			target = call.getCallee();
+		if(isCallWithArgs(target)) {
+			BinaryOp call = (BinaryOp) target;
+			value = enrichFunctionLiteral(op.getFileRange(), call.getRight(), contract, value);
+			target = call.getLeft();
+			contract = null;
+		} else if(target instanceof UnaryOp && ((UnaryOp) target).getOperator() == UnaryOperator.CALL) {
+			UnaryOp call = (UnaryOp) target;
+			value = new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), contract, value);
+			target = call.getOperand();
 			contract = null;
 		}
 		if(target instanceof IdRef) {
@@ -869,6 +956,10 @@ public class BanjoParser {
 			errors.add(new ExpectedIdentifier(target));
 			return op;
 		}
+	}
+
+	private boolean isCallWithArgs(Expr target) {
+		return target instanceof BinaryOp && ((BinaryOp)target).getOperator() == BinaryOperator.CALL;
 	}
 
 	private Expr exprListToCond(FileRange range, LinkedList<Expr> exprs) {
@@ -889,7 +980,7 @@ public class BanjoParser {
 		return (e instanceof BinaryOp) && ((BinaryOp)e).getOperator() == BinaryOperator.COND;
 	}
 
-	public Expr exprListToListLiteral(final FileRange range,
+	private Expr exprListToListLiteral(final FileRange range,
 			List<Expr> list, boolean requireBullet) {
 		ArrayList<Expr> elements = new ArrayList<>();
 		if(!list.isEmpty()) {
@@ -909,7 +1000,7 @@ public class BanjoParser {
 		return new ListLiteral(range, elements);
 	}
 
-	public Expr exprListToSetLiteral(final FileRange range,
+	private Expr exprListToSetLiteral(final FileRange range,
 			List<Expr> list, boolean requireBullet) {
 		ArrayList<Expr> elements = new ArrayList<>();
 		if(!list.isEmpty()) {
@@ -929,9 +1020,10 @@ public class BanjoParser {
 		return new SetLiteral(range, elements);
 	}
 
-	public Expr exprsToObjectLiteral(FileRange range, Collection<Expr> pairs) {
+	private Expr exprsToObjectLiteral(FileRange range, Collection<Expr> pairs) {
 		// Key/value pair - treat as an object
 		LinkedHashMap<String, Field> fields = new LinkedHashMap<>(pairs.size()*2);
+		List<Expr> headings = null;
 		for(Expr e : pairs) {
 			Expr keyExpr;
 			Expr valueExpr;
@@ -942,7 +1034,12 @@ public class BanjoParser {
 			} else if(isKeyword(e)) {
 				final UnaryOp fieldOp = (UnaryOp)e;
 				keyExpr = fieldOp.getOperand();
-				valueExpr = new UnitRef(fieldOp.getFileRange());
+				// TODO Come up with a better opaque unique object system
+				valueExpr = new IdRef(keyExpr.getFileRange(), "$unique");
+			} else if(isTableHeader(e)) {
+				final UnaryOp headerOp = (UnaryOp)e;
+				headings = flattenCommasOrSemicolons(headerOp.getOperand(), new ArrayList<Expr>());
+				continue;
 			} else {
 				errors.add(new ExpectedField(e.getFileRange()));
 				continue;
@@ -953,10 +1050,10 @@ public class BanjoParser {
 				keyExpr = targetBOp.getLeft();
 				contract = targetBOp.getRight();
 			}
-			if(keyExpr instanceof Call) {
-				Call call = (Call) keyExpr;
-				valueExpr = makeFunctionLiteral(e.getFileRange(), call.getArguments(), valueExpr, contract);
-				keyExpr = call.getCallee();
+			if(isCallWithArgs(keyExpr)) {
+				BinaryOp call = (BinaryOp) keyExpr;
+				valueExpr = makeFunctionLiteral(e.getFileRange(), flattenCommasOrSemicolons(call.getRight(), new ArrayList<Expr>()), valueExpr, contract);
+				keyExpr = call.getLeft();
 				contract = null;
 			}
 			if(contract != null) {
@@ -968,41 +1065,68 @@ public class BanjoParser {
 			} else if(keyExpr instanceof StringLiteral) {
 				key = ((StringLiteral)keyExpr).getString();
 			} else {
-				errors.add(new ExpectedFieldName("Expected identifier or string; got '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
+				errors.add(new ExpectedFieldName("Expected identifier or string; got "+keyExpr.getClass().getSimpleName()+" '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
 				continue;
+			}
+			// If this is a table, construct the row
+			if(headings != null) {
+				List<Expr> values = flattenCommasOrSemicolons(valueExpr, new ArrayList<Expr>(headings.size()));
+				for(int i=headings.size(); i < values.size(); i++) {
+					final Expr val = values.get(i);
+					errors.add(new ExtraTableColumn(i, headings.size(), val.toSource(), val.getFileRange()));
+				}
+				if(values.size() < headings.size()) {
+					errors.add(new MissingValueForTableColumn(values.size(), headings.size(), valueExpr.getFileRange(), headings.get(values.size()).toSource()));
+					continue;
+				}
+				ArrayList<Expr> fieldOps = new ArrayList<>(headings.size());
+				for(int i=0; i < headings.size(); i++) {
+					fieldOps.add(new BinaryOp(BinaryOperator.PAIR, headings.get(i), values.get(i)));
+				}
+				valueExpr = exprsToObjectLiteral(valueExpr.getFileRange(), fieldOps);
 			}
 			fields.put(key, new Field(keyExpr.getFileRange(), key, enrich(valueExpr)));
 		}
 		return new ObjectLiteral(range, fields);
 	}
 
-	public Expr enrichFunctionLiteral(BinaryOp op) {
-		FileRange range = op.getFileRange();
-		// Args should be comma-separated
-		List<Expr> exprs = new LinkedList<>();
+	private Expr enrichFunctionLiteral(BinaryOp op) {
 		Expr argsDef = op.getLeft();
 		final Expr body = op.getRight();
+		FileRange range = op.getFileRange();
+		return enrichFunctionLiteral(argsDef, body, range);
+	}
+
+	private Expr enrichFunctionLiteral(Expr argsDef, final Expr body,
+			FileRange range) {
 		Expr returnContract = null;
 		// Optional return type/contract
 		if(isPair(argsDef)) {
 			returnContract = ((BinaryOp)argsDef).getRight();
 			argsDef = ((BinaryOp)argsDef).getLeft();
 		}
-		// Optional parentheses
-		if((argsDef instanceof Parens) && ((Parens)argsDef).getParenType() == ParenType.PARENS) {
-			argsDef = ((Parens)argsDef).getExpression();
-		}
-		if(argsDef instanceof ExprList) {
-			exprs = ((ExprList)argsDef).getSteps();
-		} else if(argsDef instanceof UnitRef) {
-			// Leave the list empty
-		} else {
-			flattenCommas(argsDef, BinaryOperator.COMMA, exprs);
-		}
-		return makeFunctionLiteral(range, exprs, body, returnContract);
+		return enrichFunctionLiteral(range, argsDef, returnContract, body);
 	}
 
-	public Expr makeFunctionLiteral(FileRange range, List<Expr> exprs,
+	private Expr enrichFunctionLiteral(FileRange range, Expr args,
+			Expr contract, final Expr body) {
+		// Args should be comma-separated
+		List<Expr> exprs = new LinkedList<>();
+		// Optional parentheses
+		if((args instanceof UnaryOp) && ((UnaryOp)args).getOperator().getParenType() == ParenType.PARENS) {
+			args = ((UnaryOp)args).getOperand();
+		}
+		if(args instanceof ExprList) {
+			exprs = ((ExprList)args).getSteps();
+		} else if(args instanceof UnitRef) {
+			// Leave the list empty
+		} else {
+			flattenCommas(args, BinaryOperator.COMMA, exprs);
+		}
+		return makeFunctionLiteral(range, exprs, body, contract);
+	}
+
+	private Expr makeFunctionLiteral(FileRange range, List<Expr> exprs,
 			final Expr body, Expr returnContract) {
 		List<FunArg> args = exprs.isEmpty() ? Collections.<FunArg>emptyList() : new ArrayList<FunArg>(exprs.size());
 		for(Expr argExpr : exprs) {
@@ -1024,67 +1148,35 @@ public class BanjoParser {
 		return new FunctionLiteral(range, args, returnContract, body);
 	}
 
-	public boolean isListElement(Expr e) {
-		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.LIST_ELEMENT;
+	private boolean isListElement(Expr e) {
+		return isUnaryOp(e, UnaryOperator.LIST_ELEMENT);
 	}
-	public boolean isSetElement(Expr e) {
-		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.SET_ELEMENT;
-	}
-
-	public boolean isPair(Expr e) {
-		return (e instanceof BinaryOp) && ((BinaryOp) e).getOperator() == BinaryOperator.COLON;
-	}
-	public boolean isKeyword(Expr e) {
-		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == UnaryOperator.KEYWORD;
+	private boolean isSetElement(Expr e) {
+		return isUnaryOp(e, UnaryOperator.SET_ELEMENT);
 	}
 
-	public Expr parseFieldRef(Expr operand) throws IOException {
-		FilePos fieldNameStart = in.getFilePos();
-		String fieldName = matchID();
-		operand = new FieldRef(operand, in.getFileRange(fieldNameStart), fieldName);
-		return operand;
+	private boolean isPair(Expr e) {
+		return (e instanceof BinaryOp) && 
+				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR ||
+				 ((BinaryOp) e).getOperator() == BinaryOperator.TABLE_PAIR);
+	}
+	private boolean isKeyword(Expr e) {
+		return isUnaryOp(e, UnaryOperator.KEYWORD);
+	}
+	private boolean isTableHeader(Expr e) {
+		return isUnaryOp(e, UnaryOperator.TABLE_HEADER);
 	}
 
-	public Expr parseLookup(Expr operand) throws IOException,
-			BanjoParseException, ExpectedCloseBracket {
-		Expr key = parseExpr();
-		if(!in.checkNextChar(']')) {
-			throw new ExpectedCloseBracket("Expected ']'.", in.getFilePosAsRange());
-		}
-		FileRange range = in.getFileRange(operand.getFileRange().getStart());
-		operand = new Lookup(range, operand, key);
-		return operand;
+	private boolean isUnaryOp(Expr e, final UnaryOperator operator) {
+		return (e instanceof UnaryOp) && ((UnaryOp) e).getOperator() == operator;
 	}
 
-	public Expr parseFunctionCall(Expr operand) throws IOException,
-			BanjoParseException, PrematureEndOfFile, SyntaxError {
-		
-		LinkedList<Expr> args = new LinkedList<>();
-		
-		// First check for empty argument list
-		skipWhitespace(tokenStartPos);
-		if(!in.checkNextChar(')')) {
-			// Parse args
-			Expr arg = parseExpr();
-			if(arg instanceof ExprList) {
-				args.addAll(((ExprList)arg).getSteps());
-			} else {
-				flattenCommasOrSemicolons(arg, args);
-			}
-			if(!in.checkNextChar(')')) {
-				throw new SyntaxError("Expected ')'", in.getFilePosAsRange());
-			}
-		}
-		FileRange callRange = in.getFileRange(operand.getFileRange().getStart());
-		operand = new Call(callRange, operand, args);
-		return operand;
-	}
-	
 	private void flattenCommas(Expr arg, BinaryOperator type, List<Expr> exprs) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp bop = (BinaryOp) arg;
 			if(isElementSeparator(bop)) {
-				if(bop.getOperator() != type && bop.getOperator() != BinaryOperator.NEWLINE) {
+				final BinaryOperator boper = bop.getOperator();
+				if(boper != type && bop.getOperator() != BinaryOperator.NEWLINE) {
 					if(type == BinaryOperator.NEWLINE) type = bop.getOperator();
 					else errors.add(new MixedSemicolonAndComma(bop));
 				}
@@ -1096,58 +1188,26 @@ public class BanjoParser {
 		exprs.add(arg);
 	}
 
-	private void flattenCommasOrSemicolons(Expr arg, LinkedList<Expr> list) {
+	private List<Expr> flattenCommasOrSemicolons(Expr arg, List<Expr> list) {
 		if(arg instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) arg;
 			if(isElementSeparator(op)) {
 				flattenCommas(op, op.getOperator(), list);
-				return;
+				return list;
 			}
 		}
 		list.add(arg);
+		return list;
 	}
 
-	public static boolean isElementSeparator(BinaryOp op) {
+	private static boolean isElementSeparator(BinaryOp op) {
 		return isElementSeparator(op.getOperator());
 	}
 
-	public static boolean isElementSeparator(final BinaryOperator operator) {
+	private static boolean isElementSeparator(final BinaryOperator operator) {
 		return operator == BinaryOperator.COMMA || operator == BinaryOperator.SEMICOLON || operator == BinaryOperator.NEWLINE;
 	}
-	private Expr parseParentheses() throws BanjoParseException, IOException {
-		ParenType parenType = ParenType.forCodePoint(in.read());
-		if(parenType == null) {
-			in.unread();
-			return null;
-		}
-		int close = parenType.getEndChar();
-		Pos startPos = in.getPreviousPosition(new Pos());
-		
-		skipWhitespace();
-		if(in.read() == close) {
-			// Empty parentheses means the value is "unit" - the empty tuple,set,or object
-			FileRange fileRange = in.getFileRange(startPos);
-			return new UnitRef(fileRange, parenType); // For now ...
-		} else {
-			in.unread();
-		}
-		Expr expr = parseExpr();
-		
-		skipWhitespace();
-		if(in.read() != close) {
-			switch(parenType) {
-			case BRACES: throw new ExpectedCloseBrace(in.getFilePosAsRange());
-			case BRACKETS: throw new ExpectedCloseBracket(in.getFilePosAsRange());
-			case PARENS: throw new ExpectedCloseParen(in.getFilePosAsRange());
-			}
-		}
-		return new Parens(in.getFileRange(startPos), expr, parenType);
-	}
 
-	public Pos skipWhitespaceGetPos() throws IOException {
-		skipWhitespace();
-		return in.getCurrentPosition(new Pos());
-	}
 	public Collection<BanjoParseException> getErrors() {
 		return errors;
 	}

@@ -3,15 +3,12 @@ package banjo.parser.ast;
 
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
-import banjo.parser.util.Token;
 
 public class StringLiteral extends Expr {
-	final Token token;
 	private final String string;
 	
-	public StringLiteral(Token token, String string) {
-		super(token.getFileRange());
-		this.token = token;
+	public StringLiteral(FileRange range, String string) {
+		super(range);
 		this.string = string;
 	}
 	
@@ -25,11 +22,6 @@ public class StringLiteral extends Expr {
 	
 	public String getString() {
 		return string;
-	}
-	
-	@Override
-	public String toString() {
-		return token.toString();
 	}
 	
 	@Override

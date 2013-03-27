@@ -8,21 +8,25 @@ public class TestLetParser {
 	@Test public void oneLine()         { hello("hello = \"world\" ; hello", 0); }
 	@Test public void twoLine()         { hello("hello = \"world\"\nhello", 0); }
 	@Test public void twoLineIndented() { hello("   hello = \"world\"\n   hello", 0); }
-	@Test public void badBackdent()     { hello("   hello = \"world\"\nhello", 2); } // Backdent here should be reported as an error
+	@Test public void badBackdent()     { hello("   hello = \"world\"\nhello", 1); } // Backdent here should be reported as an error
 	@Test public void badIndent()       { hello(" hello = \"world\"\n   hello", 1); } // Indent here should be reported as an error
 	
 
 	private void hello(String source, int expectedErrorCount) {
-		ExprList node = ParseTestUtils.testParse(source, expectedErrorCount, ExprList.class, "hello = \"world\"; hello");
-		assertEquals(2, node.getSteps().size());
-		Let let = (Let) node.getSteps().get(0);
-		
-		assertEquals("hello", let.getName());
-		assertEquals(StringLiteral.class, let.getValue().getClass());
-		assertEquals("world", ((StringLiteral)let.getValue()).getString());
-		Expr body = node.getSteps().get(1);
-		assertEquals(IdRef.class, body.getClass());
-		assertEquals("hello", ((IdRef)body).getId());
+		if(expectedErrorCount == 0) {
+			ExprList node = ParseTestUtils.testParse(source, expectedErrorCount, ExprList.class, "hello = \"world\"; hello");
+			assertEquals(2, node.getSteps().size());
+			Let let = (Let) node.getSteps().get(0);
+			
+			assertEquals("hello", let.getName());
+			assertEquals(StringLiteral.class, let.getValue().getClass());
+			assertEquals("world", ((StringLiteral)let.getValue()).getString());
+			Expr body = node.getSteps().get(1);
+			assertEquals(IdRef.class, body.getClass());
+			assertEquals("hello", ((IdRef)body).getId());
+		} else {
+			ParseTestUtils.testParse(source, expectedErrorCount, Expr.class, null);
+		}
 	}
 	
 

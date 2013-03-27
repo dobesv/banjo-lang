@@ -23,10 +23,17 @@ public class UnaryOp extends Expr {
 	}
 	
 	public void toSource(StringBuffer sb) {
-		sb.append(operator.getOp());
-		if(operator.getPrecedence() != Precedence.UNARY_PREFIX || operand.getPrecedence() == Precedence.UNARY_PREFIX)
-			sb.append(' '); // Put a space for bullets
+		if(operator.isParen()) {
+			sb.append(operator.getParenType().getStartChar());
+		} else {
+			sb.append(operator.getOp());
+			if(operator.getPrecedence() != Precedence.UNARY_PREFIX || operand.getPrecedence() == Precedence.UNARY_PREFIX)
+				sb.append(' '); // Put a space for bullets
+		}
 		operand.toSource(sb, getPrecedence());
+		if(operator.isParen()) {
+			sb.append(operator.getParenType().getEndChar());
+		}
 	}
 	
 	@Override

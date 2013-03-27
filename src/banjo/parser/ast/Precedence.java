@@ -16,8 +16,9 @@ public enum Precedence {
 	LAZY_AND, // &&
 	LAZY_OR, // ||
 	TERNARY, // ? :
-	BULLET, // Bullets list
+	COLON, // Key/value pair
 	COMMA, // ',' "sequence operator"
+	BULLET, // Bullets list
 	FUNCTION, // ->
 	ASSIGNMENT, // let, =, +=, *=, ...
 	COND, // '=>' implication / cond

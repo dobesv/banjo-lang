@@ -11,7 +11,4 @@ public class ExpectedOperator extends BanjoParseException {
 		super("Expected operator", fileRange);
 	}
 
-	public ExpectedOperator(Expr gotInstead) {
-		super("Expected operator before '"+gotInstead.toSource(Precedence.COMMA)+"'", gotInstead.getFileRange());
-	}
 }

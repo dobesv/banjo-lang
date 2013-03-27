@@ -32,7 +32,7 @@ public class ParseTestUtils {
 		assertTrue(parser.reachedEof());
 		if(expectedErrors==0 && !parser.getErrors().isEmpty())
 			throw new Error(parser.getErrors().iterator().next());
-		assertEquals(expectedErrors, parser.getErrors().size());
+		assertEquals("Wrong number of errors found", expectedErrors, parser.getErrors().size());
 		if(expectedSource != null)
 			assertEquals(expectedSource, parsed.toSource());
 		

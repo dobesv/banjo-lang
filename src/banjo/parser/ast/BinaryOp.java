@@ -32,9 +32,16 @@ public class BinaryOp extends Expr {
 	public void toSource(StringBuffer sb) {
 		left.toSource(sb, getPrecedence());
 		sb.append(' ');
-		sb.append(operator.getOp());
-		sb.append(' ');
+		if(operator.isParen()) {
+			sb.append(operator.getParenType().getStartChar());
+		} else {
+			sb.append(operator.getOp());
+			sb.append(' ');
+		}
 		right.toSource(sb, getPrecedence());
+		if(operator.isParen()) {
+			sb.append(operator.getParenType().getEndChar());
+		}
 	}
 	
 	@Override
