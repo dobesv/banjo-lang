@@ -42,7 +42,7 @@ public class TestObjectLiteralParser {
 	}
 
 	public ObjectLiteral parse(String source, int expectedErrorCount, String expectedSource) {
-		return ParseTestUtils.testParse(source, expectedErrorCount, ObjectLiteral.class, expectedSource);
+		return ParseTestUtils.testParse(source, expectedErrorCount, null, ObjectLiteral.class, expectedSource);
 	}
 	
 	@Test

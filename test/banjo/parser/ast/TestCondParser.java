@@ -20,11 +20,11 @@ public class TestCondParser {
 	
 	public static void testParseCond(String source, int expectedCases,
 			int expectedErrors, String expectedSource) {
-		Cond node = ParseTestUtils.testParse(source, expectedErrors, Cond.class, expectedSource);
+		Cond node = ParseTestUtils.testParse(source, expectedErrors, null, Cond.class, expectedSource);
 		assertEquals(expectedCases, node.getCases().size());
 	}
 	private void testParseCond(String source, int expectedErrors) {
-		ParseTestUtils.testParse(source, expectedErrors, BaseExpr.class, null);
+		ParseTestUtils.testParse(source, expectedErrors, null, BaseExpr.class, null);
 	}
 	
 }

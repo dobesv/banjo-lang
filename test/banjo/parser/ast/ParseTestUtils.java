@@ -13,8 +13,7 @@ public class ParseTestUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends BaseExpr> T testParse(String source, int expectedErrors,
-			Class<T> expectedClass, String normalizedSource) {
+	public static <T extends BaseExpr> T testParse(String source, int expectedErrors, Class<? extends BanjoParseException> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
 		System.out.println("<< "+source.replace("\n", "\n<< "));
 		BanjoParser parser = new BanjoParser(source);
 		Expr parsed;
@@ -35,8 +34,11 @@ public class ParseTestUtils {
 		assertEquals("Wrong number of errors found", expectedErrors, parser.getErrors().size());
 		if(normalizedSource != null)
 			assertEquals(normalizedSource, parsed.toSource());
-		
-		return expectedClass.cast(parsed);
+		if(expectedErrorClass != null && parser.getErrors().size() > 0)
+			assertEquals(expectedErrorClass, parser.getErrors().iterator().next().getClass());
+		if(expectedClass != null)
+			return expectedClass.cast(parsed);
+		return null;
 	}
 
 }

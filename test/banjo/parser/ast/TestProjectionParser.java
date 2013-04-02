@@ -27,7 +27,7 @@ public class TestProjectionParser {
 		test(source, source, expectedClass);
 	}
 	private void test(String source, String expectedSource, Class<? extends BaseExpr> expectedClass) {
-		ParseTestUtils.testParse(source, 0, expectedClass, expectedSource);
+		ParseTestUtils.testParse(source, 0, null, expectedClass, expectedSource);
 	}
 	
 

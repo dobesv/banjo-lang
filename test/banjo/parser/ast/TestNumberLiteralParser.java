@@ -93,7 +93,7 @@ public class TestNumberLiteralParser {
 	}
 
 	public NumberLiteral parseNumber(String inStr) throws IOException {
-		return ParseTestUtils.testParse(inStr, 0, NumberLiteral.class, null);
+		return ParseTestUtils.testParse(inStr, 0, null, NumberLiteral.class, null);
 	}
 
 	@Test
@@ -123,6 +123,6 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		ParseTestUtils.testParse(inStr, 0, NumberLiteral.class, outStr);
+		ParseTestUtils.testParse(inStr, 0, null, NumberLiteral.class, outStr);
 	}
 }
