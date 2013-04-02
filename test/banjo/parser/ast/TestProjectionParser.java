@@ -8,7 +8,9 @@ public class TestProjectionParser {
 	@Test public void aProjectB() { test("a.{b}", SelectFields.class); }
 	@Test public void aProjectBNewline() { test("a.\n | b", "a.{b}", SelectFields.class); }
 	@Test public void aProjectBC() { test("a.{b,c}", SelectFields.class); }
+	@Test public void aProjectBCq() { test("a.{\"b\",\"c\"}", "a.{b,c}", SelectFields.class); }
 	@Test public void aProjectBCNewlines() { test("a.\n | b\n | c", "a.{b,c}", SelectFields.class); }
+	@Test public void aProjectBCNewlinesq() { test("a.\n | \"b\"\n | \"c\"", "a.{b,c}", SelectFields.class); }
 	@Test public void aWithB() { test("a.{b: 2}", RowUpdate.class); }
 	@Test public void aWithBNewline() { test("a..\n b: 2", "a.{b: 2}", RowUpdate.class); }
 	@Test public void aWithBC() { test("a.{b: 2, c: 3}", RowUpdate.class); }

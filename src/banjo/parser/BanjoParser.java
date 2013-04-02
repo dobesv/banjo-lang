@@ -942,6 +942,8 @@ public class BanjoParser {
 			for(Expr e : fieldSet.getElements()) {
 				if(e instanceof IdRef) {
 					ids.add((IdRef)e);
+				} else if(e instanceof StringLiteral) {
+					ids.add(stringLiteralToIdRef((StringLiteral)e));
 				} else {
 					errors.add(new ExpectedIdentifier(e));
 				}
@@ -953,7 +955,7 @@ public class BanjoParser {
 		}
 	}
 
-	private Expr stringLiteralToIdRef(StringLiteral sl) {
+	private IdRef stringLiteralToIdRef(StringLiteral sl) {
 		return new IdRef(sl.getFileRange(), sl.getString());
 	}
 
