@@ -5,14 +5,12 @@ import banjo.parser.util.FileRange;
 public class FieldRef extends Expr {
 
 	private final Expr object;
-	private final FileRange fieldRange;
-	private final String fieldName;
+	private final IdRef id;
 
-	public FieldRef(Expr object, FileRange fieldRange, String fieldName) {
-		super(new FileRange(object.getFileRange(), fieldRange));
+	public FieldRef(Expr object, IdRef id) {
+		super(new FileRange(object.getFileRange(), id.getFileRange()));
 		this.object = object;
-		this.fieldName = fieldName;
-		this.fieldRange = fieldRange;
+		this.id = id;
 	}
 
 	public Expr getBase() {
@@ -20,12 +18,13 @@ public class FieldRef extends Expr {
 	}
 
 	public String getFieldName() {
-		return fieldName;
+		return getId().getId();
 	}
 
 	public FileRange getFieldRange() {
-		return fieldRange;
+		return getId().getFileRange();
 	}
+	
 
 	@Override
 	public Precedence getPrecedence() {
@@ -36,6 +35,10 @@ public class FieldRef extends Expr {
 	public void toSource(StringBuffer sb) {
 		object.toSource(sb, Precedence.SUFFIX);
 		sb.append('.');
-		sb.append(fieldName);
+		id.toSource(sb);
+	}
+
+	public IdRef getId() {
+		return id;
 	}
 }

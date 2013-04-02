@@ -19,6 +19,7 @@ import banjo.parser.ast.Ellipsis;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.ExprList;
 import banjo.parser.ast.Field;
+import banjo.parser.ast.FieldRef;
 import banjo.parser.ast.FunArg;
 import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
@@ -30,6 +31,8 @@ import banjo.parser.ast.Operator;
 import banjo.parser.ast.OperatorRef;
 import banjo.parser.ast.ParenType;
 import banjo.parser.ast.Precedence;
+import banjo.parser.ast.RowUpdate;
+import banjo.parser.ast.SelectFields;
 import banjo.parser.ast.SetLiteral;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
@@ -45,6 +48,7 @@ import banjo.parser.errors.ExpectedFieldName;
 import banjo.parser.errors.ExpectedIdentifier;
 import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.MissingValueForTableColumn;
 import banjo.parser.errors.MixedSemicolonAndComma;
@@ -133,7 +137,6 @@ public class BanjoParser {
 		case '"': 
 		case '\'':
 		case '_':
-		case '.':
 		case '\\':
 			return false;
 		case '-':
@@ -533,7 +536,7 @@ public class BanjoParser {
 	 */
 	public Ellipsis parseEllipsis() throws IOException {
 		if(in.checkNextChar('.')) {
-			in.getCurrentPosition(tokenStartPos);
+			in.getPreviousPosition(tokenStartPos);
 			if(in.read() == '.' && in.read() == '.') {
 				return new Ellipsis(in.getFileRange(tokenStartPos));
 			}
@@ -645,13 +648,12 @@ public class BanjoParser {
 	
 	private Expr parseExpr(ParenType inParen) throws IOException, BanjoParseException {
 		LinkedList<PartialOp> opStack = new LinkedList<>();
-		Pos beforeToken = new Pos();
 		Expr operand = null;
 		for(;;) {
-			skipWhitespace(beforeToken);
+			skipWhitespace(tokenStartPos);
 			
 			// Now if we get a de-dent we have to move up the operator stack
-			if(operand != null && beforeToken.getLine() > operand.getFileRange().getEnd().getLine()) {
+			if(operand != null && tokenStartPos.getLine() > operand.getFileRange().getEnd().getLine()) {
 				int column = in.getCurrentColumnNumber();
 				while(!opStack.isEmpty() 
 						&& opStack.getFirst().getStartColumn() >= column) {
@@ -693,7 +695,7 @@ public class BanjoParser {
 							matchedOpen = true;
 							break;
 						} else if(po.getParenType() != null) {
-							errors.add(new UnexpectedCloseParen(in.getFileRange(beforeToken), closeParenType));
+							errors.add(new UnexpectedCloseParen(in.getFileRange(tokenStartPos), closeParenType));
 						}
 					}
 					if(!matchedOpen) {
@@ -798,11 +800,11 @@ public class BanjoParser {
 
 	private Expr parseAtom() throws IOException {
 		Expr operand = null;
-		if((operand = parseIdRef()) == null &&
+		if((operand = parseIdRef()) == null  && 
+			(operand = parseEllipsis()) == null &&
 			(operand = parseOperatorRef()) == null &&
 			(operand = parseStringLiteral()) == null &&
-			(operand = parseNumberLiteral()) == null && 
-			(operand = parseEllipsis()) == null) {
+			(operand = parseNumberLiteral()) == null) {
 			return null;
 		}
 		return operand;
@@ -848,13 +850,12 @@ public class BanjoParser {
 					return listLiteral(operand.getFileRange(), exprs, null);
 				}
 			case OBJECT_OR_SET_LITERAL: // Expecting an object or set
-				if(operand instanceof ObjectLiteral)
-					return operand;
-				else if(operand instanceof ExprList)
+				if(operand instanceof ObjectLiteral) return operand;
+				if(operand instanceof SetLiteral) return operand;
+				if(operand instanceof ExprList) 
 					return new SetLiteral(node.getFileRange(), ((ExprList)operand).getSteps());
-				else 
-					errors.add(new ExpectedField(operand.getFileRange()));
-				break;
+				// Singleton set literal
+				return new SetLiteral(node.getFileRange(), Collections.singletonList(operand));
 			case CALL:
 				return new Call(op.getFileRange(), operand, Collections.<Expr>emptyList());
 			default: return op.withNewOperand(operand);
@@ -900,27 +901,17 @@ public class BanjoParser {
 					return new ExprList(op.getFileRange(), exprList);
 				}
 			}
-			case CALL: {
-				List<Expr> args = new ArrayList<Expr>();
-				// TODO Can't distinguish between a(()) and a() in this system...
-				List<Expr> exprs = flattenCommasOrSemicolons(op.getRight(), new LinkedList<Expr>());
-				for(Expr expr : exprs) {
-					args.add(enrich(expr));
-				}
-				return new Call(op.getFileRange(), enrich(op.getLeft()), args);
-			}
-			case FUNCTION:
-				return enrichFunctionLiteral(op);
+			case CALL: return call(op);
+			case FUNCTION: return functionLiteral(op);
 			case PAIR:
-			case TABLE_PAIR:
-				return objectLiteral(range, Collections.<Expr>singletonList(op));
-			case ASSIGNMENT:
-				// Convert to "Let"
-				return enrichLet(op);
-			case COND:
-				return new Cond(op.getFileRange(), Collections.singletonList(new CondCase(op.getFileRange(), op.getLeft(), op.getRight())));
-			default:
-				return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
+			case TABLE_PAIR: return objectLiteral(range, Collections.<Expr>singletonList(op));
+			case ASSIGNMENT: return let(op);
+			case COND: return cond(op);
+			case PROJECTION2:
+			case PROJECTION: return projection(op);
+			
+			// TODO Eliminate ALL binary ops as function calls
+			default: return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
 			}
 		} else if(node instanceof UnitRef) {
 			UnitRef u = (UnitRef) node;
@@ -933,7 +924,45 @@ public class BanjoParser {
 		return node;
 	}
 
-	private Expr enrichLet(BinaryOp op) {
+	private Expr projection(BinaryOp op) {
+		Expr base = enrich(op.getLeft());
+		Expr projection = enrich(op.getRight());
+		if(projection instanceof IdRef) {
+			return new FieldRef(base, (IdRef) projection);
+		} else if(projection instanceof ObjectLiteral) {
+			return new RowUpdate(op.getFileRange(), base, (ObjectLiteral)projection);
+		} else if(projection instanceof SetLiteral) {
+			SetLiteral fieldSet = (SetLiteral) projection;
+			ArrayList<IdRef> ids = new ArrayList<>(fieldSet.getElements().size());
+			for(Expr e : fieldSet.getElements()) {
+				if(e instanceof IdRef) {
+					ids.add((IdRef)e);
+				} else {
+					errors.add(new ExpectedIdentifier(e));
+				}
+			}
+			return new SelectFields(op.getFileRange(), base, ids);
+		} else {
+			errors.add(new InvalidProjection(projection));
+			return base;
+		}
+	}
+
+	private Cond cond(BinaryOp op) {
+		return new Cond(op.getFileRange(), Collections.singletonList(new CondCase(op.getFileRange(), op.getLeft(), op.getRight())));
+	}
+
+	private Expr call(BinaryOp op) {
+		List<Expr> args = new ArrayList<Expr>();
+		// TODO Can't distinguish between a(()) and a() in this system...
+		List<Expr> exprs = flattenCommasOrSemicolons(op.getRight(), new LinkedList<Expr>());
+		for(Expr expr : exprs) {
+			args.add(enrich(expr));
+		}
+		return new Call(op.getFileRange(), enrich(op.getLeft()), args);
+	}
+
+	private Expr let(BinaryOp op) {
 		Expr target = op.getLeft();
 		Expr value = op.getRight();
 		Expr contract = null;
@@ -1113,7 +1142,7 @@ public class BanjoParser {
 		return valueExpr;
 	}
 
-	private Expr enrichFunctionLiteral(BinaryOp op) {
+	private Expr functionLiteral(BinaryOp op) {
 		Expr argsDef = op.getLeft();
 		final Expr body = op.getRight();
 		FileRange range = op.getFileRange();
