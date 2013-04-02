@@ -117,10 +117,11 @@ public class BanjoParser {
 		}
 		boolean escape = first == '\\';
 		buf.setLength(0); // Reset buffer
-		buf.appendCodePoint(first);
+		if(!escape)
+			buf.appendCodePoint(first);
 		for(;;) {
 			int cp = in.read();
-			if(cp == '\\') {
+			if(!escape && cp == '\\') {
 				escape = true;
 			} else {
 				if(cp == -1 || !(escape || isIdentifierPart(cp))) {
@@ -128,6 +129,7 @@ public class BanjoParser {
 					return buf.toString();
 				}
 				buf.appendCodePoint(cp);
+				escape = false;
 			}
 		}
 	}
@@ -927,6 +929,9 @@ public class BanjoParser {
 	private Expr projection(BinaryOp op) {
 		Expr base = enrich(op.getLeft());
 		Expr projection = enrich(op.getRight());
+		if(projection instanceof StringLiteral) {
+			projection = stringLiteralToIdRef((StringLiteral) projection);
+		}
 		if(projection instanceof IdRef) {
 			return new FieldRef(base, (IdRef) projection);
 		} else if(projection instanceof ObjectLiteral) {
@@ -946,6 +951,10 @@ public class BanjoParser {
 			errors.add(new InvalidProjection(projection));
 			return base;
 		}
+	}
+
+	private Expr stringLiteralToIdRef(StringLiteral sl) {
+		return new IdRef(sl.getFileRange(), sl.getString());
 	}
 
 	private Cond cond(BinaryOp op) {

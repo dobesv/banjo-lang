@@ -13,6 +13,9 @@ public class TestProjectionParser {
 	@Test public void aWithBNewline() { test("a..\n b: 2", "a.{b: 2}", RowUpdate.class); }
 	@Test public void aWithBC() { test("a.{b: 2, c: 3}", RowUpdate.class); }
 	@Test public void aWithBCNewline() { test("a..\n b: 2\n c: 3", "a.{b: 2, c: 3}", RowUpdate.class); }
+	@Test public void specialCharField1() { test("a.\\-\\-", FieldRef.class); }
+	@Test public void specialCharField2() { test("a.\\.\\.", FieldRef.class); }
+	@Test public void specialCharField3() { test("a.\\.", "a.\\.", FieldRef.class); }
 
 	
 	private void test(String source, Class<? extends Expr> expectedClass) {
