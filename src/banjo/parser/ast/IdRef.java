@@ -4,13 +4,17 @@ package banjo.parser.ast;
 import banjo.parser.BanjoParser;
 import banjo.parser.util.FileRange;
 
-public class IdRef extends Expr implements Atom {
+public class IdRef extends BaseExpr implements Atom, Key {
 	final String id;
 	public IdRef(FileRange range, String id) {
 		super(range);
 		this.id = id;
 	}
 	public String getId() {
+		return id;
+	}
+	@Override
+	public String getKeyString() {
 		return id;
 	}
 	

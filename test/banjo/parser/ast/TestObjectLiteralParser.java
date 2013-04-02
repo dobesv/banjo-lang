@@ -16,7 +16,7 @@ public class TestObjectLiteralParser {
 
 	@Test public void objValue() { parse("a::a:1\n   b:2\n   c:3\nb::d:1\n   e:2\n   f:3\n", 0, "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
-	@Test public void stringKey() { abc("{\"a\":1,\"b\":2,\"c\":3}", 0); }
+	@Test public void stringKey() { parse("{\"a\":1,\"b\":2,\"c\":3}", 0, "{\"a\": 1, \"b\": 2, \"c\": 3}"); }
 
 	@Test public void keys() { parse("{:x,:y}", 0, "{x: \"x\", y: \"y\"}"); }
 	@Test public void enum_() { parse(" : x\n : y", 0, "{x: \"x\", y: \"y\"}"); }
@@ -32,13 +32,13 @@ public class TestObjectLiteralParser {
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getValue().getClass());
 		assertEquals(1L, ((NumberLiteral)eltsArray[0].getValue()).getNumber().longValue());
-		assertEquals("a", eltsArray[0].getIdentifier());
+		assertEquals("a", eltsArray[0].getKey().toSource());
 		assertEquals(NumberLiteral.class, eltsArray[1].getValue().getClass());
 		assertEquals(2L, ((NumberLiteral)eltsArray[1].getValue()).getNumber().longValue());
-		assertEquals("b", eltsArray[1].getIdentifier());
+		assertEquals("b", eltsArray[1].getKey().toSource());
 		assertEquals(NumberLiteral.class, eltsArray[2].getValue().getClass());
 		assertEquals(3L, ((NumberLiteral)eltsArray[2].getValue()).getNumber().longValue());
-		assertEquals("c", eltsArray[2].getIdentifier());
+		assertEquals("c", eltsArray[2].getKey().toSource());
 	}
 
 	public ObjectLiteral parse(String source, int expectedErrorCount, String expectedSource) {

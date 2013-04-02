@@ -2,17 +2,17 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class Lookup extends Expr {
-	private final Expr collection;
+public class Lookup extends BaseExpr {
+	private final Expr map;
 	private final Expr key;
 	
 	public Lookup(FileRange range, Expr collection, Expr key) {
 		super(range);
-		this.collection = collection;
+		this.map = collection;
 		this.key = key;
 	}
-	public Expr getCollection() {
-		return collection;
+	public Expr getMap() {
+		return map;
 	}
 	public Expr getKey() {
 		return key;
@@ -24,7 +24,7 @@ public class Lookup extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		collection.toSource(sb, Precedence.SUFFIX);
+		map.toSource(sb, Precedence.SUFFIX);
 		sb.append('[');
 		key.toSource(sb);
 		sb.append(']');

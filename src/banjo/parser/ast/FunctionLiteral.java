@@ -5,7 +5,7 @@ import java.util.List;
 
 import banjo.parser.util.FileRange;
 
-public class FunctionLiteral extends Expr {
+public class FunctionLiteral extends BaseExpr {
 
 	private final List<FunArg> args;
 	private final Expr contract;

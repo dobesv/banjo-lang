@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.Expr;
+import banjo.parser.ast.BaseExpr;
 import banjo.parser.ast.Precedence;
 import banjo.parser.util.FileRange;
 

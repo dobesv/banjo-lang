@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class FunArg extends Expr {
+public class FunArg extends BaseExpr {
 	private final String name;
 	private final Expr contract;
 	public FunArg(FileRange range, String name, Expr contract) {

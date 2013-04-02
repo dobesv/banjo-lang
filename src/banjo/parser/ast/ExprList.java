@@ -10,18 +10,18 @@ import banjo.parser.util.FileRange;
  * steps should operate as if they were run in order from first to last.  The value
  * of the expression is the evaluated result of the last expression.
  */
-public class ExprList extends Expr {
-	private final List<Expr> steps;
+public class ExprList extends BaseExpr {
+	private final List<Expr> elements;
 	
 	public ExprList(FileRange range, List<Expr> steps) {
 		super(range);
-		this.steps = Collections.unmodifiableList(steps);
+		this.elements = Collections.unmodifiableList(steps);
 	}
 
 	@Override
 	public void toSource(StringBuffer sb) {
 		boolean first = true;
-		for(Expr step : steps) {
+		for(Expr step : elements) {
 			if(first) first = false;
 			else sb.append("; ");
 			step.toSource(sb, Precedence.SEMICOLON);
@@ -33,8 +33,8 @@ public class ExprList extends Expr {
 		return Precedence.SEMICOLON;
 	}
 
-	public List<Expr> getSteps() {
-		return steps;
+	public List<Expr> getElements() {
+		return elements;
 	}
 
 }

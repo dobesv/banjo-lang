@@ -13,7 +13,7 @@ public class ParseTestUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends Expr> T testParse(String source, int expectedErrors,
+	public static <T extends BaseExpr> T testParse(String source, int expectedErrors,
 			Class<T> expectedClass, String normalizedSource) {
 		System.out.println("<< "+source.replace("\n", "\n<< "));
 		BanjoParser parser = new BanjoParser(source);

@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class RowUpdate extends Expr {
+public class RowUpdate extends BaseExpr {
 	private final Expr base;
 	private final ObjectLiteral updates;
 	

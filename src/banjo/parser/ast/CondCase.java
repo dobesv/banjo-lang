@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class CondCase extends Expr {
+public class CondCase extends BaseExpr {
 
 	private final Expr condition;
 	private final Expr value;

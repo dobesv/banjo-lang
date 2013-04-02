@@ -4,7 +4,7 @@ package banjo.parser.ast;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
-public class StringLiteral extends Expr implements Atom {
+public class StringLiteral extends BaseExpr implements Atom, Key {
 	private final String string;
 	
 	public StringLiteral(FileRange range, String string) {
@@ -21,6 +21,11 @@ public class StringLiteral extends Expr implements Atom {
 	}
 	
 	public String getString() {
+		return string;
+	}
+	
+	@Override
+	public String getKeyString() {
 		return string;
 	}
 	

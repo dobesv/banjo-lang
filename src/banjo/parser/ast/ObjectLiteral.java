@@ -7,7 +7,7 @@ import banjo.parser.BanjoParser;
 import banjo.parser.util.FileRange;
 
 
-public class ObjectLiteral extends Expr {
+public class ObjectLiteral extends BaseExpr {
 	
 	private final Map<String, Field> fields;
 
@@ -40,7 +40,7 @@ public class ObjectLiteral extends Expr {
 		for(Field f : fields.values()) {
 			if(first) first = false;
 			else sb.append(", ");
-			maybeQuoteKey(f.getIdentifier(), sb);
+			f.getKey().toSource(sb);
 			sb.append(": ");
 			f.getValue().toSource(sb, Precedence.ASSIGNMENT);
 		}

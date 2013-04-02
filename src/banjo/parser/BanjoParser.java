@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -19,12 +18,14 @@ import banjo.parser.ast.Cond;
 import banjo.parser.ast.CondCase;
 import banjo.parser.ast.Ellipsis;
 import banjo.parser.ast.Expr;
+import banjo.parser.ast.Expr;
 import banjo.parser.ast.ExprList;
 import banjo.parser.ast.Field;
 import banjo.parser.ast.FieldRef;
 import banjo.parser.ast.FunArg;
 import banjo.parser.ast.FunctionLiteral;
 import banjo.parser.ast.IdRef;
+import banjo.parser.ast.Key;
 import banjo.parser.ast.Let;
 import banjo.parser.ast.ListLiteral;
 import banjo.parser.ast.NumberLiteral;
@@ -34,7 +35,6 @@ import banjo.parser.ast.OperatorRef;
 import banjo.parser.ast.ParenType;
 import banjo.parser.ast.Precedence;
 import banjo.parser.ast.RowUpdate;
-import banjo.parser.ast.SelectFields;
 import banjo.parser.ast.SetLiteral;
 import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
@@ -851,7 +851,7 @@ public class BanjoParser {
 				if(operand instanceof ListLiteral) {
 					return operand;
 				} else if(operand instanceof ExprList) {
-					return listLiteral(operand.getFileRange(), ((ExprList)operand).getSteps(), null);
+					return listLiteral(operand.getFileRange(), ((ExprList)operand).getElements(), null);
 				} else {
 					LinkedList<Expr> exprs = new LinkedList<>();
 					flattenCommasOrSemicolons(operand, exprs);
@@ -861,7 +861,7 @@ public class BanjoParser {
 				if(operand instanceof ObjectLiteral) return operand;
 				if(operand instanceof SetLiteral) return operand;
 				if(operand instanceof ExprList) 
-					return new SetLiteral(node.getFileRange(), ((ExprList)operand).getSteps());
+					return new SetLiteral(node.getFileRange(), ((ExprList)operand).getElements());
 				// Singleton set literal
 				return new SetLiteral(node.getFileRange(), Collections.singletonList(operand));
 			case CALL:
@@ -952,33 +952,33 @@ public class BanjoParser {
 		Expr base = desugar(op.getLeft());
 		Expr projection = desugar(op.getRight());
 		if(projection instanceof StringLiteral) {
-			projection = stringLiteralToIdRef((StringLiteral) projection);
-		}
-		if(projection instanceof IdRef) {
+			return new FieldRef(base, (StringLiteral) projection);
+		} else if(projection instanceof IdRef) {
 			return new FieldRef(base, (IdRef) projection);
 		} else if(projection instanceof ObjectLiteral) {
 			return new RowUpdate(op.getFileRange(), base, (ObjectLiteral)projection);
 		} else if(projection instanceof SetLiteral) {
 			SetLiteral fieldSet = (SetLiteral) projection;
-			ArrayList<IdRef> ids = new ArrayList<>(fieldSet.getElements().size());
+			LinkedHashMap<String,Field> fields = new LinkedHashMap<>(fieldSet.getElements().size());
 			for(Expr e : fieldSet.getElements()) {
+				Key key;
+				
 				if(e instanceof IdRef) {
-					ids.add((IdRef)e);
+					key = (IdRef)e;
 				} else if(e instanceof StringLiteral) {
-					ids.add(stringLiteralToIdRef((StringLiteral)e));
+					key = (StringLiteral)e;
 				} else {
 					errors.add(new ExpectedIdentifier(e));
+					continue;
 				}
+				fields.put(key.getKeyString(), new Field(key, new FieldRef(base, key)));
+				
 			}
-			return new SelectFields(op.getFileRange(), base, ids);
+			return new ObjectLiteral(op.getFileRange(), fields);
 		} else {
 			errors.add(new InvalidProjection(projection));
 			return base;
 		}
-	}
-
-	private IdRef stringLiteralToIdRef(StringLiteral sl) {
-		return new IdRef(sl.getFileRange(), sl.getString());
 	}
 
 	private Cond cond(BinaryOp op) {
@@ -1136,17 +1136,17 @@ public class BanjoParser {
 			if(contract != null) {
 				errors.add(new UnexpectedContract(contract));
 			}
-			String key;
+			Key key;
 			if(keyExpr instanceof IdRef) {
-				key = ((IdRef)keyExpr).getId();
+				key = (IdRef)keyExpr;
 			} else if(keyExpr instanceof StringLiteral) {
-				key = ((StringLiteral)keyExpr).getString();
+				key = (StringLiteral)keyExpr;
 			} else {
 				errors.add(new ExpectedFieldName("Expected identifier or string; got "+keyExpr.getClass().getSimpleName()+" '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
 				continue;
 			}
 			
-			fields.put(key, new Field(keyExpr.getFileRange(), key, value));
+			fields.put(key.getKeyString(), new Field(key, value));
 		}
 		return new ObjectLiteral(range, fields);
 	}
@@ -1206,7 +1206,7 @@ public class BanjoParser {
 			args = ((UnaryOp)args).getOperand();
 		}
 		if(args instanceof ExprList) {
-			exprs = ((ExprList)args).getSteps();
+			exprs = ((ExprList)args).getElements();
 		} else if(args instanceof UnitRef) {
 			// Leave the list empty
 		} else {

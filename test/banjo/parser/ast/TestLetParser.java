@@ -15,17 +15,17 @@ public class TestLetParser {
 	private void hello(String source, int expectedErrorCount) {
 		if(expectedErrorCount == 0) {
 			ExprList node = ParseTestUtils.testParse(source, expectedErrorCount, ExprList.class, "hello = \"world\"; hello");
-			assertEquals(2, node.getSteps().size());
-			Let let = (Let) node.getSteps().get(0);
+			assertEquals(2, node.getElements().size());
+			Let let = (Let) node.getElements().get(0);
 			
 			assertEquals("hello", let.getName());
 			assertEquals(StringLiteral.class, let.getValue().getClass());
 			assertEquals("world", ((StringLiteral)let.getValue()).getString());
-			Expr body = node.getSteps().get(1);
+			Expr body = node.getElements().get(1);
 			assertEquals(IdRef.class, body.getClass());
 			assertEquals("hello", ((IdRef)body).getId());
 		} else {
-			ParseTestUtils.testParse(source, expectedErrorCount, Expr.class, null);
+			ParseTestUtils.testParse(source, expectedErrorCount, BaseExpr.class, null);
 		}
 	}
 	

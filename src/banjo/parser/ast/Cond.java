@@ -5,7 +5,7 @@ import java.util.List;
 
 import banjo.parser.util.FileRange;
 
-public class Cond extends Expr {
+public class Cond extends BaseExpr {
 	private final List<CondCase> cases;
 
 	public Cond(FileRange range, List<CondCase> cases) {

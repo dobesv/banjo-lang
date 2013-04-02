@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class UnitRef extends Expr {
+public class UnitRef extends BaseExpr {
 
 	private final ParenType parenType;
 

@@ -24,7 +24,7 @@ public class TestCondParser {
 		assertEquals(expectedCases, node.getCases().size());
 	}
 	private void testParseCond(String source, int expectedErrors) {
-		ParseTestUtils.testParse(source, expectedErrors, Expr.class, null);
+		ParseTestUtils.testParse(source, expectedErrors, BaseExpr.class, null);
 	}
 	
 }

@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class Ellipsis extends Expr {
+public class Ellipsis extends BaseExpr {
 
 	public Ellipsis(FileRange range) {
 		super(range);

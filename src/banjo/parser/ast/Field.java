@@ -1,24 +1,17 @@
 package banjo.parser.ast;
 
-import banjo.parser.util.FileRange;
-
 public class Field {
-	private final String identifier;
+	private final Key key;
 	private final Expr value;
-	private final FileRange identifierRange;
-	public Field(FileRange identifierRange, String identifier, Expr valueExpr) {
-		this.identifierRange = identifierRange;
-		this.identifier = identifier;
+	public Field(Key key, Expr valueExpr) {
+		this.key = key;
 		this.value = valueExpr;
 	}
 	public Expr getValue() {
 		return value;
 	}
-	public String getIdentifier() {
-		return identifier;
-	}
-	public FileRange getIdentifierRange() {
-		return identifierRange;
+	public Key getKey() {
+		return key;
 	}
 	
 }

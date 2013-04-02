@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class OperatorRef extends Expr {
+public class OperatorRef extends BaseExpr {
 
 	private final String op;
 

@@ -2,15 +2,15 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class FieldRef extends Expr {
+public class FieldRef extends BaseExpr {
 
 	private final Expr object;
-	private final IdRef id;
+	private final Key key;
 
-	public FieldRef(Expr object, IdRef id) {
-		super(new FileRange(object.getFileRange(), id.getFileRange()));
+	public FieldRef(Expr object, Key key) {
+		super(new FileRange(object.getFileRange(), ((BaseExpr)key).getFileRange()));
 		this.object = object;
-		this.id = id;
+		this.key = key;
 	}
 
 	public Expr getBase() {
@@ -18,11 +18,11 @@ public class FieldRef extends Expr {
 	}
 
 	public String getFieldName() {
-		return getId().getId();
+		return key.toSource();
 	}
 
 	public FileRange getFieldRange() {
-		return getId().getFileRange();
+		return key.getFileRange();
 	}
 	
 
@@ -38,10 +38,10 @@ public class FieldRef extends Expr {
 		object.toSource(sb, Precedence.SUFFIX);
 		if(num) sb.append(')');
 		sb.append('.');
-		id.toSource(sb);
+		key.toSource(sb);
 	}
 
-	public IdRef getId() {
-		return id;
+	public Key getKey() {
+		return key;
 	}
 }

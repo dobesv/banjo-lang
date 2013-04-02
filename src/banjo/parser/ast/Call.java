@@ -5,7 +5,7 @@ import java.util.List;
 
 import banjo.parser.util.FileRange;
 
-public class Call extends Expr {
+public class Call extends BaseExpr {
 
 	private final Expr callee;
 	private final List<Expr> arguments;

@@ -3,7 +3,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class Let extends Expr {
+public class Let extends BaseExpr {
 	private final FileRange nameRange;
 	private final String name;
 	private final Expr value;

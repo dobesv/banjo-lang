@@ -6,7 +6,7 @@ import java.util.List;
 
 import banjo.parser.util.FileRange;
 
-public class SetLiteral extends Expr {
+public class SetLiteral extends BaseExpr {
 	
 	private final List<Expr> elements;
 	
