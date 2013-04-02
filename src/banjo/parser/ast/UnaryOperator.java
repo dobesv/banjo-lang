@@ -1,9 +1,9 @@
 package banjo.parser.ast;
 
 public enum UnaryOperator implements Operator {
-	PLUS("+", Precedence.UNARY_PREFIX),
-	NEGATE("-", Precedence.UNARY_PREFIX),
-	COMPLEMENT("~", Precedence.UNARY_PREFIX),
+	PLUS("+", Precedence.UNARY_PREFIX, "plus"),
+	NEGATE("-", Precedence.UNARY_PREFIX, "negate"),
+	COMPLEMENT("~", Precedence.UNARY_PREFIX, "complement"),
 	ENUM_ELEMENT(":", Precedence.UNARY_PREFIX),	
 	LIST_ELEMENT("*", 0x2022, Precedence.BULLET),
 	SET_ELEMENT("|", Precedence.BULLET),
@@ -21,23 +21,28 @@ public enum UnaryOperator implements Operator {
 	private final Precedence precedence;
 	private final int codePoint;
 	private final ParenType parenType;
+	private final String methodName;
 	
-	UnaryOperator(String op, int codePoint, Precedence precedence, ParenType parenType) {
+	UnaryOperator(String op, int codePoint, Precedence precedence, ParenType parenType, String methodName) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.precedence = precedence;
 		this.parenType = parenType;
+		this.methodName = methodName;
 	}
 	UnaryOperator(String op, Precedence precedence) {
 		this(op, -1, precedence);
 	}
+	UnaryOperator(String op, Precedence precedence, String methodName) {
+		this(op, -1, precedence, null, methodName);
+	}
 	
 	UnaryOperator(String op, int cp, Precedence precedence) {
-		this(op, cp, precedence, null);
+		this(op, cp, precedence, null, null);
 	}
 	
 	UnaryOperator(ParenType pt) {
-		this(null, -1, Precedence.ATOM, pt);
+		this(null, -1, Precedence.ATOM, pt, null);
 	}
 	
 	public static UnaryOperator fromOp(String op) {
@@ -76,6 +81,9 @@ public enum UnaryOperator implements Operator {
 	}
 	public boolean isParen() {
 		return parenType != null;
+	}
+	public String getMethodName() {
+		return methodName;
 	}
 	
 }

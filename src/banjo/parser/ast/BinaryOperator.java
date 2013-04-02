@@ -6,20 +6,20 @@ public enum BinaryOperator implements Operator {
 	CALL(ParenType.PARENS),
 	PROJECTION(".", Precedence.SUFFIX),
 	PROJECTION2("..", Precedence.ASSIGNMENT),
-	POW("^", Precedence.MULDIV),
-	TIMES("*", 0x00D7, Precedence.MULDIV),
-	DIV("/", 0x00F7, Precedence.MULDIV),
-	PLUS("+", Precedence.ADDSUB),
-	MINUS("-", Precedence.ADDSUB),
-	GT(">", Precedence.ORDERING),
-	GE(">=", 0x2265, Precedence.ORDERING),
-	LT("<", Precedence.ORDERING),
-	LE("<=", 0x2264, Precedence.ORDERING),
-	EQ("==", Precedence.EQUALITY),
-	NEQ("!=", 0x2260, Precedence.EQUALITY),
-	INTERSECT("&", 0x2229, Precedence.INTERSECT),
-	XOR("><", 0x22BB, Precedence.XOR),
-	UNION("|", 0x222A, Precedence.UNION),
+	POW("^", Precedence.MULDIV, "toThePowerOf"),
+	TIMES("*", 0x00D7, Precedence.MULDIV, "times"),
+	DIV("/", 0x00F7, Precedence.MULDIV, "dividedBy"),
+	PLUS("+", Precedence.ADDSUB, "plus"),
+	MINUS("-", Precedence.ADDSUB, "minus"),
+	GT(">", Precedence.ORDERING, "isGreaterThan"),
+	GE(">=", 0x2265, Precedence.ORDERING, "isGreatherThanOrEqualTo"),
+	LT("<", Precedence.ORDERING, "isLessThan"),
+	LE("<=", 0x2264, Precedence.ORDERING, "isLessThanOrEqualTo"),
+	EQ("==", Precedence.EQUALITY, "isEqualTo"),
+	NEQ("!=", 0x2260, Precedence.EQUALITY, "isNotEqualTo"),
+	INTERSECT("&", 0x2229, Precedence.INTERSECT, "intersection"),
+	XOR("><", 0x22BB, Precedence.XOR, "xor"),
+	UNION("|", 0x222A, Precedence.UNION, "union"),
 	LAZY_AND("&&", 0x2227, Precedence.LAZY_AND),
 	LAZY_OR("||", 0x2228, Precedence.LAZY_OR),
 	COMMA(",", Precedence.COMMA),
@@ -37,21 +37,30 @@ public enum BinaryOperator implements Operator {
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence precedence;
 	private final ParenType parenType; // nullable
+	private final String methodName;
 	
-	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType) {
+	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.precedence = p;
 		this.parenType = parenType;
+		this.methodName = methodName;
 	}
+	BinaryOperator(String op, int codePoint, Precedence p, String methodName) {
+		this(op, codePoint, p, null, methodName);
+	}
+	
 	BinaryOperator(String op, Precedence p) {
 		this(op, -1, p);
 	}
+	BinaryOperator(String op, Precedence p, String methodName) {
+		this(op, -1, p, methodName);
+	}
 	BinaryOperator(String op, int codePoint, Precedence p) {
-		this(op, codePoint, p, null);
+		this(op, codePoint, p, null, null);
 	}
 	BinaryOperator(ParenType pt) {
-		this(null, -1, Precedence.SUFFIX, pt);
+		this(null, -1, Precedence.SUFFIX, pt, null);
 	}
 
 	public String getOp() {
@@ -90,5 +99,8 @@ public enum BinaryOperator implements Operator {
 	}
 	public boolean isParen() {
 		return parenType != null;
+	}
+	public String getMethodName() {
+		return methodName;
 	}
 }

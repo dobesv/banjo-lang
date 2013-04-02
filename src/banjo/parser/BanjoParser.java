@@ -865,14 +865,12 @@ public class BanjoParser {
 				// Singleton set literal
 				return new SetLiteral(node.getFileRange(), Collections.singletonList(operand));
 			case CALL:
-				return new Call(op.getFileRange(), operand, Collections.<Expr>emptyList());
-			case NEGATE:
-			case PLUS:
-			case COMPLEMENT:
-				return new Call(new FieldRef(operand, new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())));
+				return new Call(operand);
 			case RETURN:
 				return operand;
 			default:
+				if(op.getOperator().getMethodName() != null)
+					return new Call(new FieldRef(operand, new IdRef(op.getFileRange(), op.getOperator().getMethodName())));
 				errors.add(new UnsupportedUnaryOperator(op.getOperator().getOp(), op.getFileRange()));
 				return operand;
 			}
@@ -925,24 +923,11 @@ public class BanjoParser {
 			case COND: return cond(op);
 			case PROJECTION2:
 			case PROJECTION: return projection(op);
-			case POW:
-			case GT:
-			case GE:
-			case LT:
-			case LE:
-			case EQ:
-			case NEQ:
-			case PLUS:
-			case MINUS:
-			case TIMES:
-			case DIV:
-			case INTERSECT:
-			case XOR:
-			case UNION:
-				return new Call(new FieldRef(desugar(op.getLeft()), new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())), desugar(op.getRight()));
 				
 			// TODO Eliminate ALL binary ops as function calls
 			default:
+				if(op.getOperator().getMethodName() != null)
+					return new Call(new FieldRef(desugar(op.getLeft()), new IdRef(op.getFileRange(), op.getOperator().getMethodName())), desugar(op.getRight()));
 				errors.add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
 				return desugar(op.getRight());
 			}

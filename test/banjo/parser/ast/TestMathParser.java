@@ -6,9 +6,7 @@ public class TestMathParser {
 
 	@Test public void test1() { test("1 + 2 * 3", "(1).plus((2).times(3))"); }
 	@Test public void test2() { test("3 * 2 + 1", "(3).times(2).plus(1)"); }
-	
-	@Test public void test3() { test("2 + 2 > 1 + 1", "(2).plus(2).gt((1).plus(1))");
-	}
+	@Test public void test3() { test("2 + 2 > 1 + 1", "(2).plus(2).isGreaterThan((1).plus(1))"); }
 	
 	@Test public void unaries1() throws Exception { unaries("+ - ~1"); }
 	@Test public void unaries2() throws Exception { unaries("+\n -\n  ~\n   1"); }
