@@ -17,6 +17,7 @@ public enum BinaryOperator implements Operator {
 	LE("<=", 0x2264, Precedence.ORDERING, "isLessThanOrEqualTo"),
 	EQ("==", Precedence.EQUALITY, "isEqualTo"),
 	NEQ("!=", 0x2260, Precedence.EQUALITY, "isNotEqualTo"),
+	CMP("<=>", Precedence.EQUALITY, "cmp"),
 	INTERSECT("&", 0x2229, Precedence.INTERSECT, "intersection"),
 	XOR("><", 0x22BB, Precedence.XOR, "xor"),
 	UNION("|", 0x222A, Precedence.UNION, "union"),

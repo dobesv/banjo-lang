@@ -982,7 +982,8 @@ public class BanjoParser {
 	}
 
 	private Cond cond(BinaryOp op) {
-		return new Cond(op.getFileRange(), Collections.singletonList(new CondCase(op.getFileRange(), op.getLeft(), op.getRight())));
+		final CondCase condCase = new CondCase(op.getFileRange(), op.getLeft(), op.getRight());
+		return new Cond(op.getFileRange(), Collections.singletonList(condCase));
 	}
 
 	private Expr call(BinaryOp op) {
@@ -1039,12 +1040,17 @@ public class BanjoParser {
 		List<CondCase> cases = new ArrayList<>(exprs.size());
 		for(Expr e : exprs) {
 			if(!isCondCase(e)) {
-				errors.add(new ExpectedCase(e));
-				continue;
+				if(e == exprs.getLast()) {
+					// Treat as "else" clause
+					cases.add(new CondCase(e.getFileRange(), new Ellipsis(e.getFileRange()), e));
+					break;
+				} else {
+					errors.add(new ExpectedCase(e));
+					continue;
+				}
 			}
 			BinaryOp caseOp = (BinaryOp)e;
-			CondCase c = new CondCase(e.getFileRange(), caseOp.getLeft(), caseOp.getRight());
-			cases.add(c);
+			cases.add(new CondCase(e.getFileRange(), caseOp.getLeft(), caseOp.getRight()));
 		}
 		return new Cond(range, cases);
 	}
