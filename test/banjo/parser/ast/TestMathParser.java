@@ -1,11 +1,8 @@
 package banjo.parser.ast;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import banjo.parser.errors.BanjoParseException;
-import banjo.parser.errors.IncorrectIndentation;
-import banjo.parser.errors.UnexpectedDecimalPoint;
 import banjo.parser.errors.UnsupportedUnaryOperator;
 
 public class TestMathParser {
@@ -17,6 +14,10 @@ public class TestMathParser {
 	@Test public void testMultiline1() { test("2 + 2 >\n 1 +\n 1", "(2).plus(2).cmp((1).plus(1)).greater"); }
 	@Test public void testMultiline2() { test("2 + 2\n > 1 + 1", "(2).plus(2).cmp((1).plus(1)).greater"); }
 	@Test public void testMultiline3() { test("2\n + 2\n  > 1\n   + 1", "(2).plus(2).cmp((1).plus(1)).greater"); }
+	@Test public void testMultiline4() { test("  2\n+ 2", "(2).plus(2)"); }
+	
+	// Not how indentation is overriding the operator precedence here; feature or bug ?
+	@Test public void testMultiline5() { test("  2\n+ 2\n* 4", "(2).plus(2).times(4)"); }
 	
 	@Test public void badDedent1() { test("3\n> 2", UnsupportedUnaryOperator.class); }
 	
