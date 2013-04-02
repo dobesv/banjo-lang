@@ -569,11 +569,14 @@ public class BanjoParser {
 		private final BinaryOperator operator;
 		private final Expr operand;
 		private final FileRange opRange;
-		public PartialBinaryOp(BinaryOperator operator, FileRange opRange, Expr operand) {
+		private final int startColumn;
+		
+		public PartialBinaryOp(BinaryOperator operator, FileRange opRange, Expr operand, int startColumn) {
 			super();
 			this.operator = operator;
 			this.operand = operand;
 			this.opRange = opRange;
+			this.startColumn = startColumn;
 		}
 		public Expr makeOp(Expr secondOperand) throws ExpectedExpression {
 			if(secondOperand == null) {
@@ -590,7 +593,7 @@ public class BanjoParser {
 			return new BinaryOp(operator, getOperand(), secondOperand);
 		}
 		public int getStartColumn() {
-			return getOperand().getStartColumn();
+			return startColumn;
 		}
 		@Override
 		public String toString() {
@@ -671,7 +674,7 @@ public class BanjoParser {
 				// If we de-dented back to an exact match on the column of an enclosing
 				// expression, insert a newline operator
 				if(operand.getStartColumn() == column) {
-					opStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, in.getFilePosAsRange(), operand));
+					opStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, in.getFilePosAsRange(), operand, operand.getStartColumn()));
 					operand = null;
 				}
 			}
@@ -795,7 +798,7 @@ public class BanjoParser {
 			operand = opStack.pop().makeOp(operand);
 		}
 		
-		opStack.push(new PartialBinaryOp(operator, range, operand));
+		opStack.push(new PartialBinaryOp(operator, range, operand, operand.getStartColumn()));
 	}
 
 	private FileRange between(Expr a, Expr b) {

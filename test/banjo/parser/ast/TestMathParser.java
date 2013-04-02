@@ -1,5 +1,6 @@
 package banjo.parser.ast;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.parser.errors.BanjoParseException;
@@ -18,6 +19,9 @@ public class TestMathParser {
 	
 	// Not how indentation is overriding the operator precedence here; feature or bug ?
 	@Test public void testMultiline5() { test("  2\n+ 2\n* 4", "(2).plus(2).times(4)"); }
+	
+	// TODO Support right-aligned operands
+	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).plus(11).plus(111)"); }
 	
 	@Test public void badDedent1() { test("3\n> 2", UnsupportedUnaryOperator.class); }
 	
