@@ -923,6 +923,11 @@ public class BanjoParser {
 			case COND: return cond(op);
 			case PROJECTION2:
 			case PROJECTION: return projection(op);
+			case GT: 
+			case GE: 
+			case LT: 
+			case LE: 
+				return comparison(op); 
 				
 			// TODO Eliminate ALL binary ops as function calls
 			default:
@@ -946,6 +951,27 @@ public class BanjoParser {
 			return node;
 		}
 		throw new Error("Not implemented: "+node.getClass().getSimpleName()+" ("+node.toSource()+") "+node.getFileRange());
+	}
+
+	private Expr comparison(BinaryOp op) {
+		final Expr left = desugar(op.getLeft());
+		final Expr right = desugar(op.getRight());
+		final FileRange range = op.getFileRange();
+		Call cmp = new Call(new FieldRef(left, new IdRef(range, BinaryOperator.CMP.getMethodName())), right);
+		boolean checkEqual;
+		String checkField;
+		switch(op.getOperator()) {
+		case GT: checkEqual = true; checkField = "greater"; break;
+		case GE: checkEqual = false; checkField = "less"; break;
+		case LT: checkEqual = true; checkField = "less"; break;
+		case LE: checkEqual = false; checkField = "greater"; break;
+		default: throw new Error();
+		}
+		Expr check = new FieldRef(cmp, new IdRef(range, checkField));
+		if(checkEqual)
+			return check;
+		else
+			return new Call(new FieldRef(check, new IdRef(range, UnaryOperator.NOT.getMethodName())));
 	}
 
 	private Expr projection(BinaryOp op) {

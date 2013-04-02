@@ -8,6 +8,7 @@ public abstract class BaseExpr implements Expr {
 
 	public BaseExpr(FileRange range) {
 		super();
+		if(range == null) throw new NullPointerException();
 		this.fileRange = range;
 	}
 	

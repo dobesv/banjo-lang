@@ -10,6 +10,7 @@ public class IdRef extends BaseExpr implements Atom, Key {
 		super(range);
 		this.id = id;
 	}
+
 	public String getId() {
 		return id;
 	}
