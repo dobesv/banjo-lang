@@ -10,6 +10,7 @@ import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedOperator;
+import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.SyntaxError;
 
@@ -17,16 +18,15 @@ public class TestNumberLiteralParser {
 
 	// TODO Check for failure cases ...
 	
-	@Test
-	public void nonNumbers() throws IOException {
-		testNonNumber("a");
-		testNonNumber("*", ExpectedExpression.class);
-		testNonNumber(";", ExpectedExpression.class);
-		testNonNumber("1.", MissingDigitsAfterDecimalPoint.class);
-		testNonNumber("1.foo", SyntaxError.class); // ???
-		testNonNumber("_.1", ExpectedOperator.class);
-		testNonNumber("_1");
-	}
+	@Test public void idIsNotANumber() { testNonNumber("a"); }
+	@Test public void starIsNotANumber() { testNonNumber("*", ExpectedExpression.class); }
+	@Test public void semiColonIsNotANumber() { testNonNumber(";", ExpectedExpression.class); }
+	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
+	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
+	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.negate()", MissingDigitsAfterDecimalPoint.class); }
+	@Test public void methodCallOnNumber() { testNonNumber("1 .negate()"); }
+	@Test public void numberAsProjection() { testNonNumber("_.1", ExpectedOperator.class); }
+	@Test public void leadingUnderscore() { testNonNumber("_1"); }
 	
 	private void testNonNumber(String inStr) {
 		testNonNumber(inStr, null);
@@ -68,16 +68,8 @@ public class TestNumberLiteralParser {
 	private void testInt(int n) throws IOException {
 		String dec = String.valueOf(n);
 		final String hex = "0x"+Integer.toHexString(n);
-		if(n >= 0) {
-			assertEquals(n, parseNumber(dec).getNumber().intValue());
-			assertEquals(n, parseNumber(hex).getNumber().intValue());
-		} else {
-			UnaryOp op = ParseTestUtils.testParse(dec, 0, UnaryOp.class, dec);
-			assertEquals(UnaryOperator.NEGATE, op.getOperator());
-			NumberLiteral num = (NumberLiteral) op.getOperand();
-			assertEquals(-n, num.getNumber().intValue());
-			
-		}
+		assertEquals(n, parseNumber(dec).getNumber().intValue());
+		assertEquals(n, parseNumber(hex).getNumber().intValue());
 	}
 	
 	@Test
@@ -96,16 +88,8 @@ public class TestNumberLiteralParser {
 	private void testLong(long n) throws IOException {
 		String dec = String.valueOf(n);
 		final String hex = "0x"+Long.toHexString(n);
-		if(n >= 0) {
-			assertEquals(n, parseNumber(dec).getNumber().longValue());
-			assertEquals(n, parseNumber(hex).getNumber().longValue());
-		} else {
-			UnaryOp op = ParseTestUtils.testParse(dec, 0, UnaryOp.class, dec);
-			assertEquals(UnaryOperator.NEGATE, op.getOperator());
-			NumberLiteral num = (NumberLiteral) op.getOperand();
-			assertEquals(-n, num.getNumber().longValue());
-			
-		}
+		assertEquals(n, parseNumber(dec).getNumber().longValue());
+		assertEquals(n, parseNumber(hex).getNumber().longValue());
 	}
 
 	public NumberLiteral parseNumber(String inStr) throws IOException {
@@ -139,7 +123,6 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		final boolean negative = outStr.charAt(0)=='-';
-		ParseTestUtils.testParse(inStr, 0, negative?UnaryOp.class:NumberLiteral.class, outStr);
+		ParseTestUtils.testParse(inStr, 0, NumberLiteral.class, outStr);
 	}
 }

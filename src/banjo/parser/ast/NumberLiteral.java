@@ -3,7 +3,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.Token;
 
-public class NumberLiteral extends Expr {
+public class NumberLiteral extends Expr implements Atom {
 	final Token token;
 	final Number number;
 	

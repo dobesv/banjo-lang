@@ -25,7 +25,7 @@ public enum BinaryOperator implements Operator {
 	FUNCTION("->", 0x21A6, Precedence.FUNCTION),
 	ASSIGNMENT("=", Precedence.ASSIGNMENT),
 	PAIR(":", Precedence.COLON),
-	TABLE_PAIR("::", Precedence.ASSIGNMENT),
+	PAIR2("::", Precedence.ASSIGNMENT),
 	PROJECTION2("..", Precedence.ASSIGNMENT),
 	COND("=>", 0x21D2, Precedence.COND),
 	SEMICOLON(";", Precedence.SEMICOLON),

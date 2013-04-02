@@ -14,7 +14,7 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> T testParse(String source, int expectedErrors,
-			Class<T> expectedClass, String expectedSource) {
+			Class<T> expectedClass, String normalizedSource) {
 		System.out.println("<< "+source.replace("\n", "\n<< "));
 		BanjoParser parser = new BanjoParser(source);
 		Expr parsed;
@@ -33,8 +33,8 @@ public class ParseTestUtils {
 		if(expectedErrors==0 && !parser.getErrors().isEmpty())
 			throw new Error(parser.getErrors().iterator().next());
 		assertEquals("Wrong number of errors found", expectedErrors, parser.getErrors().size());
-		if(expectedSource != null)
-			assertEquals(expectedSource, parsed.toSource());
+		if(normalizedSource != null)
+			assertEquals(normalizedSource, parsed.toSource());
 		
 		return expectedClass.cast(parsed);
 	}

@@ -13,23 +13,16 @@ import banjo.parser.util.ParserReader;
 
 public class TestStringLiteralParser {
 
-	@Test
-	public void testHelloWorld() throws IOException {
-		testParser("\"Hello, world!\"", "Hello, world!", 0);
-	}
+	@Test public void testHelloWorld() { testParser("\"Hello, world!\"", "Hello, world!", 0); }	
+	@Test public void testEscapes() { testParser("\"\\\"\\t\\n\\r\"", "\"\t\n\r", 0); }
+	@Test public void testMultiline() { testParser("  \"abc\n   def\n    ghi\n   jkl\n   \"", "abc\ndef\n ghi\njkl\n"); }
 	
-	@Test
-	public void testEscapes() throws IOException {
-		testParser("\"\\\"\\t\\n\\r\"", "\"\t\n\r", 0);
-	}
+	
+	
+	private void testParser(String source, String expectedString) { testParser(source, expectedString, 0); }
 
-	private void testParser(String sourceString, String expectedParsedString,
-			int expectedErrorCount) throws IOException {
-		ParserReader in = ParserReader.fromString(getClass().getName(), sourceString);
-		final BanjoParser parser = new BanjoParser(in);
-		StringLiteral node = parser.parseStringLiteral();
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		assertEquals(expectedParsedString, node.getString());
+	private void testParser(String sourceString, String expectedParsedString, int expectedErrorCount) {
+		assertEquals(expectedParsedString, ParseTestUtils.testParse(sourceString, expectedErrorCount, StringLiteral.class, null).getString());
 	}
 	
 	@Test

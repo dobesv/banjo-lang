@@ -1,5 +1,6 @@
 package banjo.parser.ast;
 
+import java.util.Collections;
 import java.util.List;
 
 import banjo.parser.util.FileRange;
@@ -13,6 +14,10 @@ public class Call extends Expr {
 		super(range);
 		this.callee = callee;
 		this.arguments = arguments;
+	}
+
+	public Call(Expr callee) {
+		this(callee.getFileRange(), callee, Collections.<Expr>emptyList());
 	}
 
 	public Expr getCallee() {

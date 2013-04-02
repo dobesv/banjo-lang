@@ -4,12 +4,14 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
+import banjo.parser.ast.Atom;
 import banjo.parser.ast.BinaryOp;
 import banjo.parser.ast.BinaryOperator;
 import banjo.parser.ast.Call;
@@ -269,11 +271,15 @@ public class BanjoParser {
 		}
 		int quoteType = cp;
 			
-		
+		int leftColumn = in.getCurrentColumnNumber();
 	    buf.setLength(0);
 	    while((cp = in.read()) != -1) {
 	    	if(cp == quoteType)
 	    		break; // End of string
+	    	// Ignore whitespace with column <= the left column
+	    	if(cp == ' ' && in.getCurrentColumnNumber() <= leftColumn) {
+	    		continue;
+	    	}
 	        if(cp != '\\') {
 	            buf.appendCodePoint(cp);
 	            continue;
@@ -384,7 +390,7 @@ public class BanjoParser {
 			case 'o': case 'O': radix = 8; maxLongDigits=20; formatName="octal"; cp = in.read(); break;
 			}
 		}
-		FilePos afterDigits = in.getFilePos();
+		Pos afterDigits = new Pos();
 		int digits = 0;
 		int digitsLeftOfDecimalPoint = -1;
 		int exp = 0;
@@ -433,7 +439,7 @@ public class BanjoParser {
 						break;
 					}
 					exp = exp * 10 + digitValue;
-					afterDigits = in.getFilePos();
+					in.getCurrentPosition(afterDigits);
 					cp = in.read();
 				}
 				if(negexp) exp = -exp;
@@ -446,7 +452,7 @@ public class BanjoParser {
 						return null;
 					} else {
 						// Number ends when we find any non-number character
-						in.seek(afterDigits);
+						in.unread();
 						break;
 					}
 				} else {
@@ -460,7 +466,7 @@ public class BanjoParser {
 					}
 					digits ++;
 					isNumber = true;
-					afterDigits = in.getFilePos();
+					in.getCurrentPosition(afterDigits);
 					cp = in.read();
 				}
 			}
@@ -802,11 +808,11 @@ public class BanjoParser {
 
 	private Expr parseAtom() throws IOException {
 		Expr operand = null;
-		if((operand = parseIdRef()) == null  && 
+		if((operand = parseIdRef()) == null &&
+			(operand = parseNumberLiteral()) == null  && 
 			(operand = parseEllipsis()) == null &&
 			(operand = parseOperatorRef()) == null &&
-			(operand = parseStringLiteral()) == null &&
-			(operand = parseNumberLiteral()) == null) {
+			(operand = parseStringLiteral()) == null) {
 			return null;
 		}
 		return operand;
@@ -860,7 +866,15 @@ public class BanjoParser {
 				return new SetLiteral(node.getFileRange(), Collections.singletonList(operand));
 			case CALL:
 				return new Call(op.getFileRange(), operand, Collections.<Expr>emptyList());
-			default: return op.withNewOperand(operand);
+			case NEGATE:
+			case PLUS:
+			case COMPLEMENT:
+				return new Call(new FieldRef(operand, new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())));
+			case RETURN:
+				return operand;
+			default:
+				errors.add(new UnsupportedUnaryOperator(op.getOperator().getOp(), op.getFileRange()));
+				return operand;
 			}
 		} else if(node instanceof BinaryOp) {
 			BinaryOp op = (BinaryOp) node;
@@ -906,24 +920,47 @@ public class BanjoParser {
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
 			case PAIR:
-			case TABLE_PAIR: return objectLiteral(range, Collections.<Expr>singletonList(op));
+			case PAIR2: return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT: return let(op);
 			case COND: return cond(op);
 			case PROJECTION2:
 			case PROJECTION: return projection(op);
-			
+			case POW:
+			case GT:
+			case GE:
+			case LT:
+			case LE:
+			case EQ:
+			case NEQ:
+			case ADD:
+			case SUB:
+			case MUL:
+			case DIV:
+			case INTERSECT:
+			case XOR:
+			case UNION:
+				return new Call(op.getFileRange(), new FieldRef(new IdRef(op.getFileRange(), "Math"), new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())), Arrays.asList(enrich(op.getLeft()), enrich(op.getRight())));
+				
 			// TODO Eliminate ALL binary ops as function calls
-			default: return new BinaryOp(op.getOperator(), enrich(op.getLeft()), enrich(op.getRight()));
+			default:
+				errors.add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
+				return enrich(op.getRight());
 			}
 		} else if(node instanceof UnitRef) {
 			UnitRef u = (UnitRef) node;
 			switch(((UnitRef) node).getParenType()) {
 			case BRACES: return new ObjectLiteral(node.getFileRange(), Collections.<String,Field>emptyMap());
-			case BRACKETS: return new ListLiteral(u.getFileRange(), Collections.<Expr>emptyList());
+			default:
 			case PARENS: errors.add(new ExpectedExpression(node.getFileRange(), node.toSource())); break;
+			case BRACKETS: return new ListLiteral(u.getFileRange(), Collections.<Expr>emptyList());
 			}
+		} else if(node instanceof Atom) {
+			return node;
+		} else {
+			errors.add(new BanjoParseException("Not implemented: "+node.getClass().getSimpleName(), node.getFileRange()));
+			return node;
 		}
-		return node;
+		throw new Error("Not implemented: "+node.getClass().getSimpleName()+" ("+node.toSource()+") "+node.getFileRange());
 	}
 
 	private Expr projection(BinaryOp op) {
@@ -975,7 +1012,7 @@ public class BanjoParser {
 
 	private Expr let(BinaryOp op) {
 		Expr target = op.getLeft();
-		Expr value = op.getRight();
+		Expr value = enrich(op.getRight());
 		Expr contract = null;
 		String name = null;
 		FileRange nameRange = null;
@@ -1002,7 +1039,7 @@ public class BanjoParser {
 			if(contract != null) {
 				errors.add(new UnexpectedContract(contract));
 			}
-			return new Let(nameRange, name, enrich(value));
+			return new Let(nameRange, name, value);
 		} else {
 			errors.add(new ExpectedIdentifier(target));
 			return op;
@@ -1060,9 +1097,10 @@ public class BanjoParser {
 					eltExpr = e;
 				}
 				if(headings != null) {
-					eltExpr = makeRow(headings, eltExpr);
+					elements.add(makeRow(headings, eltExpr));
+				} else {
+					elements.add(enrich(eltExpr));
 				}
-				elements.add(enrich(eltExpr));
 			}
 		}
 		return elements;
@@ -1098,11 +1136,17 @@ public class BanjoParser {
 				keyExpr = targetBOp.getLeft();
 				contract = targetBOp.getRight();
 			}
+			Expr value;
 			if(isCallWithArgs(keyExpr)) {
 				BinaryOp call = (BinaryOp) keyExpr;
-				valueExpr = makeFunctionLiteral(e.getFileRange(), flattenCommasOrSemicolons(call.getRight(), new ArrayList<Expr>()), valueExpr, contract);
+				value = makeFunctionLiteral(e.getFileRange(), flattenCommasOrSemicolons(call.getRight(), new ArrayList<Expr>()), valueExpr, contract);
 				keyExpr = call.getLeft();
 				contract = null;
+			} else if(headings != null) {
+				// If this is a table, construct the row
+				value = makeRow(headings, valueExpr);
+			} else {
+				value = enrich(valueExpr);
 			}
 			if(contract != null) {
 				errors.add(new UnexpectedContract(contract));
@@ -1116,11 +1160,8 @@ public class BanjoParser {
 				errors.add(new ExpectedFieldName("Expected identifier or string; got "+keyExpr.getClass().getSimpleName()+" '"+keyExpr.toSource()+"'", keyExpr.getFileRange()));
 				continue;
 			}
-			// If this is a table, construct the row
-			if(headings != null) {
-				valueExpr = makeRow(headings, valueExpr);
-			}
-			fields.put(key, new Field(keyExpr.getFileRange(), key, enrich(valueExpr)));
+			
+			fields.put(key, new Field(keyExpr.getFileRange(), key, value));
 		}
 		return new ObjectLiteral(range, fields);
 	}
@@ -1221,7 +1262,7 @@ public class BanjoParser {
 	private boolean isPair(Expr e) {
 		return (e instanceof BinaryOp) && 
 				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR ||
-				 ((BinaryOp) e).getOperator() == BinaryOperator.TABLE_PAIR);
+				 ((BinaryOp) e).getOperator() == BinaryOperator.PAIR2);
 	}
 	private boolean isEnumElement(Expr e) {
 		return isUnaryOp(e, UnaryOperator.ENUM_ELEMENT);

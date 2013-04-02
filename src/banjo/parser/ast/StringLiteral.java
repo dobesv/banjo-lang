@@ -4,7 +4,7 @@ package banjo.parser.ast;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
-public class StringLiteral extends Expr {
+public class StringLiteral extends Expr implements Atom {
 	private final String string;
 	
 	public StringLiteral(FileRange range, String string) {

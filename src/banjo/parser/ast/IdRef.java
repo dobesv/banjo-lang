@@ -4,7 +4,7 @@ package banjo.parser.ast;
 import banjo.parser.BanjoParser;
 import banjo.parser.util.FileRange;
 
-public class IdRef extends Expr {
+public class IdRef extends Expr implements Atom {
 	final String id;
 	public IdRef(FileRange range, String id) {
 		super(range);
