@@ -16,6 +16,11 @@ public class Call extends Expr {
 		this.arguments = arguments;
 	}
 
+	public Call(Expr callee, Expr arg) {
+		this(new FileRange(callee.getFileRange(), arg.getFileRange()),
+			 callee, 
+			 Collections.singletonList(arg));
+	}
 	public Call(Expr callee) {
 		this(callee.getFileRange(), callee, Collections.<Expr>emptyList());
 	}

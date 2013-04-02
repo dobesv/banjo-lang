@@ -642,7 +642,7 @@ public class BanjoParser {
 	}
 	
 	public Expr parseExpr() throws IOException, BanjoParseException {
-		return enrich(parseExpr(null));
+		return desugar(parseExpr(null));
 	}
 	
 	/**
@@ -837,13 +837,13 @@ public class BanjoParser {
 	 * @param node
 	 * @return
 	 */
-	private Expr enrich(Expr node) {
+	private Expr desugar(Expr node) {
 		if(node instanceof UnaryOp) {
 			UnaryOp op = (UnaryOp) node;
-			final Expr operand = enrich(op.getOperand());
+			final Expr operand = desugar(op.getOperand());
 			switch(op.getOperator()) {
-			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
-			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(enrich(operand)));
+			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
+			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
 			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
 			case ENUM_ELEMENT: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
 			case PARENS: return operand;
@@ -912,7 +912,7 @@ public class BanjoParser {
 					// Everything else - treat as a series of steps
 					ArrayList<Expr> exprList = new ArrayList<>(exprs.size());
 					for(Expr e : exprs) {
-						exprList.add(enrich(e));
+						exprList.add(desugar(e));
 					}
 					return new ExprList(op.getFileRange(), exprList);
 				}
@@ -932,19 +932,19 @@ public class BanjoParser {
 			case LE:
 			case EQ:
 			case NEQ:
-			case ADD:
-			case SUB:
-			case MUL:
+			case PLUS:
+			case MINUS:
+			case TIMES:
 			case DIV:
 			case INTERSECT:
 			case XOR:
 			case UNION:
-				return new Call(op.getFileRange(), new FieldRef(new IdRef(op.getFileRange(), "Math"), new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())), Arrays.asList(enrich(op.getLeft()), enrich(op.getRight())));
+				return new Call(new FieldRef(desugar(op.getLeft()), new IdRef(op.getFileRange(), op.getOperator().name().toLowerCase())), desugar(op.getRight()));
 				
 			// TODO Eliminate ALL binary ops as function calls
 			default:
 				errors.add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
-				return enrich(op.getRight());
+				return desugar(op.getRight());
 			}
 		} else if(node instanceof UnitRef) {
 			UnitRef u = (UnitRef) node;
@@ -964,8 +964,8 @@ public class BanjoParser {
 	}
 
 	private Expr projection(BinaryOp op) {
-		Expr base = enrich(op.getLeft());
-		Expr projection = enrich(op.getRight());
+		Expr base = desugar(op.getLeft());
+		Expr projection = desugar(op.getRight());
 		if(projection instanceof StringLiteral) {
 			projection = stringLiteralToIdRef((StringLiteral) projection);
 		}
@@ -1005,14 +1005,14 @@ public class BanjoParser {
 		// TODO Can't distinguish between a(()) and a() in this system...
 		List<Expr> exprs = flattenCommasOrSemicolons(op.getRight(), new LinkedList<Expr>());
 		for(Expr expr : exprs) {
-			args.add(enrich(expr));
+			args.add(desugar(expr));
 		}
-		return new Call(op.getFileRange(), enrich(op.getLeft()), args);
+		return new Call(op.getFileRange(), desugar(op.getLeft()), args);
 	}
 
 	private Expr let(BinaryOp op) {
 		Expr target = op.getLeft();
-		Expr value = enrich(op.getRight());
+		Expr value = desugar(op.getRight());
 		Expr contract = null;
 		String name = null;
 		FileRange nameRange = null;
@@ -1099,7 +1099,7 @@ public class BanjoParser {
 				if(headings != null) {
 					elements.add(makeRow(headings, eltExpr));
 				} else {
-					elements.add(enrich(eltExpr));
+					elements.add(desugar(eltExpr));
 				}
 			}
 		}
@@ -1146,7 +1146,7 @@ public class BanjoParser {
 				// If this is a table, construct the row
 				value = makeRow(headings, valueExpr);
 			} else {
-				value = enrich(valueExpr);
+				value = desugar(valueExpr);
 			}
 			if(contract != null) {
 				errors.add(new UnexpectedContract(contract));

@@ -33,9 +33,10 @@ public class FieldRef extends Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
+		final boolean num = object instanceof NumberLiteral;
+		if(num) sb.append('(');
 		object.toSource(sb, Precedence.SUFFIX);
-		if(object instanceof NumberLiteral)
-			sb.append(' ');
+		if(num) sb.append(')');
 		sb.append('.');
 		id.toSource(sb);
 	}
