@@ -38,7 +38,7 @@ public enum BinaryOperator implements Operator {
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence precedence;
 	private final ParenType parenType; // nullable
-	private final String methodName;
+	private final String methodName; // nullable
 	
 	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName) {
 		this.op = op;
