@@ -5,6 +5,9 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.IncorrectIndentation;
+
 public class TestObjectLiteralParser {
 
 
@@ -12,7 +15,7 @@ public class TestObjectLiteralParser {
 	@Test public void commaSeparator()    { abc("{a:1,b:2,c:3}", 0); }
 	@Test public void noCurliesOrCommas() { abc(" a: 1\n b : 2\n c :3", 0); }
 	@Test public void mixCommasNewlines() { abc("{a:1\n b:2,\n c:3}", 0); }
-	@Test public void backdentError()     { abc("{a:1,b:2,\nc:3}", 1); }
+	@Test public void backdentError()     { parseError("{a:1,b:2,\nc:3}", IncorrectIndentation.class); }
 
 	@Test public void objValue() { parse("a::a:1\n   b:2\n   c:3\nb::d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
@@ -45,8 +48,12 @@ public class TestObjectLiteralParser {
 		return ParseTestUtils.testParse(source, 0, null, ObjectLiteral.class, expectedSource);
 	}
 	
+	private void parseError(String source, Class<? extends BanjoParseException> expectedError) {
+		ParseTestUtils.testParse(source, 1, expectedError, null, null);
+	}
+	
 	@Test
-	public void testEmpty() {
+	public void empty() {
 		ObjectLiteral node = parse("{}", null);
 		assertTrue(node.getFields().isEmpty());
 	}
