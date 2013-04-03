@@ -963,26 +963,28 @@ public class BanjoParser {
 	 * Assuming that Boolean has a method <code>lazyOr(f): ifTrue(->true,f)()</code>
 	 */
 	private Expr lazyOr(BinaryOp op) {
-		// left || right = left.lazyOr(->right)
-		return callMethodWithLazyArg(op, "lazyOr");
+		// left || right = left.if(true(): true, false(): right)
+		final Expr condition = desugar(op.getLeft());
+		final FileRange range = op.getFileRange();
+		Field trueField = new Field(new IdRef(range, "false"), new FunctionLiteral(desugar(op.getRight())));
+		Field falseField = new Field(new IdRef(range, "true"), new FunctionLiteral(new IdRef(range, "false")));
+		Expr arg = new ObjectLiteral(range, trueField, falseField);
+		Expr method = new FieldRef(condition, new IdRef(range, "if"));
+		return new Call(method, arg);
 	}
 
 	/**
-	 * Assuming that Boolean has a method <code>lazyAnd(f): ifTrue(f,->false)()</code>
+	 * 
 	 */
 	private Expr lazyAnd(BinaryOp op) {
-		// left && right == left.lazyAnd(->right)
-		return callMethodWithLazyArg(op, "lazyAnd");
-	}
-
-	/**
-	 * Call the left-hand operand with the given argument as a lazy argument, using the
-	 * given method name.
-	 */
-	private Expr callMethodWithLazyArg(BinaryOp op, final String methodName) {
-		Expr lazyRight = new FunctionLiteral(desugar(op.getRight()));
-		Expr method = new FieldRef(desugar(op.getLeft()), new IdRef(op.getLeft().getFileRange(), methodName));
-		return new Call(method, lazyRight);
+		// left && right == left.if(true(): right, false(): false)
+		final Expr condition = desugar(op.getLeft());
+		final FileRange range = op.getFileRange();
+		Field trueField = new Field(new IdRef(range, "true"), new FunctionLiteral(desugar(op.getRight())));
+		Field falseField = new Field(new IdRef(range, "false"), new FunctionLiteral(new IdRef(range, "false")));
+		Expr arg = new ObjectLiteral(range, trueField, falseField);
+		Expr method = new FieldRef(condition, new IdRef(range, "if"));
+		return new Call(method, arg);
 	}
 
 	private Expr comparison(BinaryOp op) {
@@ -1113,11 +1115,11 @@ public class BanjoParser {
 					}
 					
 					final Expr condition = desugar(caseOp.getLeft());
-					
-					Expr trueFunc = new FunctionLiteral(thenExpr);
-					Expr falseFunc = new FunctionLiteral(result);
-					Expr ifTrueMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "lazyIfTrue"));
-					result = new Call(condition.getFileRange(), ifTrueMethod, Arrays.asList(trueFunc, falseFunc));
+					Field trueField = new Field(new IdRef(e.getFileRange(), "true"), new FunctionLiteral(thenExpr));
+					Field falseField = new Field(new IdRef(e.getFileRange(), "false"), new FunctionLiteral(result));
+					Expr arg = new ObjectLiteral(e.getFileRange(), trueField, falseField);
+					Expr ifMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "if"));
+					result = new Call(ifMethod, arg);
 				}
 			} else {
 				if(result != null) {

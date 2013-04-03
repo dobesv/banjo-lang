@@ -1,6 +1,9 @@
 package banjo.parser.ast;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import banjo.parser.BanjoParser;
@@ -14,6 +17,18 @@ public class ObjectLiteral extends BaseExpr {
 	public ObjectLiteral(FileRange fileRange, Map<String, Field> fields) {
 		super(fileRange);
 		this.fields = Collections.unmodifiableMap(fields);
+	}
+
+	public ObjectLiteral(FileRange fileRange, Field ... fields) {
+		this(fileRange, makeFieldMap(Arrays.asList(fields)));
+	}
+
+	private static Map<String, Field> makeFieldMap(List<Field> fields) {
+		LinkedHashMap<String,Field> fieldMap = new LinkedHashMap<>(fields.size());
+		for(Field f : fields) {
+			fieldMap.put(f.getKey().getKeyString(), f);
+		}
+		return fieldMap;
 	}
 
 	public Map<String, Field> getFields() {
