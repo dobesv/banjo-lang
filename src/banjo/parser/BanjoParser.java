@@ -919,6 +919,8 @@ public class BanjoParser {
 					return new ExprList(op.getFileRange(), exprList);
 				}
 			}
+			case LAZY_AND: return lazyAnd(op);
+			case LAZY_OR: return lazyOr(op);
 			case COND: return exprListToCond(op.getFileRange(), new LinkedList<>(Collections.singletonList(node)));
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
@@ -955,6 +957,32 @@ public class BanjoParser {
 			return node;
 		}
 		throw new Error("Not implemented: "+node.getClass().getSimpleName()+" ("+node.toSource()+") "+node.getFileRange());
+	}
+
+	/**
+	 * Assuming that Boolean has a method <code>lazyOr(f): ifTrue(->true,f)()</code>
+	 */
+	private Expr lazyOr(BinaryOp op) {
+		// left || right = left.lazyOr(->right)
+		return callMethodWithLazyArg(op, "lazyOr");
+	}
+
+	/**
+	 * Assuming that Boolean has a method <code>lazyAnd(f): ifTrue(f,->false)()</code>
+	 */
+	private Expr lazyAnd(BinaryOp op) {
+		// left && right == left.lazyAnd(->right)
+		return callMethodWithLazyArg(op, "lazyAnd");
+	}
+
+	/**
+	 * Call the left-hand operand with the given argument as a lazy argument, using the
+	 * given method name.
+	 */
+	private Expr callMethodWithLazyArg(BinaryOp op, final String methodName) {
+		Expr lazyRight = new FunctionLiteral(desugar(op.getRight()));
+		Expr method = new FieldRef(desugar(op.getLeft()), new IdRef(op.getLeft().getFileRange(), methodName));
+		return new Call(method, lazyRight);
 	}
 
 	private Expr comparison(BinaryOp op) {
@@ -1061,6 +1089,9 @@ public class BanjoParser {
 		return target instanceof BinaryOp && ((BinaryOp)target).getOperator() == BinaryOperator.CALL;
 	}
 
+	/**
+	 * Requires Boolean to have a method <code>lazyIfTrue(trueFunc,falseFunc): ifTrue(trueFunc,falseFunc)()</code>
+	 */
 	private Expr exprListToCond(FileRange range, LinkedList<Expr> exprs) {
 		Expr result = null;
 		boolean missingElseClause = false;
@@ -1085,10 +1116,8 @@ public class BanjoParser {
 					
 					Expr trueFunc = new FunctionLiteral(thenExpr);
 					Expr falseFunc = new FunctionLiteral(result);
-					Expr ifTrueMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "ifTrue"));
-					Expr switcher = new Call(condition.getFileRange(), ifTrueMethod, Arrays.asList(trueFunc, falseFunc));
-					Expr readLazy = new Call(switcher);
-					result = readLazy;
+					Expr ifTrueMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "lazyIfTrue"));
+					result = new Call(condition.getFileRange(), ifTrueMethod, Arrays.asList(trueFunc, falseFunc));
 				}
 			} else {
 				if(result != null) {
