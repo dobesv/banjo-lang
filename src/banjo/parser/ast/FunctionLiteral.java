@@ -17,7 +17,21 @@ public class FunctionLiteral extends BaseExpr {
 		this.contract = contract;
 		this.body = body;
 	}
+	
+	/**
+	 * Lazy expression which may have an operator in front, thus the specific text range
+	 */
+	public FunctionLiteral(FileRange range, Expr body) {
+		this(range, Collections.<FunArg>emptyList(), null, body);
+	}
 
+	/**
+	 * Lazy expression with no operator in front
+	 */
+	public FunctionLiteral(Expr body) {
+		this(body.getFileRange(), Collections.<FunArg>emptyList(), null, body);
+	}
+	
 	public List<FunArg> getArgs() {
 		return args;
 	}

@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,10 +16,7 @@ import banjo.parser.ast.Atom;
 import banjo.parser.ast.BinaryOp;
 import banjo.parser.ast.BinaryOperator;
 import banjo.parser.ast.Call;
-import banjo.parser.ast.Cond;
-import banjo.parser.ast.CondCase;
 import banjo.parser.ast.Ellipsis;
-import banjo.parser.ast.Expr;
 import banjo.parser.ast.Expr;
 import banjo.parser.ast.ExprList;
 import banjo.parser.ast.Field;
@@ -42,7 +41,7 @@ import banjo.parser.ast.UnaryOp;
 import banjo.parser.ast.UnaryOperator;
 import banjo.parser.ast.UnitRef;
 import banjo.parser.errors.BanjoParseException;
-import banjo.parser.errors.ExpectedCase;
+import banjo.parser.errors.ElseClauseNotLast;
 import banjo.parser.errors.ExpectedElement;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedField;
@@ -52,8 +51,10 @@ import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.IncorrectIndentation;
 import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
+import banjo.parser.errors.MissingElseClauseInConditional;
 import banjo.parser.errors.MissingValueForTableColumn;
 import banjo.parser.errors.MixedSemicolonAndComma;
+import banjo.parser.errors.MultipleElseClausesInConditional;
 import banjo.parser.errors.PrematureEndOfFile;
 import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedCloseParen;
@@ -918,12 +919,12 @@ public class BanjoParser {
 					return new ExprList(op.getFileRange(), exprList);
 				}
 			}
+			case COND: return exprListToCond(op.getFileRange(), new LinkedList<>(Collections.singletonList(node)));
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
 			case PAIR:
 			case PAIR2: return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT: return let(op);
-			case COND: return cond(op);
 			case PROJECTION2:
 			case PROJECTION: return projection(op);
 			case GT: 
@@ -970,7 +971,7 @@ public class BanjoParser {
 		case LE: checkEqual = false; checkField = "greater"; break;
 		default: throw new Error();
 		}
-		Expr check = new FieldRef(cmp, new IdRef(range, checkField));
+		Expr check = new Call(new FieldRef(cmp, new IdRef(range, checkField)));
 		if(checkEqual)
 			return check;
 		else
@@ -1008,11 +1009,6 @@ public class BanjoParser {
 			errors.add(new InvalidProjection(projection));
 			return base;
 		}
-	}
-
-	private Cond cond(BinaryOp op) {
-		final CondCase condCase = new CondCase(op.getFileRange(), op.getLeft(), op.getRight());
-		return new Cond(op.getFileRange(), Collections.singletonList(condCase));
 	}
 
 	private Expr call(BinaryOp op) {
@@ -1066,22 +1062,54 @@ public class BanjoParser {
 	}
 
 	private Expr exprListToCond(FileRange range, LinkedList<Expr> exprs) {
-		List<CondCase> cases = new ArrayList<>(exprs.size());
-		for(Expr e : exprs) {
-			if(!isCondCase(e)) {
-				if(e == exprs.getLast()) {
-					// Treat as "else" clause
-					cases.add(new CondCase(e.getFileRange(), new Ellipsis(e.getFileRange()), e));
-					break;
+		Expr result = null;
+		boolean missingElseClause = false;
+		Expr duplicateElseClause = null;
+		for(Iterator<Expr> it = exprs.descendingIterator(); it.hasNext(); ) {
+			Expr e = it.next();
+			if(isCondCase(e)) {
+				BinaryOp caseOp = (BinaryOp)e;
+				final Expr thenExpr = desugar(caseOp.getRight());
+				if(caseOp.getLeft() instanceof Ellipsis) {
+					if(result != null) {
+						duplicateElseClause = e;
+					}
+					result = thenExpr;
 				} else {
-					errors.add(new ExpectedCase(e));
-					continue;
+					if(result == null) {
+						missingElseClause = true;
+						result = new UnitRef(range);
+					}
+					
+					final Expr condition = desugar(caseOp.getLeft());
+					
+					Expr trueFunc = new FunctionLiteral(thenExpr);
+					Expr falseFunc = new FunctionLiteral(result);
+					Expr ifTrueMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "ifTrue"));
+					Expr switcher = new Call(condition.getFileRange(), ifTrueMethod, Arrays.asList(trueFunc, falseFunc));
+					Expr readLazy = new Call(switcher);
+					result = readLazy;
 				}
+			} else {
+				if(result != null) {
+					duplicateElseClause = e;
+				}
+				result = e;
 			}
-			BinaryOp caseOp = (BinaryOp)e;
-			cases.add(new CondCase(e.getFileRange(), caseOp.getLeft(), caseOp.getRight()));
 		}
-		return new Cond(range, cases);
+		
+		if(duplicateElseClause != null) {
+			if(missingElseClause) {
+				// Else clause too early
+				errors.add(new ElseClauseNotLast(duplicateElseClause));
+			} else {
+				errors.add(new MultipleElseClausesInConditional(duplicateElseClause));
+			}
+		} else if(missingElseClause) {
+			errors.add(new MissingElseClauseInConditional(range));
+		}
+		
+		return result;
 	}
 
 	private final boolean isCondCase(Expr e) {
