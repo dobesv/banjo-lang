@@ -20,6 +20,10 @@ public class TestCallParser {
 	@Test public void dedentAfterParen1() { call("a.a().a(\n b\n c\n d\n e)", "a.a().a(b, c, d, e)", 4, 0); }
 	@Test public void dedentAfterParen2() { call("a(\nb\nc\nd\ne)", "a(b, c, d, e)", 4, 0); }
 	
+	@Test public void objArg1() { call("a(b:1)", "a({b: 1})", 1, 0); }
+	@Test public void objArg2() { call("a(b:1,c:2)", "a({b: 1, c: 2})", 1, 0); }
+	@Test public void objArg3() { call("a(b:1\n  c:2)", "a({b: 1, c: 2})", 1, 0); }
+	
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
 		Call call = ParseTestUtils.testParse(source, expectedErrors, null, Call.class, expectedSource);
 		assertEquals(numArgs, call.getArguments().size());

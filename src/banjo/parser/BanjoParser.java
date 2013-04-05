@@ -650,7 +650,8 @@ public class BanjoParser {
 	}
 	
 	public Expr parseExpr() throws IOException, BanjoParseException {
-		return desugar(parseExpr(null));
+		final Expr parseTree = parseExpr(null);
+		return desugar(parseTree);
 	}
 	
 	/**
@@ -1047,13 +1048,15 @@ public class BanjoParser {
 	}
 
 	private Expr call(BinaryOp op) {
-		List<Expr> args = new ArrayList<Expr>();
-		// TODO Can't distinguish between a(()) and a() in this system...
-		List<Expr> exprs = flattenCommasOrSemicolons(op.getRight(), new LinkedList<Expr>());
-		for(Expr expr : exprs) {
-			args.add(desugar(expr));
+		List<Expr> args;
+		Expr callee = desugar(op.getLeft());
+		Expr arg = desugar(op.getRight());
+		if(arg instanceof ExprList) {
+			args = ((ExprList) arg).getElements();
+		} else {
+			args = Collections.singletonList(arg);
 		}
-		return new Call(op.getFileRange(), desugar(op.getLeft()), args);
+		return new Call(op.getFileRange(), callee, args);
 	}
 
 	private Expr let(BinaryOp op) {
