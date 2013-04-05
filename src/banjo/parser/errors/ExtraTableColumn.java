@@ -1,6 +1,5 @@
-package banjo.parser;
+package banjo.parser.errors;
 
-import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
 public class ExtraTableColumn extends BanjoParseException {

@@ -48,6 +48,7 @@ import banjo.parser.errors.ExpectedField;
 import banjo.parser.errors.ExpectedFieldName;
 import banjo.parser.errors.ExpectedIdentifier;
 import banjo.parser.errors.ExpectedOperator;
+import banjo.parser.errors.ExtraTableColumn;
 import banjo.parser.errors.IncorrectIndentation;
 import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
