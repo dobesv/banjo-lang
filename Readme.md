@@ -25,4 +25,3 @@ The design goals of this programming language are:
 
 The degree to which these goals are achieved is still to be determined, and these goals are still subject to change without notice.
 
-
