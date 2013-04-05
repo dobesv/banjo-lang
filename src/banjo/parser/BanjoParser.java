@@ -565,6 +565,9 @@ public class BanjoParser {
 		public boolean isOpenParen(ParenType closeParenType) {
 			return closeParenType == getParenType();
 		}
+		public boolean isParen() {
+			return getParenType() != null;
+		}
 	}
 	class PartialBinaryOp extends PartialOp {
 		private final BinaryOperator operator;
@@ -588,7 +591,7 @@ public class BanjoParser {
 				}
 			}
 			// The second operand must be indented to at least the same position as the first
-			if(secondOperand.getStartColumn() < getStartColumn()) {
+			if(!isParen() && secondOperand.getStartColumn() < getStartColumn()) {
 				errors.add(new IncorrectIndentation(secondOperand.getFileRange(), getStartColumn(), true));
 			}
 			return new BinaryOp(operator, getOperand(), secondOperand);
@@ -627,7 +630,7 @@ public class BanjoParser {
 					throw new ExpectedExpression(in.getFileRange(opRange.getStart()));
 				}
 			}
-			if(operand.getStartColumn() < getStartColumn()) {
+			if(!isParen() && operand.getStartColumn() < getStartColumn()) {
 				// Operand should be at the same level or higher indentation as the unary operator itself
 				errors.add(new IncorrectIndentation(operand.getFileRange(), getStartColumn(), true));
 			}
@@ -668,7 +671,8 @@ public class BanjoParser {
 			if(operand != null && tokenStartPos.getLine() > operand.getFileRange().getEnd().getLine()) {
 				int column = in.getCurrentColumnNumber();
 				while(!opStack.isEmpty() 
-						&& opStack.getFirst().getStartColumn() >= column) {
+						&& opStack.getFirst().getStartColumn() >= column
+						&& opStack.getFirst().isParen() == false) {
 					operand = opStack.pop().makeOp(operand);
 				}
 				
