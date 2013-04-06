@@ -110,7 +110,7 @@ public class BanjoParser {
 	 * null otherwise.  On failure the input position will reset to the same position as before 
 	 * the call.
 	 *  
-	 * @return
+	 * @return A string if successful; null otherwise
 	 * @throws IOException
 	 */
 	public String matchID() throws IOException {
@@ -267,6 +267,9 @@ public class BanjoParser {
 		in.getCurrentPosition(tokenStartPos);
 		
 		int cp = in.read();
+		if(cp == '`') {
+			return parseBackTick();
+		}
 		if(cp != '"' && cp != '\'') {
 			in.seek(tokenStartPos);
 			return null;
@@ -331,6 +334,16 @@ public class BanjoParser {
 	    }
 	    if(cp == -1) getErrors().add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(tokenStartPos)));
 		return new StringLiteral(in.getFileRange(tokenStartPos), buf.toString());
+	}
+
+	private StringLiteral parseBackTick() throws IOException {
+		String id = matchID();
+		final FileRange range = in.getFileRange(tokenStartPos);
+		if(id == null) {
+			id = "";
+			errors.add(new ExpectedIdentifier(range));
+		}
+		return new StringLiteral(range, id);
 	}
 
 	private void readHexEscape(StringBuffer buf, final int digitCount) throws IOException {
