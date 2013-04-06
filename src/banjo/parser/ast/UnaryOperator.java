@@ -5,7 +5,7 @@ public enum UnaryOperator implements Operator {
 	NEGATE("-", Precedence.UNARY_PREFIX, "negate"),
 	COMPLEMENT("~", Precedence.UNARY_PREFIX, "complement"),
 	NOT("!", Precedence.UNARY_PREFIX, "false"),
-	ENUM_ELEMENT(":", Precedence.UNARY_PREFIX),	
+	MIRROR(":", Precedence.UNARY_PREFIX),	
 	LIST_ELEMENT("*", 0x2022, Precedence.BULLET),
 	SET_ELEMENT("|", Precedence.BULLET),
 	LAZY("->", 0x21a6, Precedence.FUNCTION),

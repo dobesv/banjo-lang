@@ -868,7 +868,7 @@ public class BanjoParser {
 			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
 			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
 			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
-			case ENUM_ELEMENT: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
+			case MIRROR: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
 			case PARENS: return operand;
 			case LIST_LITERAL:
 				if(operand instanceof ListLiteral) {
@@ -910,7 +910,7 @@ public class BanjoParser {
 				Expr first = exprs.get(0);
 				if(isTableHeader(first)) {
 					Expr second = exprs.get(1);
-					if(isPair(second) || isEnumElement(second)) {
+					if(isPair(second) || isMirrorElement(second)) {
 						return objectLiteral(range, exprs);
 					} else if(isSetElement(second)){
 						return setLiteral(range, exprs, ((UnaryOp)second).getOperator());
@@ -919,7 +919,7 @@ public class BanjoParser {
 					} else {
 						return listLiteral(range, exprs, null);
 					}
-				} else if(isPair(first) || isEnumElement(first)) {
+				} else if(isPair(first) || isMirrorElement(first)) {
 					return objectLiteral(range, exprs);
 				} else if(isListElement(first)) {
 					// Bulleted list item - treat as a list
@@ -1217,11 +1217,9 @@ public class BanjoParser {
 				final BinaryOp fieldOp = (BinaryOp)e;
 				keyExpr = fieldOp.getLeft();
 				valueExpr = fieldOp.getRight();
-			} else if(isEnumElement(e)) {
+			} else if(isMirrorElement(e)) {
 				final UnaryOp fieldOp = (UnaryOp)e;
-				keyExpr = fieldOp.getOperand();
-				// TODO Come up with a better opaque unique object system
-				valueExpr = new StringLiteral(keyExpr.getFileRange(), keyExpr.toSource());
+				keyExpr = valueExpr = fieldOp.getOperand();
 			} else if(isTableHeader(e)) {
 				final UnaryOp headerOp = (UnaryOp)e;
 				headings = flattenCommasOrSemicolons(headerOp.getOperand(), new ArrayList<Expr>());
@@ -1364,8 +1362,8 @@ public class BanjoParser {
 				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR ||
 				 ((BinaryOp) e).getOperator() == BinaryOperator.PAIR2);
 	}
-	private boolean isEnumElement(Expr e) {
-		return isUnaryOp(e, UnaryOperator.ENUM_ELEMENT);
+	private boolean isMirrorElement(Expr e) {
+		return isUnaryOp(e, UnaryOperator.MIRROR);
 	}
 	private boolean isTableHeader(Expr e) {
 		return isUnaryOp(e, UnaryOperator.TABLE_HEADER);

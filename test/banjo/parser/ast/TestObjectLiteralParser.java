@@ -21,8 +21,8 @@ public class TestObjectLiteralParser {
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
 	@Test public void stringKey() { parse("{\"a\":1,\"b\":2,\"c\":3}", "{\"a\": 1, \"b\": 2, \"c\": 3}"); }
 
-	@Test public void keys() { parse("{:x,:y}", "{x: \"x\", y: \"y\"}"); }
-	@Test public void enum_() { parse(" : x\n : y", "{x: \"x\", y: \"y\"}"); }
+	@Test public void mirrors1() { parse("{:x,:y}", "{x: x, y: y}"); }
+	@Test public void mirrors2() { parse(" : x\n : y", "{x: x, y: y}"); }
 	@Test public void method() { parse("{f(x): x}", "{f: (x) -> x}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
