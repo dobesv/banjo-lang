@@ -336,7 +336,7 @@ public class BanjoParser {
 	}
 
 	private boolean isBacktickChar(int codePoint) {
-		return !isWhitespaceChar(codePoint);
+		return codePoint != -1 && !isWhitespaceChar(codePoint);
 	}
 	private StringLiteral parseBacktick() throws IOException {
 		int first = in.read();

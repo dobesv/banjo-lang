@@ -18,7 +18,11 @@ public class TestStringLiteralParser {
 	@Test public void testMultiline() { testParser("  \"abc\n   def\n    ghi\n   jkl\n   \"", "abc\ndef\n ghi\njkl\n"); }
 	@Test public void testBacktick() { testParser("`HelloWorld", "HelloWorld", 0); }	
 	@Test public void testBacktickEscapes() { testParser("`Hello\\ World\\!", "Hello World!", 0); }	
-	
+	@Test public void testBacktickEmpty1() { testParser("`", "", 0); }
+	@Test public void testBacktickEmpty2() { testParser("` ", "", 0); }
+	@Test public void testBacktickEmpty3() { testParser(" ` ", "", 0); }
+	@Test public void testEmpty1() { testParser("\"\"", "", 0); }
+	@Test public void testEmpty2() { testParser(" \"\" ", "", 0); }
 	
 	
 	private void testParser(String source, String expectedString) { testParser(source, expectedString, 0); }
