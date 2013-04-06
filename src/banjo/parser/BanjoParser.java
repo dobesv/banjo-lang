@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -268,7 +267,7 @@ public class BanjoParser {
 		
 		int cp = in.read();
 		if(cp == '`') {
-			return parseBackTick();
+			return parseBacktick();
 		}
 		if(cp != '"' && cp != '\'') {
 			in.seek(tokenStartPos);
@@ -336,14 +335,35 @@ public class BanjoParser {
 		return new StringLiteral(in.getFileRange(tokenStartPos), buf.toString());
 	}
 
-	private StringLiteral parseBackTick() throws IOException {
-		String id = matchID();
-		final FileRange range = in.getFileRange(tokenStartPos);
-		if(id == null) {
-			id = "";
-			errors.add(new ExpectedIdentifier(range));
+	private boolean isBacktickChar(int codePoint) {
+		return !isWhitespaceChar(codePoint);
+	}
+	private StringLiteral parseBacktick() throws IOException {
+		int first = in.read();
+		if(!isBacktickChar(first)) {
+			in.unread();
+			final FileRange range = in.getFileRange(tokenStartPos);
+			return new StringLiteral(range, "");
 		}
-		return new StringLiteral(range, id);
+		
+		boolean escape = first == '\\';
+		buf.setLength(0); // Reset buffer
+		if(!escape)
+			buf.appendCodePoint(first);
+		for(;;) {
+			int cp = in.read();
+			if(!escape && cp == '\\') {
+				escape = true;
+			} else {
+				if(cp == -1 || !(escape || isBacktickChar(cp))) {
+					in.unread();
+					final FileRange range = in.getFileRange(tokenStartPos);
+					return new StringLiteral(range, buf.toString());
+				}
+				buf.appendCodePoint(cp);
+				escape = false;
+			}
+		}
 	}
 
 	private void readHexEscape(StringBuffer buf, final int digitCount) throws IOException {
