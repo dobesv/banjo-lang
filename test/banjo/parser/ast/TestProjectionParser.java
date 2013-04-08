@@ -19,6 +19,7 @@ public class TestProjectionParser {
 	@Test public void specialCharField1q() { test("a.\"--\"", FieldRef.class); }
 	@Test public void specialCharField2q() { test("a.\"..\"", FieldRef.class); }
 	@Test public void specialCharField3q() { test("a.\".\"", FieldRef.class); }
+	@Test public void aOptionDotB() { test("a?.b", "a.map(((__t) -> __t.b))", Call.class); }
 
 	
 	private void test(String source, Class<? extends BaseExpr> expectedClass) {

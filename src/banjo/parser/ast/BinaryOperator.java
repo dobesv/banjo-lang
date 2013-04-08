@@ -5,6 +5,7 @@ public enum BinaryOperator implements Operator {
 	LOOKUP(ParenType.BRACKETS),
 	CALL(ParenType.PARENS),
 	PROJECTION(".", Precedence.SUFFIX),
+	MAP_PROJECTION("?.", Precedence.SUFFIX),
 	POW("^", Precedence.MULDIV, "toThePowerOf"),
 	MUL("*", 0x00D7, Precedence.MULDIV, "times"),
 	DIV("/", 0x00F7, Precedence.MULDIV, "dividedBy"),

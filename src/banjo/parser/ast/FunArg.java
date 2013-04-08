@@ -10,6 +10,9 @@ public class FunArg extends BaseExpr {
 		this.name = name;
 		this.contract = contract;
 	}
+	public FunArg(IdRef argName) {
+		this(argName.getFileRange(), argName.getId(), null);
+	}
 	public String getName() {
 		return name;
 	}

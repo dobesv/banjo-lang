@@ -31,6 +31,12 @@ public class FunctionLiteral extends BaseExpr {
 	public FunctionLiteral(Expr body) {
 		this(body.getFileRange(), Collections.<FunArg>emptyList(), null, body);
 	}
+	/**
+	 * Easy unary function
+	 */
+	public FunctionLiteral(FunArg arg, Expr body) {
+		this(new FileRange(arg.getFileRange(), body.getFileRange()), Collections.singletonList(arg), null, body);
+	}
 	
 	public List<FunArg> getArgs() {
 		return args;

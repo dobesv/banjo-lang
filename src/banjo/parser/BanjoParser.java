@@ -950,6 +950,7 @@ public class BanjoParser {
 			case PAIR2: return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT: return let(op);
 			case PROJECTION: return projection(op);
+			case MAP_PROJECTION: return optionProjection(op);
 			case GT: 
 			case GE: 
 			case LT: 
@@ -1060,6 +1061,17 @@ public class BanjoParser {
 			errors.add(new InvalidProjection(projection));
 			return base;
 		}
+	}
+	
+	// Optional projection: x?.foo == x.map((x) -> x.foo)
+	private Expr optionProjection(BinaryOp op) {
+		
+		final FileRange r = op.getFileRange();
+		final IdRef argName = new IdRef(r, "__t"); // TODO: This might become problematic
+		final Expr projection = projection(new BinaryOp(BinaryOperator.PROJECTION, argName, op.getRight()));
+		Expr projectFunc = new FunctionLiteral(new FunArg(argName), projection);
+		Expr mapCall = new Call(new FieldRef(op.getLeft(), new IdRef(r, "map")), projectFunc);
+		return mapCall;
 	}
 
 	private Expr call(BinaryOp op) {
