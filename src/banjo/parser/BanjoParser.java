@@ -38,6 +38,7 @@ import banjo.parser.ast.StringLiteral;
 import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
 import banjo.parser.ast.UnaryOp;
 import banjo.parser.ast.UnaryOperator;
+import banjo.parser.ast.UnaryOperator.Position;
 import banjo.parser.ast.UnitRef;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ElseClauseNotLast;
@@ -335,35 +336,12 @@ public class BanjoParser {
 		return new StringLiteral(in.getFileRange(tokenStartPos), buf.toString());
 	}
 
-	private boolean isBacktickChar(int codePoint) {
-		return codePoint != -1 && !isWhitespaceChar(codePoint);
-	}
 	private StringLiteral parseBacktick() throws IOException {
-		int first = in.read();
-		if(!isBacktickChar(first)) {
-			in.unread();
-			final FileRange range = in.getFileRange(tokenStartPos);
-			return new StringLiteral(range, "");
-		}
-		
-		boolean escape = first == '\\';
-		buf.setLength(0); // Reset buffer
-		if(!escape)
-			buf.appendCodePoint(first);
-		for(;;) {
-			int cp = in.read();
-			if(!escape && cp == '\\') {
-				escape = true;
-			} else {
-				if(cp == -1 || !(escape || isBacktickChar(cp))) {
-					in.unread();
-					final FileRange range = in.getFileRange(tokenStartPos);
-					return new StringLiteral(range, buf.toString());
-				}
-				buf.appendCodePoint(cp);
-				escape = false;
-			}
-		}
+		String str = matchOperator();
+		if(str == null) str = matchID();
+		if(str == null) str = "";
+		final FileRange range = in.getFileRange(tokenStartPos);
+		return new StringLiteral(range, str);
 	}
 
 	private void readHexEscape(StringBuffer buf, final int digitCount) throws IOException {
@@ -802,16 +780,21 @@ public class BanjoParser {
 		if(token instanceof OperatorRef) {
 			final OperatorRef opRef = (OperatorRef)token;
 			if(operand != null) {
-				// Infix position
-				BinaryOperator operator = BinaryOperator.fromOp(opRef.getOp());
-				if(operator == null) {
-					errors.add(new UnsupportedBinaryOperator(opRef.getOp(), opRef.getFileRange()));
-					operator = BinaryOperator.INVALID;
-				}
-				pushPartialBinaryOp(operator, opRef.getFileRange(), operand, opStack);
+				// Infix or suffix position
+				UnaryOperator suffixOperator = UnaryOperator.fromOp(opRef.getOp(), Position.SUFFIX);
+				if(suffixOperator != null) {
+					return new UnaryOp(between(operand,token), suffixOperator, operand);
+				} else {
+					BinaryOperator operator = BinaryOperator.fromOp(opRef.getOp());
+					if(operator == null) {
+						errors.add(new UnsupportedBinaryOperator(opRef.getOp(), opRef.getFileRange()));
+						operator = BinaryOperator.INVALID;
+					}
+					pushPartialBinaryOp(operator, opRef.getFileRange(), operand, opStack);
+				} 
 			} else {
 				// Prefix position
-				UnaryOperator operator = UnaryOperator.fromOp(opRef.getOp());
+				UnaryOperator operator = UnaryOperator.fromOp(opRef.getOp(), Position.PREFIX);
 				if(operator == null) {
 					errors.add(new UnsupportedUnaryOperator(opRef.getOp(), opRef.getFileRange()));
 					operator = UnaryOperator.INVALID;
@@ -966,7 +949,6 @@ public class BanjoParser {
 			case PAIR:
 			case PAIR2: return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT: return let(op);
-			case PROJECTION2:
 			case PROJECTION: return projection(op);
 			case GT: 
 			case GE: 

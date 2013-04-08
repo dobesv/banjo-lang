@@ -21,6 +21,8 @@ public class TestStringLiteralParser {
 	@Test public void testBacktickEmpty1() { testParser("`", "", 0); }
 	@Test public void testBacktickEmpty2() { testParser("` ", "", 0); }
 	@Test public void testBacktickEmpty3() { testParser(" ` ", "", 0); }
+	@Test public void testBacktickOp1() { testParser("`*", "*", 0); }
+	@Test public void testBacktickOp2() { testParser("`\\\\", "\\", 0); }
 	@Test public void testEmpty1() { testParser("\"\"", "", 0); }
 	@Test public void testEmpty2() { testParser(" \"\" ", "", 0); }
 	

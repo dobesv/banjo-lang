@@ -32,10 +32,13 @@ public class TestMathParser {
 	
 	@Test public void badDedent1() { test("3\n> 2", UnsupportedUnaryOperator.class); }
 	
-	@Test public void unaries1() throws Exception { unaries("+ - ~1"); }
-	@Test public void unaries2() throws Exception { unaries("+\n -\n  ~\n   1"); }
-	@Test public void unaries3() throws Exception { unaries("  +  -  ~ 1"); }
+	@Test public void unaries1() { unaries("+ - ~1"); }
+	@Test public void unaries2() { unaries("+\n -\n  ~\n   1"); }
+	@Test public void unaries3() { unaries("  +  -  ~ 1"); }
 
+	@Test public void questionMark() { test("s?", "s.asOptionalContract()"); }
+	@Test public void existential() { test("s??", "s.hasValue()"); }
+	
 	public void unaries(String src) {
 		test(src, "(1).complement().negate().plus()");
 	}

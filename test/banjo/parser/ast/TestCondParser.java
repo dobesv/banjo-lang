@@ -29,7 +29,7 @@ public class TestCondParser {
 		ParseTestUtils.testParse(source, 0, null, Call.class, expectedSource);
 	}
 	private void testParseCond(String source, Class<? extends BanjoParseException> expectedError, int expectedErrorCount) {
-		ParseTestUtils.testParse(source, expectedErrorCount, expectedError, BaseExpr.class, null);
+		ParseTestUtils.testParse(source, expectedErrorCount, expectedError, Call.class, null);
 	}
 	
 }

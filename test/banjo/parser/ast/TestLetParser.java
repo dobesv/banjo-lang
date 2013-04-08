@@ -25,7 +25,7 @@ public class TestLetParser {
 			assertEquals(IdRef.class, body.getClass());
 			assertEquals("hello", ((IdRef)body).getId());
 		} else {
-			ParseTestUtils.testParse(source, expectedErrorCount, null, BaseExpr.class, null);
+			ParseTestUtils.testParse(source, expectedErrorCount, null, null, null);
 		}
 	}
 	

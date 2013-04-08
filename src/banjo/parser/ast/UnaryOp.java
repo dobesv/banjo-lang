@@ -25,7 +25,7 @@ public class UnaryOp extends BaseExpr {
 	public void toSource(StringBuffer sb) {
 		if(operator.isParen()) {
 			sb.append(operator.getParenType().getStartChar());
-		} else {
+		} if(!operator.isSuffix()) {
 			sb.append(operator.getOp());
 			if(operator.getPrecedence() != Precedence.UNARY_PREFIX || operand.getPrecedence() == Precedence.UNARY_PREFIX)
 				sb.append(' '); // Put a space for bullets
@@ -33,6 +33,8 @@ public class UnaryOp extends BaseExpr {
 		operand.toSource(sb, getPrecedence());
 		if(operator.isParen()) {
 			sb.append(operator.getParenType().getEndChar());
+		} else if(operator.isSuffix()) {
+			sb.append(operator.getOp());
 		}
 	}
 	

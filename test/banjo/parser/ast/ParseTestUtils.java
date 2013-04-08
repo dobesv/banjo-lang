@@ -36,8 +36,10 @@ public class ParseTestUtils {
 			assertEquals(normalizedSource, parsed.toSource());
 		if(expectedErrorClass != null && parser.getErrors().size() > 0)
 			assertEquals(expectedErrorClass, parser.getErrors().iterator().next().getClass());
-		if(expectedClass != null)
+		if(expectedClass != null) {
+			assertEquals(expectedClass, parsed.getClass());
 			return expectedClass.cast(parsed);
+		}
 		return null;
 	}
 
