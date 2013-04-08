@@ -1063,15 +1063,21 @@ public class BanjoParser {
 		}
 	}
 	
+	
 	// Optional projection: x?.foo == x.map((x) -> x.foo)
 	private Expr optionProjection(BinaryOp op) {
-		
 		final FileRange r = op.getFileRange();
-		final IdRef argName = new IdRef(r, "__t"); // TODO: This might become problematic
+		final IdRef argName = gensym(r);
 		final Expr projection = projection(new BinaryOp(BinaryOperator.PROJECTION, argName, op.getRight()));
 		Expr projectFunc = new FunctionLiteral(new FunArg(argName), projection);
 		Expr mapCall = new Call(new FieldRef(op.getLeft(), new IdRef(r, "map")), projectFunc);
 		return mapCall;
+	}
+
+	int gensymCounter = 0;
+	private IdRef gensym(FileRange r) {
+		gensymCounter++;
+		return new IdRef(r, "__t"+gensymCounter);
 	}
 
 	private Expr call(BinaryOp op) {
