@@ -21,7 +21,7 @@ public class TestCondParser {
 	@Test public void testLazyAndOr() { testParseCond("a && b || c", "a.if({true: () -> b, false: () -> false}).if({false: () -> c, true: () -> false})"); }
 	@Test public void testLazyOrAnd() { testParseCond("a || b && c", "a.if({false: () -> b.if({true: () -> c, false: () -> false}), true: () -> false})"); }
 
-	@Test public void testLazyOrElse() { testParseCond("a ?: b", "a.orElse((() -> b))"); }
+	@Test public void testLazyOrElse() { testParseCond("a ?: b", "a.valueOrElse((() -> b))"); }
 	
 	@Test public void testBadCond2() { testParseCond("a=>b\n  c", ExpectedOperator.class, 2); }
 

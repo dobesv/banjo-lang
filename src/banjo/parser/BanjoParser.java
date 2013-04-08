@@ -1080,7 +1080,7 @@ public class BanjoParser {
 		final FileRange r = op.getFileRange();
 		final Expr left = desugar(op.getLeft());
 		final Expr right = desugar(op.getRight());
-		return new Call(new FieldRef(left, new IdRef(r, "orElse")), new FunctionLiteral(right));
+		return new Call(new FieldRef(left, new IdRef(r, "valueOrElse")), new FunctionLiteral(right));
 	}
 
 	int gensymCounter = 0;
