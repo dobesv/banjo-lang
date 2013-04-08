@@ -1,15 +1,15 @@
 package banjo.parser.ast;
 
+import banjo.parser.util.FileRange;
 
-import banjo.parser.util.Token;
 
 public class NumberLiteral extends BaseExpr implements Atom {
-	final Token token;
+	final String text;
 	final Number number;
 	
-	public NumberLiteral(Token token, Number number) {
-		super(token.getFileRange());
-		this.token = token;
+	public NumberLiteral(FileRange range, String text, Number number) {
+		super(range);
+		this.text = text;
 		this.number = number;
 	}
 	
@@ -19,7 +19,7 @@ public class NumberLiteral extends BaseExpr implements Atom {
 	
 	@Override
 	public String toString() {
-		return token.getText();
+		return text;
 	}
 	
 	@Override
@@ -29,6 +29,6 @@ public class NumberLiteral extends BaseExpr implements Atom {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(number.toString());
+		sb.append(text);
 	}
 }

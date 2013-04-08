@@ -29,7 +29,7 @@ public enum BinaryOperator implements Operator {
 	PAIR(":", Precedence.COLON),
 	PAIR2("::", Precedence.ASSIGNMENT),
 	COND("=>", 0x21D2, Precedence.COND),
-	OR_ELSE("?:", Precedence.COND, "orElse"),
+	OR_ELSE("?:", Precedence.COND),
 	SEMICOLON(";", Precedence.SEMICOLON),
 	NEWLINE("\n", Precedence.SEMICOLON),
 	INVALID("~~~INVALID~~~", -1, Precedence.ATOM),

@@ -68,7 +68,6 @@ import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.ParserReader.Pos;
-import banjo.parser.util.Token;
 
 /**
  * Change input into an AST.
@@ -515,8 +514,8 @@ public class BanjoParser {
 				number = new BigDecimal(intValBig, scale);
 			}
 		}
-		Token token = in.readTokenFrom(tokenStartPos);
-		final NumberLiteral result = new NumberLiteral(token, number);
+		String text = in.readStringFrom(tokenStartPos);
+		final NumberLiteral result = new NumberLiteral(in.getFileRange(tokenStartPos), text, number);
 		return result;
 	}
 
@@ -951,6 +950,7 @@ public class BanjoParser {
 			case ASSIGNMENT: return let(op);
 			case PROJECTION: return projection(op);
 			case MAP_PROJECTION: return optionProjection(op);
+			case OR_ELSE: return orElse(op);
 			case GT: 
 			case GE: 
 			case LT: 
@@ -1070,8 +1070,17 @@ public class BanjoParser {
 		final IdRef argName = gensym(r);
 		final Expr projection = projection(new BinaryOp(BinaryOperator.PROJECTION, argName, op.getRight()));
 		Expr projectFunc = new FunctionLiteral(new FunArg(argName), projection);
-		Expr mapCall = new Call(new FieldRef(op.getLeft(), new IdRef(r, "map")), projectFunc);
+		final Expr left = desugar(op.getLeft());
+		Expr mapCall = new Call(new FieldRef(left, new IdRef(r, "map")), projectFunc);
 		return mapCall;
+	}
+	
+	// orElse: x ?: y == x.orElse(-> y)
+	private Expr orElse(BinaryOp op) {
+		final FileRange r = op.getFileRange();
+		final Expr left = desugar(op.getLeft());
+		final Expr right = desugar(op.getRight());
+		return new Call(new FieldRef(left, new IdRef(r, "orElse")), new FunctionLiteral(right));
 	}
 
 	int gensymCounter = 0;

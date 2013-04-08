@@ -2,7 +2,7 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public class OperatorRef extends BaseExpr {
+public class OperatorRef extends BaseExpr implements Atom {
 
 	private final String op;
 

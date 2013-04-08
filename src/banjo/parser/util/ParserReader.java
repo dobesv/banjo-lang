@@ -13,6 +13,8 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import banjo.parser.util.ParserReader.Pos;
+
 
 
 /**
@@ -267,21 +269,6 @@ public class ParserReader extends Reader {
 			throw new IndexOutOfBoundsException("Cannot scan back past the last mark.");
 		}
 	}
-	
-	/**
-	 * Seek to the end of the given token.  The token is assumed to have come from
-	 * this file and to have a correct end line and column in it.
-	 * <p>
-	 * After this call, the file position will be set to read the character
-	 * immediately following the provided token.
-	 * 
-	 * @param token Token to use as a reference.
-	 * @throws IOException If bytes had to be read from the the file and an error occurred while doing so
-	 */
-	public void seekPast(Token token) throws IOException {
-		final FileRange fileRange = token.getFileRange();
-		seekPast(fileRange);
-	}
 
 	/**
 	 * Seek to the end of the given range.  The range is assumed to have come from
@@ -350,31 +337,6 @@ public class ParserReader extends Reader {
 	 */
 	public Matcher matcher(Pattern p) throws IOException {
 		return p.matcher(toCharSequence());
-	}
-	
-	/**
-	 * Look ahead for the given regular expression; return a Token
-	 * if the pattern matches.
-	 *
-	 * One should seek to the desired parse position before calling this;
-	 * it leaves the file position after the token that was consumed (if any)
-	 * or in the original position if the match fails.
-	 * This will not match an empty string even if the regular expression
-	 * would allow it.
-	 * @param ignoredTokens Tokens that were ignored as comments/whitespace immediately before this one 
-	 */
-	public Token checkNextToken(Pattern re) throws IOException {
-		Pos start = getCurrentPosition(new Pos());
-		Matcher m = matcher(re);
-		if(m.lookingAt() && m.end() > m.start()) {
-			// Position just at the end of the token that was matched
-			String text = m.group();
-			seek(start);
-			skip(m.end());
-			return new Token(getFileRange(start), text);
-		}
-		seek(start);
-		return null;
 	}
 	
 	/**
@@ -459,11 +421,6 @@ public class ParserReader extends Reader {
 
 	public String getFilename() {
 		return filename;
-	}
-
-	/** Return a zero-length token at the current file position */
-	public Token markerToken() {
-		return new Token(getFileRange(getFilePos()), "");
 	}
 
 	/**
@@ -583,20 +540,6 @@ public class ParserReader extends Reader {
 	}
 
 	/**
-	 * Create a FileRange that is a subRange of the given token's range.  This makes
-	 * sure that line numbers are calculated appropriately.
-	 * 
-	 * @param token Token to use for the range
-	 * @param startOffset Offset from the token's start to start the range in
-	 * @param endOffset Offset from the token's start to end the range in (exclusive)
-	 * @return A new FileRange
-	 * @throws IOException 
-	 */
-	public FileRange subRange(Token token, int startOffset, int endOffset) throws IOException {
-		return subRange(token.getFileRange(), startOffset, endOffset);
-	}
-
-	/**
 	 * Create a FileRange that is a subRange of the given token.  This ensures that
 	 * line numbers are calculated appropriately.
 	 * 
@@ -623,20 +566,20 @@ public class ParserReader extends Reader {
 	}
 
 	/**
-	 * Read a token starting at the given file position up to the current position.  Useful if you have been parsing some stuff
+	 * Read a string starting at the given file position up to the current position.  Useful if you have been parsing some stuff
 	 * and want to bundle up everything you parsed into a new Token.
 	 * 
 	 * @param start Start position of the token to read
-	 * @return A new Token taken from that range
+	 * @return A new String taken from that range
 	 * @throws IOException If there's a problem reading the data
 	 */
-	public Token readTokenFrom(Pos start) throws IOException {
+
+	public String readStringFrom(Pos start) throws IOException {
 		int endOffset = current.offset;
 		seek(start);
-		String text = readString(endOffset - start.offset);
-		FileRange range = getFileRange(start);
-		return new Token(range, text);
+		return readString(endOffset - start.offset);
 	}
+	
 	
 	/**
 	 * @return true if we've seen nothing but space characters since the last newline.
@@ -691,5 +634,6 @@ public class ParserReader extends Reader {
 			return false;
 		}
 	}
+
 
 }
