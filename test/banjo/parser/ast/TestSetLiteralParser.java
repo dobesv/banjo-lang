@@ -21,18 +21,7 @@ public class TestSetLiteralParser {
 	@Test public void pipes() throws Exception {  set("|1\n|2\n|3", 0); }
 
 	private void set(String source, int expectedErrorCount) throws IOException, BanjoParseException {
-		final ParserReader in = ParserReader.fromString(getClass().getName(), source);
-		final BanjoParser parser = new BanjoParser(in);
-		final Expr parsed = parser.parseExpr();
-		for(Exception e : parser.getErrors()) {
-			System.out.println(e.toString());
-		}
-		assertEquals(expectedErrorCount, parser.getErrors().size());
-		System.out.println(parsed.toSource());
-		assertEquals(SetLiteral.class, parsed.getClass());
-		SetLiteral node = (SetLiteral) parsed;
-		assertEquals(-1, in.read());
-		assertNotNull(node);
+		SetLiteral node = ParseTestUtils.test(source, expectedErrorCount, null, SetLiteral.class, null);
 		final Object[] eltsArray = node.getElements().toArray();
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getClass());

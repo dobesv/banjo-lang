@@ -31,7 +31,7 @@ public enum BinaryOperator implements Operator {
 	COND("=>", 0x21D2, Precedence.COND),
 	OR_ELSE("?:", Precedence.COND),
 	SEMICOLON(";", Precedence.SEMICOLON),
-	NEWLINE("\n", Precedence.SEMICOLON),
+	NEWLINE("\\n", Precedence.SEMICOLON),
 	INVALID("~~~INVALID~~~", -1, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", -1, Precedence.ATOM); // Newline and indent
 	

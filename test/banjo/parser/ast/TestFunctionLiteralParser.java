@@ -10,7 +10,7 @@ import org.junit.Test;
 public class TestFunctionLiteralParser {
 
 	public FunctionLiteral testParse(String source, int expectedErrors, int expectedArgCount, String expectedArgNames, String expectedArgReturned) {
-		FunctionLiteral func = ParseTestUtils.testParse(source, expectedErrors, null, FunctionLiteral.class, "("+expectedArgNames+") -> "+expectedArgReturned);
+		FunctionLiteral func = ParseTestUtils.test(source, expectedErrors, null, FunctionLiteral.class, "("+expectedArgNames+") -> "+expectedArgReturned);
 		assertEquals(IdRef.class, func.getBody().getClass());
 		assertEquals(expectedArgReturned, ((IdRef)func.getBody()).getId());
 		return func;

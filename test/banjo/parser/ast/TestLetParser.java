@@ -14,7 +14,7 @@ public class TestLetParser {
 
 	private void hello(String source, int expectedErrorCount) {
 		if(expectedErrorCount == 0) {
-			ExprList node = ParseTestUtils.testParse(source, expectedErrorCount, null, ExprList.class, "hello = \"world\"; hello");
+			ExprList node = ParseTestUtils.test(source, expectedErrorCount, null, ExprList.class, "hello = \"world\"; hello");
 			assertEquals(2, node.getElements().size());
 			Let let = (Let) node.getElements().get(0);
 			
@@ -25,7 +25,7 @@ public class TestLetParser {
 			assertEquals(IdRef.class, body.getClass());
 			assertEquals("hello", ((IdRef)body).getId());
 		} else {
-			ParseTestUtils.testParse(source, expectedErrorCount, null, null, null);
+			ParseTestUtils.test(source, expectedErrorCount, null, null, null);
 		}
 	}
 	
@@ -36,7 +36,7 @@ public class TestLetParser {
 	//@Test public void f4() { func("f() = x", 0, "f = () -> x"); }
 	
 	public void func(String source, int expectedErrorCount, String expectedSource) {
-		Let let = ParseTestUtils.testParse(source, expectedErrorCount, null, Let.class, expectedSource);
+		Let let = ParseTestUtils.test(source, expectedErrorCount, null, Let.class, expectedSource);
 		assertEquals("f", let.getName());
 		assertEquals(FunctionLiteral.class, let.getValue().getClass());
 	}

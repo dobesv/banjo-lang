@@ -18,6 +18,10 @@ public class TestObjectLiteralParser {
 	@Test public void backdentError()     { parseError("{a:1,b:2,\nc:3}", IncorrectIndentation.class); }
 
 	@Test public void objValue() { parse("a::a:1\n   b:2\n   c:3\nb::d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
+	@Test public void objValue2a() { parse("a:\n a:1\n b:2", "{a: {a: 1, b: 2}}"); }
+	@Test public void objValue2() { parse("a:\n a:1\n b:2\n c:3\nb:\n d:1\n e:2\n f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
+	@Test public void objValue3() { parse("a:\n   a:1\n   b:2\n   c:3\nb:\n   d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
+	
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
 	@Test public void stringKey() { parse("{\"a\":1,\"b\":2,\"c\":3}", "{\"a\": 1, \"b\": 2, \"c\": 3}"); }
 
@@ -45,11 +49,11 @@ public class TestObjectLiteralParser {
 	}
 
 	public ObjectLiteral parse(String source, String expectedSource) {
-		return ParseTestUtils.testParse(source, 0, null, ObjectLiteral.class, expectedSource);
+		return ParseTestUtils.test(source, 0, null, ObjectLiteral.class, expectedSource);
 	}
 	
 	private void parseError(String source, Class<? extends BanjoParseException> expectedError) {
-		ParseTestUtils.testParse(source, 1, expectedError, null, null);
+		ParseTestUtils.test(source, 1, expectedError, null, null);
 	}
 	
 	@Test

@@ -23,15 +23,13 @@ public class TestCondParser {
 
 	@Test public void testLazyOrElse() { testParseCond("a ?: b", "a.valueOrElse((() -> b))"); }
 	
-	@Test public void testBadCond2() { testParseCond("a=>b\n  c", ExpectedOperator.class, 2); }
-
 	@Test public void testSingleCond() { testParseCond("false => true", MissingElseClauseInConditional.class, 1); }
 	
 	public static void testParseCond(String source, String expectedSource) {
-		ParseTestUtils.testParse(source, 0, null, Call.class, expectedSource);
+		ParseTestUtils.test(source, 0, null, Call.class, expectedSource);
 	}
 	private void testParseCond(String source, Class<? extends BanjoParseException> expectedError, int expectedErrorCount) {
-		ParseTestUtils.testParse(source, expectedErrorCount, expectedError, Call.class, null);
+		ParseTestUtils.test(source, expectedErrorCount, expectedError, Call.class, null);
 	}
 	
 }

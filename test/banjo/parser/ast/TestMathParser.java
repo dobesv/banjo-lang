@@ -30,7 +30,7 @@ public class TestMathParser {
 	// TODO Support right-aligned operands
 	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).plus(11).plus(111)"); }
 	
-	@Test public void badDedent1() { test("3\n> 2", UnsupportedUnaryOperator.class); }
+	@Test public void badDedent1() { test("3\n> 2", 2, UnsupportedUnaryOperator.class); }
 	
 	@Test public void unaries1() { unaries("+ - ~1"); }
 	@Test public void unaries2() { unaries("+\n -\n  ~\n   1"); }
@@ -44,10 +44,10 @@ public class TestMathParser {
 	}
 	
 	public static void test(String source, String normalizedSource) {
-		ParseTestUtils.testParse(source, 0, null, null, normalizedSource);
+		ParseTestUtils.test(source, 0, null, null, normalizedSource);
 	}
-	private void test(String source, Class<? extends BanjoParseException> expectedError) {
-		ParseTestUtils.testParse(source, 2, expectedError, null, null);
+	private void test(String source, int expectedErrorCount, Class<? extends BanjoParseException> expectedError) {
+		ParseTestUtils.test(source, expectedErrorCount, expectedError, null, null);
 	}
 
 	

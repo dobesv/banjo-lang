@@ -16,6 +16,7 @@ public enum UnaryOperator implements Operator {
 	RETURN("^", 0x2191, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_OR_SET_LITERAL(ParenType.BRACES),
 	CALL("<-", Precedence.UNARY_PREFIX), // Unary call with no parameters, possibly reading a lazy value
+	NEWLINE("\\n", Precedence.SEMICOLON), // Newline and indent
 	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX, "asOptionalContract"),
 	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX, "hasValue"),
 	INVALID(null, Precedence.UNARY_PREFIX);

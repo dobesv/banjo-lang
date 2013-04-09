@@ -34,7 +34,7 @@ public class TestNumberLiteralParser {
 	private void testNonNumber(String inStr, Class<? extends BanjoParseException> eClass) {
 		try {
 			final BanjoParser parser = new BanjoParser(inStr);
-			Expr node = parser.parseExpr();
+			Expr node = parser.parse();
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
 			for(Exception e : parser.getErrors()) {
 				System.out.println(e.toString());
@@ -93,7 +93,7 @@ public class TestNumberLiteralParser {
 	}
 
 	public NumberLiteral parseNumber(String inStr) throws IOException {
-		return ParseTestUtils.testParse(inStr, 0, null, NumberLiteral.class, null);
+		return ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 	}
 
 	@Test
@@ -123,6 +123,7 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		ParseTestUtils.testParse(inStr, 0, null, NumberLiteral.class, outStr);
+		NumberLiteral node = ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		assertEquals(outStr, node.number.toString());
 	}
 }

@@ -30,7 +30,7 @@ public class TestStringLiteralParser {
 	private void testParser(String source, String expectedString) { testParser(source, expectedString, 0); }
 
 	private void testParser(String sourceString, String expectedParsedString, int expectedErrorCount) {
-		assertEquals(expectedParsedString, ParseTestUtils.testParse(sourceString, expectedErrorCount, null, StringLiteral.class, null).getString());
+		assertEquals(expectedParsedString, ParseTestUtils.test(sourceString, expectedErrorCount, null, StringLiteral.class, null).getString());
 	}
 	
 	@Test

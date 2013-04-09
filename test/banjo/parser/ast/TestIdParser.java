@@ -15,7 +15,7 @@ public class TestIdParser {
 	}
 
 	private void test(String source, String expectedSource) {
-		ParseTestUtils.testParse(source, 0, null, IdRef.class, expectedSource);
+		ParseTestUtils.test(source, 0, null, IdRef.class, expectedSource);
 	}
 	
 }

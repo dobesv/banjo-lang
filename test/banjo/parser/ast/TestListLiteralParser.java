@@ -17,11 +17,11 @@ public class TestListLiteralParser {
 	@Test public void table2() { parse("#::a,b\n(1,2)\n(3,4)\n(5,6)", 0, "[{a: 1, b: 2}, {a: 3, b: 4}, {a: 5, b: 6}]"); }
 
 	public ListLiteral parse(String source, int expectedErrorCount, String expectedSource) {
-		return ParseTestUtils.testParse(source, expectedErrorCount, null, ListLiteral.class, expectedSource);
+		return ParseTestUtils.test(source, expectedErrorCount, null, ListLiteral.class, expectedSource);
 	}
 
 	private void list(String source, int expectedErrorCount) {
-		ListLiteral node = ParseTestUtils.testParse(source, expectedErrorCount, null, ListLiteral.class, null);
+		ListLiteral node = ParseTestUtils.test(source, expectedErrorCount, null, ListLiteral.class, null);
 		final Object[] eltsArray = node.getElements().toArray();
 		assertEquals(3, eltsArray.length);
 		assertEquals(NumberLiteral.class, eltsArray[0].getClass());
