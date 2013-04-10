@@ -17,8 +17,7 @@ public class TestObjectLiteralParser {
 	@Test public void mixCommasNewlines() { abc("{a:1\n b:2,\n c:3}", 0); }
 	@Test public void backdentError()     { parseError("{a:1,b:2,\nc:3}", IncorrectIndentation.class); }
 
-	@Test public void objValue() { parse("a::a:1\n   b:2\n   c:3\nb::d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
-	@Test public void objValue2a() { parse("a:\n a:1\n b:2", "{a: {a: 1, b: 2}}"); }
+	@Test public void objValue1() { parse("a:\n a:1\n b:2", "{a: {a: 1, b: 2}}"); }
 	@Test public void objValue2() { parse("a:\n a:1\n b:2\n c:3\nb:\n d:1\n e:2\n f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void objValue3() { parse("a:\n   a:1\n   b:2\n   c:3\nb:\n   d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void objValue4() { parse("a: a:1\n   b:2\n   c:3\nb: d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
@@ -31,8 +30,8 @@ public class TestObjectLiteralParser {
 	@Test public void method() { parse("{f(x): x}", "{f: (x) -> x}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
-	@Test public void table1() { parse("#::a,b,c\nabc::1,2,3", "{abc: {a: 1, b: 2, c: 3}}"); }
-	@Test public void table2() { parse("#::a,b\n\"12\"::1,2\n\"34\"::3,4\n\"56\"::5,6", "{\"12\": {a: 1, b: 2}, \"34\": {a: 3, b: 4}, \"56\": {a: 5, b: 6}}"); }
+	@Test public void table1() { parse("#::a,b,c\nabc:(1,2,3)", "{abc: {a: 1, b: 2, c: 3}}"); }
+	@Test public void table2() { parse("#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)", "{\"12\": {a: 1, b: 2}, \"34\": {a: 3, b: 4}, \"56\": {a: 5, b: 6}}"); }
 	
 	private void abc(String source, int expectedErrorCount) {
 		ObjectLiteral node = parse(source, "{a: 1, b: 2, c: 3}");

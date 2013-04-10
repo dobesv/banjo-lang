@@ -118,6 +118,7 @@ public class BanjoParser {
 		case '\\':
 			return false;
 		case '-':
+		case '^':
 			return true;
 		default:
 		}

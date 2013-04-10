@@ -144,8 +144,7 @@ public class BanjoDesugarer {
 			case COND: return exprListToCond(op.getFileRange(), new LinkedList<>(Collections.singletonList(node)));
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
-			case PAIR:
-			case PAIR2: return objectLiteral(range, Collections.<Expr>singletonList(op));
+			case PAIR: return objectLiteral(range, Collections.<Expr>singletonList(op));
 			case ASSIGNMENT: return let(op);
 			case PROJECTION: return projection(op);
 			case MAP_PROJECTION: return optionProjection(op);
@@ -587,8 +586,7 @@ public class BanjoDesugarer {
 
 	private boolean isPair(Expr e) {
 		return (e instanceof BinaryOp) && 
-				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR ||
-				 ((BinaryOp) e).getOperator() == BinaryOperator.PAIR2);
+				(((BinaryOp) e).getOperator() == BinaryOperator.PAIR);
 	}
 	private boolean isMirrorElement(Expr e) {
 		return isUnaryOp(e, UnaryOperator.MIRROR);

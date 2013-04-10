@@ -27,7 +27,6 @@ public enum BinaryOperator implements Operator {
 	FUNCTION("->", 0x21A6, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", Precedence.ASSIGNMENT, Associativity.RIGHT),
 	PAIR(":", Precedence.COLON, Associativity.RIGHT),
-	PAIR2("::", Precedence.ASSIGNMENT, Associativity.RIGHT),
 	COND("=>", 0x21D2, Precedence.COND, Associativity.RIGHT),
 	OR_ELSE("?:", Precedence.COND, Associativity.RIGHT),
 	SEMICOLON(";", Precedence.SEMICOLON),
