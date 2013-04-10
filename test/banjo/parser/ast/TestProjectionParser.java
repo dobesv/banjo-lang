@@ -12,7 +12,9 @@ public class TestProjectionParser {
 	@Test public void aProjectBCNewlines() { test("a.\n | b\n | c", "{b: a.b, c: a.c}", ObjectLiteral.class); }
 	@Test public void aProjectBCNewlinesq() { test("a.\n | \"b\"\n | \"c\"", "{\"b\": a.\"b\", \"c\": a.\"c\"}", ObjectLiteral.class); }
 	@Test public void aWithB() { test("a.{b: 2}", RowUpdate.class); }
+	@Test public void aWithB2() { test("a.\n b: 2", "a.{b: 2}", RowUpdate.class); }
 	@Test public void aWithBC() { test("a.{b: 2, c: 3}", RowUpdate.class); }
+	@Test public void aWithBC2() { test("a.\n b: 2, c: 3", "a.{b: 2, c: 3}", RowUpdate.class); }
 	@Test public void specialCharField1() { test("a.\\-\\-", FieldRef.class); }
 	@Test public void specialCharField2() { test("a.\\.\\.", FieldRef.class); }
 	@Test public void specialCharField3() { test("a.\\.", FieldRef.class); }
