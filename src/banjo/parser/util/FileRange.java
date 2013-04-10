@@ -87,5 +87,8 @@ public final class FileRange {
 	public int getEndLine() {
 		return end.line;
 	}
+	public int getStartColumn() {
+		return start.column;
+	}
 
 }

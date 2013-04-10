@@ -3,20 +3,9 @@ package banjo.parser.ast;
 
 import banjo.parser.util.FileRange;
 
-public abstract class BaseExpr implements Expr {
-	private final FileRange fileRange;
-
+public abstract class BaseExpr extends AbstractHasFileRange implements Expr {
 	public BaseExpr(FileRange range) {
-		super();
-		if(range == null) throw new NullPointerException();
-		this.fileRange = range;
-	}
-	
-	public int getStartColumn() { return getFileRange().getStart().getColumn(); }
-
-	@Override
-	public FileRange getFileRange() {
-		return fileRange;
+		super(range);
 	}
 	
 	@Override

@@ -13,6 +13,7 @@ import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.SyntaxError;
+import banjo.parser.errors.UnsupportedUnaryOperator;
 
 public class TestNumberLiteralParser {
 
@@ -20,7 +21,7 @@ public class TestNumberLiteralParser {
 	
 	@Test public void idIsNotANumber() { testNonNumber("a"); }
 	@Test public void starIsNotANumber() { testNonNumber("*", ExpectedExpression.class); }
-	@Test public void semiColonIsNotANumber() { testNonNumber(";", ExpectedExpression.class); }
+	@Test public void semiColonIsNotANumber() { testNonNumber(";", UnsupportedUnaryOperator.class); }
 	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
 	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
 	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.negate()", MissingDigitsAfterDecimalPoint.class); }
@@ -35,7 +36,8 @@ public class TestNumberLiteralParser {
 		try {
 			final BanjoParser parser = new BanjoParser(inStr);
 			Expr node = parser.parse();
-			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
+			if(node != null)
+				System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
 			for(Exception e : parser.getErrors()) {
 				System.out.println(e.toString());
 			}

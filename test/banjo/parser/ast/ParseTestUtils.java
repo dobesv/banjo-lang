@@ -22,8 +22,6 @@ public class ParseTestUtils {
 		Expr parsed;
 		try {
 			parsed = parser.parse();
-		} catch (BanjoParseException e1) {
-			throw new Error(e1);
 		} catch (IOException e1) {
 			throw new Error(e1);
 		}

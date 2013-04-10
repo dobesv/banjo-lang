@@ -10,8 +10,10 @@ import java.util.LinkedList;
 import banjo.parser.ast.Atom;
 import banjo.parser.ast.BinaryOp;
 import banjo.parser.ast.BinaryOperator;
+import banjo.parser.ast.Comment;
 import banjo.parser.ast.Ellipsis;
 import banjo.parser.ast.Expr;
+import banjo.parser.ast.HasFileRange;
 import banjo.parser.ast.IdRef;
 import banjo.parser.ast.NumberLiteral;
 import banjo.parser.ast.Operator;
@@ -48,8 +50,8 @@ public class BanjoParser {
 
 	final ParserReader in;
 	private final LinkedList<BanjoParseException> errors = new LinkedList<>();
-	private final ArrayList<Atom> atoms = new ArrayList<Atom>();
-
+	private final ArrayList<HasFileRange> tokens = new ArrayList<HasFileRange>();
+	
 	public BanjoParser(ParserReader in) {
 		super();
 		this.in = in;
@@ -176,6 +178,7 @@ public class BanjoParser {
 					in.seek(commentStart);
 					return;
 				}
+				getTokens().add(new Comment(in.getFileRange(commentStart), in.readStringFrom(commentStart)));
 			}
 			// continue
 		}
@@ -644,7 +647,7 @@ public class BanjoParser {
 		}
 	}
 	
-	public Expr parse() throws IOException, BanjoParseException {
+	public Expr parse() throws IOException {
 		return parse(null);
 	}
 	
@@ -657,107 +660,112 @@ public class BanjoParser {
 	 * @param inParen If set, assume we are inside that kind of parentheses
 	 */
 	
-	private Expr parse(ParenType inParen) throws IOException, BanjoParseException {
+	private Expr parse(ParenType inParen) throws IOException {
 		LinkedList<PartialOp> opStack = new LinkedList<>();
 		Expr operand = null;
-		for(;;) {
-			skipWhitespace(tokenStartPos);
-			
-			int column = in.getCurrentColumnNumber();
-			if(operand != null && tokenStartPos.getLine() > operand.getFileRange().getEndLine()) {
-				// Now if we get a de-dent we have to move up the operator stack
-				while(!opStack.isEmpty() 
-						&& opStack.getFirst().getStartColumn() >= column
-						&& opStack.getFirst().isParen() == false) {
-					operand = opStack.pop().makeOp(operand);
+		try {
+			for(;;) {
+				skipWhitespace(tokenStartPos);
+				
+				int column = in.getCurrentColumnNumber();
+				if(operand != null && tokenStartPos.getLine() > operand.getFileRange().getEndLine()) {
+					// Now if we get a de-dent we have to move up the operator stack
+					while(!opStack.isEmpty() 
+							&& opStack.getFirst().getStartColumn() >= column
+							&& opStack.getFirst().isParen() == false) {
+						operand = opStack.pop().makeOp(operand);
+					}
+					
+					// If we de-dented back to an exact match on the column of an enclosing
+					// expression, insert a newline operator
+					if(operand.getStartColumn() == column) {
+						opStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, in.getFilePosAsRange(), operand, operand.getStartColumn()));
+						operand = null;
+					}
 				}
 				
-				// If we de-dented back to an exact match on the column of an enclosing
-				// expression, insert a newline operator
-				if(operand.getStartColumn() == column) {
-					opStack.push(new PartialBinaryOp(BinaryOperator.NEWLINE, in.getFilePosAsRange(), operand, operand.getStartColumn()));
-					operand = null;
+				if(operand == null && 
+						!opStack.isEmpty() &&
+						opStack.getFirst().getEndLine() < in.getCurrentLineNumber() &&
+						opStack.getFirst().getStartColumn() < column) {
+					opStack.push(new PartialUnaryOp(UnaryOperator.NEWLINE, in.getFilePosAsRange()));
 				}
-			}
-			
-			if(operand == null && 
-					!opStack.isEmpty() &&
-					opStack.getFirst().getEndLine() < in.getCurrentLineNumber() &&
-					opStack.getFirst().getStartColumn() < column) {
-				opStack.push(new PartialUnaryOp(UnaryOperator.NEWLINE, in.getFilePosAsRange()));
-			}
-			
-			
-			Expr token = parseAtom();
-			
-			if(token != null) {
-				operand = parseExprToken(opStack, operand, token);
-			} else {
-				// Not an atom, binary operator, or unary operator
-				// Should be a paren, brace, bracket, or EOF
-				int cp = in.read();
-				ParenType closeParenType = cp < Character.MAX_VALUE ? ParenType.forCloseChar((char)cp) : null;
-				if(closeParenType != null || cp == -1) {
-					// If there is a trailing comma, semicolon, or newline we can pop it off the stack
-					operand = ignoreTrailingCommaOrSemicolon(opStack, operand);
-					
-					// Now pop 
-					boolean matchedOpen = false;
-					while(!opStack.isEmpty()) {
-						PartialOp po = opStack.pop();
-						operand = po.makeOp(operand);
-						if(po.isOpenParen(closeParenType)) {
-							matchedOpen = true;
-							break;
-						} else if(po.getParenType() != null) {
-							errors.add(new UnexpectedCloseParen(in.getFileRange(tokenStartPos), closeParenType));
-						}
-					}
-					if(!matchedOpen) {
-						if(closeParenType == inParen) {
-							return operand;
-						} else if(cp == -1 && inParen != null) {
-							throw new PrematureEndOfFile("Found EOF, was expecting '"+(char)inParen.getEndChar()+"'", in.getFilePosAsRange());
-						} else if(errors.size() > 0) {
-							throw errors.removeLast();
-						} else {
-							throw new ExpectedExpression(in.getFilePosAsRange());
-						}
-					}
+				
+				
+				Expr token = parseAtom();
+				
+				if(token != null) {
+					operand = parseExprToken(opStack, operand, token);
 				} else {
-					ParenType parenType = cp < Character.MAX_VALUE ? ParenType.forChar((char)cp) : null;
-					if(parenType != null) {
-						if(operand == null) {
-							UnaryOperator operator = UnaryOperator.fromParenType(parenType);
-							if(operator == null) {
-								// Currently all parens are valid on their own, so this shouldn't happen really
-								throw new SyntaxError(in.getFileRange(tokenStartPos));
+					// Not an atom, binary operator, or unary operator
+					// Should be a paren, brace, bracket, or EOF
+					int cp = in.read();
+					ParenType closeParenType = cp < Character.MAX_VALUE ? ParenType.forCloseChar((char)cp) : null;
+					if(closeParenType != null || cp == -1) {
+						// If there is a trailing comma, semicolon, or newline we can pop it off the stack
+						operand = ignoreTrailingCommaOrSemicolon(opStack, operand);
+						
+						// Now pop 
+						boolean matchedOpen = false;
+						while(!opStack.isEmpty()) {
+							PartialOp po = opStack.pop();
+							operand = po.makeOp(operand);
+							if(po.isOpenParen(closeParenType)) {
+								matchedOpen = true;
+								break;
+							} else if(po.getParenType() != null) {
+								errors.add(new UnexpectedCloseParen(in.getFileRange(tokenStartPos), closeParenType));
 							}
-							opStack.push(new PartialUnaryOp(operator, in.getFileRange(tokenStartPos)));
-						} else {
-							// Call/lookup
-							BinaryOperator operator = BinaryOperator.fromParenType(parenType);
-							if(operator == null) {
-								final UnaryOperator unaryParenType = UnaryOperator.fromParenType(parenType);
-								if(unaryParenType == null) {
-									throw new SyntaxError(in.getFilePosAsRange());
-								}
-								
-								// Insert "missing" operator and continue
-								final FileRange betweenRange = between(operand, token);
-								errors.add(new ExpectedOperator(betweenRange));
-								pushPartialBinaryOp(BinaryOperator.MISSING, betweenRange, operand, opStack);
-								opStack.push(new PartialUnaryOp(unaryParenType, in.getFileRange(tokenStartPos)));
+						}
+						if(!matchedOpen) {
+							if(closeParenType == inParen) {
+								return operand;
+							} else if(cp == -1 && inParen != null) {
+								throw new PrematureEndOfFile("Found EOF, was expecting '"+(char)inParen.getEndChar()+"'", in.getFilePosAsRange());
+							} else if(errors.size() > 0) {
+								throw errors.removeLast();
 							} else {
-								pushPartialBinaryOp(operator, in.getFileRange(tokenStartPos), operand, opStack);
+								throw new ExpectedExpression(in.getFilePosAsRange());
 							}
-							operand = null;
 						}
 					} else {
-						throw new SyntaxError(in.getFilePosAsRange());
+						ParenType parenType = cp < Character.MAX_VALUE ? ParenType.forChar((char)cp) : null;
+						if(parenType != null) {
+							if(operand == null) {
+								UnaryOperator operator = UnaryOperator.fromParenType(parenType);
+								if(operator == null) {
+									// Currently all parens are valid on their own, so this shouldn't happen really
+									throw new SyntaxError(in.getFileRange(tokenStartPos));
+								}
+								opStack.push(new PartialUnaryOp(operator, in.getFileRange(tokenStartPos)));
+							} else {
+								// Call/lookup
+								BinaryOperator operator = BinaryOperator.fromParenType(parenType);
+								if(operator == null) {
+									final UnaryOperator unaryParenType = UnaryOperator.fromParenType(parenType);
+									if(unaryParenType == null) {
+										throw new SyntaxError(in.getFilePosAsRange());
+									}
+									
+									// Insert "missing" operator and continue
+									final FileRange betweenRange = between(operand, token);
+									errors.add(new ExpectedOperator(betweenRange));
+									pushPartialBinaryOp(BinaryOperator.MISSING, betweenRange, operand, opStack);
+									opStack.push(new PartialUnaryOp(unaryParenType, in.getFileRange(tokenStartPos)));
+								} else {
+									pushPartialBinaryOp(operator, in.getFileRange(tokenStartPos), operand, opStack);
+								}
+								operand = null;
+							}
+						} else {
+							throw new SyntaxError(in.getFilePosAsRange());
+						}
 					}
 				}
 			}
+		} catch (BanjoParseException e) {
+			errors.add(e);
+			return null;
 		}
 	}
 
@@ -840,7 +848,7 @@ public class BanjoParser {
 			(atom = parseStringLiteral()) == null) {
 			return null;
 		}
-		atoms.add(atom);
+		getTokens().add(atom);
 		return atom;
     }
 
@@ -866,5 +874,7 @@ public class BanjoParser {
 		}
 	}
 
-	
+	public ArrayList<HasFileRange> getTokens() {
+		return tokens;
+	}
 }

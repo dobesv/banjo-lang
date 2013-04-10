@@ -8,7 +8,7 @@ public class FieldRef extends BaseExpr {
 	private final Key key;
 
 	public FieldRef(Expr object, Key key) {
-		super(new FileRange(object.getFileRange(), ((BaseExpr)key).getFileRange()));
+		super(new FileRange(object.getFileRange(), key.getFileRange()));
 		this.object = object;
 		this.key = key;
 	}
