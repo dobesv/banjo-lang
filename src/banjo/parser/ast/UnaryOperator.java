@@ -19,7 +19,7 @@ public enum UnaryOperator implements Operator {
 	NEWLINE("\\n", Precedence.SEMICOLON), // Newline and indent
 	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX, "asOptionalContract"),
 	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX, "hasValue"),
-	INVALID(null, Precedence.UNARY_PREFIX);
+	INVALID("~~~INVALID~~~", Precedence.UNARY_PREFIX);
 	
 	public static enum Position { PREFIX, SUFFIX };
 	
@@ -32,7 +32,11 @@ public enum UnaryOperator implements Operator {
 	private final Position position;
 	
 	UnaryOperator(String op, int codePoint, Precedence precedence, ParenType parenType, String methodName, Position position) {
-		this.op = op == null && codePoint != CODEPOINT_NA ? new String(Character.toChars(codePoint)) : op;
+		this.op = op != null ? op 
+				: codePoint != CODEPOINT_NA ? new String(Character.toChars(codePoint)) 
+ 	            : parenType != null ? String.valueOf(parenType.getStartChar())
+ 	            : null; // ??
+ 	    if(this.op == null) throw new NullPointerException();
 		this.codePoint = codePoint;
 		this.precedence = precedence;
 		this.parenType = parenType;

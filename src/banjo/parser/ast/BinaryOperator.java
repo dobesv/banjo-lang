@@ -34,6 +34,8 @@ public enum BinaryOperator implements Operator {
 	INVALID("~~~INVALID~~~", -1, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", -1, Precedence.ATOM); // Newline and indent
 	
+	static final int CODEPOINT_NA = -1;
+
 	public static enum Associativity { LEFT, RIGHT; }
 	private final String op;
 	private final int codePoint; // -1 if no special unicode character
@@ -43,7 +45,11 @@ public enum BinaryOperator implements Operator {
 	private final Associativity associativity;
 	
 	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName, Associativity associativity) {
-		this.op = op;
+		this.op = op != null ? op 
+				: codePoint != CODEPOINT_NA ? new String(Character.toChars(codePoint)) 
+ 	            : parenType != null ? String.valueOf(parenType.getStartChar())
+ 	            : null; // ??
+ 	    if(this.op == null) throw new NullPointerException();
 		this.codePoint = codePoint;
 		this.precedence = p;
 		this.parenType = parenType;
