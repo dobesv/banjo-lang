@@ -4,7 +4,7 @@ package banjo.parser.ast;
 public enum BinaryOperator implements Operator {
 	LOOKUP(ParenType.BRACKETS),
 	CALL(ParenType.PARENS),
-	PROJECTION(".", Precedence.SUFFIX),
+	PROJECTION(".", Precedence.SUFFIX, Associativity.RIGHT),
 	MAP_PROJECTION("?.", Precedence.SUFFIX),
 	POW("^", Precedence.MULDIV, "toThePowerOf"),
 	MUL("*", 0x00D7, Precedence.MULDIV, "times"),
@@ -24,29 +24,36 @@ public enum BinaryOperator implements Operator {
 	LAZY_AND("&&", 0x2227, Precedence.LAZY_AND),
 	LAZY_OR("||", 0x2228, Precedence.LAZY_OR),
 	COMMA(",", Precedence.COMMA),
-	FUNCTION("->", 0x21A6, Precedence.FUNCTION),
-	ASSIGNMENT("=", Precedence.ASSIGNMENT),
-	PAIR(":", Precedence.COLON),
-	PAIR2("::", Precedence.ASSIGNMENT),
-	COND("=>", 0x21D2, Precedence.COND),
-	OR_ELSE("?:", Precedence.COND),
+	FUNCTION("->", 0x21A6, Precedence.FUNCTION, Associativity.RIGHT),
+	ASSIGNMENT("=", Precedence.ASSIGNMENT, Associativity.RIGHT),
+	PAIR(":", Precedence.COLON, Associativity.RIGHT),
+	PAIR2("::", Precedence.ASSIGNMENT, Associativity.RIGHT),
+	COND("=>", 0x21D2, Precedence.COND, Associativity.RIGHT),
+	OR_ELSE("?:", Precedence.COND, Associativity.RIGHT),
 	SEMICOLON(";", Precedence.SEMICOLON),
 	NEWLINE("\\n", Precedence.SEMICOLON),
 	INVALID("~~~INVALID~~~", -1, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", -1, Precedence.ATOM); // Newline and indent
 	
+	public static enum Associativity { LEFT, RIGHT; }
 	private final String op;
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence precedence;
 	private final ParenType parenType; // nullable
 	private final String methodName; // nullable
+	private final Associativity associativity;
 	
-	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName) {
+	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName, Associativity associativity) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.precedence = p;
 		this.parenType = parenType;
 		this.methodName = methodName;
+		this.associativity = associativity;
+	}
+	
+	BinaryOperator(String op, int codePoint, Precedence p, ParenType parenType, String methodName) {
+		this(op, codePoint, p, parenType, methodName, Associativity.LEFT);
 	}
 	BinaryOperator(String op, int codePoint, Precedence p, String methodName) {
 		this(op, codePoint, p, null, methodName);
@@ -55,11 +62,17 @@ public enum BinaryOperator implements Operator {
 	BinaryOperator(String op, Precedence p) {
 		this(op, -1, p);
 	}
+	BinaryOperator(String op, Precedence p, Associativity associativity) {
+		this(op, -1, p, associativity);
+	}
 	BinaryOperator(String op, Precedence p, String methodName) {
 		this(op, -1, p, methodName);
 	}
 	BinaryOperator(String op, int codePoint, Precedence p) {
 		this(op, codePoint, p, null, null);
+	}
+	BinaryOperator(String op, int codePoint, Precedence p, Associativity associativity) {
+		this(op, codePoint, p, null, null, associativity);
 	}
 	BinaryOperator(ParenType pt) {
 		this(null, -1, Precedence.SUFFIX, pt, null);
@@ -104,5 +117,17 @@ public enum BinaryOperator implements Operator {
 	}
 	public String getMethodName() {
 		return methodName;
+	}
+
+	public Associativity getAssociativity() {
+		return associativity;
+	}
+	
+	public boolean isLeftAssociative() {
+		return associativity == Associativity.LEFT;
+	}
+	
+	public boolean isRightAssociative() {
+		return associativity == Associativity.RIGHT;
 	}
 }

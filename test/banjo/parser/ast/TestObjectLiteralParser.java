@@ -21,6 +21,7 @@ public class TestObjectLiteralParser {
 	@Test public void objValue2a() { parse("a:\n a:1\n b:2", "{a: {a: 1, b: 2}}"); }
 	@Test public void objValue2() { parse("a:\n a:1\n b:2\n c:3\nb:\n d:1\n e:2\n f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void objValue3() { parse("a:\n   a:1\n   b:2\n   c:3\nb:\n   d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
+	@Test public void objValue4() { parse("a: a:1\n   b:2\n   c:3\nb: d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	
 	@Test public void trailingComma()     { abc("{a:1,b:2,c:3,}", 0); }
 	@Test public void stringKey() { parse("{\"a\":1,\"b\":2,\"c\":3}", "{\"a\": 1, \"b\": 2, \"c\": 3}"); }

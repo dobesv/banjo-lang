@@ -811,9 +811,11 @@ public class BanjoParser {
 		// Current operand is the rightmost operand for anything of higher precedence than the
 		// operator we just got.
 		Precedence prec = operator.getPrecedence();
+		boolean rightAssoc = operator.isRightAssociative();
 		while(!opStack.isEmpty() 
 				&& opStack.getFirst().getOperator().isParen() == false
-				&& opStack.getFirst().getPrecedence().isHigherOrEqual(prec)) {
+				&& (rightAssoc ? opStack.getFirst().getPrecedence().isHigherThan(prec)
+						       : opStack.getFirst().getPrecedence().isHigherOrEqual(prec))) {
 			operand = opStack.pop().makeOp(operand);
 		}
 		
