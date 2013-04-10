@@ -4,7 +4,7 @@ package banjo.parser.ast;
 public enum BinaryOperator implements Operator {
 	LOOKUP(ParenType.BRACKETS),
 	CALL(ParenType.PARENS),
-	PROJECTION(".", Precedence.SUFFIX, Associativity.RIGHT),
+	PROJECTION(".", Precedence.SUFFIX),
 	MAP_PROJECTION("?.", Precedence.SUFFIX),
 	POW("^", Precedence.MULDIV, "toThePowerOf"),
 	MUL("*", 0x00D7, Precedence.MULDIV, "times"),
