@@ -16,16 +16,25 @@ public class ParseTestUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends BaseExpr> T test(String source, int expectedErrors, Class<? extends BanjoParseException> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
+	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BanjoParseException> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
 		BanjoParser parser = new BanjoParser(source);
+		return test(source, expectedErrors, expectedErrorClass, expectedClass,
+				normalizedSource, parser);
+	}
+
+	public static <T extends Expr> T test(String source, int expectedErrors,
+			Class<? extends BanjoParseException> expectedErrorClass,
+			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
+			throws Error {
+		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		Expr parsed;
 		try {
 			parsed = parser.parse();
 		} catch (IOException e1) {
 			throw new Error(e1);
 		}
-		System.out.println("Parsed:\n  " + parsed.toSource().replace("\n", "\n  "));
+		if(parsed != null)
+			System.out.println("Parsed:\n  " + parsed.toSource().replace("\n", "\n  "));
 		errors(expectedErrors, expectedErrorClass, parser.getErrors());
 		assertTrue(parser.reachedEof());
 		
@@ -58,6 +67,18 @@ public class ParseTestUtils {
 			if(expectedClass != null)
 				assertEquals(expectedClass, errors.iterator().next().getClass());
 		}
+	}
+
+	public static void test(String source, String expectedSource) {
+		test(source, expectedSource, null);
+	
+	}
+	public static void test(String source, Class<? extends BaseExpr> expectedClass) {
+		test(source, source, expectedClass);
+	}
+
+	public static void test(String source, String expectedSource, Class<? extends BaseExpr> expectedClass) {
+		test(source, 0, null, expectedClass, expectedSource);
 	}
 
 }

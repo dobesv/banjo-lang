@@ -164,8 +164,6 @@ public class BanjoParser {
 	public void skipWhitespace() throws IOException {
 		for(;;) {
 			int cp = in.read();
-			if(!isWhitespaceChar(cp))
-				break;
 			if(cp == '/') {
 				in.getPreviousPosition(commentStart);
 				cp = in.read();
@@ -179,7 +177,9 @@ public class BanjoParser {
 					return;
 				}
 				getTokens().add(new Comment(in.getFileRange(commentStart), in.readStringFrom(commentStart)));
-			}
+			} else if(!isWhitespaceChar(cp))
+				break;
+
 			// continue
 		}
 		in.unread(); // Push back the non-whitespace character we found

@@ -14,4 +14,9 @@ public class Comment extends AbstractHasFileRange {
 		return text;
 	}
 	
+	@Override
+	public String toString() {
+		return text;
+	}
+	
 }

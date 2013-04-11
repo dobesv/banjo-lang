@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: banjo.lang
+Bundle-SymbolicName: banjo.lang
+Bundle-Version: 1.0.0.qualifier
+Export-Package: banjo.desugar,
+ banjo.idesupport,
+ banjo.parser,
+ banjo.parser.ast,
+ banjo.parser.errors,
+ banjo.parser.util
