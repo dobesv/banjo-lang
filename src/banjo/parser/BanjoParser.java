@@ -7,25 +7,25 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import banjo.parser.ast.Atom;
-import banjo.parser.ast.BinaryOp;
-import banjo.parser.ast.BinaryOperator;
-import banjo.parser.ast.Comment;
-import banjo.parser.ast.Ellipsis;
-import banjo.parser.ast.Expr;
-import banjo.parser.ast.HasFileRange;
-import banjo.parser.ast.IdRef;
-import banjo.parser.ast.NumberLiteral;
-import banjo.parser.ast.Operator;
-import banjo.parser.ast.OperatorRef;
-import banjo.parser.ast.ParenType;
-import banjo.parser.ast.Precedence;
-import banjo.parser.ast.StringLiteral;
-import banjo.parser.ast.StringLiteral.BadStringEscapeSequence;
-import banjo.parser.ast.UnaryOp;
-import banjo.parser.ast.UnaryOperator;
-import banjo.parser.ast.UnaryOperator.Position;
-import banjo.parser.ast.UnitRef;
+import banjo.dom.Atom;
+import banjo.dom.BinaryOp;
+import banjo.dom.BinaryOperator;
+import banjo.dom.Comment;
+import banjo.dom.Ellipsis;
+import banjo.dom.Expr;
+import banjo.dom.HasFileRange;
+import banjo.dom.NumberLiteral;
+import banjo.dom.Operator;
+import banjo.dom.OperatorRef;
+import banjo.dom.ParenType;
+import banjo.dom.Precedence;
+import banjo.dom.SimpleName;
+import banjo.dom.StringLiteral;
+import banjo.dom.UnaryOp;
+import banjo.dom.UnaryOperator;
+import banjo.dom.UnitRef;
+import banjo.dom.StringLiteral.BadStringEscapeSequence;
+import banjo.dom.UnaryOperator.Position;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedOperator;
@@ -503,13 +503,13 @@ public class BanjoParser {
 	 * 
 	 * @return An IdRef if the parse is successful; null otherwise.
 	 */
-	private IdRef parseIdRef() throws IOException {
+	private SimpleName parseIdRef() throws IOException {
 		in.getCurrentPosition(tokenStartPos);
 		String identifier = matchID();
 		if(identifier == null)
 			return null;
 		FileRange identRange = in.getFileRange(tokenStartPos);
-		return new IdRef(identRange, identifier);
+		return new SimpleName(identRange, identifier);
 	}
 
 	/**

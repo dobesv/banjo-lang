@@ -7,8 +7,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.ListIterator;
 
+import banjo.dom.HasFileRange;
 import banjo.parser.BanjoParser;
-import banjo.parser.ast.HasFileRange;
 import banjo.parser.util.FileRange;
 
 public class SourceFileAnalysis {
@@ -46,6 +46,16 @@ public class SourceFileAnalysis {
 		}
 	};
 	
+	/**
+	 * Return a token stream for the given file range.  This allows one to do syntax highlighting
+	 * by "visiting" the tokens.  The tokens returned by the resulting stream will cover the given
+	 * area exactly.  Tokens spanning the boundaries of the range will be truncated to fit during
+	 * the visiting process.
+	 * 
+	 * @param rangeStart Character offset to start at
+	 * @param rangeEnd Character offset to end at (exclusive)
+	 * @return A SourceTokenStream to visit tokens with
+	 */
 	public SourceTokenStream tokenStream(int rangeStart, int rangeEnd) {
 		final HasFileRange posTok = new FakeTokenWithOffset(rangeStart);
 		int pos = Collections.binarySearch(tokens, posTok, offsetComparator);
@@ -56,5 +66,25 @@ public class SourceFileAnalysis {
 		final ListIterator<HasFileRange> it = tokens.listIterator(pos);
 		
 		return new SourceTokenStream(it, fileLength, rangeStart, rangeEnd);
+	}
+
+	/**
+	 * Apply an increment edit.  The character at the specified offset & length are to be deleted, then
+	 * the given text (which may be empty for a deletion) is inserted.
+	 * 
+	 * This will try to update the list of tokens to apply the given change incrementally, without parsing the entire file
+	 * again.
+	 * 
+	 * @param offset Offset of the text to replace
+	 * @param length Number of characters to delete as part of the edit
+	 * @param text Characters to insert as part of the edit
+	 */
+	public void applyEdit(int offset, int length, String text) {
+		// 1. Walk the parse tree and find the smallest subtree containing this change.
+		// 2. Get the new source code for that subtree and re-parse it
+		// 3. Update the tree with the new sub-tree and also update the list of tokens using the range that was parsed
+		// 3. Update the file positions for all the tree nodes and tokens that follow that position
+		// 
+		
 	}
 }

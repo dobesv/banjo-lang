@@ -8,29 +8,29 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 
-import banjo.parser.ast.Atom;
-import banjo.parser.ast.BinaryOp;
-import banjo.parser.ast.BinaryOperator;
-import banjo.parser.ast.Call;
-import banjo.parser.ast.Ellipsis;
-import banjo.parser.ast.Expr;
-import banjo.parser.ast.ExprList;
-import banjo.parser.ast.Field;
-import banjo.parser.ast.FieldRef;
-import banjo.parser.ast.FunArg;
-import banjo.parser.ast.FunctionLiteral;
-import banjo.parser.ast.IdRef;
-import banjo.parser.ast.Key;
-import banjo.parser.ast.Let;
-import banjo.parser.ast.ListLiteral;
-import banjo.parser.ast.ObjectLiteral;
-import banjo.parser.ast.ParenType;
-import banjo.parser.ast.RowUpdate;
-import banjo.parser.ast.SetLiteral;
-import banjo.parser.ast.StringLiteral;
-import banjo.parser.ast.UnaryOp;
-import banjo.parser.ast.UnaryOperator;
-import banjo.parser.ast.UnitRef;
+import banjo.dom.Atom;
+import banjo.dom.BinaryOp;
+import banjo.dom.BinaryOperator;
+import banjo.dom.Call;
+import banjo.dom.Ellipsis;
+import banjo.dom.Expr;
+import banjo.dom.ExprList;
+import banjo.dom.Field;
+import banjo.dom.FieldRef;
+import banjo.dom.FunArg;
+import banjo.dom.FunctionLiteral;
+import banjo.dom.Key;
+import banjo.dom.Let;
+import banjo.dom.ListLiteral;
+import banjo.dom.ObjectLiteral;
+import banjo.dom.ParenType;
+import banjo.dom.RowUpdate;
+import banjo.dom.SetLiteral;
+import banjo.dom.SimpleName;
+import banjo.dom.StringLiteral;
+import banjo.dom.UnaryOp;
+import banjo.dom.UnaryOperator;
+import banjo.dom.UnitRef;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ElseClauseNotLast;
 import banjo.parser.errors.ExpectedElement;
@@ -94,7 +94,7 @@ public class BanjoDesugarer {
 				return operand;
 			default:
 				if(op.getOperator().getMethodName() != null)
-					return new Call(new FieldRef(operand, new IdRef(op.getFileRange(), op.getOperator().getMethodName())));
+					return new Call(new FieldRef(operand, new SimpleName(op.getFileRange(), op.getOperator().getMethodName())));
 				getErrors().add(new UnsupportedUnaryOperator(op.getOperator().getOp(), op.getFileRange()));
 				return operand;
 			}
@@ -158,7 +158,7 @@ public class BanjoDesugarer {
 			// TODO Eliminate ALL binary ops as function calls
 			default:
 				if(op.getOperator().getMethodName() != null)
-					return new Call(new FieldRef(desugar(op.getLeft()), new IdRef(op.getFileRange(), op.getOperator().getMethodName())), desugar(op.getRight()));
+					return new Call(new FieldRef(desugar(op.getLeft()), new SimpleName(op.getFileRange(), op.getOperator().getMethodName())), desugar(op.getRight()));
 				getErrors().add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
 				return desugar(op.getRight());
 			}
@@ -172,11 +172,9 @@ public class BanjoDesugarer {
 			}
 		} else if(node instanceof Atom) {
 			return node;
-		} else {
-			getErrors().add(new BanjoParseException("Not implemented: "+node.getClass().getSimpleName(), node.getFileRange()));
-			return node;
 		}
-		throw new Error("Not implemented: "+node.getClass().getSimpleName()+" ("+node.toSource()+") "+node.getFileRange());
+		getErrors().add(new BanjoParseException("Not implemented: "+node.getClass().getSimpleName(), node.getFileRange()));
+		return node;
 	}
 
 	/**
@@ -186,10 +184,10 @@ public class BanjoDesugarer {
 		// left || right = left.if(true(): true, false(): right)
 		final Expr condition = desugar(op.getLeft());
 		final FileRange range = op.getFileRange();
-		Field trueField = new Field(new IdRef(range, "false"), new FunctionLiteral(desugar(op.getRight())));
-		Field falseField = new Field(new IdRef(range, "true"), new FunctionLiteral(new IdRef(range, "false")));
+		Field trueField = new Field(new SimpleName(range, "false"), new FunctionLiteral(desugar(op.getRight())));
+		Field falseField = new Field(new SimpleName(range, "true"), new FunctionLiteral(new SimpleName(range, "false")));
 		Expr arg = new ObjectLiteral(range, trueField, falseField);
-		Expr method = new FieldRef(condition, new IdRef(range, "if"));
+		Expr method = new FieldRef(condition, new SimpleName(range, "if"));
 		return new Call(method, arg);
 	}
 
@@ -200,10 +198,10 @@ public class BanjoDesugarer {
 		// left && right == left.if(true(): right, false(): false)
 		final Expr condition = desugar(op.getLeft());
 		final FileRange range = op.getFileRange();
-		Field trueField = new Field(new IdRef(range, "true"), new FunctionLiteral(desugar(op.getRight())));
-		Field falseField = new Field(new IdRef(range, "false"), new FunctionLiteral(new IdRef(range, "false")));
+		Field trueField = new Field(new SimpleName(range, "true"), new FunctionLiteral(desugar(op.getRight())));
+		Field falseField = new Field(new SimpleName(range, "false"), new FunctionLiteral(new SimpleName(range, "false")));
 		Expr arg = new ObjectLiteral(range, trueField, falseField);
-		Expr method = new FieldRef(condition, new IdRef(range, "if"));
+		Expr method = new FieldRef(condition, new SimpleName(range, "if"));
 		return new Call(method, arg);
 	}
 
@@ -211,7 +209,7 @@ public class BanjoDesugarer {
 		final Expr left = desugar(op.getLeft());
 		final Expr right = desugar(op.getRight());
 		final FileRange range = op.getFileRange();
-		Call cmp = new Call(new FieldRef(left, new IdRef(range, BinaryOperator.CMP.getMethodName())), right);
+		Call cmp = new Call(new FieldRef(left, new SimpleName(range, BinaryOperator.CMP.getMethodName())), right);
 		boolean checkEqual;
 		String checkField;
 		switch(op.getOperator()) {
@@ -221,11 +219,11 @@ public class BanjoDesugarer {
 		case LE: checkEqual = false; checkField = "greater"; break;
 		default: throw new Error();
 		}
-		Expr check = new Call(new FieldRef(cmp, new IdRef(range, checkField)));
+		Expr check = new Call(new FieldRef(cmp, new SimpleName(range, checkField)));
 		if(checkEqual)
 			return check;
 		else
-			return new Call(new FieldRef(check, new IdRef(range, UnaryOperator.NOT.getMethodName())));
+			return new Call(new FieldRef(check, new SimpleName(range, UnaryOperator.NOT.getMethodName())));
 	}
 
 	private Expr projection(BinaryOp op) {
@@ -233,8 +231,8 @@ public class BanjoDesugarer {
 		Expr projection = desugar(op.getRight());
 		if(projection instanceof StringLiteral) {
 			return new FieldRef(base, (StringLiteral) projection);
-		} else if(projection instanceof IdRef) {
-			return new FieldRef(base, (IdRef) projection);
+		} else if(projection instanceof SimpleName) {
+			return new FieldRef(base, (SimpleName) projection);
 		} else if(projection instanceof ObjectLiteral) {
 			return new RowUpdate(op.getFileRange(), base, (ObjectLiteral)projection);
 		} else if(projection instanceof SetLiteral) {
@@ -243,8 +241,8 @@ public class BanjoDesugarer {
 			for(Expr e : fieldSet.getElements()) {
 				Key key;
 				
-				if(e instanceof IdRef) {
-					key = (IdRef)e;
+				if(e instanceof SimpleName) {
+					key = (SimpleName)e;
 				} else if(e instanceof StringLiteral) {
 					key = (StringLiteral)e;
 				} else {
@@ -265,11 +263,11 @@ public class BanjoDesugarer {
 	// Optional projection: x?.foo == x.map((x) -> x.foo)
 	private Expr optionProjection(BinaryOp op) {
 		final FileRange r = op.getFileRange();
-		final IdRef argName = gensym(r);
+		final SimpleName argName = gensym(r);
 		final Expr projection = projection(new BinaryOp(BinaryOperator.PROJECTION, argName, op.getRight()));
 		Expr projectFunc = new FunctionLiteral(new FunArg(argName), projection);
 		final Expr left = desugar(op.getLeft());
-		Expr mapCall = new Call(new FieldRef(left, new IdRef(r, "map")), projectFunc);
+		Expr mapCall = new Call(new FieldRef(left, new SimpleName(r, "map")), projectFunc);
 		return mapCall;
 	}
 	
@@ -278,13 +276,13 @@ public class BanjoDesugarer {
 		final FileRange r = op.getFileRange();
 		final Expr left = desugar(op.getLeft());
 		final Expr right = desugar(op.getRight());
-		return new Call(new FieldRef(left, new IdRef(r, "valueOrElse")), new FunctionLiteral(right));
+		return new Call(new FieldRef(left, new SimpleName(r, "valueOrElse")), new FunctionLiteral(right));
 	}
 
 	int gensymCounter = 0;
-	private IdRef gensym(FileRange r) {
+	private SimpleName gensym(FileRange r) {
 		gensymCounter++;
-		return new IdRef(r, "__t"+gensymCounter);
+		return new SimpleName(r, "__t"+gensymCounter);
 	}
 
 	private Expr call(BinaryOp op) {
@@ -321,14 +319,14 @@ public class BanjoDesugarer {
 			target = call.getOperand();
 			contract = null;
 		}
-		if(target instanceof IdRef) {
-			IdRef id = (IdRef) target;
+		if(target instanceof SimpleName) {
+			SimpleName id = (SimpleName) target;
 			name = id.getId();
 			nameRange = id.getFileRange();
 			if(contract != null) {
 				getErrors().add(new UnexpectedContract(contract));
 			}
-			return new Let(nameRange, name, value);
+			return new Let(id, value);
 		} else {
 			getErrors().add(new ExpectedIdentifier(target));
 			return op;
@@ -363,10 +361,10 @@ public class BanjoDesugarer {
 					}
 					
 					final Expr condition = desugar(caseOp.getLeft());
-					Field trueField = new Field(new IdRef(e.getFileRange(), "true"), new FunctionLiteral(thenExpr));
-					Field falseField = new Field(new IdRef(e.getFileRange(), "false"), new FunctionLiteral(result));
+					Field trueField = new Field(new SimpleName(e.getFileRange(), "true"), new FunctionLiteral(thenExpr));
+					Field falseField = new Field(new SimpleName(e.getFileRange(), "false"), new FunctionLiteral(result));
 					Expr arg = new ObjectLiteral(e.getFileRange(), trueField, falseField);
-					Expr ifMethod = new FieldRef(condition, new IdRef(e.getFileRange(), "if"));
+					Expr ifMethod = new FieldRef(condition, new SimpleName(e.getFileRange(), "if"));
 					result = new Call(ifMethod, arg);
 				}
 			} else {
@@ -477,8 +475,8 @@ public class BanjoDesugarer {
 				getErrors().add(new UnexpectedContract(contract));
 			}
 			Key key;
-			if(keyExpr instanceof IdRef) {
-				key = (IdRef)keyExpr;
+			if(keyExpr instanceof SimpleName) {
+				key = (SimpleName)keyExpr;
 			} else if(keyExpr instanceof StringLiteral) {
 				key = (StringLiteral)keyExpr;
 			} else {
@@ -559,20 +557,17 @@ public class BanjoDesugarer {
 			final Expr body, Expr returnContract) {
 		List<FunArg> args = exprs.isEmpty() ? Collections.<FunArg>emptyList() : new ArrayList<FunArg>(exprs.size());
 		for(Expr argExpr : exprs) {
-			String name = null;
-			Expr nameExpr = argExpr;
+			Expr name = argExpr;
 			Expr contract = null;
-			if(isPair(nameExpr)) {
-				nameExpr = ((BinaryOp) nameExpr).getLeft();
-				contract = ((BinaryOp) nameExpr).getRight();
+			if(isPair(name)) {
+				name = ((BinaryOp) name).getLeft();
+				contract = ((BinaryOp) name).getRight();
 			}
-			if(nameExpr instanceof IdRef) {
-				name = ((IdRef) nameExpr).getId();
-			} else {
-				getErrors().add(new ExpectedIdentifier(nameExpr));
+			if(!(name instanceof Key)) {
+				getErrors().add(new ExpectedIdentifier(name));
 				continue;
 			}
-			args.add(new FunArg(nameExpr.getFileRange(), name, contract));
+			args.add(new FunArg((Key)name, contract));
 		}
 		return new FunctionLiteral(range, args, returnContract, body);
 	}

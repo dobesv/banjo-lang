@@ -1,7 +1,7 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.BaseExpr;
-import banjo.parser.ast.Precedence;
+import banjo.dom.AbstractExpr;
+import banjo.dom.Precedence;
 import banjo.parser.util.FileRange;
 
 public class ExpectedOperator extends BanjoParseException {

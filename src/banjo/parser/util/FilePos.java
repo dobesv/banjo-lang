@@ -50,7 +50,10 @@ public final class FilePos {
 		return true;
 	}
 	public boolean before(FilePos successor) {
-		return offset <= successor.offset;
+		return offset < successor.offset;
+	}
+	public boolean after(FilePos predecessor) {
+		return offset > predecessor.offset;
 	}
 	
 	

@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.Expr;
+import banjo.dom.Expr;
 
 public class MultipleElseClausesInConditional extends BanjoParseException {
 	public MultipleElseClausesInConditional(Expr elseClause) {

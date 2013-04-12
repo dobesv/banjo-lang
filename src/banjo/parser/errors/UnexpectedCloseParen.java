@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.ParenType;
+import banjo.dom.ParenType;
 import banjo.parser.util.FileRange;
 
 public class UnexpectedCloseParen extends BanjoParseException {

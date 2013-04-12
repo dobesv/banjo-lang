@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.BinaryOp;
+import banjo.dom.BinaryOp;
 import banjo.parser.util.FileRange;
 
 public class MixedSemicolonAndComma extends BanjoParseException {

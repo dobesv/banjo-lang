@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.parser.ast.Expr;
+import banjo.dom.Expr;
 import banjo.parser.util.FileRange;
 
 public class ExpectedIdentifier extends BanjoParseException {

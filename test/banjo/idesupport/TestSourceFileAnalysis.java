@@ -1,6 +1,6 @@
 package banjo.idesupport;
 
-import static banjo.parser.ast.ParseTestUtils.test;
+import static banjo.dom.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -9,13 +9,13 @@ import java.util.EnumSet;
 
 import org.junit.Test;
 
+import banjo.dom.Comment;
+import banjo.dom.Expr;
+import banjo.dom.HasFileRange;
+import banjo.dom.ObjectLiteral;
+import banjo.dom.OperatorRef;
+import banjo.dom.SimpleName;
 import banjo.parser.BanjoParser;
-import banjo.parser.ast.Comment;
-import banjo.parser.ast.Expr;
-import banjo.parser.ast.HasFileRange;
-import banjo.parser.ast.IdRef;
-import banjo.parser.ast.ObjectLiteral;
-import banjo.parser.ast.OperatorRef;
 
 public class TestSourceFileAnalysis {
 
@@ -28,7 +28,7 @@ public class TestSourceFileAnalysis {
 						"foo", ":",	"bar"
 				}, new Class<?>[] {
 						Comment.class, Comment.class, 
-						IdRef.class, OperatorRef.class, IdRef.class				
+						SimpleName.class, OperatorRef.class, SimpleName.class				
 				});
 	}
 

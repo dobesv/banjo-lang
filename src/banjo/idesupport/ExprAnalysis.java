@@ -1,6 +1,6 @@
 package banjo.idesupport;
 
-import banjo.parser.ast.Expr;
+import banjo.dom.Expr;
 
 public class ExprAnalysis {
 
