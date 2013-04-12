@@ -2,7 +2,7 @@ package banjo.dom;
 
 import banjo.parser.util.FileRange;
 
-public class BinaryOp extends AbstractExpr {
+public class BinaryOp extends AbstractExpr implements ParseTreeNode {
 	private final Expr left;
 	private final Expr right;
 	private final BinaryOperator operator;
@@ -58,5 +58,10 @@ public class BinaryOp extends AbstractExpr {
 		if(left == this.left && right == this.right)
 			return this;
 		return new BinaryOp(operator, left, right);
+	}
+	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitBinaryOp(this);
 	}
 }

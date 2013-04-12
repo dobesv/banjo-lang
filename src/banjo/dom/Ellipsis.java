@@ -24,4 +24,9 @@ public class Ellipsis extends AbstractAtom implements Atom {
 		if(newRange == this.fileRange) return this;
 		return new Ellipsis(newRange);
 	}
+	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitEllipsis(this);
+	}
 }

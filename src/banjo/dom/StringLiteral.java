@@ -70,4 +70,9 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 			return this;
 		return new StringLiteral(newRange, string);
 	}
+	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitStringLiteral(this);
+	}
 }

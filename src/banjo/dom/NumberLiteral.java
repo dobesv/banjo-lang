@@ -39,4 +39,9 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 			return this;
 		return new NumberLiteral(newRange, text, number);
 	}
+	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitNumberLiteral(this);
+	}
 }

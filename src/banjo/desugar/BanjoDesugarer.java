@@ -22,8 +22,12 @@ import banjo.dom.FunctionLiteral;
 import banjo.dom.Key;
 import banjo.dom.Let;
 import banjo.dom.ListLiteral;
+import banjo.dom.NumberLiteral;
 import banjo.dom.ObjectLiteral;
+import banjo.dom.OperatorRef;
 import banjo.dom.ParenType;
+import banjo.dom.ParseTreeNode;
+import banjo.dom.ParseTreeVisitor;
 import banjo.dom.RowUpdate;
 import banjo.dom.SetLiteral;
 import banjo.dom.SimpleName;
@@ -49,7 +53,7 @@ import banjo.parser.errors.UnsupportedBinaryOperator;
 import banjo.parser.errors.UnsupportedUnaryOperator;
 import banjo.parser.util.FileRange;
 
-public class BanjoDesugarer {
+public class BanjoDesugarer implements ParseTreeVisitor<Expr> {
 	private final LinkedList<BanjoParseException> errors = new LinkedList<>();
 	
 	/**
@@ -61,117 +65,8 @@ public class BanjoDesugarer {
 	 * @return
 	 */
 	public Expr desugar(Expr node) {
-		if(node instanceof UnaryOp) {
-			UnaryOp op = (UnaryOp) node;
-			final Expr operand = desugar(op.getOperand());
-			switch(op.getOperator()) {
-			case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
-			case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
-			case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
-			case MIRROR: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
-			case PARENS: return operand;
-			case NEWLINE: return operand;
-			case LIST_LITERAL:
-				if(operand instanceof ListLiteral) {
-					return operand;
-				} else if(operand instanceof ExprList) {
-					return listLiteral(operand.getFileRange(), ((ExprList)operand).getElements(), null);
-				} else {
-					LinkedList<Expr> exprs = new LinkedList<>();
-					flattenCommasOrSemicolons(operand, exprs);
-					return listLiteral(operand.getFileRange(), exprs, null);
-				}
-			case OBJECT_OR_SET_LITERAL: // Expecting an object or set
-				if(operand instanceof ObjectLiteral) return operand;
-				if(operand instanceof SetLiteral) return operand;
-				if(operand instanceof ExprList) 
-					return new SetLiteral(node.getFileRange(), ((ExprList)operand).getElements());
-				// Singleton set literal
-				return new SetLiteral(node.getFileRange(), Collections.singletonList(operand));
-			case CALL:
-				return new Call(operand);
-			case RETURN:
-				return operand;
-			default:
-				if(op.getOperator().getMethodName() != null)
-					return new Call(new FieldRef(operand, new SimpleName(op.getFileRange(), op.getOperator().getMethodName())));
-				getErrors().add(new UnsupportedUnaryOperator(op.getOperator().getOp(), op.getFileRange()));
-				return operand;
-			}
-		} else if(node instanceof BinaryOp) {
-			BinaryOp op = (BinaryOp) node;
-			// Comma outside of a parentheses should be a list or map without the braces/brackets
-			final FileRange range = op.getFileRange();
-			switch(op.getOperator()) {
-			case COMMA:
-			case SEMICOLON:
-			case NEWLINE: {
-				LinkedList<Expr> exprs = new LinkedList<>();
-				flattenCommas(op, op.getOperator(), exprs);
-				Expr first = exprs.get(0);
-				if(isTableHeader(first)) {
-					Expr second = exprs.get(1);
-					if(isPair(second) || isMirrorElement(second)) {
-						return objectLiteral(range, exprs);
-					} else if(isSetElement(second)){
-						return setLiteral(range, exprs, ((UnaryOp)second).getOperator());
-					} else if(isListElement(second)) {
-						return listLiteral(range, exprs, ((UnaryOp)second).getOperator());
-					} else {
-						return listLiteral(range, exprs, null);
-					}
-				} else if(isPair(first) || isMirrorElement(first)) {
-					return objectLiteral(range, exprs);
-				} else if(isListElement(first)) {
-					// Bulleted list item - treat as a list
-					return listLiteral(range, exprs, ((UnaryOp)first).getOperator());
-				} else if(isSetElement(first)) {
-					// Bulleted set item - treat as a list
-					return setLiteral(range, exprs, ((UnaryOp)first).getOperator());
-				} else if(isCondCase(first)) {
-					return exprListToCond(range, exprs);
-				} else {
-					// Everything else - treat as a series of steps
-					ArrayList<Expr> exprList = new ArrayList<>(exprs.size());
-					for(Expr e : exprs) {
-						exprList.add(desugar(e));
-					}
-					return new ExprList(op.getFileRange(), exprList);
-				}
-			}
-			case LAZY_AND: return lazyAnd(op);
-			case LAZY_OR: return lazyOr(op);
-			case COND: return exprListToCond(op.getFileRange(), new LinkedList<>(Collections.singletonList(node)));
-			case CALL: return call(op);
-			case FUNCTION: return functionLiteral(op);
-			case PAIR: return objectLiteral(range, Collections.<Expr>singletonList(op));
-			case ASSIGNMENT: return let(op);
-			case PROJECTION: return projection(op);
-			case MAP_PROJECTION: return optionProjection(op);
-			case OR_ELSE: return orElse(op);
-			case GT: 
-			case GE: 
-			case LT: 
-			case LE: 
-				return comparison(op); 
-				
-			// TODO Eliminate ALL binary ops as function calls
-			default:
-				if(op.getOperator().getMethodName() != null)
-					return new Call(new FieldRef(desugar(op.getLeft()), new SimpleName(op.getFileRange(), op.getOperator().getMethodName())), desugar(op.getRight()));
-				getErrors().add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
-				return desugar(op.getRight());
-			}
-		} else if(node instanceof UnitRef) {
-			UnitRef u = (UnitRef) node;
-			switch(((UnitRef) node).getParenType()) {
-			case BRACES: return new ObjectLiteral(node.getFileRange(), Collections.<String,Field>emptyMap());
-			default:
-			case PARENS: getErrors().add(new ExpectedExpression(node.getFileRange(), node.toSource())); break;
-			case BRACKETS: return new ListLiteral(u.getFileRange(), Collections.<Expr>emptyList());
-			}
-		} else if(node instanceof Atom) {
-			return node;
+		if(node instanceof ParseTreeNode) {
+			return ((ParseTreeNode) node).acceptVisitor(this);
 		}
 		getErrors().add(new BanjoParseException("Not implemented: "+node.getClass().getSimpleName(), node.getFileRange()));
 		return node;
@@ -635,5 +530,145 @@ public class BanjoDesugarer {
 		return errors;
 	}
 
+	@Override
+	public Expr visitBinaryOp(BinaryOp op) {
+		// Comma outside of a parentheses should be a list or map without the braces/brackets
+		final FileRange range = op.getFileRange();
+		switch(op.getOperator()) {
+		case COMMA:
+		case SEMICOLON:
+		case NEWLINE: {
+			LinkedList<Expr> exprs = new LinkedList<>();
+			flattenCommas(op, op.getOperator(), exprs);
+			Expr first = exprs.get(0);
+			if(isTableHeader(first)) {
+				Expr second = exprs.get(1);
+				if(isPair(second) || isMirrorElement(second)) {
+					return objectLiteral(range, exprs);
+				} else if(isSetElement(second)){
+					return setLiteral(range, exprs, ((UnaryOp)second).getOperator());
+				} else if(isListElement(second)) {
+					return listLiteral(range, exprs, ((UnaryOp)second).getOperator());
+				} else {
+					return listLiteral(range, exprs, null);
+				}
+			} else if(isPair(first) || isMirrorElement(first)) {
+				return objectLiteral(range, exprs);
+			} else if(isListElement(first)) {
+				// Bulleted list item - treat as a list
+				return listLiteral(range, exprs, ((UnaryOp)first).getOperator());
+			} else if(isSetElement(first)) {
+				// Bulleted set item - treat as a list
+				return setLiteral(range, exprs, ((UnaryOp)first).getOperator());
+			} else if(isCondCase(first)) {
+				return exprListToCond(range, exprs);
+			} else {
+				// Everything else - treat as a series of steps
+				ArrayList<Expr> exprList = new ArrayList<>(exprs.size());
+				for(Expr e : exprs) {
+					exprList.add(desugar(e));
+				}
+				return new ExprList(op.getFileRange(), exprList);
+			}
+		}
+		case LAZY_AND: return lazyAnd(op);
+		case LAZY_OR: return lazyOr(op);
+		case COND: return exprListToCond(op.getFileRange(), new LinkedList<Expr>(Collections.singletonList(op)));
+		case CALL: return call(op);
+		case FUNCTION: return functionLiteral(op);
+		case PAIR: return objectLiteral(range, Collections.<Expr>singletonList(op));
+		case ASSIGNMENT: return let(op);
+		case PROJECTION: return projection(op);
+		case MAP_PROJECTION: return optionProjection(op);
+		case OR_ELSE: return orElse(op);
+		case GT: 
+		case GE: 
+		case LT: 
+		case LE: 
+			return comparison(op); 
+			
+		// TODO Eliminate ALL binary ops as function calls
+		default:
+			if(op.getOperator().getMethodName() != null)
+				return new Call(new FieldRef(desugar(op.getLeft()), new SimpleName(op.getFileRange(), op.getOperator().getMethodName())), desugar(op.getRight()));
+			getErrors().add(new UnsupportedBinaryOperator(op.getOperator().getOp(), op.getFileRange()));
+			return desugar(op.getRight());
+		}
+	}
 
+	@Override
+	public Expr visitUnaryOp(UnaryOp op) {
+		final Expr operand = desugar(op.getOperand());
+		switch(op.getOperator()) {
+		case LIST_ELEMENT: return new ListLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
+		case SET_ELEMENT: return new SetLiteral(op.getFileRange(), Collections.singletonList(desugar(operand)));
+		case LAZY: return new FunctionLiteral(op.getFileRange(), Collections.<FunArg>emptyList(), null, operand);
+		case MIRROR: return objectLiteral(op.getFileRange(), Collections.singletonList(operand));
+		case PARENS: return operand;
+		case NEWLINE: return operand;
+		case LIST_LITERAL:
+			if(operand instanceof ListLiteral) {
+				return operand;
+			} else if(operand instanceof ExprList) {
+				return listLiteral(operand.getFileRange(), ((ExprList)operand).getElements(), null);
+			} else {
+				LinkedList<Expr> exprs = new LinkedList<>();
+				flattenCommasOrSemicolons(operand, exprs);
+				return listLiteral(operand.getFileRange(), exprs, null);
+			}
+		case OBJECT_OR_SET_LITERAL: // Expecting an object or set
+			if(operand instanceof ObjectLiteral) return operand;
+			if(operand instanceof SetLiteral) return operand;
+			if(operand instanceof ExprList) 
+				return new SetLiteral(op.getFileRange(), ((ExprList)operand).getElements());
+			// Singleton set literal
+			return new SetLiteral(op.getFileRange(), Collections.singletonList(operand));
+		case CALL:
+			return new Call(operand);
+		case RETURN:
+			return operand;
+		default:
+			if(op.getOperator().getMethodName() != null)
+				return new Call(new FieldRef(operand, new SimpleName(op.getFileRange(), op.getOperator().getMethodName())));
+			getErrors().add(new UnsupportedUnaryOperator(op.getOperator().getOp(), op.getFileRange()));
+			return operand;
+		}
+	}
+
+	@Override
+	public Expr visitStringLiteral(StringLiteral stringLiteral) {
+		return stringLiteral;
+	}
+
+	@Override
+	public Expr visitNumberLiteral(NumberLiteral numberLiteral) {
+		return numberLiteral;
+	}
+
+	@Override
+	public Expr visitSimpleName(SimpleName simpleName) {
+		return simpleName;
+	}
+
+	@Override
+	public Expr visitEllipsis(Ellipsis ellipsis) {
+		return ellipsis;
+	}
+
+	@Override
+	public Expr visitUnit(UnitRef unit) {
+		switch(unit.getParenType()) {
+		case BRACES: return new ObjectLiteral(unit.getFileRange(), Collections.<String,Field>emptyMap());
+		case BRACKETS: return new ListLiteral(unit.getFileRange(), Collections.<Expr>emptyList());
+		default:
+		case PARENS:
+			getErrors().add(new ExpectedExpression(unit.getFileRange(), unit.toSource())); 
+			return unit;
+		}
+	}
+
+	@Override
+	public Expr visitOperator(OperatorRef operatorRef) {
+		return operatorRef;
+	}
 }

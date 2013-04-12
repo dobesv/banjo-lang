@@ -33,4 +33,8 @@ public class OperatorRef extends AbstractExpr implements Atom {
 		return new SimpleName(newRange, op);
 	}
 	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitOperator(this);
+	}
 }

@@ -47,5 +47,9 @@ public class SimpleName extends AbstractAtom implements Atom, Key {
 		return new SimpleName(newRange, id);
 	}
 	
+	@Override
+	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+		return visitor.visitSimpleName(this);
+	}
 }
 
