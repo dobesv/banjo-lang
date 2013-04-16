@@ -14,13 +14,13 @@ To generate the build.gen.xml from Eclipse:
 
 -->
 <project name="banjo" default="test">
-	<path id="JUnit 4.libraryclasspath">
+	<path id="banjo-lang.classpath">
+		<pathelement location="bin" />
 		<pathelement location="lib/functionaljava.jar" />
 		<pathelement location="lib/junit.jar" />
 		<pathelement location="lib/org.hamcrest.core_1.1.0.v20090501071000.jar" />
-	</path>
-	<path id="Plug-in Dependencies.libraryclasspath">
 		<pathelement location="lib/org.eclipse.jdt.annotation_1.0.1.v20130111-135246.jar" />
+		<pathelement location="lib/functionaljava.jar" />
 	</path>
 	<import file="build.gen.xml" />
 	<target name="test" depends="banjo-lang.build,banjo-lang.banjo.dom.test">
