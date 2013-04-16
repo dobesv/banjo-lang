@@ -1,5 +1,7 @@
 package banjo.parser.util;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 public final class FilePos {
 	/** Absolute file position in characters; this is the count of characters coming BEFORE this position */
 	public final int offset;
@@ -37,7 +39,7 @@ public final class FilePos {
 		return result;
 	}
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -63,9 +65,11 @@ public final class FilePos {
 	}
 	public String toString(FilePos start) {
 		if(start.line == this.line)
-			return "col "+column; //+" offset "+offset;
+			return String.valueOf(column-1); //+" offset "+offset;
+		else if(this.column == 1) 
+			return "line "+line;
 		else
-			return "line "+line+" col "+column; //+ " offset "+offset;
+			return "line "+line+" col "+(column-1); //+ " offset "+offset;
 	}
 	public void toString(StringBuffer sb) {
 		sb.append("line ").append(line).append(" col ").append(column);//.append(" offset ").append(offset);

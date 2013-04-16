@@ -7,7 +7,7 @@ import banjo.dom.Comment;
 import banjo.dom.HasFileRange;
 import banjo.dom.NumberLiteral;
 import banjo.dom.OperatorRef;
-import banjo.dom.SimpleName;
+import banjo.dom.Identifier;
 import banjo.dom.StringLiteral;
 
 public class SourceTokenStream {
@@ -54,7 +54,7 @@ public class SourceTokenStream {
 		final int tokenEnd = sourceItem.getFileRange().getEndOffset();
 		this.tokenLength = tokenEnd - this.tokenOffset;
 		if(sourceItem instanceof OperatorRef) return v.operator(tokenOffset, tokenLength);
-		if(sourceItem instanceof SimpleName) return v.identifier(tokenOffset, tokenLength, EnumSet.noneOf(IdentifierFlag.class));
+		if(sourceItem instanceof Identifier) return v.identifier(tokenOffset, tokenLength, EnumSet.noneOf(IdentifierFlag.class));
 		if(sourceItem instanceof Comment) return v.comment(tokenOffset, tokenLength);
 		if(sourceItem instanceof StringLiteral) return v.stringLiteral(tokenOffset, tokenLength);
 		if(sourceItem instanceof NumberLiteral) return v.numberLiteral(tokenOffset, tokenLength);

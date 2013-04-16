@@ -1,8 +1,10 @@
 package banjo.dom;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
-public class UnitRef extends AbstractExpr {
+public class UnitRef extends AbstractExpr implements SourceExpr, Token {
 
 	private final ParenType parenType;
 
@@ -36,5 +38,16 @@ public class UnitRef extends AbstractExpr {
 		if(newRange == fileRange)
 			return this;
 		return new UnitRef(newRange, parenType);
+	}
+
+	@Override
+	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+		return visitor.visitUnit(this);
+	}
+
+	@Override
+	@Nullable
+	public <T> T acceptVisitor(TokenVisitor<T> visitor) {
+		return visitor.visitUnit(this);
 	}
 }

@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import static org.junit.Assert.*;
 
@@ -23,11 +23,11 @@ public class TestNumberLiteralParser {
 	// TODO Check for failure cases ...
 	
 	@Test public void idIsNotANumber() { testNonNumber("a"); }
-	@Test public void starIsNotANumber() { testNonNumber("*", ExpectedExpression.class); }
+	// @Test public void starIsNotANumber() { testNonNumber("*", ExpectedExpression.class); }
 	@Test public void semiColonIsNotANumber() { testNonNumber(";", UnsupportedUnaryOperator.class); }
 	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
 	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
-	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.negate()", MissingDigitsAfterDecimalPoint.class); }
+	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.negate()", ExpectedOperator.class); }
 	@Test public void methodCallOnNumber() { testNonNumber("1 .negate()"); }
 	@Test public void numberAsProjection() { testNonNumber("_.1", ExpectedOperator.class); }
 	@Test public void leadingUnderscore() { testNonNumber("_1"); }
@@ -37,8 +37,8 @@ public class TestNumberLiteralParser {
 	}
 	private void testNonNumber(String inStr, Class<? extends BanjoParseException> eClass) {
 		try {
-			final BanjoParser parser = new BanjoParser(inStr);
-			Expr node = parser.parse();
+			final BanjoParser parser = new BanjoParser();
+			Expr node = parser.parse(inStr);
 			if(node != null)
 				System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
 			for(Exception e : parser.getErrors()) {

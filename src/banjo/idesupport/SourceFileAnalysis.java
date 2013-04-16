@@ -1,29 +1,36 @@
 package banjo.idesupport;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.List;
 import java.util.ListIterator;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.dom.HasFileRange;
+import banjo.dom.SourceExpr;
 import banjo.parser.BanjoParser;
+import banjo.parser.BanjoScanner;
+import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
 public class SourceFileAnalysis {
-	private ArrayList<HasFileRange> tokens;
+	private ArrayList<HasFileRange> tokens = new ArrayList<>();
 	private final int fileLength;
+	private ArrayList<BanjoParseException> errors = new ArrayList<>();
+	
+	@Nullable
+	private SourceExpr parseTree;
 	
 	public SourceFileAnalysis(String sourceCode) {
-		final BanjoParser banjoParser = new BanjoParser(sourceCode);
-		try {
-			banjoParser.parse();
-		} catch (IOException e) {
-			throw new Error(e); // From a StringReader?  never!
-		}
+		BanjoScanner scanner = new BanjoScanner();
+		BanjoParser parser = new BanjoParser();
+		new BanjoScanner().scan(sourceCode, new TokenCollector(parser, tokens));
+		errors.addAll(parser.getErrors());
+		errors.addAll(scanner.getErrors());
+		
 		//this.ast = new BanjoDesugarer().desugar(parseTree);
-		this.tokens = banjoParser.getTokens();
 		this.fileLength = sourceCode.length();
 	}
 
@@ -37,7 +44,7 @@ public class SourceFileAnalysis {
 		@Override
 		public int getStartColumn() { throw new UnsupportedOperationException(); }
 		@Override
-		public FileRange getFileRange() {throw new UnsupportedOperationException(); }
+		public @NonNull FileRange getFileRange() {throw new UnsupportedOperationException(); }
 	}
 	static final Comparator<HasFileRange> offsetComparator = new Comparator<HasFileRange>() {
 		@Override

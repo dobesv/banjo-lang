@@ -4,18 +4,20 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
-public class ListLiteral extends AbstractExpr {
+public class ListLiteral extends AbstractExpr implements CoreExpr {
 	
-	private final List<Expr> elements;
+	private final List<CoreExpr> elements;
 	
-	public ListLiteral(FileRange fileRange, List<Expr> elements) {
+	public ListLiteral(FileRange fileRange, List<CoreExpr> elements) {
 		super(fileRange);
 		this.elements = Collections.unmodifiableList(elements);
 	}
 
-	public Collection<Expr> getElements() {
+	public Collection<CoreExpr> getElements() {
 		return elements;
 	}
 
@@ -38,9 +40,14 @@ public class ListLiteral extends AbstractExpr {
 	@Override
 	public Expr transform(ExprTransformer transformer) {
 		FileRange newRange = transformer.transform(fileRange);
-		List<Expr> newElements = ExprList.transformExprs(elements, transformer);
+		List<CoreExpr> newElements = ExprList.transformExprs(elements, transformer);
 		if(newRange == fileRange && newElements == elements)
 			return this;
 		return new ListLiteral(newRange, newElements);
+	}
+	
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitListLiteral(this);
 	}
 }

@@ -6,11 +6,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import banjo.parser.BanjoParser;
+import org.eclipse.jdt.annotation.Nullable;
+
+import banjo.parser.BanjoScanner;
 import banjo.parser.util.FileRange;
 
 
-public class ObjectLiteral extends AbstractExpr {
+public class ObjectLiteral extends AbstractExpr implements CoreExpr {
 	
 	private final Map<String, Field> fields;
 
@@ -66,7 +68,7 @@ public class ObjectLiteral extends AbstractExpr {
 		for(int i=0; i < identifier.length(); i++) {
 			int cp = identifier.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++; // Actually a pair of characters
-			boolean ok = i==0 ? BanjoParser.isIdentifierStart(cp):BanjoParser.isIdentifierPart(cp);
+			boolean ok = i==0 ? BanjoScanner.isIdentifierStart(cp):BanjoScanner.isIdentifierPart(cp);
 			if(!ok) {
 				return StringLiteral.toSource(identifier, sb);
 			}
@@ -92,4 +94,9 @@ public class ObjectLiteral extends AbstractExpr {
 			return this;
 		return new ObjectLiteral(newRange, fields);
 	}
+	
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitObjectLiteral(this);
+	}	
 }

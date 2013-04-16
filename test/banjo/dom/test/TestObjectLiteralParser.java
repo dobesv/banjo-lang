@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -20,7 +20,7 @@ public class TestObjectLiteralParser {
 	@Test public void mixCommasNewlines() { abc("{a:1\n b:2,\n c:3}", 0); }
 	@Test public void backdentError()     { parseError("{a:1,b:2,\nc:3}", IncorrectIndentation.class); }
 
-	@Test public void objValue1() { parse("a:\n a:1\n b:2", "{a: {a: 1, b: 2}}"); }
+	@Test public void objValue1() { parse("a:\n a:1\n b:2\n", "{a: {a: 1, b: 2}}"); }
 	@Test public void objValue2() { parse("a:\n a:1\n b:2\n c:3\nb:\n d:1\n e:2\n f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void objValue3() { parse("a:\n   a:1\n   b:2\n   c:3\nb:\n   d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }
 	@Test public void objValue4() { parse("a: a:1\n   b:2\n   c:3\nb: d:1\n   e:2\n   f:3\n", "{a: {a: 1, b: 2, c: 3}, b: {d: 1, e: 2, f: 3}}"); }

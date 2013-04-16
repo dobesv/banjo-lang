@@ -1,6 +1,8 @@
 package banjo.dom;
 
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
@@ -72,7 +74,19 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 	
 	@Override
-	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.visitStringLiteral(this);
 	}
+	
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitStringLiteral(this);
+	}
+
+	@Override
+	@Nullable
+	public <T> T acceptVisitor(TokenVisitor<T> visitor) {
+		return visitor.visitStringLiteral(this);
+	}	
+	
 }

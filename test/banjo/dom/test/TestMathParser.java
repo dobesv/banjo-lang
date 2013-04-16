@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import org.junit.Ignore;
 import org.junit.Test;

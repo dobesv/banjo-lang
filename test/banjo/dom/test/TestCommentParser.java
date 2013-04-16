@@ -1,5 +1,5 @@
-package banjo.dom;
-import static banjo.dom.ParseTestUtils.test;
+package banjo.dom.test;
+import static banjo.dom.test.ParseTestUtils.test;
 
 import org.junit.Test;
 

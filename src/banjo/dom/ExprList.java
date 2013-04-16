@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
 /**
@@ -11,8 +13,8 @@ import banjo.parser.util.FileRange;
  * steps should operate as if they were run in order from first to last.  The value
  * of the expression is the evaluated result of the last expression.
  */
-public class ExprList extends AbstractExpr {
-	private final List<Expr> elements;
+public class ExprList extends AbstractExpr implements CoreExpr {
+	private final List<CoreExpr> elements;
 	
 //	public static FileRange calculateRange(FileRange base, List<Expr> exprs) {
 //		FilePos start = base.getStart();
@@ -34,7 +36,7 @@ public class ExprList extends AbstractExpr {
 	 * @param transformer Transformer to apply 
 	 * @return The list of transformed elements; may be exactly the same list that was provided
 	 */
-	public static <T extends Expr> List<T> transformExprs(List<T> exprs, ExprTransformer transformer) {
+	public static <T extends CoreExpr> List<T> transformExprs(List<T> exprs, ExprTransformer transformer) {
 		for(int i=0; i < exprs.size(); i++) {
 			final Expr oldArg = exprs.get(i);
 			Expr newArg = transformer.transform(oldArg);
@@ -49,7 +51,7 @@ public class ExprList extends AbstractExpr {
 		}
 		return exprs;
 	}
-	public ExprList(FileRange range, List<Expr> steps) {
+	public ExprList(FileRange range, List<CoreExpr> steps) {
 		super(range);
 		this.elements = Collections.unmodifiableList(steps);
 	}
@@ -69,17 +71,21 @@ public class ExprList extends AbstractExpr {
 		return Precedence.SEMICOLON;
 	}
 
-	public List<Expr> getElements() {
+	public List<CoreExpr> getElements() {
 		return elements;
 	}
 	
 	@Override
 	public Expr transform(ExprTransformer transformer) {
 		FileRange newRange = transformer.transform(fileRange);
-		List<Expr> newExprs = transformExprs(elements, transformer);
+		List<CoreExpr> newExprs = transformExprs(elements, transformer);
 		if(newRange == this.fileRange && newExprs == this.elements)
 			return this;
 		return new ExprList(newRange, newExprs);
+	}
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitExprList(this);
 	}
 
 }

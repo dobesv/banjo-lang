@@ -9,3 +9,5 @@ Export-Package: banjo.desugar,
  banjo.parser,
  banjo.parser.errors,
  banjo.parser.util
+Bundle-ClassPath: lib/functionaljava.jar,
+ .

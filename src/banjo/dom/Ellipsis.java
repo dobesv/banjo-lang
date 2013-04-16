@@ -1,8 +1,10 @@
 package banjo.dom;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
-public class Ellipsis extends AbstractAtom implements Atom {
+public class Ellipsis extends AbstractAtom implements SourceExpr {
 
 	public Ellipsis(FileRange range) {
 		super(range);
@@ -26,7 +28,8 @@ public class Ellipsis extends AbstractAtom implements Atom {
 	}
 	
 	@Override
-	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.visitEllipsis(this);
 	}
+
 }

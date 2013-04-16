@@ -1,8 +1,8 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import org.junit.Test;
 
-import banjo.dom.SimpleName;
+import banjo.dom.Identifier;
 
 public class TestIdParser {
 
@@ -17,7 +17,7 @@ public class TestIdParser {
 	}
 
 	private void test(String source, String expectedSource) {
-		ParseTestUtils.test(source, 0, null, SimpleName.class, expectedSource);
+		ParseTestUtils.test(source, 0, null, Identifier.class, expectedSource);
 	}
 	
 }

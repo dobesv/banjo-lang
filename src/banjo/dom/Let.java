@@ -1,19 +1,21 @@
 package banjo.dom;
 
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
-public class Let extends AbstractExpr {
+public class Let extends AbstractExpr implements CoreExpr {
 	private final Key name;
-	private final Expr value;
+	private final CoreExpr value;
 	
-	public Let(Key name, Expr value) {
+	public Let(Key name, CoreExpr value) {
 		super(new FileRange(name.getFileRange(), value.getFileRange()));
 		this.name = name;
 		this.value = value;
 	}
 
-	public Expr getValue() {
+	public CoreExpr getValue() {
 		return value;
 	}
 
@@ -35,7 +37,15 @@ public class Let extends AbstractExpr {
 
 	@Override
 	public Expr transform(ExprTransformer transformer) {
-		// TODO Auto-generated method stub
-		return null;
+		Key newName = transformer.transform(name);
+		CoreExpr newValue = transformer.transform(value);
+		if(newName == name && newValue == value)
+			return this;
+		return new Let(newName, newValue);
+	}
+
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitLet(this);
 	}
 }

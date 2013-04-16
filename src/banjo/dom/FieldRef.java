@@ -1,13 +1,15 @@
 package banjo.dom;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
-public class FieldRef extends AbstractExpr {
+public class FieldRef extends AbstractExpr implements CoreExpr {
 
-	private final Expr object;
+	private final CoreExpr object;
 	private final Key key;
 
-	public FieldRef(Expr object, Key key) {
+	public FieldRef(CoreExpr object, Key key) {
 		super(new FileRange(object.getFileRange(), key.getFileRange()));
 		this.object = object;
 		this.key = key;
@@ -47,10 +49,15 @@ public class FieldRef extends AbstractExpr {
 	
 	@Override
 	public Expr transform(ExprTransformer transformer) {
-		Expr newObject = transformer.transform(object);
+		CoreExpr newObject = transformer.transform(object);
 		Key newKey = (Key)transformer.transform(key);
 		if(newObject == this.object && newKey == this.key)
 			return this;
 		return new FieldRef(newObject, newKey);
+	}
+
+	@Override
+	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitFieldRef(this);
 	}
 }

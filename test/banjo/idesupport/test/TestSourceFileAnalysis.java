@@ -1,12 +1,13 @@
-package banjo.idesupport;
+package banjo.idesupport.test;
 
-import static banjo.dom.ParseTestUtils.test;
+import static banjo.dom.test.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
 import banjo.dom.Comment;
@@ -14,8 +15,14 @@ import banjo.dom.Expr;
 import banjo.dom.HasFileRange;
 import banjo.dom.ObjectLiteral;
 import banjo.dom.OperatorRef;
-import banjo.dom.SimpleName;
+import banjo.dom.Identifier;
+import banjo.idesupport.IdentifierFlag;
+import banjo.idesupport.SourceFileAnalysis;
+import banjo.idesupport.SourceTokenStream;
+import banjo.idesupport.SourceTokenVisitor;
+import banjo.idesupport.TokenCollector;
 import banjo.parser.BanjoParser;
+import banjo.parser.BanjoScanner;
 
 public class TestSourceFileAnalysis {
 
@@ -28,7 +35,7 @@ public class TestSourceFileAnalysis {
 						"foo", ":",	"bar"
 				}, new Class<?>[] {
 						Comment.class, Comment.class, 
-						SimpleName.class, OperatorRef.class, SimpleName.class				
+						Identifier.class, OperatorRef.class, Identifier.class				
 				});
 	}
 
@@ -36,12 +43,15 @@ public class TestSourceFileAnalysis {
 			Class<? extends Expr> expectedClass,
 			String[] expectedTokenNormalizedSource,
 			Class<?>[] expectedTokenClasses) throws Error {
-		final BanjoParser parser = new BanjoParser(src);
+		BanjoScanner scanner = new BanjoScanner();
+		ArrayList<HasFileRange> tokens = new ArrayList<>();
+		scanner.scan(src, new TokenCollector(new BanjoParser(), tokens));
+		final BanjoParser parser = new BanjoParser();
 		test(src, 0, null, expectedClass, normalizedSource, parser);
 		int expectedTokenCount = expectedTokenNormalizedSource.length;
-		assertEquals(expectedTokenCount, parser.getTokens().size());
+		assertEquals(expectedTokenCount, tokens.size());
 		for(int i=0; i < expectedTokenCount; i++) {
-			HasFileRange token = parser.getTokens().get(i);
+			HasFileRange token = tokens.get(i);
 			assertEquals(expectedTokenClasses[i], token.getClass());
 			assertEquals(expectedTokenNormalizedSource[i], token.toString());
 		}
@@ -61,7 +71,7 @@ public class TestSourceFileAnalysis {
 		}
 
 		@Override
-		public String whitespace(int offset, int length) {
+		public @NonNull String whitespace(int offset, int length) {
 			return token("ws", offset, length);
 		}
 
@@ -73,45 +83,45 @@ public class TestSourceFileAnalysis {
 		}
 
 		@Override
-		public String comment(int offset, int length) {
+		public @NonNull String comment(int offset, int length) {
 			return token("com", offset, length);
 		}
 
 		@Override
-		public String endOfFile(int fileLength) {
+		public @NonNull String endOfFile(int fileLength) {
 			done = true;
 			assertEquals("Wrong end of range?", fileLength, this.fileLength);
 			return token("eof", fileLength, 0);
 		}
 
 		@Override
-		public String operator(int offset, int length) {
+		public @NonNull String operator(int offset, int length) {
 			return token("op", offset, length);
 		}
 
 		@Override
-		public String stringLiteral(int offset, int length) {
+		public @NonNull String stringLiteral(int offset, int length) {
 			return token("str", offset, length);
 		}
 
 		@Override
-		public String numberLiteral(int offset, int length) {
+		public @NonNull String numberLiteral(int offset, int length) {
 			return token("num", offset, length);
 		}
 
 		@Override
-		public String identifier(int offset, int length,
+		public @NonNull String identifier(int offset, int length,
 				EnumSet<IdentifierFlag> flags) {
 			return token("id"+(flags.isEmpty()?"":flags.toString()), offset, length);
 		}
 
 		@Override
-		public String other(int offset, int length) {
+		public @NonNull String other(int offset, int length) {
 			return token("??", offset, length);
 		}
 
 		@Override
-		public String endOfRange(int rangeEnd) {
+		public @NonNull String endOfRange(int rangeEnd) {
 			done = true;
 			assertEquals("Wrong end of range?", rangeEnd, this.rangeEnd);
 			return token("end", rangeEnd, 0);

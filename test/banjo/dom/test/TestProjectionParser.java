@@ -1,11 +1,10 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import org.junit.Test;
 
 import banjo.dom.Call;
 import banjo.dom.FieldRef;
 import banjo.dom.ObjectLiteral;
-import banjo.dom.RowUpdate;
 
 public class TestProjectionParser {
 
@@ -16,10 +15,10 @@ public class TestProjectionParser {
 	@Test public void aProjectBCq() { ParseTestUtils.test("a.{\"b\",\"c\"}", "{\"b\": a.\"b\", \"c\": a.\"c\"}", ObjectLiteral.class); }
 	@Test public void aProjectBCNewlines() { ParseTestUtils.test("a.\n | b\n | c", "{b: a.b, c: a.c}", ObjectLiteral.class); }
 	@Test public void aProjectBCNewlinesq() { ParseTestUtils.test("a.\n | \"b\"\n | \"c\"", "{\"b\": a.\"b\", \"c\": a.\"c\"}", ObjectLiteral.class); }
-	@Test public void aWithB() { ParseTestUtils.test("a.{b: 2}", RowUpdate.class); }
-	@Test public void aWithB2() { ParseTestUtils.test("a.\n b: 2", "a.{b: 2}", RowUpdate.class); }
-	@Test public void aWithBC() { ParseTestUtils.test("a.{b: 2, c: 3}", RowUpdate.class); }
-	@Test public void aWithBC2() { ParseTestUtils.test("a.\n b: 2, c: 3", "a.{b: 2, c: 3}", RowUpdate.class); }
+	@Test public void aWithB() { ParseTestUtils.test("a.{b: 2}", "a.extend({b: 2})", Call.class); }
+	@Test public void aWithB2() { ParseTestUtils.test("a.\n b: 2", "a.extend({b: 2})", Call.class); }
+	@Test public void aWithBC() { ParseTestUtils.test("a.{b: 2, c: 3}", "a.extend({b: 2, c: 3})", Call.class); }
+	@Test public void aWithBC2() { ParseTestUtils.test("a.\n b: 2, c: 3", "a.extend({b: 2, c: 3})", Call.class); }
 	@Test public void specialCharField1() { ParseTestUtils.test("a.\\-\\-", FieldRef.class); }
 	@Test public void specialCharField2() { ParseTestUtils.test("a.\\.\\.", FieldRef.class); }
 	@Test public void specialCharField3() { ParseTestUtils.test("a.\\.", FieldRef.class); }

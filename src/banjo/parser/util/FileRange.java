@@ -1,5 +1,7 @@
 package banjo.parser.util;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 
 public final class FileRange {
 	private final String filename;
@@ -13,11 +15,32 @@ public final class FileRange {
 		this.filename = filename;
 		this.start = start;
 		this.end = end;
+		if(end.before(start)) {
+			throw new IllegalStateException("Range end comes before start"); // Don't expect nodes to be out of order in that array
+		}
 	}
+	
+	/**
+	 * Create a new range by extending the first parameter to the end position
+	 * of the second parameter.  The second parameter must end after the beginning
+	 * of the first parameter;
+	 * 
+	 * @param head First range, the start of which is used in the new range
+	 * @param tail Second range, the end of which is used in the new range
+	 */
 	public FileRange(FileRange head, FileRange tail) {
-		this(head.getFilename(), head.getStart(), tail.getEnd());
+		this(head, tail.getEnd());
 		if(!head.getFilename().equals(tail.getFilename())) throw new IllegalStateException(); // Don't expect parse trees to span multiple files, do we?
-		if(end.before(start)) throw new IllegalStateException("Range end comes before start"); // Don't expect nodes to be out of order in that array
+	}
+	/**
+	 * Create a new file range by extending an existing one to a new end position.
+	 * 
+	 * @param baseRange Range to extend
+	 * @param newTail New end position
+	 */
+	public FileRange(FileRange head, FilePos tail) {
+		this(head.getFilename(), head.getStart(), tail);
+		
 	}
 	
 	@Override
@@ -30,7 +53,7 @@ public final class FileRange {
 		return result;
 	}
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -56,7 +79,7 @@ public final class FileRange {
 		sb.append(getFilename());
 		sb.append(": ");
 		sb.append(getStart());
-		if(!getStart().equals(getEnd())) {
+		if(getStart().getOffset()> getEnd().getOffset()+1) {
 			sb.append(" to ");
 			sb.append(getEnd().toString(getStart()));
 		}

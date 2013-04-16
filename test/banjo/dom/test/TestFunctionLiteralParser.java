@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -7,15 +7,15 @@ import java.io.IOException;
 import org.junit.Test;
 
 import banjo.dom.FunctionLiteral;
-import banjo.dom.SimpleName;
+import banjo.dom.Identifier;
 
 
 public class TestFunctionLiteralParser {
 
 	public FunctionLiteral testParse(String source, int expectedErrors, int expectedArgCount, String expectedArgNames, String expectedArgReturned) {
 		FunctionLiteral func = ParseTestUtils.test(source, expectedErrors, null, FunctionLiteral.class, "("+expectedArgNames+") -> "+expectedArgReturned);
-		assertEquals(SimpleName.class, func.getBody().getClass());
-		assertEquals(expectedArgReturned, ((SimpleName)func.getBody()).getId());
+		assertEquals(Identifier.class, func.getBody().getClass());
+		assertEquals(expectedArgReturned, ((Identifier)func.getBody()).getId());
 		return func;
 	}
 	@Test public void testIdentity()   { testParse("a↦a", 0, 1, "a", "a"); } // Identity function

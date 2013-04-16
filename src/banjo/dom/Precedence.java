@@ -1,5 +1,6 @@
 package banjo.dom;
 
+
 public enum Precedence {
 	// Listed here from HIGHEST to LOWEST
 	ATOM, // Identifier, string/number/character/object literal/constructor, parenthesized expr 

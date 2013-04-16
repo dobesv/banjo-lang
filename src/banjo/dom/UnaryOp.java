@@ -1,25 +1,21 @@
 package banjo.dom;
 
-import banjo.parser.util.FileRange;
+import org.eclipse.jdt.annotation.Nullable;
 
-public class UnaryOp extends AbstractExpr {
-	private final UnaryOperator operator;
-	private final Expr operand;
-	public UnaryOp(FileRange range, UnaryOperator operator, Expr operand) {
-		super(range);
-		this.operator = operator;
+import banjo.parser.util.FileRange;
+import fj.data.Option;
+
+public class UnaryOp extends AbstractOp implements SourceExpr {
+	private final SourceExpr operand;
+	public UnaryOp(Operator operator, OperatorRef opToken, SourceExpr operand, Option<OperatorRef> closeParenToken) {
+		super(operator.isSuffix()?
+				new FileRange(operand.getFileRange(), opToken.getFileRange()):
+				new FileRange(opToken.getFileRange(), operand.getFileRange()),
+				operator, opToken, closeParenToken);
 		this.operand = operand;
 	}
-	public UnaryOperator getOperator() {
-		return operator;
-	}
-	public Expr getOperand() {
+	public SourceExpr getOperand() {
 		return operand;
-	}
-	public Expr withNewOperand(Expr enriched) {
-		if(enriched == this.operand)
-			return this;
-		return new UnaryOp(getFileRange(), operator, enriched);
 	}
 	
 	public void toSource(StringBuffer sb) {
@@ -45,10 +41,15 @@ public class UnaryOp extends AbstractExpr {
 	
 	@Override
 	public Expr transform(ExprTransformer transformer) {
-		Expr newOperand = transformer.transform(operand);
-		FileRange newRange = transformer.transform(fileRange);
-		if(newOperand == operand && newRange == fileRange)
+		SourceExpr newOperand = transformer.transform(operand);
+		OperatorRef newOpToken = transformer.transform(opToken);
+		Option<OperatorRef> newCloseParenToken = optTransform(closeParenToken, transformer);
+		if(newOperand == operand && newOpToken == opToken & newCloseParenToken == this.closeParenToken)
 			return this;
-		return new UnaryOp(newRange, operator, newOperand);
+		return new UnaryOp(operator, newOpToken, newOperand, newCloseParenToken);
+	}
+	@Override
+	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+		return visitor.visitUnaryOp(this);
 	}
 }

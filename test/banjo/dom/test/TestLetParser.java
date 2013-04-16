@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import static org.junit.Assert.assertEquals;
 
@@ -8,7 +8,7 @@ import banjo.dom.Expr;
 import banjo.dom.ExprList;
 import banjo.dom.FunctionLiteral;
 import banjo.dom.Let;
-import banjo.dom.SimpleName;
+import banjo.dom.Identifier;
 import banjo.dom.StringLiteral;
 
 public class TestLetParser {
@@ -25,12 +25,12 @@ public class TestLetParser {
 			assertEquals(2, node.getElements().size());
 			Let let = (Let) node.getElements().get(0);
 			
-			assertEquals("hello", let.getName());
+			assertEquals("hello", let.getName().getKeyString());
 			assertEquals(StringLiteral.class, let.getValue().getClass());
 			assertEquals("world", ((StringLiteral)let.getValue()).getString());
 			Expr body = node.getElements().get(1);
-			assertEquals(SimpleName.class, body.getClass());
-			assertEquals("hello", ((SimpleName)body).getId());
+			assertEquals(Identifier.class, body.getClass());
+			assertEquals("hello", ((Identifier)body).getId());
 		} else {
 			ParseTestUtils.test(source, expectedErrorCount, null, null, null);
 		}
@@ -44,7 +44,7 @@ public class TestLetParser {
 	
 	public void func(String source, int expectedErrorCount, String expectedSource) {
 		Let let = ParseTestUtils.test(source, expectedErrorCount, null, Let.class, expectedSource);
-		assertEquals("f", let.getName());
+		assertEquals("f", let.getName().getKeyString());
 		assertEquals(FunctionLiteral.class, let.getValue().getClass());
 	}
 	

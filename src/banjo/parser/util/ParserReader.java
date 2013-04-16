@@ -13,6 +13,8 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.ParserReader.Pos;
 
 
@@ -105,7 +107,8 @@ public class ParserReader extends Reader {
 	final Pos mark = new Pos();
 	public final int fileSize; // In chars
 	
-	public int read(CharBuffer target) throws IOException {
+	public int read(@Nullable CharBuffer target) throws IOException {
+		if(target == null) throw new NullPointerException();
 		int offset = target.position();
 		int charsRead = delegate.read(target);
 		for(int i=0; i < charsRead; i++) {
@@ -125,7 +128,8 @@ public class ParserReader extends Reader {
 		current.accumulate(ch);
 	}
 
-	public int read(char[] cbuf) throws IOException {
+	public int read(@Nullable char[] cbuf) throws IOException {
+		if(cbuf == null) throw new NullPointerException();
 		int len = delegate.read(cbuf);
 		for(int i=0; i < len; i++) {
 			accumulate(cbuf[i]);
@@ -133,7 +137,8 @@ public class ParserReader extends Reader {
 		return len;
 	}
 
-	public int read(char[] cbuf, int off, int len) throws IOException {
+	public int read(@Nullable char[] cbuf, int off, int len) throws IOException {
+		if(cbuf == null) throw new NullPointerException();
 		int lenRead = delegate.read(cbuf, off, len);
 		for(int i=0; i < lenRead; i++) {
 			accumulate(cbuf[off+i]);

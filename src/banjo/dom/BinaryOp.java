@@ -1,27 +1,30 @@
 package banjo.dom;
 
-import banjo.parser.util.FileRange;
+import org.eclipse.jdt.annotation.Nullable;
 
-public class BinaryOp extends AbstractExpr implements ParseTreeNode {
-	private final Expr left;
-	private final Expr right;
-	private final BinaryOperator operator;
+import banjo.parser.util.FileRange;
+import fj.data.Option;
+
+public class BinaryOp extends AbstractOp implements SourceExpr {
+	private final SourceExpr left;
+	private final SourceExpr right;
 	
-	public BinaryOp(BinaryOperator op, Expr left, Expr right) {
-		super(new FileRange(left.getFileRange(), right.getFileRange()));
-		this.operator = op;
+	private static final Option<OperatorRef> CLOSE_PAREN_NONE = Option.none();
+	public BinaryOp(Operator operator, SourceExpr left, OperatorRef opToken, SourceExpr right, Option<OperatorRef> closeParenToken) {
+		super(new FileRange(left.getFileRange(), closeParenToken.isNone() ? right.getFileRange() : closeParenToken.some().getFileRange()), operator, opToken, closeParenToken);
 		this.left = left;
 		this.right = right;
 	}
 	
-	public Expr getLeft() {
+	public BinaryOp(Operator operator, SourceExpr left, OperatorRef opToken, SourceExpr right) {
+		this(operator, left, opToken, right, CLOSE_PAREN_NONE);
+	}
+	
+	public SourceExpr getLeft() {
 		return left;
 	}
-	public Expr getRight() {
+	public SourceExpr getRight() {
 		return right;
-	}
-	public BinaryOperator getOperator() {
-		return operator;
 	}
 
 	@Override
@@ -29,6 +32,7 @@ public class BinaryOp extends AbstractExpr implements ParseTreeNode {
 		return left.getStartColumn();
 	}
 	
+	@Override
 	public void toSource(StringBuffer sb) {
 		left.toSource(sb, getPrecedence());
 		sb.append(' ');
@@ -45,23 +49,21 @@ public class BinaryOp extends AbstractExpr implements ParseTreeNode {
 	}
 	
 	@Override
-	public Precedence getPrecedence() {
-		return operator.getPrecedence();
-	}
-
-	@Override
 	public Expr transform(ExprTransformer transformer) {
-		return with(transformer.transform(left), transformer.transform(right));
+		Expr newLeft = transformer.transform(left);
+		OperatorRef newOpToken = transformer.transform(opToken);
+		Expr newRight = transformer.transform(right);
+		Option<OperatorRef> newCloseParenToken = optTransform(closeParenToken, transformer);
+		if(newLeft == left && 
+				newOpToken == opToken && 
+				newRight == right && 
+				newCloseParenToken == this.closeParenToken)
+			return this;
+		return new BinaryOp(operator, left, opToken, right, newCloseParenToken);
 	}
 
-	private Expr with(Expr left, Expr right) {
-		if(left == this.left && right == this.right)
-			return this;
-		return new BinaryOp(operator, left, right);
-	}
-	
-	@Override
-	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+	@Override @Nullable
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.visitBinaryOp(this);
 	}
 }

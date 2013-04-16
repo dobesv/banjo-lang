@@ -2,16 +2,13 @@ package banjo.dom;
 
 
 import banjo.parser.util.FileRange;
+import fj.data.Option;
 
 public abstract class AbstractExpr extends AbstractHasFileRange implements Expr {
 	public AbstractExpr(FileRange range) {
 		super(range);
 	}
 	
-	@Override
-	public abstract void toSource(StringBuffer sb);
-	@Override
-	public abstract Precedence getPrecedence();
 	@Override
 	public void toSource(StringBuffer sb, Precedence outerPrec) {
 		final Precedence prec = getPrecedence();
@@ -35,5 +32,15 @@ public abstract class AbstractExpr extends AbstractHasFileRange implements Expr 
 	
 	public String toString() {
 		return toSource();
+	}
+	
+	static <T extends Expr> Option<T> optTransform(Option<T> opt, ExprTransformer transformer) {
+		if(opt.isNone())
+			return opt;
+		T value = opt.some();
+		T newValue = transformer.transform(value);
+		if(value == newValue)
+			return opt;
+		return Option.some(newValue);
 	}
 }

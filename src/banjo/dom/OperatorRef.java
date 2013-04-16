@@ -1,5 +1,7 @@
 package banjo.dom;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.parser.util.FileRange;
 
 public class OperatorRef extends AbstractExpr implements Atom {
@@ -30,11 +32,24 @@ public class OperatorRef extends AbstractExpr implements Atom {
 		FileRange newRange = transformer.transform(fileRange);
 		if(newRange == fileRange)
 			return this;
-		return new SimpleName(newRange, op);
+		return new Identifier(newRange, op);
 	}
 	
 	@Override
-	public <T> T acceptVisitor(ParseTreeVisitor<T> visitor) {
+	public @Nullable <T> T acceptVisitor(TokenVisitor<T> visitor) {
 		return visitor.visitOperator(this);
 	}
+
+	@Override
+	@Nullable
+	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitOperator(this);
+	}
+
+	@Override
+	@Nullable
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+		return visitor.visitOperator(this);
+	}
+	
 }

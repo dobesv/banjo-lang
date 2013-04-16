@@ -14,11 +14,13 @@ public class ReaderCharSequence implements CharSequence {
 
 	public ReaderCharSequence(Reader reader, int length, int chunkSize) {
 		if(chunkSize <= 0) throw new IllegalArgumentException();
-		if(reader == null) throw new NullPointerException();
 		if(length < 0) throw new IllegalArgumentException();
 		this.reader = reader;
 		this.length = length;
 		this.chunkSize = chunkSize;
+		final CharBuffer buf = CharBuffer.allocate(0);
+		if(buf == null) throw new NullPointerException();
+		this.buf = buf;
 	}
 	
 	@Override
@@ -76,10 +78,10 @@ public class ReaderCharSequence implements CharSequence {
 		if(index >= length) throw new IndexOutOfBoundsException();
 		
 		// Extend buffer if necessary
-		if(buf == null || index >= buf.length()) {
+		if(index >= buf.length()) {
 			int newlen = Math.min(length, (((index+1)/chunkSize) + 1) * chunkSize);
 			CharBuffer newBuffer = CharBuffer.allocate(newlen);
-			if(buf != null) newBuffer.put(buf);
+			newBuffer.put(buf);
 			try {
 				do {
 					int charsRead = reader.read(newBuffer);

@@ -1,6 +1,6 @@
-package banjo.dom;
+package banjo.dom.test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,9 +19,9 @@ public class TestStringLiteralParser {
 	@Test public void testMultiline() { testParser("  \"abc\n   def\n    ghi\n   jkl\n   \"", "abc\ndef\n ghi\njkl\n"); }
 	@Test public void testBacktick() { testParser("`HelloWorld", "HelloWorld", 0); }	
 	@Test public void testBacktickEscapes() { testParser("`Hello\\ World\\!", "Hello World!", 0); }	
-	@Test public void testBacktickEmpty1() { testParser("`", "", 0); }
-	@Test public void testBacktickEmpty2() { testParser("` ", "", 0); }
-	@Test public void testBacktickEmpty3() { testParser(" ` ", "", 0); }
+	@Test public void testBacktickEmpty1() { testParser("`", "", 1); }
+	@Test public void testBacktickEmpty2() { testParser("` ", "", 1); }
+	@Test public void testBacktickEmpty3() { testParser(" ` ", "", 1); }
 	@Test public void testBacktickOp1() { testParser("`*", "*", 0); }
 	@Test public void testBacktickOp2() { testParser("`\\\\", "\\", 0); }
 	@Test public void testEmpty1() { testParser("\"\"", "", 0); }
@@ -31,7 +31,9 @@ public class TestStringLiteralParser {
 	private void testParser(String source, String expectedString) { testParser(source, expectedString, 0); }
 
 	private void testParser(String sourceString, String expectedParsedString, int expectedErrorCount) {
-		assertEquals(expectedParsedString, ParseTestUtils.test(sourceString, expectedErrorCount, null, StringLiteral.class, null).getString());
+		StringLiteral actualNode = ParseTestUtils.test(sourceString, expectedErrorCount, null, StringLiteral.class, null);
+		assertNotNull(actualNode);
+		assertEquals(expectedParsedString, actualNode.getString());
 	}
 	
 	@Test

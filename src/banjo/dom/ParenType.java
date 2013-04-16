@@ -1,11 +1,15 @@
 package banjo.dom;
 
+import fj.data.Option;
+
 public enum ParenType {
 	PARENS('(', ')'),
 	/** Braces, aka curly brackets, are used to denote object literals */
 	BRACES('{', '}'),
 	/** Brackets, aka square brackets, are used to denote list literals */
 	BRACKETS('[', ']');
+	
+	public static final Option<ParenType> NONE = Option.none();
 	
 	private final char startChar;
 	private final char endChar;
@@ -23,20 +27,20 @@ public enum ParenType {
 		return endChar;
 	}
 
-	public static ParenType forChar(char startChar) {
+	public static Option<ParenType> forChar(char startChar) {
 		for(ParenType t : values()) {
 			if(startChar == t.startChar)
-				return t;
+				return Option.some(t);
 		}
-		return null;
+		return Option.none();
 	}
 
-	public static ParenType forCloseChar(char endChar) {
+	public static Option<ParenType> forCloseChar(char endChar) {
 		for(ParenType t : values()) {
 			if(endChar == t.endChar)
-				return t;
+				return Option.some(t);
 		}
-		return null;
+		return Option.none();
 	}
 	
 	public static boolean isOpenParen(int codePoint) {

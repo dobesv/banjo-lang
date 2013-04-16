@@ -1,4 +1,4 @@
-package banjo.dom;
+package banjo.dom.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -6,12 +6,16 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.Collection;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 import banjo.desugar.BanjoDesugarer;
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
+import banjo.dom.SourceExpr;
 import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
 
+@NonNullByDefault(false)
 public class ParseTestUtils {
 
 	public ParseTestUtils() {
@@ -19,7 +23,7 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BanjoParseException> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		BanjoParser parser = new BanjoParser(source);
+		BanjoParser parser = new BanjoParser();
 		return test(source, expectedErrors, expectedErrorClass, expectedClass,
 				normalizedSource, parser);
 	}
@@ -29,9 +33,9 @@ public class ParseTestUtils {
 			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
 			throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
-		Expr parsed;
+		SourceExpr parsed;
 		try {
-			parsed = parser.parse();
+			parsed = parser.parse(source);
 		} catch (IOException e1) {
 			throw new Error(e1);
 		}
@@ -40,18 +44,20 @@ public class ParseTestUtils {
 		errors(expectedErrors, expectedErrorClass, parser.getErrors());
 		assertTrue(parser.reachedEof());
 		
-		final Expr parseTree = parsed;
-		final BanjoDesugarer desugarer = new BanjoDesugarer();
-		Expr ast = desugarer.desugar(parseTree);
-		System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
-		errors(expectedErrors, expectedErrorClass, desugarer.getErrors());
-		assertEquals("Wrong number of errors found", expectedErrors, desugarer.getErrors().size() + parser.getErrors().size());
-		
-		if(normalizedSource != null)
-			assertEquals(normalizedSource, ast.toSource());
-		if(expectedClass != null) {
-			assertEquals(expectedClass, ast.getClass());
-			return expectedClass.cast(ast);
+		final SourceExpr parseTree = parsed;
+		if(parseTree != null) {
+			final BanjoDesugarer desugarer = new BanjoDesugarer();
+			Expr ast = desugarer.desugar(parseTree);
+			System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
+			errors(expectedErrors, expectedErrorClass, desugarer.getErrors());
+			assertEquals("Wrong number of errors found", expectedErrors, desugarer.getErrors().size() + parser.getErrors().size());
+			
+			if(normalizedSource != null)
+				assertEquals(normalizedSource, ast.toSource());
+			if(expectedClass != null) {
+				assertEquals(expectedClass, ast.getClass());
+				return expectedClass.cast(ast);
+			}
 		}
 		return null;
 	}
@@ -60,7 +66,7 @@ public class ParseTestUtils {
 			Class<? extends BanjoParseException> expectedClass,
 			final Collection<BanjoParseException> errors) throws Error {
 		if(!errors.isEmpty()) {
-			System.out.println("Desugaring errors:");
+			System.out.println("Errors:");
 			for(Exception e : errors) {
 				System.out.println("  "+e);
 			}
