@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+This is a wrapper around the eclipse-generated build file.  It's used by continuous integration systems to
+build the project.
+
+To generate the build.gen.xml from Eclipse:
+
+1. Right-click the project and choose Export ...
+2. Choose General > Ant BuildFiles ...
+3. Select this eclipse project
+4. Set the Ant filename to build.gen.xml
+5. Uncheck "Create target to compile using eclipse compiler..."
+6. Click "Finish"
+
+-->
+<project name="banjo" default="test">
+	<path id="JUnit 4.libraryclasspath">
+		<pathelement location="lib/functionaljava.jar" />
+		<pathelement location="lib/junit.jar" />
+		<pathelement location="lib/org.hamcrest.core_1.1.0.v20090501071000.jar" />
+	</path>
+	<path id="Plug-in Dependencies.libraryclasspath">
+		<pathelement location="lib/org.eclipse.jdt.annotation_1.0.1.v20130111-135246.jar" />
+	</path>
+	<import file="build.gen.xml" />
+	<target name="test" depends="banjo-lang.build,banjo-lang.banjo.dom.test">
+	</target>
+</project>
