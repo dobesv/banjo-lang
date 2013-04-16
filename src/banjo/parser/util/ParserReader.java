@@ -13,9 +13,8 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
-
-import banjo.parser.util.ParserReader.Pos;
 
 
 
@@ -118,7 +117,7 @@ public class ParserReader extends Reader {
 	}
 
 	public int read() throws IOException {
-		int ch = delegate.read();
+		int ch = current.offset >= fileSize ? -1 : delegate.read();
 		accumulate(ch);
 		return ch;
 	}
@@ -341,7 +340,9 @@ public class ParserReader extends Reader {
 	 * desired file position.
 	 */
 	public Matcher matcher(Pattern p) throws IOException {
-		return p.matcher(toCharSequence());
+		Matcher result = p.matcher(toCharSequence());
+		if(result == null) throw new NullPointerException();
+		return result;
 	}
 	
 	/**
@@ -381,7 +382,9 @@ public class ParserReader extends Reader {
 	 */
 	public ParserReader(URL url) throws IOException {
 		final URLConnection c = url.openConnection();
-		this.filename = url.toString();
+		String urlString = url.toString();
+		if(urlString == null) throw new NullPointerException();
+		this.filename = urlString;
 		this.fileSize = c.getContentLength();
 		if(this.fileSize == -1)
 			throw new UnsupportedOperationException("Don't yet support reading a file where we don't know the file size in advance.");
@@ -401,6 +404,28 @@ public class ParserReader extends Reader {
 	public static ParserReader fromString(String filename, String body) {
 		try {
 			return new ParserReader(new StringReader(body), filename, body.length());
+		} catch (IOException e) {
+			throw new Error(e);
+		}
+	}
+
+	/**
+	 * Parse a substring of the given string.  
+	 * 
+	 * <p> This may eventually be implemented so it doesn't copy parts the original string but rather
+	 * pretends to have an EOF at the given offet.
+	 * 
+	 * @param filename File to use for reporting errors
+	 * @param body Text to use an input
+	 * @param beginIndex Position to start at (it will scan to this position and calculate the line/column information)
+	 * @param endIndex Position to stop at; it will report EOF at that character offset.
+	 * @return
+	 */
+	public static ParserReader fromSubstring(String filename, String body, int beginIndex, int endIndex) {
+		try {
+			ParserReader reader = new ParserReader(new StringReader(body), filename, endIndex);
+			reader.skip(beginIndex);
+			return reader;
 		} catch (IOException e) {
 			throw new Error(e);
 		}
@@ -435,7 +460,7 @@ public class ParserReader extends Reader {
 	 * <p>
 	 * Returns null if the regular expression doesn't match.
 	 */
-	public String consume(Pattern re) throws IOException {
+	public @NonNull String consume(Pattern re) throws IOException {
 		FilePos start = getFilePos();
 		Matcher m = matcher(re);
 		if(m.lookingAt() && m.end() > m.start()) {
@@ -526,13 +551,15 @@ public class ParserReader extends Reader {
 		for(;;) {
 			int ch = read();
 			if(ch == '\n' || ch == -1) {
-				return sb.toString();
+				String s = sb.toString();
+				if(s == null) throw new NullPointerException();
+				return s;
 			}
 			sb.append((char)ch);
 		}
 	}
 
-	public String positionInLineAsString() throws IOException {
+	public @Nullable String positionInLineAsString() throws IOException {
 		FilePos start = getFilePos();
 		StringBuffer sb = new StringBuffer();
 		sb.append(readLineContaining(start)).append("\n");

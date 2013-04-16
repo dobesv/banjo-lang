@@ -47,7 +47,7 @@ public class BanjoScanner {
 		return cp == '_' || cp == '$' || cp == '\\' || Character.isLetter(cp);
 	}
 	
-	protected @Nullable <T> T scanOne(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	public @Nullable <T> T next(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		for(;;) {
 			in.getCurrentPosition(tokenStartPos);
 			Option<T> result = Option.<T>none();
@@ -64,7 +64,7 @@ public class BanjoScanner {
 				int badCp = in.read();
 				if(badCp == -1) {
 					eof = true;
-					return visitor.visitEof();
+					return visitor.visitEof(in.getFilePos());
 				} else {
 					errors.add(new SyntaxError("Invalid character "+badCp, in.getFileRange(tokenStartPos)));
 				}
@@ -72,13 +72,28 @@ public class BanjoScanner {
 		}
 	}
 	
+	/**
+	 * <p> Scan the entire input up until EOF, passing tokens to the given visitor.
+	 * 
+	 * <p> Resets the scanner before scanning any tokens.
+	 * 
+	 * @param in Input to parse
+	 * @param visitor Visitor to send events to
+	 * @return The return value from visitEof()
+	 * @throws IOException If the underlying stream cannot be read
+	 */
 	public @Nullable <T> T scan(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		eof = false;
+		reset();
 		for(;;) {
-			T result = scanOne(in, visitor);
+			T result = next(in, visitor);
 			if(eof)
 				return result;
 		}
+	}
+
+	public void reset() {
+		eof = false;
+		errors.clear();
 	}
 	
 	public @Nullable <T> T scan(ParserReader in, TokenVisitor<T> visitor, Collection<BanjoParseException> errors) throws IOException {

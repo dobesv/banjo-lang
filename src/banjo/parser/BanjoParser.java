@@ -355,7 +355,7 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	}
 	
 	@Override
-	public @Nullable SourceExpr visitEof() {
+	public @Nullable SourceExpr visitEof(FilePos endPos) {
 		eof = true;
 		SourceExpr operand = this.operand;
 		if(operand == null) {

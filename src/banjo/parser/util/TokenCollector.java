@@ -1,4 +1,4 @@
-package banjo.idesupport;
+package banjo.parser.util;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -18,7 +18,6 @@ import banjo.dom.UnitRef;
 import banjo.dom.Whitespace;
 import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
-import banjo.parser.util.ParserReader;
 
 public class TokenCollector implements TokenVisitor<SourceExpr> {
 	final BanjoParser parser;
@@ -73,8 +72,8 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 		tokens.add(c);
 		return parser.visitComment(c);
 	}
-	public @Nullable SourceExpr visitEof() {
-		return parser.visitEof();
+	public @Nullable SourceExpr visitEof(FilePos endPos) {
+		return parser.visitEof(endPos);
 	}
 	
 }

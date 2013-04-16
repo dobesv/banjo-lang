@@ -5,147 +5,29 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
 import banjo.dom.Comment;
+import banjo.dom.Ellipsis;
 import banjo.dom.Expr;
 import banjo.dom.HasFileRange;
+import banjo.dom.Identifier;
+import banjo.dom.NumberLiteral;
 import banjo.dom.ObjectLiteral;
 import banjo.dom.OperatorRef;
-import banjo.dom.Identifier;
-import banjo.idesupport.IdentifierFlag;
+import banjo.dom.StringLiteral;
+import banjo.dom.TokenVisitor;
+import banjo.dom.UnitRef;
+import banjo.dom.Whitespace;
 import banjo.idesupport.SourceFileAnalysis;
-import banjo.idesupport.SourceTokenStream;
-import banjo.idesupport.SourceTokenVisitor;
-import banjo.idesupport.TokenCollector;
 import banjo.parser.BanjoParser;
 import banjo.parser.BanjoScanner;
+import banjo.parser.util.TokenCollector;
 
 public class TestSourceFileAnalysis {
 
-	@Test
-	public void test1() {
-		testTokenizer("// comment\n/* comment */\nfoo: bar", "{foo: bar}", ObjectLiteral.class,
-				new String[] {
-						"// comment\n",
-						"/* comment */",
-						"foo", ":",	"bar"
-				}, new Class<?>[] {
-						Comment.class, Comment.class, 
-						Identifier.class, OperatorRef.class, Identifier.class				
-				});
-	}
-
-	private void testTokenizer(String src, String normalizedSource,
-			Class<? extends Expr> expectedClass,
-			String[] expectedTokenNormalizedSource,
-			Class<?>[] expectedTokenClasses) throws Error {
-		BanjoScanner scanner = new BanjoScanner();
-		ArrayList<HasFileRange> tokens = new ArrayList<>();
-		scanner.scan(src, new TokenCollector(new BanjoParser(), tokens));
-		final BanjoParser parser = new BanjoParser();
-		test(src, 0, null, expectedClass, normalizedSource, parser);
-		int expectedTokenCount = expectedTokenNormalizedSource.length;
-		assertEquals(expectedTokenCount, tokens.size());
-		for(int i=0; i < expectedTokenCount; i++) {
-			HasFileRange token = tokens.get(i);
-			assertEquals(expectedTokenClasses[i], token.getClass());
-			assertEquals(expectedTokenNormalizedSource[i], token.toString());
-		}
-	}
-	
-	static class TestingSourceTokenVisitor implements SourceTokenVisitor<String> {
-
-		int tokenOffset = 0;
-		final int rangeEnd;
-		final int fileLength;
-		boolean done = false;
-		
-		public TestingSourceTokenVisitor(int rangeStart, int rangeEnd, int fileLength) {
-			this.tokenOffset = rangeStart;
-			this.rangeEnd = rangeEnd;
-			this.fileLength = fileLength;
-		}
-
-		@Override
-		public @NonNull String whitespace(int offset, int length) {
-			return token("ws", offset, length);
-		}
-
-		private String token(String t, int offset, int length) {
-			if(offset > 0)
-				assertEquals("Characters skipped?", tokenOffset, offset);
-			tokenOffset = offset+length;
-			return t;
-		}
-
-		@Override
-		public @NonNull String comment(int offset, int length) {
-			return token("com", offset, length);
-		}
-
-		@Override
-		public @NonNull String endOfFile(int fileLength) {
-			done = true;
-			assertEquals("Wrong end of range?", fileLength, this.fileLength);
-			return token("eof", fileLength, 0);
-		}
-
-		@Override
-		public @NonNull String operator(int offset, int length) {
-			return token("op", offset, length);
-		}
-
-		@Override
-		public @NonNull String stringLiteral(int offset, int length) {
-			return token("str", offset, length);
-		}
-
-		@Override
-		public @NonNull String numberLiteral(int offset, int length) {
-			return token("num", offset, length);
-		}
-
-		@Override
-		public @NonNull String identifier(int offset, int length,
-				EnumSet<IdentifierFlag> flags) {
-			return token("id"+(flags.isEmpty()?"":flags.toString()), offset, length);
-		}
-
-		@Override
-		public @NonNull String other(int offset, int length) {
-			return token("??", offset, length);
-		}
-
-		@Override
-		public @NonNull String endOfRange(int rangeEnd) {
-			done = true;
-			assertEquals("Wrong end of range?", rangeEnd, this.rangeEnd);
-			return token("end", rangeEnd, 0);
-		}
-	}
-	@Test public void testTokenStream1() { testTokenStream("a + b + c + d", 0, 13, new String[] {
-			"id", "ws", "op", "ws", "id", "ws", "op", "ws", "id", "ws", "op", "ws", "id", "eof"}); }
-	@Test public void testTokenStream2() { testTokenStream("a + b + c + d", 0, 1, new String[] {"id", "end"}); }
-	@Test public void testTokenStream3() { testTokenStream("a + b + c + d", 1, 2, new String[] {"ws", "end"}); }
-	@Test public void testTokenStream4() { testTokenStream("a + b + c + d", 2, 3, new String[] {"op", "end"}); }
-	@Test public void testTokenStream5() { testTokenStream("/* foo */", 0, 9, new String[] {"com", "eof"}); }
-	@Test public void testTokenStream6() { testTokenStream("/* foo */", 1, 5, new String[] {"com", "eof"}); }
-	@Test public void testTokenStream7() { testTokenStream("/* foo */   a", 0, 13, new String[] {"com", "ws", "id", "eof"}); }
-
-	static private void testTokenStream(String src, final int rangeStart,
-			final int rangeEnd, String[] expectedTokens) {
-		SourceFileAnalysis analysis = new SourceFileAnalysis(src);
-		final SourceTokenStream tokenStream = analysis.tokenStream(rangeStart, rangeEnd);
-		ArrayList<String> foundTokens = new ArrayList<String>();
-		TestingSourceTokenVisitor testVisitor = new TestingSourceTokenVisitor(rangeStart, rangeEnd, src.length());
-		while(!testVisitor.done) {
-			foundTokens.add(tokenStream.visitNext(testVisitor));
-		}
-		assertEquals(Arrays.asList(expectedTokens).toString(), foundTokens.toString());
-	}
 	
 }

@@ -14,6 +14,7 @@ import banjo.parser.BanjoParser;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
+import banjo.parser.util.TokenCollector;
 
 public class SourceFileAnalysis {
 	private ArrayList<HasFileRange> tokens = new ArrayList<>();
@@ -52,28 +53,28 @@ public class SourceFileAnalysis {
 			return Integer.compare(o1.getStartOffset(), o2.getStartOffset());
 		}
 	};
-	
-	/**
-	 * Return a token stream for the given file range.  This allows one to do syntax highlighting
-	 * by "visiting" the tokens.  The tokens returned by the resulting stream will cover the given
-	 * area exactly.  Tokens spanning the boundaries of the range will be truncated to fit during
-	 * the visiting process.
-	 * 
-	 * @param rangeStart Character offset to start at
-	 * @param rangeEnd Character offset to end at (exclusive)
-	 * @return A SourceTokenStream to visit tokens with
-	 */
-	public SourceTokenStream tokenStream(int rangeStart, int rangeEnd) {
-		final HasFileRange posTok = new FakeTokenWithOffset(rangeStart);
-		int pos = Collections.binarySearch(tokens, posTok, offsetComparator);
-		if(pos < 0) pos = -pos - 1;
-		// If there's a token that starts before rangeStart but includes rangeStart, return that one too
-		while(pos > 0 && tokens.get(pos-1).getFileRange().getEndOffset() > rangeStart) pos--;
-		//while(pos < tokens.size() && tokens.get(pos).getFileRange().getEndOffset() < rangeStart) pos++;
-		final ListIterator<HasFileRange> it = tokens.listIterator(pos);
-		
-		return new SourceTokenStream(it, fileLength, rangeStart, rangeEnd);
-	}
+//	
+//	/**
+//	 * Return a token stream for the given file range.  This allows one to do syntax highlighting
+//	 * by "visiting" the tokens.  The tokens returned by the resulting stream will cover the given
+//	 * area exactly.  Tokens spanning the boundaries of the range will be truncated to fit during
+//	 * the visiting process.
+//	 * 
+//	 * @param rangeStart Character offset to start at
+//	 * @param rangeEnd Character offset to end at (exclusive)
+//	 * @return A SourceTokenStream to visit tokens with
+//	 */
+//	public SourceTokenStream tokenStream(int rangeStart, int rangeEnd) {
+//		final HasFileRange posTok = new FakeTokenWithOffset(rangeStart);
+//		int pos = Collections.binarySearch(tokens, posTok, offsetComparator);
+//		if(pos < 0) pos = -pos - 1;
+//		// If there's a token that starts before rangeStart but includes rangeStart, return that one too
+//		while(pos > 0 && tokens.get(pos-1).getFileRange().getEndOffset() > rangeStart) pos--;
+//		//while(pos < tokens.size() && tokens.get(pos).getFileRange().getEndOffset() < rangeStart) pos++;
+//		final ListIterator<HasFileRange> it = tokens.listIterator(pos);
+//		
+//		return new SourceTokenStream(it, fileLength, rangeStart, rangeEnd);
+//	}
 
 	/**
 	 * Apply an increment edit.  The character at the specified offset & length are to be deleted, then
