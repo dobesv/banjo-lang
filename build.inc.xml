@@ -6,6 +6,6 @@
       <pathelement location="lib/org.hamcrest.core_1.1.0.v20090501071000.jar"/>
       <pathelement location="lib/org.eclipse.jdt.annotation_1.0.1.v20130111-135246.jar"/>
     </path>
-   <target name="test" depends="build,banjo.parser.ast">
+   <target name="test" depends="build,banjo.dom.test">
   </target>
 </project>

@@ -46,22 +46,22 @@
         </javac>
     </target>
     <target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects"/>
-    <target name="banjo.parser.ast">
+    <target name="banjo.dom.test">
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestCallParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestCondParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestIdParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestLetParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestListLiteralParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestMathParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestNumberLiteralParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestObjectLiteralParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestProjectionParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestSetLiteralParser" todir="${junit.output.dir}"/>
-            <test name="banjo.parser.ast.TestStringLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestCallParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestCondParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestIdParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestLetParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestListLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestMathParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestNumberLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestObjectLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestProjectionParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestSetLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestStringLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -69,7 +69,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestCallParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestCallParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -77,7 +77,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestCondParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestCondParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -85,7 +85,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestCondParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestCondParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -93,7 +93,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -101,7 +101,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestFunctionLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -109,7 +109,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestLetParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestLetParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -117,7 +117,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestListLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestListLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -125,7 +125,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestMathParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestMathParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -133,7 +133,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestNumberLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestNumberLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -141,7 +141,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestObjectLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestObjectLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -149,7 +149,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestObjectLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestObjectLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -157,7 +157,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestObjectLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestObjectLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -165,7 +165,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestProjectionParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestProjectionParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -173,7 +173,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestSetLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestSetLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -181,7 +181,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestStringLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestStringLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
@@ -189,7 +189,7 @@
         <mkdir dir="${junit.output.dir}"/>
         <junit fork="yes" printsummary="withOutAndErr">
             <formatter type="xml"/>
-            <test name="banjo.parser.ast.TestStringLiteralParser" todir="${junit.output.dir}"/>
+            <test name="banjo.dom.test.TestStringLiteralParser" todir="${junit.output.dir}"/>
             <classpath refid="banjo-lang.classpath"/>
         </junit>
     </target>
