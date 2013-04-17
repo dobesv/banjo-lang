@@ -519,8 +519,9 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 			if(name == null) throw new NullPointerException();
 			Option<CoreExpr> contract = FunctionLiteral.CONTRACT_NONE;
 			if(isPair(name)) {
-				name = ((BinaryOp) name).getLeft();
-				contract = Option.some(desugar(((BinaryOp) name).getRight()));
+				BinaryOp pair = (BinaryOp) name;
+				name = pair.getLeft();
+				contract = Option.some(desugar(pair.getRight()));
 				if(contract == null) throw new NullPointerException();
 			}
 			if(!(name instanceof Key)) {
