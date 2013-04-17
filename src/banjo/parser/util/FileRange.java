@@ -114,4 +114,14 @@ public final class FileRange {
 		return start.column;
 	}
 
+	/**
+	 * Check whether the given offset falls within this range. 
+	 * 
+	 * @param offset Offset to check
+	 * @return true if the given offset is >= getStartOffset() and < getEndOffset().
+	 */
+	public boolean containsOffset(int offset) {
+		return offset >= getStartOffset() && offset < getEndOffset();
+	}
+
 }
