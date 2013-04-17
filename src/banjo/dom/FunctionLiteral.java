@@ -13,14 +13,20 @@ public class FunctionLiteral extends AbstractExpr implements CoreExpr {
 	private final List<FunArg> args;
 	private final Option<CoreExpr> contract;
 	private final CoreExpr body;
+	private final Option<Key> selfName;
 	
 	public static final Option<CoreExpr> CONTRACT_NONE = Option.none();
 	
-	public FunctionLiteral(FileRange range, List<FunArg> args, Option<CoreExpr> contract, CoreExpr body) {
+	public FunctionLiteral(FileRange range, Option<Key> selfName, List<FunArg> args, Option<CoreExpr> contract, CoreExpr body) {
 		super(range);
 		this.args = Collections.unmodifiableList(args);
 		this.contract = contract;
 		this.body = body;
+		this.selfName = selfName;
+	}
+	
+	public FunctionLiteral(FileRange range, List<FunArg> args, Option<CoreExpr> contract, CoreExpr body) {
+		this(range, Key.NONE, args, contract, body);
 	}
 	
 	/**
@@ -58,6 +64,11 @@ public class FunctionLiteral extends AbstractExpr implements CoreExpr {
 	
 	@Override
 	public void toSource(StringBuffer sb) {
+		if(selfName.isSome()) {
+			// TODO ... this syntax won't parse back in again!
+			selfName.some().toSource(sb);
+			sb.append(".");
+		}
 		sb.append('(');
 		boolean first = true;
 		for(FunArg arg : args) {
@@ -88,18 +99,24 @@ public class FunctionLiteral extends AbstractExpr implements CoreExpr {
 	public Expr transform(ExprTransformer transformer) {
 		FileRange newRange = transformer.transform(fileRange);
 		Option<CoreExpr> newContract = optTransform(contract, transformer);
+		Option<Key> newSelfName = optTransform(selfName, transformer);
 		CoreExpr newBody = transformer.transform(body);
 		List<FunArg> newArgs = ExprList.transformExprs(args, transformer);
 		if(newRange == fileRange &&
+				newSelfName == selfName &&
 				newContract == contract &&
 				newBody == body &&
 				newArgs == args)
 			return this;
-		return new FunctionLiteral(newRange, newArgs, newContract, newBody);
+		return new FunctionLiteral(newRange, newSelfName, newArgs, newContract, newBody);
 	}
 
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.visitFunctionLiteral(this);
+	}
+
+	public Option<Key> getSelfName() {
+		return selfName;
 	}
 }

@@ -30,7 +30,10 @@ public class TestObjectLiteralParser {
 
 	@Test public void mirrors1() { parse("{:x,:y}", "{x: x, y: y}"); }
 	@Test public void mirrors2() { parse(" : x\n : y", "{x: x, y: y}"); }
-	@Test public void method() { parse("{f(x): x}", "{f: (x) -> x}"); }
+	@Test public void method1() { parse("{f(x): x}", "{f: (x) -> x}"); }
+	@Test public void method2() { parse("{f(): x}", "{f: () -> x}"); }
+	@Test public void method3() { parse("{self.f(): self}", "{f: self.() -> self}"); }
+	@Test public void method4() { parse("{self.f(x): self}", "{f: self.(x) -> self}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
 	@Test public void table1() { parse("#::a,b,c\nabc:(1,2,3)", "{abc: {a: 1, b: 2, c: 3}}"); }

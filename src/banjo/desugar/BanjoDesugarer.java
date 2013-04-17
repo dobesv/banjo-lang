@@ -20,6 +20,7 @@ import banjo.desugar.errors.MissingValueForTableColumn;
 import banjo.desugar.errors.MixedSemicolonAndComma;
 import banjo.desugar.errors.MultipleElseClausesInConditional;
 import banjo.desugar.errors.UnexpectedEllipsis;
+import banjo.dom.AbstractOp;
 import banjo.dom.BinaryOp;
 import banjo.dom.Call;
 import banjo.dom.Comment;
@@ -390,10 +391,38 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 			if(contract == null) throw new NullPointerException();
 		}
 		CoreExpr value;
+		Option<Key> selfName = Option.none();
 		if(isCallWithArgs(keyExpr)) {
 			BinaryOp call = (BinaryOp) keyExpr;
-			value = functionLiteral(valueExpr.getFileRange(), flattenCommasOrSemicolons(call.getRight(), new ArrayList<SourceExpr>()), desugar(valueExpr), contract);
 			keyExpr = call.getLeft();
+			if(isProjection(keyExpr)) {
+				SourceExpr selfExpr = ((BinaryOp)keyExpr).getLeft();
+				if(selfExpr instanceof Key) {
+					selfName = Option.some((Key)selfExpr);
+				} else {
+					selfName = Option.some((Key)new StringLiteral(selfExpr.getFileRange(), selfExpr.toSource()));
+					errors.add(new ExpectedIdentifier(selfExpr));
+				}
+				keyExpr = ((BinaryOp)keyExpr).getRight();
+			}
+			value = functionLiteral(valueExpr.getFileRange(), flattenCommasOrSemicolons(call.getRight(), new ArrayList<SourceExpr>()), desugar(valueExpr), contract, selfName);
+			contract = FunctionLiteral.CONTRACT_NONE;
+		} else if(isUnaryCall(keyExpr)) {
+			UnaryOp call = (UnaryOp) keyExpr;
+			keyExpr = call.getOperand();
+			if(isProjection(keyExpr)) {
+				SourceExpr selfExpr = ((BinaryOp)keyExpr).getLeft();
+				if(selfExpr instanceof Key) {
+					selfName = Option.some((Key)selfExpr);
+				} else {
+					selfName = Option.some((Key)new StringLiteral(selfExpr.getFileRange(), selfExpr.toSource()));
+					errors.add(new ExpectedIdentifier(selfExpr));
+				}
+				keyExpr = ((BinaryOp)keyExpr).getRight();
+			}
+			List<SourceExpr> args = Collections.<SourceExpr>emptyList();
+			if(args == null) throw new NullPointerException();
+			value = functionLiteral(valueExpr.getFileRange(), args, desugar(valueExpr), contract, selfName);
 			contract = FunctionLiteral.CONTRACT_NONE;
 		} else if(headings != null) {
 			// If this is a table, construct the row
@@ -414,6 +443,14 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 		Key key = (Key)keyExpr;
 		final Field field = new Field(key, value);
 		fields.put(field.getKey().getKeyString(), field);
+	}
+
+	private boolean isProjection(SourceExpr keyExpr) {
+		return isBinaryOp(keyExpr, Operator.PROJECTION);
+	}
+
+	private boolean isBinaryOp(SourceExpr expr, Operator opToCheckFor) {
+		return((expr instanceof BinaryOp) && ((BinaryOp) expr).getOperator() == opToCheckFor);
 	}
 
 	private CoreExpr makeRow(List<SourceExpr> headings, SourceExpr rowExpr) {
@@ -470,18 +507,21 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 			// Optional parentheses around formal parameter list
 			flattenCommas(stripParens(args), Operator.COMMA, exprs);
 		}
-		return functionLiteral(range, exprs, body, contract);
+		return functionLiteral(range, exprs, body, contract, Key.NONE);
 	}
 
 	private CoreExpr functionLiteral(FileRange range, List<SourceExpr> exprs,
-			final CoreExpr body, Option<CoreExpr> returnContract) {
+			final CoreExpr body, Option<CoreExpr> returnContract, Option<Key> selfName) {
 		List<FunArg> args = exprs.isEmpty() ? Collections.<FunArg>emptyList() : new ArrayList<FunArg>(exprs.size());
+		if(args == null) throw new NullPointerException();
 		for(SourceExpr argExpr : exprs) {
 			SourceExpr name = argExpr;
+			if(name == null) throw new NullPointerException();
 			Option<CoreExpr> contract = FunctionLiteral.CONTRACT_NONE;
 			if(isPair(name)) {
 				name = ((BinaryOp) name).getLeft();
 				contract = Option.some(desugar(((BinaryOp) name).getRight()));
+				if(contract == null) throw new NullPointerException();
 			}
 			if(!(name instanceof Key)) {
 				getErrors().add(new ExpectedIdentifier(name));
@@ -489,7 +529,7 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 			}
 			args.add(new FunArg((Key)name, contract));
 		}
-		return new FunctionLiteral(range, args, returnContract, body);
+		return new FunctionLiteral(range, selfName, args, returnContract, body);
 	}
 
 	private boolean isListElement(SourceExpr e) {
