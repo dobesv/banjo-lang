@@ -1,6 +1,5 @@
 package banjo.analysis;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -29,39 +28,53 @@ import banjo.dom.StringLiteral;
 public class DefRefScanner {
 
 	
-	public final LocalDefTypeCalculator localDefTypeCalculator = new LocalDefTypeCalculator();
+	public final LocalDefTypeCalculator localDefTypeCalculator = new LocalDefTypeCalculator(DefType.LOCAL_VALUE, DefType.LOCAL_CONST, DefType.LOCAL_FUNCTION);
+	public final LocalDefTypeCalculator fieldDefTypeCalculator = new LocalDefTypeCalculator(DefType.SELF_FIELD, DefType.SELF_CONST, DefType.SELF_METHOD);
 
 	public static final class LocalDefTypeCalculator extends
 			CoreExprVisitorWithDefault<DefType> {
+		final DefType valueType;
+		final DefType constType;
+		final DefType functionType;
+		
+		public LocalDefTypeCalculator(DefType valueType, DefType constType,
+				DefType functionType) {
+			super();
+			this.valueType = valueType;
+			this.constType = constType;
+			this.functionType = functionType;
+		}
+
 		@Override
 		public DefType fallback(CoreExpr unsupported) {
-			return DefType.LOCAL_VALUE;
+			return valueType;
 		}
 
 		@Override
 		public DefType visitStringLiteral(StringLiteral stringLiteral) {
-			return DefType.LOCAL_CONST;
+			return constType;
 		}
 
 		@Override
 		public DefType visitNumberLiteral(
 				NumberLiteral numberLiteral) {
-			return DefType.LOCAL_CONST;
+			return constType;
 		}
 
 		@Override
 		public DefType visitFunctionLiteral(FunctionLiteral functionLiteral) {
-			return DefType.LOCAL_FUNCTION;
+			return functionType;
 		}
 
 		@Override
 		public DefType visitObjectLiteral(ObjectLiteral objectLiteral) {
 			for(Field f : objectLiteral.getFields().values()) {
 				DefType fieldDefType = f.getValue().acceptVisitor(this);
-				if(fieldDefType != DefType.LOCAL_CONST)
-					return DefType.LOCAL_VALUE;
+				if(fieldDefType == valueType) {
+					return valueType;
+				}
 			}
-			return DefType.LOCAL_CONST;
+			return constType;
 		}
 
 		@Override
@@ -73,26 +86,22 @@ public class DefRefScanner {
 		public DefType visitListLiteral(ListLiteral listLiteral) {
 			for(CoreExpr elt : listLiteral.getElements()) {
 				DefType eltDefType = elt.acceptVisitor(this);
-				if(eltDefType != DefType.LOCAL_CONST)
-					return DefType.LOCAL_VALUE;
+				if(eltDefType != constType)
+					return valueType;
 			}
-			return DefType.LOCAL_CONST;
+			return constType;
 		}
 
 		@Override
 		public DefType visitSetLiteral(SetLiteral setLiteral) {
 			for(CoreExpr elt : setLiteral.getElements()) {
 				DefType eltDefType = elt.acceptVisitor(this);
-				if(eltDefType != DefType.LOCAL_CONST)
-					return DefType.LOCAL_VALUE;
+				if(eltDefType != constType)
+					return valueType;
 			}
-			return DefType.LOCAL_CONST;
+			return constType;
 		}
 
-		@Override
-		public DefType visitBadExpr(BadExpr badExpr) {
-			return DefType.LOCAL_VALUE;
-		}
 	}
 
 	public void scan(CoreExpr expr, final DefRefVisitor visitor) {
@@ -225,7 +234,7 @@ public class DefRefScanner {
 				environment.push(scope);
 				scopeDepth++;
 				for(Field f : objectLiteral.getFields().values()) {
-					def(f.getKey(), DefType.SELF_FIELD, scope);
+					def(f.getKey(), fieldDefType(f), scope);
 				}
 				for(Field f : objectLiteral.getFields().values()) {
 					scan(f.getValue());
@@ -235,6 +244,11 @@ public class DefRefScanner {
 				return null;
 			}
 
+			private DefType fieldDefType(Field f) {
+				DefType defType = f.getValue().acceptVisitor(fieldDefTypeCalculator);
+				if(defType == null) throw new NullPointerException();
+				return defType;
+			}
 			@Override
 			@Nullable
 			public Void visitLet(Let let) {

@@ -27,8 +27,8 @@ public class TestDefRefScanner {
 			); }
 	@Test public void testConst() { test("x = 1 ; x", def(DefType.LOCAL_CONST, "x"), ref(DefType.LOCAL_CONST, "x")); }
 	@Test public void testConstSet() { test("a = {1,2,3}", def(DefType.LOCAL_CONST, "a")); }
-	@Test public void testConstObj() { test("a = {a:1,b:2,c:3}", 
-			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_FIELD, "a"), def(DefType.SELF_FIELD, "b"), def(DefType.SELF_FIELD, "c")); }
+	@Test public void testConstObj() { test("a = {a:1,b:[2],c:\"3\"}", 
+			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_CONST, "a"), def(DefType.SELF_CONST, "b"), def(DefType.SELF_CONST, "c")); }
 
 	String joinWithCommas(String ... strings) {
 		StringBuffer buf = new StringBuffer();

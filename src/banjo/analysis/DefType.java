@@ -11,8 +11,12 @@ public enum DefType {
 	PARAMETER,
 	/** A reference to the specific object a method was invoked upon */
 	SELF,
-	/** A field in an object is labeled as a " field" when referred to using dot notation */
+	/** A field in an object is labeled as a "field" when referred to using dot notation */
 	FIELD,
-	/** A field in an enclosing object is labeled as a "self field" when referred to directly by name (not using a dot) */
-	SELF_FIELD;
+	/** A field referred to directly by name (not using a dot) */
+	SELF_FIELD, 
+	/** A field referred to directly by name (not using a dot) and is a function literal */
+	SELF_CONST, 
+	/** A field referred to directly by name (not using a dot) and is a function literal */
+	SELF_METHOD;
 }
