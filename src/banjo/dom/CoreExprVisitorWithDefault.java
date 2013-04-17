@@ -3,59 +3,71 @@ package banjo.dom;
 import org.eclipse.jdt.annotation.Nullable;
 
 public abstract class CoreExprVisitorWithDefault<T> implements CoreExprVisitor<T> {
+	@Nullable
 	public abstract T fallback(CoreExpr unsupported);
 
 	@Override
+	@Nullable
 	public T visitStringLiteral(StringLiteral n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitNumberLiteral(NumberLiteral n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitIdentifier(Identifier n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitCall(Call n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitExprList(ExprList n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitFieldRef(FieldRef n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitFunctionLiteral(FunctionLiteral n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitObjectLiteral(ObjectLiteral n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitLet(Let n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitListLiteral(ListLiteral n) {
 		return fallback(n);
 	}
 
 	@Override
+	@Nullable
 	public T visitSetLiteral(SetLiteral n) {
 		return fallback(n);
 	}

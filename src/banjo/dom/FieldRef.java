@@ -15,7 +15,7 @@ public class FieldRef extends AbstractExpr implements CoreExpr {
 		this.key = key;
 	}
 
-	public Expr getBase() {
+	public CoreExpr getBase() {
 		return object;
 	}
 

@@ -2,12 +2,12 @@ package banjo.dom;
 
 public class Field {
 	private final Key key;
-	private final Expr value;
-	public Field(Key key, Expr value) {
+	private final CoreExpr value;
+	public Field(Key key, CoreExpr value) {
 		this.key = key;
 		this.value = value;
 	}
-	public Expr getValue() {
+	public CoreExpr getValue() {
 		return value;
 	}
 	public Key getKey() {

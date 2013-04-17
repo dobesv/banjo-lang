@@ -9,7 +9,7 @@ import java.util.Collection;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 
 import banjo.desugar.BanjoDesugarer;
-import banjo.dom.AbstractExpr;
+import banjo.dom.CoreExpr;
 import banjo.dom.Expr;
 import banjo.dom.SourceExpr;
 import banjo.parser.BanjoParser;
@@ -55,7 +55,7 @@ public class ParseTestUtils {
 			if(normalizedSource != null)
 				assertEquals(normalizedSource, ast.toSource());
 			if(expectedClass != null) {
-				assertEquals(expectedClass, ast.getClass());
+				assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
 				return expectedClass.cast(ast);
 			}
 		}
@@ -81,12 +81,12 @@ public class ParseTestUtils {
 		test(source, expectedSource, null);
 	
 	}
-	public static void test(String source, Class<? extends AbstractExpr> expectedClass) {
-		test(source, source, expectedClass);
+	public static <T extends CoreExpr> T test(String source, Class<T> expectedClass) {
+		return test(source, source, expectedClass);
 	}
 
-	public static void test(String source, String expectedSource, Class<? extends AbstractExpr> expectedClass) {
-		test(source, 0, null, expectedClass, expectedSource);
+	public static <T extends CoreExpr> T test(String source, String expectedSource, Class<T> expectedClass) {
+		return test(source, 0, null, expectedClass, expectedSource);
 	}
 
 }

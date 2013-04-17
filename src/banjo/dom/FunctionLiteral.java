@@ -53,7 +53,7 @@ public class FunctionLiteral extends AbstractExpr implements CoreExpr {
 		return args;
 	}
 
-	public Expr getBody() {
+	public CoreExpr getBody() {
 		return body;
 	}
 	
