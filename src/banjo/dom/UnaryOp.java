@@ -21,7 +21,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	public void toSource(StringBuffer sb) {
 		if(operator.isParen()) {
 			sb.append(operator.getParenType().getStartChar());
-		} if(!operator.isSuffix()) {
+		} else if(!operator.isSuffix()) {
 			sb.append(operator.getOp());
 			if(operator.getPrecedence() != Precedence.UNARY_PREFIX || operand.getPrecedence() == Precedence.UNARY_PREFIX)
 				sb.append(' '); // Put a space for bullets
