@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 
+import banjo.desugar.errors.InvalidProjection;
 import banjo.dom.Expr;
 import banjo.dom.NumberLiteral;
 import banjo.dom.UnaryOp;
@@ -13,7 +14,6 @@ import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedOperator;
-import banjo.parser.errors.InvalidProjection;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnsupportedUnaryOperator;

@@ -1,6 +1,7 @@
-package banjo.parser.errors;
+package banjo.desugar.errors;
 
 import banjo.dom.Expr;
+import banjo.parser.errors.BanjoParseException;
 
 public class ElseClauseNotLast extends BanjoParseException {
 	public ElseClauseNotLast(Expr duplicateElseClause) {
