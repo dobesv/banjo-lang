@@ -30,6 +30,18 @@ public class TestDefRefScanner {
 	@Test public void testConstObj() { test("a = {a:1,b:[2],c:\"3\"}", 
 			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_CONST, "a"), def(DefType.SELF_CONST, "b"), def(DefType.SELF_CONST, "c")); }
 
+	
+	@Test public void testTokens1() { testTokens("a = 1 ; a",
+			def(DefType.LOCAL_CONST, "a"),
+			"ws","op","ws","num","ws","op","ws",
+			ref(DefType.LOCAL_CONST, "a"),
+			"eof"); }
+	
+	
+	private void testTokens(String string, String ... events) {
+		TokensAndDefsRefsToString.testScanner(string, 0, string.length(), events);
+	}
+	
 	String joinWithCommas(String ... strings) {
 		StringBuffer buf = new StringBuffer();
 		for(String s : strings) {
