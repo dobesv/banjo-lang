@@ -79,9 +79,9 @@ public final class FileRange {
 		sb.append(getFilename());
 		sb.append(": ");
 		sb.append(getStart());
-		if(getStart().getOffset()> getEnd().getOffset()+1) {
+		if(end.offset > start.offset+1) {
 			sb.append(" to ");
-			sb.append(getEnd().toString(getStart()));
+			sb.append(end.toString(start));
 		}
 		return sb.toString();
 	}

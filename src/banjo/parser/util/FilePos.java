@@ -67,7 +67,7 @@ public final class FilePos {
 		if(start.line == this.line)
 			return String.valueOf(column-1); //+" offset "+offset;
 		else if(this.column == 1) 
-			return "line "+line;
+			return "end of line "+(line-1);
 		else
 			return "line "+line+" col "+(column-1); //+ " offset "+offset;
 	}

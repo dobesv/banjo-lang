@@ -92,7 +92,7 @@ public class ObjectLiteral extends AbstractExpr implements CoreExpr {
 		}
 		if(newRange == fileRange && newFields == fields)
 			return this;
-		return new ObjectLiteral(newRange, fields);
+		return new ObjectLiteral(newRange, newFields);
 	}
 	
 	@Override

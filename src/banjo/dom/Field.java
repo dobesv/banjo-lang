@@ -15,10 +15,10 @@ public class Field {
 	}
 	public Field transform(ExprTransformer transformer) {
 		Key newKey = transformer.transform(key);
-		Expr newValue = transformer.transform(value);
+		CoreExpr newValue = transformer.transform(value);
 		if(newKey == key && newValue == value)
 			return this;
-		return new Field(key, value);
+		return new Field(newKey, newValue);
 	}
 	
 }
