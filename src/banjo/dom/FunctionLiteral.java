@@ -87,8 +87,8 @@ public class FunctionLiteral extends AbstractExpr implements CoreExpr {
 		body.toSource(sb, Precedence.FUNCTION);
 	}
 
-	public CoreExpr getContract() {
-		return contract.some();
+	public Option<CoreExpr> getContract() {
+		return contract;
 	}
 	
 	public boolean hasContract() {

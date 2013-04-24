@@ -6,6 +6,7 @@ import java.util.LinkedList;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.Option;
 import banjo.dom.BadExpr;
 import banjo.dom.Call;
 import banjo.dom.Comment;
@@ -32,7 +33,7 @@ import banjo.dom.UnitRef;
 import banjo.dom.Whitespace;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.UnexpectedIOExceptionError;
-import banjo.parser.util.FilePos;
+import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 
 public class DefRefScanner {
@@ -74,9 +75,9 @@ public class DefRefScanner {
 			return visitor.visitEllipsis(ellipsis);
 		}
 
-		public @Nullable T visitEof(FilePos endPos) {
+		public @Nullable T visitEof(FileRange entireFileRange) {
 			eof = true;
-			return visitor.visitEof(endPos);
+			return visitor.visitEof(entireFileRange);
 		}
 
 		public @Nullable T visitUnit(UnitRef unit) {
@@ -226,8 +227,7 @@ public class DefRefScanner {
 				if(selfName == null) throw new NullPointerException();
 				def(selfName, DefType.SELF, scope);
 			}
-			if(functionLiteral.hasContract())
-				scan(functionLiteral.getContract());
+			scan(functionLiteral.getContract());
 			for(FunArg arg : functionLiteral.getArgs()) {
 				if(arg.hasContract())
 					scan(arg.getContract());
@@ -236,6 +236,14 @@ public class DefRefScanner {
 			scopeDepth--;
 			if(environment.pop() != scope) throw new Error();
 			return null;
+		}
+
+		private void scan(Option<CoreExpr> optExpr) {
+			if(optExpr.isSome()) {
+				CoreExpr e = optExpr.some();
+				if(e == null) throw new NullPointerException();
+				scan(e);
+			}
 		}
 
 		@Override

@@ -24,6 +24,7 @@ import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.PrematureEndOfFile;
 import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedDecimalPoint;
+import banjo.parser.errors.UnexpectedIOExceptionError;
 import banjo.parser.errors.UnexpectedSecondDecimalPoint;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
@@ -39,7 +40,7 @@ public class BanjoScanner {
 		try {
 			return scan(ParserReader.fromString("<string>", inStr), visitor);
 		} catch (IOException e) {
-			throw new Error(e);
+			throw new UnexpectedIOExceptionError(e);
 		}
 	}
 	
@@ -64,7 +65,7 @@ public class BanjoScanner {
 				int badCp = in.read();
 				if(badCp == -1) {
 					eof = true;
-					return visitor.visitEof(in.getFilePos());
+					return visitor.visitEof(in.getFileRange(FilePos.START));
 				} else {
 					errors.add(new SyntaxError("Invalid character "+badCp, in.getFileRange(tokenStartPos)));
 				}

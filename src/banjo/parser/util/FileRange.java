@@ -107,11 +107,17 @@ public final class FileRange {
 	public String getFilename() {
 		return filename;
 	}
+	public int getStartLine() {
+		return start.line;
+	}
 	public int getEndLine() {
 		return end.line;
 	}
 	public int getStartColumn() {
 		return start.column;
+	}
+	public int getEndColumn() {
+		return end.column;
 	}
 
 	/**
@@ -123,5 +129,6 @@ public final class FileRange {
 	public boolean containsOffset(int offset) {
 		return offset >= getStartOffset() && offset < getEndOffset();
 	}
+
 
 }

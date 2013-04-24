@@ -16,6 +16,7 @@ import banjo.dom.Identifier;
 import banjo.dom.NumberLiteral;
 import banjo.dom.Operator;
 import banjo.dom.Operator.Position;
+import banjo.dom.BadExpr;
 import banjo.dom.OperatorRef;
 import banjo.dom.ParenType;
 import banjo.dom.Precedence;
@@ -30,6 +31,7 @@ import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedCloseParen;
 import banjo.parser.errors.UnsupportedBinaryOperator;
 import banjo.parser.errors.UnsupportedUnaryOperator;
@@ -168,10 +170,19 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	 * @throws IOException If the underlying stream throws IOException
 	 */
 	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
+		reset();
 		return new BanjoScanner().scan(in, this, errors);
+	}
+
+	public @Nullable SourceExpr parse(ParserReader in, Collection<BanjoParseException> errors) throws IOException {
+		reset();
+		SourceExpr result = parse(in);
+		errors.addAll(this.errors);
+		return result;
 	}
 	
 	public @Nullable SourceExpr parse(String source) throws IOException {
+		reset();
 		return new BanjoScanner().scan(source, this, errors);
 	}
 
@@ -355,16 +366,23 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	}
 	
 	@Override
-	public @Nullable SourceExpr visitEof(FilePos endPos) {
+	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
 		eof = true;
 		SourceExpr operand = this.operand;
 		if(operand == null) {
 			// Parse failed
-			return null;
+			return new BadExpr(entireFileRange, new SyntaxError(entireFileRange.length()==0?"Empty file":"Parse failed", entireFileRange));
 		}
 		while(!opStack.isEmpty()) {
 			this.operand = operand = opStack.pop().makeOp(operand, Consts.OPTOKEN_NONE);
 		}
 		return operand;
+	}
+
+	public void reset() {
+		errors.clear();
+		opStack.clear();
+		operand = null;
+		eof = false;
 	}
 }

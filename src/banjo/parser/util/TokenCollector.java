@@ -72,8 +72,8 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 		tokens.add(c);
 		return parser.visitComment(c);
 	}
-	public @Nullable SourceExpr visitEof(FilePos endPos) {
-		return parser.visitEof(endPos);
+	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
+		return parser.visitEof(entireFileRange);
 	}
 	
 }

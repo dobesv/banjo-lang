@@ -5,7 +5,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
 
-public class BadExpr extends AbstractExpr implements CoreExpr {
+public class BadExpr extends AbstractExpr implements CoreExpr, SourceExpr {
 	private final BanjoParseException error;
 	
 	public BadExpr(FileRange range, BanjoParseException error) {
@@ -36,6 +36,12 @@ public class BadExpr extends AbstractExpr implements CoreExpr {
 	@Override
 	@Nullable
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+		return visitor.visitBadExpr(this);
+	}
+
+	@Override
+	@Nullable
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.visitBadExpr(this);
 	}
 

@@ -21,6 +21,7 @@ import banjo.desugar.errors.MixedSemicolonAndComma;
 import banjo.desugar.errors.MultipleElseClausesInConditional;
 import banjo.desugar.errors.UnexpectedEllipsis;
 import banjo.dom.AbstractOp;
+import banjo.dom.BadExpr;
 import banjo.dom.BinaryOp;
 import banjo.dom.Call;
 import banjo.dom.Comment;
@@ -71,6 +72,11 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 	public CoreExpr desugar(SourceExpr node) {
 		final CoreExpr result = node.acceptVisitor(this);
 		if(result == null) throw new NullPointerException();
+		return result;
+	}
+	public CoreExpr desugar(SourceExpr node, Collection<BanjoParseException> errors) {
+		CoreExpr result = desugar(node);
+		errors.addAll(this.errors);
 		return result;
 	}
 
@@ -736,6 +742,11 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 		return operatorRef;
 	}
 
+	@Override
+	@Nullable
+	public CoreExpr visitBadExpr(BadExpr badExpr) {
+		return badExpr;
+	}
 //	@Override @Nullable 
 //	public CoreExpr visitWhitespace(Whitespace ws) {
 //		return null;

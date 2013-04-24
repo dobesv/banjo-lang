@@ -20,7 +20,7 @@ import banjo.dom.TokenVisitor;
 import banjo.dom.UnitRef;
 import banjo.dom.Whitespace;
 import banjo.parser.BanjoScanner;
-import banjo.parser.util.FilePos;
+import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 
 public class TokensToString implements TokenVisitor<String> {
@@ -52,9 +52,12 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String visitEof(@NonNull FilePos endPos) {
+	public String visitEof(@NonNull FileRange entireFileRange) {
 		done = true;
-		int fileLength = endPos.getOffset();
+		assertEquals(0, entireFileRange.getStartOffset());
+		assertEquals(1, entireFileRange.getStartLine());
+		assertEquals(1, entireFileRange.getStartColumn());
+		int fileLength = entireFileRange.getEndOffset();
 		assertEquals("Wrong end of range?", this.rangeEnd, fileLength);
 		return "eof";
 	}
