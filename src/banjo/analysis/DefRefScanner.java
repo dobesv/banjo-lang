@@ -3,17 +3,16 @@ package banjo.analysis;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import fj.data.Option;
 import banjo.dom.BadExpr;
 import banjo.dom.Call;
-import banjo.dom.Comment;
 import banjo.dom.CoreExpr;
 import banjo.dom.CoreExprVisitor;
 import banjo.dom.CoreExprVisitorWithDefault;
-import banjo.dom.Ellipsis;
 import banjo.dom.ExprList;
 import banjo.dom.Field;
 import banjo.dom.FieldRef;
@@ -28,90 +27,24 @@ import banjo.dom.ObjectLiteral;
 import banjo.dom.OperatorRef;
 import banjo.dom.SetLiteral;
 import banjo.dom.StringLiteral;
-import banjo.dom.TokenVisitor;
-import banjo.dom.UnitRef;
-import banjo.dom.Whitespace;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.UnexpectedIOExceptionError;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
+import fj.data.Option;
 
 public class DefRefScanner {
 
-	
-
 	private final BanjoScanner scanner = new BanjoScanner();
-
-	public final class DefRefTokenScanHelper<T> implements TokenVisitor<T> {
-		final CoreExpr rootExpr;
-		boolean eof;
-		
-		@Nullable
-		T result;
-		private DefRefTokenVisitor<T> visitor;
-
-		public DefRefTokenScanHelper(DefRefTokenVisitor<T> visitor, CoreExpr rootExpr) {
-			this.visitor = visitor;
-			this.rootExpr = rootExpr;
-		}
-
-		public @Nullable T visitStringLiteral(StringLiteral stringLiteral) {
-			return visitor.visitStringLiteral(stringLiteral);
-		}
-
-		public @Nullable T visitWhitespace(Whitespace ws) {
-			return visitor.visitWhitespace(ws);
-		}
-
-		public @Nullable T visitNumberLiteral(NumberLiteral numberLiteral) {
-			return visitor.visitNumberLiteral(numberLiteral);
-		}
-
-		public @Nullable T visitComment(Comment c) {
-			return visitor.visitComment(c);
-		}
-
-		public @Nullable T visitEllipsis(Ellipsis ellipsis) {
-			return visitor.visitEllipsis(ellipsis);
-		}
-
-		public @Nullable T visitEof(FileRange entireFileRange) {
-			eof = true;
-			return visitor.visitEof(entireFileRange);
-		}
-
-		public @Nullable T visitUnit(UnitRef unit) {
-			return visitor.visitUnit(unit);
-		}
-
-		public @Nullable T visitIdentifier(Identifier identifier) {
-			DefInfo def = findDef(rootExpr, identifier);
-			if(def == null)
-				return visitor.visitIdentifier(identifier);
-			if(def.getNameToken().getStartOffset() == identifier.getStartOffset())
-				return visitIdentifierDef(identifier, def);
-			return visitIdentifierRef(identifier, def);
-		}
-
-		public @Nullable T visitOperator(OperatorRef operatorRef) {
-			return visitor.visitOperator(operatorRef);
-		}
-
-		public @Nullable T visitIdentifierDef(Identifier identifier, DefInfo def) {
-			return visitor.visitIdentifierDef(identifier, def);
-		}
-
-		public @Nullable T visitIdentifierRef(Identifier identifier, DefInfo def) {
-			return visitor.visitIdentifierRef(identifier, def);
-		}
-	}
 
 	public static class ScanningExprVisitor implements CoreExprVisitor<Void> {
 		public final LocalDefTypeCalculator localDefTypeCalculator = new LocalDefTypeCalculator(DefType.LOCAL_VALUE, DefType.LOCAL_CONST, DefType.LOCAL_FUNCTION);
 		public final LocalDefTypeCalculator fieldDefTypeCalculator = new LocalDefTypeCalculator(DefType.SELF_FIELD, DefType.SELF_CONST, DefType.SELF_METHOD);
 		protected final DefRefVisitor visitor;
 		final LinkedList<HashMap<String,DefInfo>> environment = new LinkedList<>();
-		int scopeDepth = 0;
+		int parameterScopeDepth = 0;
+		int objectDepth = 0;
+		int letDepth = 0;
 
 		public ScanningExprVisitor(DefRefVisitor visitor) {
 			this.visitor = visitor;
@@ -176,23 +109,26 @@ public class DefRefScanner {
 		public Void visitExprList(ExprList exprList) {
 			HashMap<String,DefInfo> scope = new HashMap<>();
 			environment.push(scope);
+			final int scopeDepth = letDepth;
+			letDepth++;
 			for(CoreExpr e : exprList.getElements()) {
 				if(e instanceof Let) {
 					Let let = (Let)e;
 					Key name = let.getName();
 					DefType defType = letDefType(let);
-					def(name, defType, scope);
+					def(name, defType, scope, scopeDepth);
 					scan(let.getValue());
 				} else {
 					if(e == null) throw new NullPointerException();
 					scan(e);
 				}
 			}
+			letDepth--;
 			if(environment.pop() != scope) throw new Error();
 			return null;
 		}
 
-		private void def(Key name, DefType defType, HashMap<String, DefInfo> scope) {
+		private void def(Key name, DefType defType, HashMap<String, DefInfo> scope, int scopeDepth) {
 			DefInfo def = new DefInfo(name, defType, scopeDepth);
 			scope.put(name.getKeyString(), def);
 			visitor.visitDef(def);
@@ -218,14 +154,16 @@ public class DefRefScanner {
 		public Void visitFunctionLiteral(FunctionLiteral functionLiteral) {
 			HashMap<String,DefInfo> scope = new HashMap<>();
 			environment.push(scope);
-			scopeDepth++;
+			final int scopeDepth = parameterScopeDepth;
+			boolean hasSelfName = functionLiteral.getSelfName().isSome();
+			this.parameterScopeDepth++;
 			for(FunArg arg : functionLiteral.getArgs()) {
-				def(arg.getName(), DefType.PARAMETER, scope);
+				def(arg.getName(), DefType.PARAMETER, scope, scopeDepth);
 			}
-			if(functionLiteral.getSelfName().isSome()) {
+			if(hasSelfName) {
 				Key selfName = functionLiteral.getSelfName().some();
 				if(selfName == null) throw new NullPointerException();
-				def(selfName, DefType.SELF, scope);
+				def(selfName, DefType.SELF, scope, scopeDepth);
 			}
 			scan(functionLiteral.getContract());
 			for(FunArg arg : functionLiteral.getArgs()) {
@@ -233,7 +171,7 @@ public class DefRefScanner {
 					scan(arg.getContract());
 			}
 			scan(functionLiteral.getBody());
-			scopeDepth--;
+			this.parameterScopeDepth--;
 			if(environment.pop() != scope) throw new Error();
 			return null;
 		}
@@ -251,14 +189,15 @@ public class DefRefScanner {
 		public Void visitObjectLiteral(ObjectLiteral objectLiteral) {
 			HashMap<String,DefInfo> scope = new HashMap<>();
 			environment.push(scope);
-			scopeDepth++;
+			final int scopeDepth = objectDepth;
+			objectDepth++;
 			for(Field f : objectLiteral.getFields().values()) {
-				def(f.getKey(), fieldDefType(f), scope);
+				def(f.getKey(), fieldDefType(f), scope, scopeDepth);
 			}
 			for(Field f : objectLiteral.getFields().values()) {
 				scan(f.getValue());
 			}
-			scopeDepth--;
+			objectDepth--;
 			if(environment.pop() != scope) throw new Error();
 			return null;
 		}
@@ -274,7 +213,7 @@ public class DefRefScanner {
 		public Void visitLet(Let let) {
 			HashMap<String,DefInfo> scope = new HashMap<>();
 			environment.push(scope);
-			def(let.getName(), letDefType(let), scope);
+			def(let.getName(), letDefType(let), scope, letDepth);
 			scan(let.getValue());
 			if(environment.pop() != scope) throw new Error();
 			return null;
@@ -447,9 +386,30 @@ public class DefRefScanner {
 	public void scan(CoreExpr expr, final DefRefVisitor visitor) {
 		expr.acceptVisitor(new ScanningExprVisitor(visitor));
 	}
-	
+	public void buildTokenDefMap(CoreExpr expr, final Map<FileRange, DefInfo> result, final Set<FileRange> unusedDefs) {
+		scan(expr, new DefRefVisitor() {
+			
+			@Override
+			public void visitRef(DefInfo def, Key key) {
+				result.put(key.getFileRange(), def);
+				unusedDefs.add(def.getNameToken().getFileRange());
+			}
+			
+			@Override
+			public void visitDef(DefInfo def) {
+				result.put(def.getNameToken().getFileRange(), def);
+				unusedDefs.add(def.getNameToken().getFileRange());
+			}
+		});
+	}
+	public void updateTokenDefMap(CoreExpr oldTree, CoreExpr newTree, Map<FileRange,DefInfo> result, Set<FileRange> unusedDefs) {
+		result.clear();
+		unusedDefs.clear();
+		// TODO Incremental update of the map ... is that feasible ?
+		buildTokenDefMap(newTree, result, unusedDefs);
+	}
 	public @Nullable <T> T scanTokens(final ParserReader in, CoreExpr expr, final DefRefTokenVisitor<T> visitor) {
-		DefRefTokenScanHelper<T> helper = new DefRefTokenScanHelper<T>(visitor, expr);
+		DefRefTokenAnnotator<T> helper = new DefRefTokenAnnotator<T>(visitor, expr);
 		try {
 			return scanner.scan(in, helper);
 		} catch (IOException e) {
@@ -458,7 +418,7 @@ public class DefRefScanner {
 	}
 	
 	public @Nullable <T> T nextToken(final ParserReader in, CoreExpr expr, final DefRefTokenVisitor<T> visitor) {
-		DefRefTokenScanHelper<T> helper = new DefRefTokenScanHelper<T>(visitor, expr);
+		DefRefTokenAnnotator<T> helper = new DefRefTokenAnnotator<T>(visitor, expr);
 		try {
 			return scanner.next(in, helper);
 		} catch (IOException e) {

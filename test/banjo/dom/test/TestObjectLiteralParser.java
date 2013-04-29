@@ -34,6 +34,7 @@ public class TestObjectLiteralParser {
 	@Test public void method2() { parse("{f(): x}", "{f: () -> x}"); }
 	@Test public void method3() { parse("{self.f(): self}", "{f: self.() -> self}"); }
 	@Test public void method4() { parse("{self.f(x): self}", "{f: self.(x) -> self}"); }
+	@Test public void method5() { parse("test:\n f(): 1\n y(): 2", "{test: {f: () -> 1, y: () -> 2}}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
 	@Test public void table1() { parse("#::a,b,c\nabc:(1,2,3)", "{abc: {a: 1, b: 2, c: 3}}"); }

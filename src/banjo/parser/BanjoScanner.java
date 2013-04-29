@@ -157,6 +157,8 @@ public class BanjoScanner {
 	
 	public static final boolean isOperatorChar(int codePoint) {
 		switch(codePoint) {
+		case ',':
+		case ';':
 		case '"': 
 		case '\'':
 		case '_':

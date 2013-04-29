@@ -5,11 +5,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import banjo.desugar.IncrementalUpdater;
 import banjo.dom.CoreExpr;
 import banjo.dom.Expr;
 import banjo.dom.ExprList;
 import banjo.dom.ObjectLiteral;
-import banjo.idesupport.IncrementalUpdater;
 import banjo.parser.util.ParserReader;
 
 public class TestIncrementalReparser {

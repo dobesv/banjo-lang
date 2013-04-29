@@ -62,5 +62,6 @@ public class TestBanjoScanner {
 	@Ignore // TODO: Do we need to support scanning partial lines?
 	@Test public void testTokenStream6() { testScanner("/* foo */", 1, 5, "com", "eof"); }
 	@Test public void testTokenStream7() { testScanner("/* foo */   a", 0, 13, "com", "ws", "id", "eof"); }
+	@Test public void testTokenStream8() { testScanner("a?,b?", 0, 5, "id", "op", "op", "id", "op", "eof"); }
 
 }

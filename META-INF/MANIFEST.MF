@@ -3,12 +3,13 @@ Bundle-ManifestVersion: 2
 Bundle-Name: banjo.lang
 Bundle-SymbolicName: banjo.lang
 Bundle-Version: 1.0.0.qualifier
-Export-Package: banjo.desugar,
- banjo.dom,
+Export-Package: banjo.analysis;uses:="banjo.dom,banjo.parser.util",
+ banjo.desugar;uses:="banjo.dom,banjo.parser",
+ banjo.dom;uses:="banjo.parser.errors,banjo.parser.util,fj.data",
  banjo.idesupport,
- banjo.parser,
- banjo.parser.errors,
- banjo.parser.util
+ banjo.parser;uses:="banjo.dom,banjo.parser.util,fj.data",
+ banjo.parser.errors;uses:="banjo.dom,banjo.parser.util",
+ banjo.parser.util;uses:="banjo.dom,banjo.parser"
 Bundle-ClassPath: lib/functionaljava.jar,
  .
 Require-Bundle: org.eclipse.jdt.annotation;bundle-version="1.1.0",

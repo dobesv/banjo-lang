@@ -110,7 +110,7 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 			if(!isParen() && 
 					operator != Operator.NEWLINE &&
 					right.getStartColumn() < getStartColumn()) {
-				errors.add(new IncorrectIndentation(right.getFileRange(), getStartColumn(), true));
+				errors.add(new IncorrectIndentation(between(opToken, right), getStartColumn(), right.getStartColumn(), true));
 			}
 			return new BinaryOp(operator, getOperand(), opToken, right, closeParen);
 		}
@@ -148,7 +148,7 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 			
 			if(!isParen() && operand.getStartColumn() < getStartColumn()) {
 				// Operand should be at the same level or higher indentation as the unary operator itself
-				errors.add(new IncorrectIndentation(operand.getFileRange(), getStartColumn(), true));
+				errors.add(new IncorrectIndentation(operand.getFileRange(), getStartColumn(), operand.getStartColumn(), true));
 			}
 			return new UnaryOp(operator, opToken, operand, closeParen);
 		}
