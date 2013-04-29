@@ -1,10 +1,9 @@
-package banjo.idesupport;
+package banjo.desugar;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import banjo.desugar.BanjoDesugarer;
 import banjo.dom.BadExpr;
 import banjo.dom.Call;
 import banjo.dom.CoreExpr;
@@ -338,5 +337,10 @@ public class IncrementalUpdater {
 			return transformer.reparse(expr);
 		}
 		return transformer.transform(expr);
+	}
+
+	public CoreExpr applyEdit(CoreExpr ast, int offset, int length, String replacement, String newSourceCode) {
+		ParserReader temp = ParserReader.fromSubstring("", newSourceCode, offset, offset+length);
+		return applyEdit(ast, offset, length, temp.getCurrentLineNumber(), temp.getCurrentColumnNumber(), replacement, newSourceCode);
 	}
 }
