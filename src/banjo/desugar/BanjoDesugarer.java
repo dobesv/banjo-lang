@@ -233,7 +233,7 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 		}
 		if(isCallWithArgs(target)) {
 			BinaryOp call = (BinaryOp) target;
-			dsValue = functionLiteral(op.getFileRange(), call.getRight(), contract, desugar(value));
+			dsValue = functionLiteral(op.getFileRange(), call.getRight(), contract, desugar(value), Key.NONE);
 			target = call.getLeft();
 			contract = FunctionLiteral.CONTRACT_NONE;
 		} else if(isUnaryCall(target)) {
@@ -496,15 +496,36 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 	private CoreExpr functionLiteral(SourceExpr argsDef, final CoreExpr body,
 			FileRange range) {
 		Option<CoreExpr> returnContract = FunctionLiteral.CONTRACT_NONE;
+		Option<Key> selfName = Key.NONE;
+		// Optional self-name
+		if(isBinaryOp(argsDef, Operator.PROJECTION)) {
+			selfName = Option.some(expectKey(((BinaryOp)argsDef).getLeft()));
+			argsDef = ((BinaryOp)argsDef).getRight();
+		}
 		// Optional return type/contract
 		if(isPair(argsDef)) {
 			returnContract = Option.some(desugar(((BinaryOp)argsDef).getRight()));
 			argsDef = ((BinaryOp)argsDef).getLeft();
 		}
-		return functionLiteral(range, argsDef, returnContract, body);
+		return functionLiteral(range, argsDef, returnContract, body, selfName);
 	}
 
-	private CoreExpr functionLiteral(FileRange range, SourceExpr args, Option<CoreExpr> contract, final CoreExpr body) {
+	/**
+	 * If the given parameter is a not an Identifier or StringLiteral, report an error and return 
+	 * a fake identifier.
+	 * 
+	 * @param e
+	 * @return
+	 */
+	private Key expectKey(Expr e) {
+		try {
+			return (Key)e;
+		} catch(ClassCastException x) {
+			errors.add(new ExpectedIdentifier(e));
+			return new Identifier(e.getFileRange(), e.toSource());
+		}
+	}
+	private CoreExpr functionLiteral(FileRange range, SourceExpr args, Option<CoreExpr> contract, final CoreExpr body, Option<Key> selfName) {
 		// Args should be comma-separated
 		List<SourceExpr> exprs = new LinkedList<>();
 		if(args instanceof UnitRef) {
@@ -513,7 +534,7 @@ public class BanjoDesugarer implements SourceExprVisitor<CoreExpr> {
 			// Optional parentheses around formal parameter list
 			flattenCommas(stripParens(args), Operator.COMMA, exprs);
 		}
-		return functionLiteral(range, exprs, body, contract, Key.NONE);
+		return functionLiteral(range, exprs, body, contract, selfName);
 	}
 
 	private CoreExpr functionLiteral(FileRange range, List<SourceExpr> exprs,
