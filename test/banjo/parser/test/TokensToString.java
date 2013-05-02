@@ -9,89 +9,88 @@ import java.util.Arrays;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.Comment;
-import banjo.dom.Ellipsis;
-import banjo.dom.HasFileRange;
-import banjo.dom.Identifier;
-import banjo.dom.NumberLiteral;
-import banjo.dom.OperatorRef;
-import banjo.dom.StringLiteral;
-import banjo.dom.TokenVisitor;
-import banjo.dom.UnitRef;
-import banjo.dom.Whitespace;
+import banjo.dom.token.Comment;
+import banjo.dom.token.Ellipsis;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
+import banjo.dom.token.TokenVisitor;
+import banjo.dom.token.UnitRef;
+import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 
 public class TokensToString implements TokenVisitor<String> {
 
-	HasFileRange lastTok;
+	FileRange lastTokRange;
 	final int rangeStart;
 	final int rangeEnd;
 	protected boolean done = false;
-	
+
 	public TokensToString(int rangeStart, int rangeEnd) {
 		this.rangeStart = rangeStart;
 		this.rangeEnd = rangeEnd;
 	}
 
 	@Override
-	public String visitWhitespace(@NonNull Whitespace tok) {
-		return token("ws", tok);
+	public String visitWhitespace(@NonNull FileRange range, @NonNull Whitespace tok) {
+		return token("ws", range);
 	}
 
-	protected String token(String t, HasFileRange tok) {
-		assertEquals("Characters skipped?", lastTok != null ? lastTok.getFileRange().getEnd().getOffset() : rangeStart, tok.getFileRange().getStart().getOffset());
-		lastTok = tok;
+	protected String token(String t, FileRange range) {
+		assertEquals("Characters skipped?", this.lastTokRange != null ? this.lastTokRange.getEndOffset() : this.rangeStart, range.getStartOffset());
+		this.lastTokRange = range;
 		return t;
 	}
 
 	@Override
-	public String visitComment(@NonNull Comment tok) {
-		return token("com", tok);
+	public String visitComment(@NonNull FileRange range, @NonNull Comment tok) {
+		return token("com", range);
 	}
 
 	@Override
 	public String visitEof(@NonNull FileRange entireFileRange) {
-		done = true;
+		this.done = true;
 		assertEquals(0, entireFileRange.getStartOffset());
 		assertEquals(1, entireFileRange.getStartLine());
 		assertEquals(1, entireFileRange.getStartColumn());
-		int fileLength = entireFileRange.getEndOffset();
+		final int fileLength = entireFileRange.getEndOffset();
 		assertEquals("Wrong end of range?", this.rangeEnd, fileLength);
 		return "eof";
 	}
 
 	@Override
-	public String visitOperator(@NonNull OperatorRef tok) {
-		return token("op", tok);
+	public String visitOperator(@NonNull FileRange range, @NonNull OperatorRef tok) {
+		return token("op", range);
 	}
 
 	@Override
-	public String visitStringLiteral(@NonNull StringLiteral tok) {
-		return token("str", tok);
+	public String visitStringLiteral(@NonNull FileRange range, @NonNull StringLiteral tok) {
+		return token("str", range);
 	}
 
 	@Override
-	public String visitNumberLiteral(@NonNull NumberLiteral tok) {
-		return token("num", tok);
+	public String visitNumberLiteral(@NonNull FileRange range, @NonNull NumberLiteral tok) {
+		return token("num", range);
 	}
 
 	@Override
-	public String visitIdentifier(@NonNull Identifier tok) {
-		return token("id", tok);
+	public String visitIdentifier(@NonNull FileRange range, @NonNull Identifier tok) {
+		return token("id", range);
 	}
-	
+
 	@Override
 	@Nullable
-	public String visitEllipsis(@NonNull Ellipsis ellipsis) {
-		return token("...", ellipsis);
+	public String visitEllipsis(@NonNull FileRange range, @NonNull Ellipsis ellipsis) {
+		return token("...", range);
 	}
-	
+
 	@Override
 	@Nullable
-	public String visitUnit(@NonNull UnitRef unit) {
-		return token("unit", unit);
+	public String visitUnit(@NonNull FileRange range, @NonNull UnitRef unit) {
+		return token("unit", range);
 	}
 
 	public static void testScanner(@NonNull String src, final int rangeStart, final int rangeEnd, String ... expectedTokens) {
@@ -101,14 +100,14 @@ public class TokensToString implements TokenVisitor<String> {
 	public static void testScanner(String src, final int rangeStart,
 			final int rangeEnd, String[] expectedTokens,
 			TokensToString testVisitor) throws Error {
-		ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
-		BanjoScanner scanner = new BanjoScanner();
-		
-		ArrayList<String> foundTokens = new ArrayList<String>(expectedTokens.length);
+		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
+		final BanjoScanner scanner = new BanjoScanner();
+
+		final ArrayList<String> foundTokens = new ArrayList<String>(expectedTokens.length);
 		while(!testVisitor.done) {
 			try {
 				foundTokens.add(scanner.next(in, testVisitor));
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				throw new Error(e);
 			}
 		}

@@ -1,5 +1,7 @@
 package banjo.dom;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import fj.data.Option;
 
 public enum ParenType {
@@ -8,8 +10,6 @@ public enum ParenType {
 	BRACES('{', '}'),
 	/** Brackets, aka square brackets, are used to denote list literals */
 	BRACKETS('[', ']');
-	
-	public static final Option<ParenType> NONE = Option.none();
 	
 	private final char startChar;
 	private final char endChar;
@@ -27,20 +27,20 @@ public enum ParenType {
 		return endChar;
 	}
 
-	public static Option<ParenType> forChar(char startChar) {
+	public static @Nullable ParenType forChar(char startChar) {
 		for(ParenType t : values()) {
 			if(startChar == t.startChar)
-				return Option.some(t);
+				return t;
 		}
-		return Option.none();
+		return null;
 	}
 
-	public static Option<ParenType> forCloseChar(char endChar) {
+	public static @Nullable ParenType forCloseChar(char endChar) {
 		for(ParenType t : values()) {
 			if(endChar == t.endChar)
-				return Option.some(t);
+				return t;
 		}
-		return Option.none();
+		return null;
 	}
 	
 	public static boolean isOpenParen(int codePoint) {

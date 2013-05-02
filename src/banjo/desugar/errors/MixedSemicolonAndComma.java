@@ -1,8 +1,9 @@
 package banjo.desugar.errors;
 
-import banjo.dom.BinaryOp;
+import banjo.dom.source.BinaryOp;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
+import banjo.parser.util.OffsetLength;
 
 public class MixedSemicolonAndComma extends BanjoParseException {
 	private static final long serialVersionUID = 1L;
@@ -11,8 +12,8 @@ public class MixedSemicolonAndComma extends BanjoParseException {
 		super(message, range);
 	}
 
-	public MixedSemicolonAndComma(BinaryOp bop) {
-		this("List mixes semicolons and commas", bop.getFileRange());
+	public MixedSemicolonAndComma(BinaryOp bop, OffsetLength range) {
+		super("List mixes semicolons and commas", range);
 	}
 
 }

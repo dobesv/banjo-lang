@@ -2,7 +2,7 @@ package banjo.dom.test;
 
 import org.junit.Test;
 
-import banjo.dom.Identifier;
+import banjo.dom.token.Identifier;
 
 public class TestIdParser {
 

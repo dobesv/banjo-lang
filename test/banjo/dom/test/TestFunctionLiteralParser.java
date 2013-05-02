@@ -6,8 +6,8 @@ import java.io.IOException;
 
 import org.junit.Test;
 
-import banjo.dom.FunctionLiteral;
-import banjo.dom.Identifier;
+import banjo.dom.core.FunctionLiteral;
+import banjo.dom.token.Identifier;
 
 
 public class TestFunctionLiteralParser {

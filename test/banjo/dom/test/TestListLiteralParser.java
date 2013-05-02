@@ -4,8 +4,8 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import banjo.dom.ListLiteral;
-import banjo.dom.NumberLiteral;
+import banjo.dom.core.ListLiteral;
+import banjo.dom.token.NumberLiteral;
 
 public class TestListLiteralParser {
 

@@ -9,9 +9,9 @@ import banjo.analysis.DefInfo;
 import banjo.analysis.DefRefScanner;
 import banjo.analysis.DefRefVisitor;
 import banjo.analysis.DefType;
-import banjo.dom.CoreExpr;
-import banjo.dom.Key;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.test.ParseTestUtils;
+import banjo.dom.token.Key;
 
 public class TestDefRefScanner {
 
@@ -60,7 +60,7 @@ public class TestDefRefScanner {
 		final StringBuffer buf = new StringBuffer();
 		scan(source, new DefRefVisitor() {
 			@Override
-			public void visitRef(@NonNull DefInfo def, @NonNull Key key) {
+			public void visitRef(@NonNull DefInfo def, int sourceOffset, @NonNull Key key) {
 				if(buf.length() > 0) buf.append(",");
 				buf.append("ref ");
 				buf.append(def.getType().name());

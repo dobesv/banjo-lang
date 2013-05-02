@@ -1,5 +1,7 @@
 package banjo.parser.util;
 
+import static banjo.parser.util.Check.nonNull;
+
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
@@ -13,7 +15,6 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 
@@ -30,7 +31,7 @@ public class ParserReader extends Reader {
 		int offset=0;
 		int indentLevel=0;
 		boolean startOfLine;
-		
+
 		public Pos() {
 		}
 		public Pos(Pos other) {
@@ -47,104 +48,110 @@ public class ParserReader extends Reader {
 			this.col = filePos.column;
 			this.offset = filePos.offset;
 		}
-		
-		
+
+
 		private void accumulate(int ch) {
 			if(ch == -1) {
-				if(col != 1) {
-					line++;
-					col = 1;
+				if(this.col != 1) {
+					this.line++;
+					this.col = 1;
 				}
 				return;
 			}
-			
+
 			if(ch == '\n') {
-				line++;
-				col = 1;
-				startOfLine=true;
+				this.line++;
+				this.col = 1;
+				this.startOfLine=true;
 			} else {
-				col++;
-				if(ch == ' ' && startOfLine) indentLevel++;
-				else startOfLine = false;
+				this.col++;
+				if(ch == ' ' && this.startOfLine) this.indentLevel++;
+				else this.startOfLine = false;
 			}
-			offset++;
+			this.offset++;
 		}
 		public FilePos toFilePos() {
-			return new FilePos(offset, line, col);
+			return new FilePos(this.offset, this.line, this.col);
 		}
+		@Override
 		public Pos clone() {
 			return new Pos(this);
 		}
-		
+
 		@Override
 		public String toString() {
-			return "line "+line+" col "+col+ " offset "+offset;
+			return "line "+this.line+" col "+this.col+ " offset "+this.offset;
 		}
 		public int getLine() {
-			return line;
+			return this.line;
 		}
 		public int getColumn() {
-			return col;
+			return this.col;
 		}
 		public int getOffset() {
-			return offset;
+			return this.offset;
 		}
 		public int getIndentLevel() {
-			return indentLevel;
+			return this.indentLevel;
 		}
 		public boolean isStartOfLine() {
-			return startOfLine;
+			return this.startOfLine;
 		}
-		
+
 	}
-	
+
 	final Reader delegate;
 	final String filename;
-	
+
 	final Pos current = new Pos();
 	final Pos previous = new Pos(); // Previous position
 	final Pos mark = new Pos();
 	public final int fileSize; // In chars
-	
+
+	@Override
 	public int read(@Nullable CharBuffer target) throws IOException {
 		if(target == null) throw new NullPointerException();
-		int offset = target.position();
-		int charsRead = delegate.read(target);
+		final int offset = target.position();
+		final int charsRead = this.delegate.read(target);
 		for(int i=0; i < charsRead; i++) {
 			accumulate(target.get(offset+i));
 		}
 		return charsRead;
 	}
 
+	@Override
 	public int read() throws IOException {
-		int ch = current.offset >= fileSize ? -1 : delegate.read();
+		final int ch = this.current.offset >= this.fileSize ? -1 : this.delegate.read();
 		accumulate(ch);
 		return ch;
 	}
 
 	private void accumulate(int ch) {
-		previous.assign(current);
-		current.accumulate(ch);
+		this.previous.assign(this.current);
+		this.current.accumulate(ch);
 	}
 
+	@Override
 	public int read(@Nullable char[] cbuf) throws IOException {
 		if(cbuf == null) throw new NullPointerException();
-		int len = delegate.read(cbuf);
+		final int len = this.delegate.read(cbuf);
 		for(int i=0; i < len; i++) {
 			accumulate(cbuf[i]);
 		}
 		return len;
 	}
 
+	@Override
 	public int read(@Nullable char[] cbuf, int off, int len) throws IOException {
 		if(cbuf == null) throw new NullPointerException();
-		int lenRead = delegate.read(cbuf, off, len);
+		final int lenRead = this.delegate.read(cbuf, off, len);
 		for(int i=0; i < lenRead; i++) {
 			accumulate(cbuf[off+i]);
 		}
 		return lenRead;
 	}
 
+	@Override
 	public long skip(long n) throws IOException {
 		// We need to keep our line number accurate
 		for(long skipped=0; skipped < n; skipped++) {
@@ -154,32 +161,36 @@ public class ParserReader extends Reader {
 		return n;
 	}
 
+	@Override
 	public boolean ready() throws IOException {
-		return delegate.ready();
+		return this.delegate.ready();
 	}
 
+	@Override
 	public boolean markSupported() {
 		return true;
 	}
 
+	@Override
 	public void mark(int readAheadLimit) throws IOException {
-		delegate.mark(readAheadLimit);
-		mark.assign(current);
+		this.delegate.mark(readAheadLimit);
+		this.mark.assign(this.current);
 	}
 
 	/**
-	 * Reset to the last mark. 
+	 * Reset to the last mark.
 	 */
+	@Override
 	public void reset() throws IOException {
-		delegate.reset();
-		previous.assign(current);
-		current.assign(mark);
+		this.delegate.reset();
+		this.previous.assign(this.current);
+		this.current.assign(this.mark);
 	}
 
 	/**
 	 * Reset to a given absolute offset in characters.
 	 * <p>
-	 * Note that you cannot seek to before the mark, so call mark() only if 
+	 * Note that you cannot seek to before the mark, so call mark() only if
 	 * you know you will not seek before that mark.
 	 * <p>
 	 * However, this will be faster if you do call mark() periodically,
@@ -189,41 +200,41 @@ public class ParserReader extends Reader {
 	 * @throws IndexOutOfBoundsException If the offset provided is before the last mark or beyond the end of the file
 	 */
 	public void seek(int offset) throws IOException {
-		if(offset > fileSize) throw new IndexOutOfBoundsException("Past EOF");
-		
-		if(offset == current.offset) {
+		if(offset > this.fileSize) throw new IndexOutOfBoundsException("Past EOF");
+
+		if(offset == this.current.offset) {
 			// Do nothing, we're already there
-		} else if(offset > current.offset) {
+		} else if(offset > this.current.offset) {
 			// Scan ahead
-			skip(offset-current.offset);
-		} else if(offset == mark.offset) {
+			skip(offset-this.current.offset);
+		} else if(offset == this.mark.offset) {
 			// Jump back to the mark
 			reset();
-		} else if(offset == previous.offset) {
-			seek(previous);
-		} else if(offset > mark.offset) {
+		} else if(offset == this.previous.offset) {
+			seek(this.previous);
+		} else if(offset > this.mark.offset) {
 			// Save some line/column calculations if we're seeking back within the current line
-			int charsBack = current.offset - offset;
-			boolean sameLineAsCurrent = charsBack < current.col;
+			final int charsBack = this.current.offset - offset;
+			final boolean sameLineAsCurrent = charsBack < this.current.col;
 			if(sameLineAsCurrent) {
 				// Reposition the reader on the desired character
-				delegate.reset();
-				delegate.skip(offset-mark.offset);
-				
+				this.delegate.reset();
+				this.delegate.skip(offset-this.mark.offset);
+
 				// Just directly calculate the column number
-				current.col -= charsBack;
-				current.offset = offset;
+				this.current.col -= charsBack;
+				this.current.offset = offset;
 			} else {
 				// Jump back to the mark, then scan ahead to the given offset while recomputing the file offset
 				// This is slower than the above
 				reset();
-				skip(offset - mark.offset);
+				skip(offset - this.mark.offset);
 			}
 		} else {
 			throw new IndexOutOfBoundsException("Cannot scan back past the last mark.");
 		}
 	}
-	
+
 	/**
 	 * Read the file position from the parameter and seek to that position, if possible.
 	 * <p>
@@ -233,20 +244,20 @@ public class ParserReader extends Reader {
 	 * @see #seek(int)
 	 */
 	public void seek(Pos offset) throws IOException {
-		if(offset.offset == current.offset) {
+		if(offset.offset == this.current.offset) {
 			// Do nothing, we're already there
-		} else if(offset.offset == mark.offset) {
+		} else if(offset.offset == this.mark.offset) {
 			// Jump back to the mark
 			reset();
-		} else if(offset.offset > mark.offset){
-			delegate.reset();
-			delegate.skip(offset.offset-mark.offset);
-			current.assign(offset);
+		} else if(offset.offset > this.mark.offset){
+			this.delegate.reset();
+			this.delegate.skip(offset.offset-this.mark.offset);
+			this.current.assign(offset);
 		} else {
 			throw new IndexOutOfBoundsException("Cannot scan back past the last mark.");
 		}
 	}
-	
+
 	/**
 	 * Read the file position from the parameter and seek to that position, if possible.
 	 * <p>
@@ -256,19 +267,19 @@ public class ParserReader extends Reader {
 	 * @see #seek(int)
 	 */
 	public void seek(FilePos filePos) throws IOException {
-		if(filePos.offset == current.offset) {
+		if(filePos.offset == this.current.offset) {
 			// Do nothing, we're already there
-		} else if(filePos.offset == mark.offset) {
+		} else if(filePos.offset == this.mark.offset) {
 			// Jump back to the mark
 			reset();
-		} else if(filePos.offset == previous.offset) {
-			seek(previous);
-		} else if(filePos.offset > current.offset) {
-			skip(filePos.offset - current.offset);
-		} else if(filePos.offset > mark.offset){
-			delegate.reset();
-			delegate.skip(filePos.offset-mark.offset);
-			current.assign(filePos);
+		} else if(filePos.offset == this.previous.offset) {
+			seek(this.previous);
+		} else if(filePos.offset > this.current.offset) {
+			skip(filePos.offset - this.current.offset);
+		} else if(filePos.offset > this.mark.offset){
+			this.delegate.reset();
+			this.delegate.skip(filePos.offset-this.mark.offset);
+			this.current.assign(filePos);
 		} else {
 			throw new IndexOutOfBoundsException("Cannot scan back past the last mark.");
 		}
@@ -285,50 +296,51 @@ public class ParserReader extends Reader {
 	 * @throws IOException If bytes had to be read from the the file and an error occurred while doing so
 	 */
 	public void seekPast(final FileRange fileRange) throws IOException {
-		this.seek(fileRange.getEnd());
+		this.seek(fileRange.getEndOffset());
 	}
-	
+
 	/**
 	 * Get the current offset into the source, in characters.  This starts at 0.
 	 */
 	public int getCurrentOffset() {
-		return current.offset;
+		return this.current.offset;
 	}
 
 	/**
 	 * Get the current line number in the source.  This starts at 1.
 	 */
 	public int getCurrentLineNumber() {
-		return current.line;
+		return this.current.line;
 	}
 
 	/**
 	 * Get the current column number in the source.  This starts at 1.
 	 */
 	public int getCurrentColumnNumber() {
-		return current.col;
+		return this.current.col;
 	}
-	
+
+	@Override
 	public void close() throws IOException {
-		delegate.close();
+		this.delegate.close();
 	}
 
 	public int remaining() {
-		return fileSize - current.offset;
+		return this.fileSize - this.current.offset;
 	}
-	
+
 	/**
 	 * Create a CharSequence wrapping this reader at its current position.
 	 * 
 	 * Don't use the Reader and the CharSequence in parallel.  Note that
 	 * the CharSequence reads ahead and may advance the reader position arbitrarily;
-	 * use mark() and reset() to restore the file position after using 
+	 * use mark() and reset() to restore the file position after using
 	 * this feature.
 	 */
 	public CharSequence toCharSequence() {
 		return new ReaderCharSequence(this, remaining(), 1024);
 	}
-	
+
 	/**
 	 * Attempt to match the given regular expression against the next
 	 * available characters in the stream.
@@ -340,22 +352,22 @@ public class ParserReader extends Reader {
 	 * desired file position.
 	 */
 	public Matcher matcher(Pattern p) throws IOException {
-		Matcher result = p.matcher(toCharSequence());
+		final Matcher result = p.matcher(toCharSequence());
 		if(result == null) throw new NullPointerException();
 		return result;
 	}
-	
+
 	/**
 	 * Get the current file position as a FilePos instance.
 	 */
 	public FilePos getFilePos() {
-		return current.toFilePos();
+		return this.current.toFilePos();
 	}
 
 	/**
 	 * Create a new parser reader.
 	 * 
-	 * @param delegate Reader to delegate to.  If it doesn't support marks, this will 
+	 * @param delegate Reader to delegate to.  If it doesn't support marks, this will
 	 *                 wrap it in a buffered reader capable of buffering the entire file.
 	 *                 If it does support marks, it should never invalidate the mark
 	 *                 no matter how many characters are read.  This calls mark() immediately
@@ -382,7 +394,7 @@ public class ParserReader extends Reader {
 	 */
 	public ParserReader(URL url) throws IOException {
 		final URLConnection c = url.openConnection();
-		String urlString = url.toString();
+		final String urlString = url.toString();
 		if(urlString == null) throw new NullPointerException();
 		this.filename = urlString;
 		this.fileSize = c.getContentLength();
@@ -404,13 +416,13 @@ public class ParserReader extends Reader {
 	public static ParserReader fromString(String filename, String body) {
 		try {
 			return new ParserReader(new StringReader(body), filename, body.length());
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new Error(e);
 		}
 	}
 
 	/**
-	 * Parse a substring of the given string.  
+	 * Parse a substring of the given string.
 	 * 
 	 * <p> This may eventually be implemented so it doesn't copy parts the original string but rather
 	 * pretends to have an EOF at the given offet.
@@ -423,14 +435,14 @@ public class ParserReader extends Reader {
 	 */
 	public static ParserReader fromSubstring(String filename, String body, int beginIndex, int endIndex) {
 		try {
-			ParserReader reader = new ParserReader(new StringReader(body), filename, endIndex);
+			final ParserReader reader = new ParserReader(new StringReader(body), filename, endIndex);
 			reader.skip(beginIndex);
 			return reader;
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new Error(e);
 		}
 	}
-	
+
 	public void mark() throws IOException {
 		mark(remaining());
 	}
@@ -439,33 +451,33 @@ public class ParserReader extends Reader {
 	 * Return the file range from the given position to the current position.
 	 */
 	public FileRange getFileRange(FilePos from) {
-		return new FileRange(filename, from, current.toFilePos());
+		return new FileRange(this.filename, from, this.current.toFilePos());
 	}
 
 	/**
 	 * Return the file range from the given position to the current position.
 	 */
 	public FileRange getFileRange(Pos from) {
-		return new FileRange(filename, from.toFilePos(), current.toFilePos());
+		return new FileRange(this.filename, from.toFilePos(), this.current.toFilePos());
 	}
 
 	public String getFilename() {
-		return filename;
+		return this.filename;
 	}
 
 	/**
 	 * Read any input matching the given terminals and return it as a string.
-	 * <p> 
+	 * <p>
 	 * The input is positioned immediately after the last character matched.
 	 * <p>
 	 * Returns null if the regular expression doesn't match.
 	 */
-	public @NonNull String consume(Pattern re) throws IOException {
-		FilePos start = getFilePos();
-		Matcher m = matcher(re);
+	public String consume(Pattern re) throws IOException {
+		final FilePos start = getFilePos();
+		final Matcher m = matcher(re);
 		if(m.lookingAt() && m.end() > m.start()) {
 			// Position just at the end of the token that was matched
-			String text = m.group();
+			final String text = nonNull(m.group());
 			seek(start);
 			skip(m.end());
 			return text;
@@ -475,14 +487,14 @@ public class ParserReader extends Reader {
 	}
 
 	public String readString(int chars) throws IOException {
-		char[] buf = new char[chars];
+		final char[] buf = new char[chars];
 		int remaining = chars;
 		while(remaining > 0) {
-			int didRead = read(buf);
+			final int didRead = read(buf);
 			if(didRead == -1) throw new EOFException();
 			remaining -= didRead;
 		}
-		return new String(buf); 
+		return new String(buf);
 	}
 
 	/**
@@ -490,7 +502,7 @@ public class ParserReader extends Reader {
 	 * the current read position.
 	 * <p>
 	 * If they do, the read position is advanced beyond the end of the characters
-	 * that matched.  Otherwise, the file position will be reset back to the same 
+	 * that matched.  Otherwise, the file position will be reset back to the same
 	 * position as before this call was made.
 	 * 
 	 * @param expected String to check for
@@ -499,10 +511,10 @@ public class ParserReader extends Reader {
 	public boolean startsWith(String expected) throws IOException {
 		if(expected.length() > remaining())
 			return false;
-		FilePos start = getFilePos();
+		final FilePos start = getFilePos();
 		final int len = expected.length();
 		for(int i=0; i < len; i++) {
-			int ch = read();
+			final int ch = read();
 			if(ch != expected.charAt(i)) {
 				seek(start);
 				return false;
@@ -510,11 +522,11 @@ public class ParserReader extends Reader {
 		}
 		return true;
 	}
-	
+
 	public boolean startsWith(char expected) throws IOException {
 		if(remaining() == 0)
 			return false;
-		FilePos start = getFilePos();
+		final FilePos start = getFilePos();
 		if(read() != expected) {
 			seek(start);
 			return false;
@@ -526,10 +538,10 @@ public class ParserReader extends Reader {
 	 * @return a FileRange of length zero at the current file position.
 	 */
 	public FileRange getFilePosAsRange() {
-		FilePos pos = getFilePos();
+		final FilePos pos = getFilePos();
 		return new FileRange(getFilename(), pos, pos);
 	}
-	
+
 	/**
 	 * Seek to the beginning of the line containing the given file position,
 	 * and then read to the end of that line.  The file position is left at
@@ -547,11 +559,11 @@ public class ParserReader extends Reader {
 	 * Read from the current file position to the end of the line.
 	 */
 	public String readToEndOfLine() throws IOException {
-		StringBuffer sb = new StringBuffer();
+		final StringBuffer sb = new StringBuffer();
 		for(;;) {
-			int ch = read();
+			final int ch = read();
 			if(ch == '\n' || ch == -1) {
-				String s = sb.toString();
+				final String s = sb.toString();
 				if(s == null) throw new NullPointerException();
 				return s;
 			}
@@ -560,8 +572,8 @@ public class ParserReader extends Reader {
 	}
 
 	public @Nullable String positionInLineAsString() throws IOException {
-		FilePos start = getFilePos();
-		StringBuffer sb = new StringBuffer();
+		final FilePos start = getFilePos();
+		final StringBuffer sb = new StringBuffer();
 		sb.append(readLineContaining(start)).append("\n");
 		for(int i=0; i <= readLineContaining(start).length(); i++) {
 			sb.append((i+1)==start.column?'^':' ');
@@ -579,17 +591,17 @@ public class ParserReader extends Reader {
 	 * @param startOffset Offset from the token's start to start the range in
 	 * @param endOffset Offset from the token's start to end the range in (exclusive)
 	 * @return A new FileRange
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public FileRange subRange(FileRange range, int startOffset, int endOffset) throws IOException {
 		if(!range.getFilename().equals(getFilename())) throw new IllegalArgumentException("Given range is not for this parser's file");
 		if(endOffset < startOffset) throw new IllegalArgumentException("End offset must be greater than start offset");
-		
-		FilePos curPos = getFilePos();
+
+		final FilePos curPos = getFilePos();
 		try {
 			seek(range.getStart());
 			skip(startOffset);
-			FilePos rangeStart = getFilePos();
+			final FilePos rangeStart = getFilePos();
 			skip(endOffset - startOffset);
 			return getFileRange(rangeStart);
 		} finally {
@@ -607,16 +619,16 @@ public class ParserReader extends Reader {
 	 */
 
 	public String readStringFrom(Pos start) throws IOException {
-		int endOffset = current.offset;
+		final int endOffset = this.current.offset;
 		seek(start);
 		return readString(endOffset - start.offset);
 	}
-	
-	
+
+
 	/**
 	 * @return true if we've seen nothing but space characters since the last newline.
 	 */
-	public boolean isAtStartOfLine() { return current.startOfLine; }
+	public boolean isAtStartOfLine() { return this.current.startOfLine; }
 
 	/**
 	 * Copy the current position into the given position object.
@@ -624,15 +636,15 @@ public class ParserReader extends Reader {
 	 * Returns its argument.
 	 */
 	public Pos getCurrentPosition(Pos into) {
-		into.assign(current);
+		into.assign(this.current);
 		return into;
 	}
-	
+
 	/**
 	 * Copy the position we were at prior to the last read().
 	 */
 	public Pos getPreviousPosition(Pos into) {
-		into.assign(previous);
+		into.assign(this.previous);
 		return into;
 	}
 
@@ -640,16 +652,16 @@ public class ParserReader extends Reader {
 	 * Reset the read position to before the last code point read.
 	 */
 	public void unread() throws IOException {
-		seek(previous);
+		seek(this.previous);
 	}
 
 	/**
 	 * Read, unread, and return the next character.  The file position is
 	 * left unchanged although the unread() position is affected.
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public int peek() throws IOException {
-		int cp = read();
+		final int cp = read();
 		unread();
 		return cp;
 	}
@@ -665,6 +677,20 @@ public class ParserReader extends Reader {
 			unread();
 			return false;
 		}
+	}
+
+	/**
+	 * Return the number of characters since the given start position.
+	 */
+	public int getLength(Pos tokenStartPos) {
+		return getCurrentOffset() - tokenStartPos.getOffset();
+	}
+
+	public FileRange calcRange(int sourceOffset, int sourceLength) throws IOException {
+		seek(sourceOffset);
+		final FilePos start = getFilePos();
+		skip(sourceLength);
+		return getFileRange(start);
 	}
 
 

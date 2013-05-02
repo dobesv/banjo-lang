@@ -8,8 +8,8 @@ import org.junit.Test;
 
 import banjo.desugar.errors.InvalidProjection;
 import banjo.dom.Expr;
-import banjo.dom.NumberLiteral;
-import banjo.dom.UnaryOp;
+import banjo.dom.source.UnaryOp;
+import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedExpression;

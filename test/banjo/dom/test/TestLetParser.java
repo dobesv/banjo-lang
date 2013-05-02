@@ -5,11 +5,11 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import banjo.dom.Expr;
-import banjo.dom.ExprList;
-import banjo.dom.FunctionLiteral;
-import banjo.dom.Let;
-import banjo.dom.Identifier;
-import banjo.dom.StringLiteral;
+import banjo.dom.core.ExprList;
+import banjo.dom.core.FunctionLiteral;
+import banjo.dom.core.Let;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.StringLiteral;
 
 public class TestLetParser {
 	@Test public void oneLine()         { hello("hello = \"world\" ; hello", 0); }

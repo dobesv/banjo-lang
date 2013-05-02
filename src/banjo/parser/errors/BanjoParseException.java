@@ -1,26 +1,30 @@
 package banjo.parser.errors;
 
 import banjo.parser.util.FileRange;
+import banjo.parser.util.OffsetLength;
 
 public class BanjoParseException extends java.text.ParseException {
 	private static final long serialVersionUID = 1L;
-	private final FileRange range;
+	private final int sourceLength;
 
 	public BanjoParseException(String message, FileRange range) {
-		super(message, range.getStartOffset());
-		this.range = range;
+		this(message, range.getStartOffset(), range.length());
 	}
 
-	public int getStartLine() { return range.getStart().line; }
-	public int getStartColumn() { return range.getStart().column; }
-	public int getEndLine() { return range.getEnd().line; }
-	public int getEndColumn() { return range.getEnd().column; }
-	public int getStartOffset() {return range.getStart().offset;	}
-	public int getEndOffset() {return range.getEnd().offset;	}
-	
-	@Override
-	public String toString() {
-		return range.toString()+": "+getLocalizedMessage();
+	public BanjoParseException(String message, int sourceOffset, int sourceLength) {
+		super(message, sourceOffset);
+		this.sourceLength = sourceLength;
 	}
 
+	public BanjoParseException(String message, OffsetLength sourceOffsetLength) {
+		super(message, sourceOffsetLength.getOffset());
+		this.sourceLength = sourceOffsetLength.getLength();
+	}
+
+	public int getSourceOffset() {
+		return getErrorOffset();
+	}
+	public int getSourceLength() {
+		return this.sourceLength;
+	}
 }

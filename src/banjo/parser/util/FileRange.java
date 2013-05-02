@@ -1,5 +1,7 @@
 package banjo.parser.util;
 
+import static banjo.parser.util.Check.nonNull;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 
@@ -9,9 +11,6 @@ public final class FileRange {
 	private final FilePos end;
 	public FileRange(String filename, FilePos start, FilePos end) {
 		super();
-		if(filename == null) throw new NullPointerException();
-		if(start == null) throw new NullPointerException();
-		if(end == null) throw new NullPointerException();
 		this.filename = filename;
 		this.start = start;
 		this.end = end;
@@ -19,7 +18,7 @@ public final class FileRange {
 			throw new IllegalStateException("Range end comes before start"); // Don't expect nodes to be out of order in that array
 		}
 	}
-	
+
 	/**
 	 * Create a new range by extending the first parameter to the end position
 	 * of the second parameter.  The second parameter must end after the beginning
@@ -40,16 +39,16 @@ public final class FileRange {
 	 */
 	public FileRange(FileRange head, FilePos tail) {
 		this(head.getFilename(), head.getStart(), tail);
-		
+
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((getEnd() == null) ? 0 : getEnd().hashCode());
-		result = prime * result + ((getFilename() == null) ? 0 : getFilename().hashCode());
-		result = prime * result + ((getStart() == null) ? 0 : getStart().hashCode());
+		result = prime * result + getEnd().hashCode();
+		result = prime * result + getFilename().hashCode();
+		result = prime * result + getStart().hashCode();
 		return result;
 	}
 	@Override
@@ -60,8 +59,8 @@ public final class FileRange {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		FileRange other = (FileRange) obj;
-		if (!end.equals(other.end))
+		final FileRange other = (FileRange) obj;
+		if (!this.end.equals(other.end))
 			return false;
 		if (!getFilename().equals(other.getFilename()))
 			return false;
@@ -72,32 +71,32 @@ public final class FileRange {
 	public boolean startsBefore(FileRange tail) {
 		return getStart().before(tail.getStart());
 	}
-	
+
 	@Override
 	public String toString() {
-		StringBuffer sb = new StringBuffer();
+		final StringBuffer sb = new StringBuffer();
 		sb.append(getFilename());
 		sb.append(": ");
 		sb.append(getStart());
-		if(end.offset > start.offset+1) {
+		if(this.end.offset > this.start.offset+1) {
 			sb.append(" to ");
-			sb.append(end.toString(start));
+			sb.append(this.end.toString(this.start));
 		}
-		return sb.toString();
+		return nonNull(sb.toString());
 	}
 	public FilePos getStart() {
-		return start;
+		return this.start;
 	}
 	public FilePos getEnd() {
-		return end;
+		return this.end;
 	}
 	public int getStartOffset() {
 		return getStart().offset;
 	}
 	public int getEndOffset() {
-		return end.offset;
+		return this.end.offset;
 	}
-	
+
 	/**
 	 * Number of characters between the start and end of the range, including newlines.
 	 */
@@ -105,29 +104,51 @@ public final class FileRange {
 		return getEndOffset() - getStartOffset();
 	}
 	public String getFilename() {
-		return filename;
+		return this.filename;
 	}
 	public int getStartLine() {
-		return start.line;
+		return this.start.line;
 	}
 	public int getEndLine() {
-		return end.line;
+		return this.end.line;
 	}
 	public int getStartColumn() {
-		return start.column;
+		return this.start.column;
 	}
 	public int getEndColumn() {
-		return end.column;
+		return this.end.column;
 	}
 
 	/**
-	 * Check whether the given offset falls within this range. 
+	 * Check whether the given offset falls within this range.
 	 * 
 	 * @param offset Offset to check
 	 * @return true if the given offset is >= getStartOffset() and < getEndOffset().
 	 */
 	public boolean containsOffset(int offset) {
 		return offset >= getStartOffset() && offset < getEndOffset();
+	}
+
+	/**
+	 * Return a new FileRange with the same start position but the given end position.
+	 */
+	public FileRange extend(FilePos endPos) {
+		return new FileRange(this, endPos);
+	}
+
+	/**
+	 * Return a new FileRange with the same start position but the end position of the given range.
+	 */
+	public FileRange extend(FileRange fileRange) {
+		return new FileRange(this, fileRange);
+	}
+
+	public static FileRange between(FileRange a, FileRange b) {
+		return new FileRange(a.getFilename(), a.getEnd(), b.getStart());
+	}
+
+	public FileRange headRange() {
+		return new FileRange(this.filename, this.start, this.start);
 	}
 
 

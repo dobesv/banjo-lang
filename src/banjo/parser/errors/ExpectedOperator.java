@@ -1,7 +1,5 @@
 package banjo.parser.errors;
 
-import banjo.dom.AbstractExpr;
-import banjo.dom.Precedence;
 import banjo.parser.util.FileRange;
 
 public class ExpectedOperator extends BanjoParseException {
@@ -9,6 +7,9 @@ public class ExpectedOperator extends BanjoParseException {
 
 	public ExpectedOperator(FileRange fileRange) {
 		super("Expected operator", fileRange);
+	}
+	public ExpectedOperator(String message, FileRange fileRange) {
+		super(message, fileRange);
 	}
 
 }

@@ -12,9 +12,9 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.analysis.DefInfo;
 import banjo.analysis.DefRefScanner;
 import banjo.analysis.DefRefTokenVisitor;
-import banjo.dom.CoreExpr;
-import banjo.dom.Identifier;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.test.ParseTestUtils;
+import banjo.dom.token.Identifier;
 import banjo.parser.test.TokensToString;
 import banjo.parser.util.ParserReader;
 
@@ -39,14 +39,14 @@ public class TokensAndDefsRefsToString extends TokensToString implements DefRefT
 	@Override
 	@Nullable
 	public String visitIdentifierDef(@NonNull Identifier identifier, @NonNull DefInfo def) {
-		return token("def "+def.getType()+" "+identifier, identifier);
+		return token("def "+def.getType()+" "+identifier, range);
 	}
 
 	@Override
 	@Nullable
 	public String visitIdentifierRef(@NonNull Identifier identifier, @NonNull DefInfo def) {
 		// TODO Auto-generated method stub
-		return token("ref "+def.getType()+" "+identifier, identifier);
+		return token("ref "+def.getType()+" "+identifier, range);
 	}
 
 	

@@ -3,6 +3,7 @@ package banjo.desugar.errors;
 import banjo.dom.Expr;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.util.FileRange;
+import banjo.parser.util.OffsetLength;
 
 public class UnexpectedContract extends BanjoParseException {
 	private static final long serialVersionUID = 1L;
@@ -11,9 +12,9 @@ public class UnexpectedContract extends BanjoParseException {
 		super(message, range);
 	}
 
-	public UnexpectedContract(Expr contract) {
-		this("Unexpected contract '"+contract.toSource()+"'", contract.getFileRange());
+	public UnexpectedContract(Expr contract, OffsetLength range) {
+		super("Unexpected contract '"+contract.toSource()+"'", range);
 	}
 
-	
+
 }

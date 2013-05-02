@@ -1,13 +1,13 @@
 package banjo.dom;
 
 
-import banjo.parser.util.FileRange;
-import fj.data.Option;
+import static banjo.parser.util.Check.nonNull;
 
-public abstract class AbstractExpr extends AbstractHasFileRange implements Expr {
-	public AbstractExpr(FileRange range) {
-		super(range);
-	}
+import org.eclipse.jdt.annotation.Nullable;
+
+import banjo.dom.source.Precedence;
+
+public abstract class AbstractExpr implements Expr {
 	
 	@Override
 	public void toSource(StringBuffer sb, Precedence outerPrec) {
@@ -22,7 +22,7 @@ public abstract class AbstractExpr extends AbstractHasFileRange implements Expr 
 	public String toSource(Precedence prec) {
 		StringBuffer buf = new StringBuffer();
 		toSource(buf, prec);
-		return buf.toString();
+		return nonNull(buf.toString());
 	}
 	
 	@Override
@@ -34,13 +34,14 @@ public abstract class AbstractExpr extends AbstractHasFileRange implements Expr 
 		return toSource();
 	}
 	
-	static <T extends Expr> Option<T> optTransform(Option<T> opt, ExprTransformer transformer) {
-		if(opt.isNone())
+	static @Nullable
+	protected <T extends Expr> T optTransform(@Nullable T opt, ExprTransformer transformer) {
+		if(opt == null)
 			return opt;
-		T value = opt.some();
+		T value = nonNull(opt);
 		T newValue = transformer.transform(value);
 		if(value == newValue)
 			return opt;
-		return Option.some(newValue);
+		return newValue;
 	}
 }

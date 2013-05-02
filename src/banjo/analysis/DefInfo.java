@@ -1,29 +1,35 @@
 package banjo.analysis;
 
-import banjo.dom.Key;
+import banjo.dom.token.Key;
 
 public class DefInfo {
 	private final Key nameToken;
+	private final int sourceOffset;
 	private final DefType type;
 	private final int scopeDepth;
 
-	public DefInfo(Key nameToken, final DefType type, int scopeDepth) {
+	public DefInfo(Key nameToken, int sourceOffset, final DefType type, int scopeDepth) {
 		super();
 		this.nameToken = nameToken;
+		this.sourceOffset = sourceOffset;
 		this.type = type;
 		this.scopeDepth = scopeDepth;
 	}
 
 	public int getScopeDepth() {
-		return scopeDepth;
+		return this.scopeDepth;
 	}
-	
+
 	public Key getNameToken() {
-		return nameToken;
+		return this.nameToken;
 	}
 
 	public DefType getType() {
-		return type;
+		return this.type;
+	}
+
+	public int getSourceOffset() {
+		return this.sourceOffset;
 	}
 
 }

@@ -2,9 +2,8 @@ package banjo.analysis;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.Identifier;
-import banjo.dom.OperatorRef;
-import banjo.dom.TokenVisitor;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.TokenVisitor;
 
 /**
  * Accept tokens.  Unlike the standard token visitor, some tokens

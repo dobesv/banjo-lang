@@ -1,49 +1,50 @@
 package banjo.desugar;
 
+import static banjo.parser.util.Check.nonNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-import banjo.dom.BadExpr;
-import banjo.dom.Call;
-import banjo.dom.CoreExpr;
-import banjo.dom.CoreExprVisitor;
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.dom.Expr;
-import banjo.dom.ExprList;
 import banjo.dom.ExprTransformer;
-import banjo.dom.Field;
-import banjo.dom.FieldRef;
-import banjo.dom.FunctionLiteral;
-import banjo.dom.HasFileRange;
-import banjo.dom.Identifier;
-import banjo.dom.Let;
-import banjo.dom.ListLiteral;
-import banjo.dom.NumberLiteral;
-import banjo.dom.ObjectLiteral;
-import banjo.dom.OperatorRef;
-import banjo.dom.SetLiteral;
-import banjo.dom.SourceExpr;
-import banjo.dom.StringLiteral;
+import banjo.dom.core.BadExpr;
+import banjo.dom.core.Call;
+import banjo.dom.core.CoreExpr;
+import banjo.dom.core.CoreExprVisitor;
+import banjo.dom.core.ExprList;
+import banjo.dom.core.Field;
+import banjo.dom.core.FieldRef;
+import banjo.dom.core.FunArg;
+import banjo.dom.core.FunctionLiteral;
+import banjo.dom.core.Let;
+import banjo.dom.core.ListLiteral;
+import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.SetLiteral;
+import banjo.dom.source.SourceExpr;
+import banjo.dom.source.SourceNode;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoParser;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.UnexpectedIOExceptionError;
-import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
+import banjo.parser.util.OffsetLength;
 import banjo.parser.util.ParserReader;
 import fj.data.Option;
 
 public class IncrementalUpdater {
 
-	private final class ExprTransformerImplementation implements
-			ExprTransformer {
+	private final class ExprTransformerImplementation implements ExprTransformer {
 		private final int editEndOffset;
-		private final int lineDelta;
 		private final String newSourceCode;
-		private final int editStartLine;
-		private final int editStartColumn;
 		private final int offsetDelta;
-		private final int columnDelta;
 		private final int editStartOffset;
 		final CoreExprVisitor<Expr> visitor = new CoreExprVisitor<Expr>() {
 
@@ -107,18 +108,35 @@ public class IncrementalUpdater {
 
 			@Override
 			public CoreExpr visitFunctionLiteral(FunctionLiteral functionLiteral) {
-				if(editTouchesStartOrEndOfNode(functionLiteral.getBody()) ||
-						editTouchesStartOrEndOfNode(functionLiteral.getContract()) ||
-						editTouchesStartOrEndOfNode(functionLiteral.getSelfName()) ||
-						editTouchesStartOrEndOfChild(functionLiteral.getArgs())) {
-					return reparse(functionLiteral);
+				genericTransform(functionLiteral,
+						functionLiteral.getSelfName(),
+						functionLiteral.getBody(),
+						functionLiteral.getContract(),
+						function)
+						if(editTouchesStartOrEndOfNode(functionLiteral.getBody()) ||
+								editTouchesStartOrEndOfNode(functionLiteral.getContract()) ||
+								editTouchesStartOrEndOfNode(functionLiteral.getSelfName()) ||
+								editTouchesStartOrEndOfChild(functionLiteral.getArgs())) {
+							return reparse(functionLiteral);
+						}
+				CoreExpr newBody, newContract, newSelfName;
+				List<FunArg> newArgs;
+				final boolean changed = (
+						(newBody = transform(functionLiteral.getBody())) != functionLiteral.getBody() ||
+						(newContract = transform(functionLiteral.getContract())) != functionLiteral.getContract() ||
+						(newSelfName = transform(functionLiteral.getSelfName())) != functionLiteral.getSelfName() ||
+						(newArgs = transform(functionLiteral.getArgs())) != functionLiteral.getArgs() ||
+						(newSourceExpr = transform(functionLiteral.getSourceExpr())));
+				if(changed) {
+					// TODO Ugh ... also have to update the getSourceExpr() ... how can this be made easier ?
+					return new FunctionLiteral(functionLiteral.getSourceExpr(), newSelfName, newArgs, newContract, newBody);
 				}
 				return transform(functionLiteral);
 			}
 
 			@Override
 			public CoreExpr visitObjectLiteral(ObjectLiteral objectLiteral) {
-				for(Field f : objectLiteral.getFields().values()) {
+				for(final Field f : objectLiteral.getFields().values()) {
 					if(editTouchesStartOrEndOfNode(f.getKey()) ||
 							editTouchesStartOrEndOfNode(f.getValue())) {
 						return reparse(objectLiteral);
@@ -158,65 +176,108 @@ public class IncrementalUpdater {
 				return transform(badExpr);
 			}
 		};
+		@Nullable
+		private CoreExpr parentExpr;
+		private int parentExprOffset;
 
 		private ExprTransformerImplementation(int endOffset, int lineDelta,
 				String newSourceCode, int editStartLine, int editStartColumn,
 				int offsetDelta, int columnDelta, int editOffset) {
 			this.editEndOffset = endOffset;
-			this.lineDelta = lineDelta;
 			this.newSourceCode = newSourceCode;
-			this.editStartLine = editStartLine;
-			this.editStartColumn = editStartColumn;
 			this.offsetDelta = offsetDelta;
-			this.columnDelta = columnDelta;
 			this.editStartOffset = editOffset;
 		}
 
 		CoreExpr transform(CoreExpr e) {
-			// TODO - this should only be necessary for the root node ...
-			if(editTouchesStartOrEndOfNode(e)) {
+			final OffsetLength range = sourceRange(e);
+
+			// If the edit is completely outside the range of that node, leave it untouched
+			if(this.editEndOffset < range.getOffset() || this.editStartOffset > range.getEnd())
+				return e;
+
+			// If the edit touches the start/end of the range, reparse
+			if(editTouchesStartOrEndOfRange(range)) {
 				return reparse(e);
 			}
-			return (CoreExpr) e.transform(this);
+
+			final CoreExpr oldParentExpr = this.parentExpr;
+			final int oldParentExprOffset = this.parentExprOffset;
+			this.parentExpr = e;
+			this.parentExprOffset = range.getOffset();
+
+			// Otherwise check whether we need to reparse because the edit spans multiple child nodes
+			for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
+				final Object child = f.get(e);
+				if(child instanceof CoreExpr) {
+					final SourceExpr sourceExpr = ((CoreExpr)child).getSourceExpr();
+					for(final SourceNode node : sourceExpr.getSourceNodes()) {
+						if(editTouchesStartOrEndOfRange(sourceRange(node))) {
+							return reparse(e);
+						}
+					}
+				}
+				if(child instanceof SourceNode) {
+
+				}
+			}
+
+
+			for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
+				final Object child = f.get(e);
+
+			}
+
+			this.parentExpr = oldParentExpr;
+			this.parentExprOffset = oldParentExprOffset;
+			return result;
+		}
+
+		private int sourceOffset(final CoreExpr childExpr) {
+			final CoreExpr parentExpr = this.parentExpr;
+			if(childExpr == parentExpr) return this.parentExprOffset;
+			if(parentExpr == null) return 0; // Must be the root node
+			final Option<Integer> offsetFromParent = parentExpr.getSourceExpr().offsetToChild(childExpr.getSourceExpr());
+			if(offsetFromParent.isNone()) throw new IllegalStateException("Looking for offset to node that isn't a child of the current node");
+			return this.parentExprOffset + offsetFromParent.orSome(0).intValue();
+		}
+		private OffsetLength sourceRange(final CoreExpr childExpr) {
+			return new OffsetLength(sourceOffset(childExpr), childExpr.getSourceExpr().getSourceLength());
 		}
 
 		CoreExpr reparse(CoreExpr e) {
-			int nodeStartOffset = adjustOffset(e.getFileRange().getStartOffset(), false);
-			int nodeEndOffset = adjustOffset(e.getFileRange().getEndOffset(), true);
-			ParserReader in = ParserReader.fromSubstring(e.getFileRange().getFilename(), newSourceCode, nodeStartOffset, nodeEndOffset);
+			final OffsetLength range = sourceRange(e);
+			final int nodeStartOffset = adjustOffset(range.getOffset(), false);
+			final int nodeEndOffset = adjustOffset(range.getEnd(), true);
+			final ParserReader in = ParserReader.fromSubstring("", this.newSourceCode, nodeStartOffset, nodeEndOffset);
 			try {
-				SourceExpr node = parser.parse(in, errors);
+				final SourceExpr node = IncrementalUpdater.this.parser.parse(in, IncrementalUpdater.this.errors);
 				if(node == null) throw new NullPointerException();
-				return desugarer.desugar(node, errors);
-			} catch (IOException e1) {
+				return IncrementalUpdater.this.desugarer.desugar(node, IncrementalUpdater.this.errors);
+			} catch (final IOException e1) {
 				throw new UnexpectedIOExceptionError(e1);
 			}
-		}
-
-		<T extends HasFileRange> boolean editTouchesStartOrEndOfNode(Option<T> optExpr) {
-			if(optExpr.isSome()) {
-				HasFileRange expr = optExpr.some();
-				if(expr == null) throw new NullPointerException();
-				return editTouchesStartOrEndOfNode(expr);
-			}
-			return false;
 		}
 
 		/**
 		 * @return true if the edited range affects either the first character or the character
 		 *              following the last character of the given expression.
 		 */
-		private boolean editTouchesStartOrEndOfNode(HasFileRange child) {
-			FileRange range = child.getFileRange();
-			
-			return (editStartOffset <= range.getStartOffset() && editEndOffset >= range.getStartOffset()) ||
-				   (editStartOffset <= range.getEndOffset() && editEndOffset >= range.getEndOffset());
+		private boolean editTouchesStartOrEndOfNode(@Nullable CoreExpr expr) {
+			if(expr == null) return false;
+			final OffsetLength range = sourceRange(expr);
+
+			return editTouchesStartOrEndOfRange(range);
 		}
 
-		private <T extends HasFileRange> boolean editTouchesStartOrEndOfChild(Collection<T> children) {
-			for(HasFileRange child : children) {
-				if(child == null) throw new NullPointerException();
-				if(editTouchesStartOrEndOfNode(child))
+		public boolean editTouchesStartOrEndOfRange(final OffsetLength range) {
+			return (this.editStartOffset <= range.getOffset() && this.editEndOffset >= range.getOffset()) ||
+					(this.editStartOffset <= range.getEnd() && this.editEndOffset >= range.getEnd());
+		}
+
+		private <T extends CoreExpr> boolean editTouchesStartOrEndOfChild(Collection<T> children) {
+			for(final CoreExpr child : children) {
+				if(editTouchesStartOrEndOfNode(nonNull(child)))
 					return true;
 			}
 			return false;
@@ -226,8 +287,8 @@ public class IncrementalUpdater {
 		 * @return True if the edit affects characters contained in the node's range
 		 */
 		private boolean touchesEdit(CoreExpr child) {
-			FileRange range = child.getFileRange();
-			return editEndOffset >= range.getStartOffset() && editStartOffset <= range.getEndOffset();
+			final OffsetLength range = sourceRange(child);
+			return this.editEndOffset >= range.getOffset() && this.editStartOffset <= range.getEnd();
 		}
 
 		@Override
@@ -238,46 +299,14 @@ public class IncrementalUpdater {
 		@SuppressWarnings("unchecked")
 		@Override
 		public <T extends Expr> T transform(T in) {
-			Expr result = ((CoreExpr)in).acceptVisitor(visitor);
+			final Expr result = ((CoreExpr)in).acceptVisitor(this.visitor);
 			if(result == null) throw new NullPointerException();
 			return (T) result;
 		}
-
-		// TODO This line number adjustment isn't right - if the offset is inside the edited range we need a more fine-grained adjustment
-		private int adjustLine(int offset, int line, boolean inclusive) {
-			return (inclusive ? offset >= editStartOffset : offset > editStartOffset) ? line + lineDelta : line;
-		}
-
-		private int adjustColumn(int offset, int line, int column, boolean inclusive) {
-			return (inclusive ? offset >= editStartOffset : offset > editStartOffset) &&
-					line == editStartLine && 
-					(inclusive ? column >= editStartColumn : column > editStartColumn) ? column + columnDelta : column;
-		}
-
 		private int adjustOffset(int offset, boolean inclusive) {
-			return (inclusive ? offset >= editStartOffset : offset > editStartOffset) ? offset + offsetDelta : offset;
+			return (inclusive ? offset >= this.editStartOffset : offset > this.editStartOffset) ? offset + this.offsetDelta : offset;
 		}
 
-		private FilePos adjustFilePos(FilePos pos, boolean inclusive) {
-			int offset = pos.getOffset();
-			return editStartOffset < offset ? pos : 
-				new FilePos(adjustOffset(offset, inclusive),
-						    adjustLine(offset, pos.getLine(), inclusive),
-						    adjustColumn(offset, pos.getLine(), pos.getColumn(), inclusive));
-		}
-
-		@Override
-		public FileRange transform(FileRange range) {
-			// Easiest - this range comes before the offset of the change, so it can be left untouched
-			if(editStartOffset > range.getEndOffset()) {
-				return range;
-			}
-			
-			// Create a new range by adjusting the offsets / lines
-			return new FileRange(range.getFilename(),
-					adjustFilePos(range.getStart(), false),
-					adjustFilePos(range.getEnd(), true));
-		}
 	}
 
 	public IncrementalUpdater() {
@@ -287,7 +316,7 @@ public class IncrementalUpdater {
 	final BanjoScanner scanner = new BanjoScanner();
 	final BanjoDesugarer desugarer = new BanjoDesugarer();
 	final ArrayList<BanjoParseException> errors = new ArrayList<>();
-	
+
 	/**
 	 * Return an AST representing how things should be after applying the given edit.  This does
 	 * its best to re-use as much of the original AST as possible.
@@ -303,23 +332,27 @@ public class IncrementalUpdater {
 		/*
 		 * Different cases while transforming:
 		 * 
-		 * 1. Expr touching the change, but with a single child expr that touches the change, 
+		 * 1. Expr touching the change, but with a single child expr that touches the change,
 		 *    and that child completely covers the change: transform that child, adjust range
 		 * 2. Expr containing the change, but with multiple child exprs touching the change, or
 		 *    the change extends beyond the edge of a single child: re-parse from source range
 		 * 3. String literals, numbers, and identifiers where the change can applied and the token is still
-		 *    valid: apply change, adjust range
-		 * 4. Expr before the change: leave alone
-		 * 5. Expr after the change: adjust range
+		 *    valid: apply change
+		 */
+
+		/*
+		 * Adjusting the parse tree is not a big deal.  But adjusted the desugared nodes is trickier.  The
+		 * root node will always have to updated since at least one child will be updated.  So some smarts
+		 * is needed to walk down the tree and do minimal damage
 		 */
 		// SourceExpr newContentType = parser.parse(replacement);
 		final int endOffset = editOffset + editLength;
-		
+
 		int columnDeltaTemp=0;
 		int lineDeltaTemp=0;
 		final int offsetDelta = replacement.length() - editLength;
 		for(int i=0; i < replacement.length(); i++) {
-			char ch = replacement.charAt(i);
+			final char ch = replacement.charAt(i);
 			if(ch == '\n') {
 				lineDeltaTemp++;
 				columnDeltaTemp = -editStartColumn;
@@ -329,7 +362,7 @@ public class IncrementalUpdater {
 		}
 		final int columnDelta = columnDeltaTemp;
 		final int lineDelta = lineDeltaTemp;
-		
+
 		final ExprTransformerImplementation transformer = new ExprTransformerImplementation(endOffset, lineDelta, newSourceCode,
 				editStartLine, editStartColumn, offsetDelta, columnDelta,
 				editOffset);
@@ -340,7 +373,7 @@ public class IncrementalUpdater {
 	}
 
 	public CoreExpr applyEdit(CoreExpr ast, int offset, int length, String replacement, String newSourceCode) {
-		ParserReader temp = ParserReader.fromSubstring("", newSourceCode, offset, offset+length);
+		final ParserReader temp = ParserReader.fromSubstring("", newSourceCode, offset, offset+length);
 		return applyEdit(ast, offset, length, temp.getCurrentLineNumber(), temp.getCurrentColumnNumber(), replacement, newSourceCode);
 	}
 }

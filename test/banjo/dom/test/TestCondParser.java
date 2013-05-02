@@ -3,7 +3,7 @@ package banjo.dom.test;
 import org.junit.Test;
 
 import banjo.desugar.errors.MissingElseClauseInConditional;
-import banjo.dom.Call;
+import banjo.dom.core.Call;
 import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.ExpectedOperator;
 

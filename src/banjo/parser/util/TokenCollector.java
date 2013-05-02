@@ -5,75 +5,84 @@ import java.util.Collection;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.Comment;
-import banjo.dom.Ellipsis;
-import banjo.dom.HasFileRange;
-import banjo.dom.Identifier;
-import banjo.dom.NumberLiteral;
-import banjo.dom.OperatorRef;
-import banjo.dom.SourceExpr;
-import banjo.dom.StringLiteral;
-import banjo.dom.TokenVisitor;
-import banjo.dom.UnitRef;
-import banjo.dom.Whitespace;
+import banjo.dom.source.SourceExpr;
+import banjo.dom.token.Comment;
+import banjo.dom.token.Ellipsis;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
+import banjo.dom.token.Token;
+import banjo.dom.token.TokenVisitor;
+import banjo.dom.token.UnitRef;
+import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoParser;
 import banjo.parser.errors.BanjoParseException;
 
 public class TokenCollector implements TokenVisitor<SourceExpr> {
 	final BanjoParser parser;
-	final Collection<HasFileRange> tokens;
-	
-	public TokenCollector(BanjoParser parser, Collection<HasFileRange> tokens) {
+	final Collection<Token> tokens;
+
+	public TokenCollector(BanjoParser parser, Collection<Token> tokens) {
 		this.parser = parser;
 		this.tokens = tokens;
 	}
-	
+
 	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
-		return parser.parse(in);
+		return this.parser.parse(in);
 	}
 	public @Nullable SourceExpr parse(String source) throws IOException {
-		return parser.parse(source);
+		return this.parser.parse(source);
 	}
 	public Collection<BanjoParseException> getErrors() {
-		return parser.getErrors();
+		return this.parser.getErrors();
 	}
 	public boolean reachedEof() {
-		return parser.reachedEof();
+		return this.parser.reachedEof();
 	}
-	public @Nullable SourceExpr visitStringLiteral(StringLiteral token) {
-		tokens.add(token);
-		return parser.visitStringLiteral(token);
+	@Override
+	public @Nullable SourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
+		this.tokens.add(token);
+		return this.parser.visitStringLiteral(range, token);
 	}
-	public @Nullable SourceExpr visitNumberLiteral(NumberLiteral numberLiteral) {
-		tokens.add(numberLiteral);
-		return parser.visitNumberLiteral(numberLiteral);
+	@Override
+	public @Nullable SourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
+		this.tokens.add(numberLiteral);
+		return this.parser.visitNumberLiteral(range, numberLiteral);
 	}
-	public @Nullable SourceExpr visitIdentifier(Identifier simpleName) {
-		tokens.add(simpleName);
-		return parser.visitIdentifier(simpleName);
+	@Override
+	public @Nullable SourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
+		this.tokens.add(simpleName);
+		return this.parser.visitIdentifier(range, simpleName);
 	}
-	public @Nullable SourceExpr visitEllipsis(Ellipsis ellipsis) {
-		tokens.add(ellipsis);
-		return parser.visitEllipsis(ellipsis);
+	@Override
+	public @Nullable SourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
+		this.tokens.add(ellipsis);
+		return this.parser.visitEllipsis(range, ellipsis);
 	}
-	public @Nullable SourceExpr visitUnit(UnitRef unit) {
-		tokens.add(unit);
-		return parser.visitUnit(unit);
+	@Override
+	public @Nullable SourceExpr visitUnit(FileRange range, UnitRef unit) {
+		this.tokens.add(unit);
+		return this.parser.visitUnit(range, unit);
 	}
-	public SourceExpr visitOperator(OperatorRef opRef) {
-		tokens.add(opRef);
-		return parser.visitOperator(opRef);
+	@Override
+	public SourceExpr visitOperator(FileRange range, OperatorRef opRef) {
+		this.tokens.add(opRef);
+		return this.parser.visitOperator(range, opRef);
 	}
-	public @Nullable SourceExpr visitWhitespace(Whitespace ws) {
-		tokens.add(ws);
-		return parser.visitWhitespace(ws);
+	@Override
+	public @Nullable SourceExpr visitWhitespace(FileRange range, Whitespace ws) {
+		this.tokens.add(ws);
+		return this.parser.visitWhitespace(range, ws);
 	}
-	public @Nullable SourceExpr visitComment(Comment c) {
-		tokens.add(c);
-		return parser.visitComment(c);
+	@Override
+	public @Nullable SourceExpr visitComment(FileRange range, Comment c) {
+		this.tokens.add(c);
+		return this.parser.visitComment(range, c);
 	}
+	@Override
 	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
-		return parser.visitEof(entireFileRange);
+		return this.parser.visitEof(entireFileRange);
 	}
-	
+
 }

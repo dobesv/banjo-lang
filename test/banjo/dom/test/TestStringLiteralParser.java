@@ -8,7 +8,7 @@ import java.util.Collection;
 
 import org.junit.Test;
 
-import banjo.dom.StringLiteral;
+import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoParser;
 import banjo.parser.util.ParserReader;
 

@@ -5,14 +5,6 @@ import banjo.parser.util.FileRange;
 public interface ExprTransformer {
 
 	/**
-	 * Update the file range
-	 * 
-	 * @param range
-	 * @return
-	 */
-	FileRange transform(FileRange range);
-	
-	/**
 	 * Update a child expression.
 	 * 
 	 * @param in

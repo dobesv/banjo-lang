@@ -1,10 +1,10 @@
 package banjo.analysis;
 
-import banjo.dom.Key;
+import banjo.dom.token.Key;
 
 public interface DefRefVisitor {
 
-	void visitRef(DefInfo def, Key key);
+	void visitRef(DefInfo def, int sourceOffset, Key key);
 
 	void visitDef(DefInfo def);
 

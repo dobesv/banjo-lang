@@ -1,16 +1,20 @@
 package banjo.parser.errors;
 
-import banjo.dom.Expr;
-import banjo.parser.util.FileRange;
+import banjo.dom.source.SourceExpr;
+import banjo.parser.util.OffsetLength;
 
 public class ExpectedIdentifier extends BanjoParseException {
 	private static final long serialVersionUID = 1L;
 
-	public ExpectedIdentifier(FileRange fileRange) {
-		super("Expected identifier here", fileRange);
+	public ExpectedIdentifier(int sourceOffset, int sourceLength) {
+		super("Expected identifier here", sourceOffset, sourceLength);
 	}
 
-	public ExpectedIdentifier(Expr gotInstead) {
-		super("Expected identifier; got '"+gotInstead+"'", gotInstead.getFileRange());
+	public ExpectedIdentifier(SourceExpr gotInstead, OffsetLength sourceOffsetLength) {
+		super("Expected identifier; got '"+gotInstead+"'", sourceOffsetLength);
+	}
+
+	public ExpectedIdentifier(OffsetLength sourceOffsetLength) {
+		super("Expected identifier", sourceOffsetLength);
 	}
 }
