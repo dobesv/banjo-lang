@@ -23,35 +23,38 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final Key DEFAULT_SELF_NAME = new Identifier("_self");
 
 	public FunctionLiteral(SourceExpr sourceExpr, Key selfName, List<FunArg> args, CoreExpr contract, CoreExpr body) {
-		super(sourceExpr, selfName.hashCode() + args.hashCode() + contract.hashCode() + body.hashCode());
+		this(sourceExpr.getSourceLength(), selfName, args, contract, body);
+	}
+	public FunctionLiteral(int sourceLength, Key selfName, List<FunArg> args, CoreExpr contract, CoreExpr body) {
+		super(sourceLength, selfName.hashCode() + args.hashCode() + contract.hashCode() + body.hashCode());
 		this.args = nonNull(Collections.unmodifiableList(args));
 		this.guarantee = contract;
 		this.body = body;
 		this.selfName = selfName;
 	}
 
-	public FunctionLiteral(SourceExpr sourceExpr, List<FunArg> args, CoreExpr contract, CoreExpr body) {
-		this(sourceExpr, DEFAULT_SELF_NAME, args, contract, body);
+	public FunctionLiteral(int sourceLength, List<FunArg> args, CoreExpr contract, CoreExpr body) {
+		this(sourceLength, DEFAULT_SELF_NAME, args, contract, body);
 	}
 
 	/**
 	 * Lazy expression which may have an operator in front, thus the specific text range
 	 */
 	public FunctionLiteral(SourceExpr sourceExpr, CoreExpr body) {
-		this(sourceExpr, nonNull(Collections.<FunArg>emptyList()), DEFAULT_GUARANTEE, body);
+		this(sourceExpr.getSourceLength(), nonNull(Collections.<FunArg>emptyList()), DEFAULT_GUARANTEE, body);
 	}
 
 	/**
 	 * Lazy expression with no operator in front
 	 */
 	public FunctionLiteral(CoreExpr body) {
-		this(body.getSourceExpr(), nonNull(Collections.<FunArg>emptyList()), DEFAULT_GUARANTEE, body);
+		this(body.getSourceLength(), nonNull(Collections.<FunArg>emptyList()), DEFAULT_GUARANTEE, body);
 	}
 	/**
 	 * Easy unary function
 	 */
 	public FunctionLiteral(SourceExpr sourceExpr, FunArg arg, CoreExpr body) {
-		this(sourceExpr, nonNull(Collections.singletonList(arg)), DEFAULT_GUARANTEE, body);
+		this(sourceExpr.getSourceLength(), nonNull(Collections.singletonList(arg)), DEFAULT_GUARANTEE, body);
 	}
 
 

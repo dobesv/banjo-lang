@@ -47,6 +47,10 @@ public class OffsetExpr<T extends Expr> extends OffsetValue<T> implements Expr {
 		return getOffset() + this.value.getOffsetInParent();
 	}
 	@Override
+	public int getSourceLength() {
+		return this.value.getSourceLength();
+	}
+	@Override
 	public Class<? extends Expr> getExprClass() {
 		return this.value.getExprClass();
 	}

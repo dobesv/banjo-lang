@@ -22,6 +22,11 @@ public interface Expr {
 	public int getOffsetInParent();
 
 	/**
+	 * @return The number of characters of the source code covered by this node.  If this node is synthetic, this may be zero.
+	 */
+	public int getSourceLength();
+
+	/**
 	 * Return the class of this expression
 	 */
 	Class<? extends Expr> getExprClass();

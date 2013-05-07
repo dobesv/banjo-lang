@@ -3,18 +3,12 @@ package banjo.dom.core;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
-import banjo.dom.source.SourceExpr;
 import banjo.parser.util.OffsetExpr;
 
 public class OffsetCoreExpr extends OffsetExpr<CoreExpr> implements CoreExpr {
 
 	public OffsetCoreExpr(int offset, CoreExpr value) {
 		super(offset, value);
-	}
-
-	@Override
-	public SourceExpr getSourceExpr() {
-		return getValue().getSourceExpr();
 	}
 
 	@Override

@@ -9,26 +9,25 @@ import banjo.dom.Expr;
 import banjo.dom.source.SourceExpr;
 
 public abstract class AbstractCoreExpr extends AbstractExpr implements CoreExpr {
-	private final SourceExpr sourceExpr;
+	private final int sourceLength;
 
 	public AbstractCoreExpr(SourceExpr sourceExpr, int hashCode) {
-		super(sourceExpr.hashCode()*13 + hashCode);
-		this.sourceExpr = sourceExpr;
+		this(sourceExpr.getSourceLength(), hashCode);
 	}
 
-	@Override
-	public SourceExpr getSourceExpr() {
-		return this.sourceExpr;
+	public AbstractCoreExpr(int sourceLength, int hashCode) {
+		super(sourceLength*13 + hashCode);
+		this.sourceLength = sourceLength;
 	}
 
 	@Override
 	public int getSourceLength() {
-		return this.sourceExpr.getSourceLength();
+		return this.sourceLength;
 	}
 
 	@Override
 	public boolean equals(@Nullable Object obj) {
-		return ((obj instanceof AbstractCoreExpr) && ((AbstractCoreExpr) obj).getSourceExpr().equals(getSourceExpr()));
+		return ((obj instanceof AbstractCoreExpr) && ((AbstractCoreExpr) obj).sourceLength == this.sourceLength);
 	}
 
 	@Override

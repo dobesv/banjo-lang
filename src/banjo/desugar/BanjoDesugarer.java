@@ -771,7 +771,7 @@ public class BanjoDesugarer {
 			@Override
 			@Nullable
 			public Key fallback(CoreExpr other) {
-				problems.add(new ExpectedIdentifier(other.getSourceExpr(), sourceOffset, other.getSourceLength()));
+				problems.add(new ExpectedIdentifier(other, sourceOffset, other.getSourceLength()));
 				return new Identifier(other.getSourceLength(), other.toSource());
 			}
 		}));
@@ -1254,7 +1254,7 @@ public class BanjoDesugarer {
 			final SourceExpr operandSourceExpr = op.getOperand();
 			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
 			final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-			return result(new FunctionLiteral(op, nonNull(Collections.<FunArg>emptyList()), FunctionLiteral.DEFAULT_GUARANTEE, off(operandSourceExpr, operandCoreExpr)), operandCoreExpr.getProblems());
+			return result(new FunctionLiteral(op.getSourceLength(), nonNull(Collections.<FunArg>emptyList()), FunctionLiteral.DEFAULT_GUARANTEE, off(operandSourceExpr, operandCoreExpr)), operandCoreExpr.getProblems());
 		}
 
 		public Problematic<CoreExpr> singletonSetLiteral(UnaryOp op) {

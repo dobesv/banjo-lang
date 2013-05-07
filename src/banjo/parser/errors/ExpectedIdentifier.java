@@ -1,6 +1,6 @@
 package banjo.parser.errors;
 
-import banjo.dom.source.SourceExpr;
+import banjo.dom.Expr;
 
 public class ExpectedIdentifier extends Problem {
 	private static final long serialVersionUID = 1L;
@@ -9,7 +9,7 @@ public class ExpectedIdentifier extends Problem {
 		super("Expected identifier here", sourceOffset, sourceLength);
 	}
 
-	public ExpectedIdentifier(SourceExpr gotInstead, int offset, int length) {
+	public ExpectedIdentifier(Expr gotInstead, int offset, int length) {
 		super("Expected identifier; got '"+gotInstead+"'", offset, length);
 	}
 }

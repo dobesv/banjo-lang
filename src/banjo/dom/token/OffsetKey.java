@@ -6,7 +6,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.source.SourceNode;
 import banjo.parser.util.OffsetExpr;
@@ -25,11 +24,6 @@ public class OffsetKey extends OffsetExpr<Key> implements Key {
 	@Override
 	public int getSourceLength() {
 		return getValue().getSourceLength();
-	}
-
-	@Override
-	public SourceExpr getSourceExpr() {
-		return getValue().getSourceExpr();
 	}
 
 	@Override
