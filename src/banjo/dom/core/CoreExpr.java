@@ -19,6 +19,13 @@ public interface CoreExpr extends Expr {
 	 */
 	SourceExpr getSourceExpr();
 
+	/**
+	 * Get the length of this expression as it was found in the source code.  If this expression
+	 * was synthesized, this will be zero.
+	 */
+	int getSourceLength();
+
 	@Nullable
 	<T> T acceptVisitor(CoreExprVisitor<T> visitor);
+
 }

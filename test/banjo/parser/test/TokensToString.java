@@ -16,7 +16,6 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.UnitRef;
 import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.FileRange;
@@ -87,17 +86,11 @@ public class TokensToString implements TokenVisitor<String> {
 		return token("...", range);
 	}
 
-	@Override
-	@Nullable
-	public String visitUnit(@NonNull FileRange range, @NonNull UnitRef unit) {
-		return token("unit", range);
-	}
-
 	public static void testScanner(@NonNull String src, final int rangeStart, final int rangeEnd, String ... expectedTokens) {
 		testScanner(src, rangeStart, rangeEnd, expectedTokens, new TokensToString(rangeStart, rangeEnd));
 	}
 
-	public static void testScanner(String src, final int rangeStart,
+	public static void testScanner(@NonNull String src, final int rangeStart,
 			final int rangeEnd, String[] expectedTokens,
 			TokensToString testVisitor) throws Error {
 		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);

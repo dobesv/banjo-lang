@@ -16,4 +16,15 @@ public interface Expr {
 
 	public Precedence getPrecedence();
 
+	/**
+	 * @return The offset of this node in it's "parent" node.
+	 */
+	public int getOffsetInParent();
+
+	/**
+	 * Return the class of this expression
+	 */
+	Class<? extends Expr> getExprClass();
+
+
 }

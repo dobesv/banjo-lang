@@ -41,339 +41,196 @@ import fj.data.Option;
 
 public class IncrementalUpdater {
 
-	private final class ExprTransformerImplementation implements ExprTransformer {
-		private final int editEndOffset;
-		private final String newSourceCode;
-		private final int offsetDelta;
-		private final int editStartOffset;
-		final CoreExprVisitor<Expr> visitor = new CoreExprVisitor<Expr>() {
 
-			@Override
-			public CoreExpr visitStringLiteral(StringLiteral stringLiteral) {
-				if(touchesEdit(stringLiteral)) {
-					return reparse(stringLiteral);
-				}
-				return transform(stringLiteral);
-			}
+	@Nullable
+	private CoreExpr parentExpr;
+	private int parentExprOffset;
 
-			@Override
-			public CoreExpr visitNumberLiteral(NumberLiteral numberLiteral) {
-				if(touchesEdit(numberLiteral)) {
-					return reparse(numberLiteral);
-				}
-				return transform(numberLiteral);
-			}
+	CoreExpr transform(CoreExpr e) {
+		final OffsetLength range = sourceRange(e);
 
-			@Override
-			public CoreExpr visitIdentifier(Identifier identifier) {
-				if(touchesEdit(identifier)) {
-					return reparse(identifier);
-				}
-				return transform(identifier);
-			}
+		// If the edit is completely outside the range of that node, leave it untouched
+		if(this.editEndOffset < range.getOffset() || this.editStartOffset > range.getEnd())
+			return e;
 
-			@Override
-			public CoreExpr visitOperator(OperatorRef operatorRef) {
-				if(touchesEdit(operatorRef)) {
-					return reparse(operatorRef);
-				}
-				return transform(operatorRef);
-			}
+		// If the edit touches the start/end of the range, reparse
+		if(editTouchesStartOrEndOfRange(range)) {
+			return reparse(e);
+		}
 
-			@Override
-			public CoreExpr visitCall(Call call) {
-				if(editTouchesStartOrEndOfNode(call.getCallee()) ||
-						editTouchesStartOrEndOfChild(call.getArguments())) {
-					return reparse(call);
-				}
-				return transform(call);
-			}
+		final CoreExpr oldParentExpr = this.parentExpr;
+		final int oldParentExprOffset = this.parentExprOffset;
+		this.parentExpr = e;
+		this.parentExprOffset = range.getOffset();
 
-			@Override
-			public CoreExpr visitExprList(ExprList exprList) {
-				if(editTouchesStartOrEndOfChild(exprList.getElements())) {
-					return reparse(exprList);
-				}
-				return transform(exprList);
-			}
-
-			@Override
-			public CoreExpr visitFieldRef(FieldRef fieldRef) {
-				if(editTouchesStartOrEndOfNode(fieldRef.getBase()) ||
-						editTouchesStartOrEndOfNode(fieldRef.getKey())) {
-					return reparse(fieldRef);
-				}
-				return transform(fieldRef);
-			}
-
-			@Override
-			public CoreExpr visitFunctionLiteral(FunctionLiteral functionLiteral) {
-				genericTransform(functionLiteral,
-						functionLiteral.getSelfName(),
-						functionLiteral.getBody(),
-						functionLiteral.getContract(),
-						function)
-						if(editTouchesStartOrEndOfNode(functionLiteral.getBody()) ||
-								editTouchesStartOrEndOfNode(functionLiteral.getContract()) ||
-								editTouchesStartOrEndOfNode(functionLiteral.getSelfName()) ||
-								editTouchesStartOrEndOfChild(functionLiteral.getArgs())) {
-							return reparse(functionLiteral);
-						}
-				CoreExpr newBody, newContract, newSelfName;
-				List<FunArg> newArgs;
-				final boolean changed = (
-						(newBody = transform(functionLiteral.getBody())) != functionLiteral.getBody() ||
-						(newContract = transform(functionLiteral.getContract())) != functionLiteral.getContract() ||
-						(newSelfName = transform(functionLiteral.getSelfName())) != functionLiteral.getSelfName() ||
-						(newArgs = transform(functionLiteral.getArgs())) != functionLiteral.getArgs() ||
-						(newSourceExpr = transform(functionLiteral.getSourceExpr())));
-				if(changed) {
-					// TODO Ugh ... also have to update the getSourceExpr() ... how can this be made easier ?
-					return new FunctionLiteral(functionLiteral.getSourceExpr(), newSelfName, newArgs, newContract, newBody);
-				}
-				return transform(functionLiteral);
-			}
-
-			@Override
-			public CoreExpr visitObjectLiteral(ObjectLiteral objectLiteral) {
-				for(final Field f : objectLiteral.getFields().values()) {
-					if(editTouchesStartOrEndOfNode(f.getKey()) ||
-							editTouchesStartOrEndOfNode(f.getValue())) {
-						return reparse(objectLiteral);
+		// Otherwise check whether we need to reparse because the edit spans multiple child nodes
+		for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
+			final Object child = f.get(e);
+			if(child instanceof CoreExpr) {
+				final SourceExpr sourceExpr = ((CoreExpr)child).getSourceExpr();
+				for(final SourceNode node : sourceExpr.getSourceNodes()) {
+					if(editTouchesStartOrEndOfRange(sourceRange(node))) {
+						return reparse(e);
 					}
 				}
-				return transform(objectLiteral);
 			}
+			if(child instanceof SourceNode) {
 
-			@Override
-			public CoreExpr visitLet(Let let) {
-				if(editTouchesStartOrEndOfNode(let.getName()) ||
-						editTouchesStartOrEndOfNode(let.getValue())) {
-					return reparse(let);
-				}
-				return transform(let);
-			}
-
-			@Override
-			public CoreExpr visitListLiteral(ListLiteral listLiteral) {
-				if(editTouchesStartOrEndOfChild(listLiteral.getElements())) {
-					return reparse(listLiteral);
-				}
-				return transform(listLiteral);
-			}
-
-			@Override
-			public CoreExpr visitSetLiteral(SetLiteral setLiteral) {
-				if(editTouchesStartOrEndOfChild(setLiteral.getElements())) {
-					return reparse(setLiteral);
-				}
-				return transform(setLiteral);
-			}
-
-
-			@Override
-			public CoreExpr visitBadExpr(BadExpr badExpr) {
-				return transform(badExpr);
-			}
-		};
-		@Nullable
-		private CoreExpr parentExpr;
-		private int parentExprOffset;
-
-		private ExprTransformerImplementation(int endOffset, int lineDelta,
-				String newSourceCode, int editStartLine, int editStartColumn,
-				int offsetDelta, int columnDelta, int editOffset) {
-			this.editEndOffset = endOffset;
-			this.newSourceCode = newSourceCode;
-			this.offsetDelta = offsetDelta;
-			this.editStartOffset = editOffset;
-		}
-
-		CoreExpr transform(CoreExpr e) {
-			final OffsetLength range = sourceRange(e);
-
-			// If the edit is completely outside the range of that node, leave it untouched
-			if(this.editEndOffset < range.getOffset() || this.editStartOffset > range.getEnd())
-				return e;
-
-			// If the edit touches the start/end of the range, reparse
-			if(editTouchesStartOrEndOfRange(range)) {
-				return reparse(e);
-			}
-
-			final CoreExpr oldParentExpr = this.parentExpr;
-			final int oldParentExprOffset = this.parentExprOffset;
-			this.parentExpr = e;
-			this.parentExprOffset = range.getOffset();
-
-			// Otherwise check whether we need to reparse because the edit spans multiple child nodes
-			for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
-				final Object child = f.get(e);
-				if(child instanceof CoreExpr) {
-					final SourceExpr sourceExpr = ((CoreExpr)child).getSourceExpr();
-					for(final SourceNode node : sourceExpr.getSourceNodes()) {
-						if(editTouchesStartOrEndOfRange(sourceRange(node))) {
-							return reparse(e);
-						}
-					}
-				}
-				if(child instanceof SourceNode) {
-
-				}
-			}
-
-
-			for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
-				final Object child = f.get(e);
-
-			}
-
-			this.parentExpr = oldParentExpr;
-			this.parentExprOffset = oldParentExprOffset;
-			return result;
-		}
-
-		private int sourceOffset(final CoreExpr childExpr) {
-			final CoreExpr parentExpr = this.parentExpr;
-			if(childExpr == parentExpr) return this.parentExprOffset;
-			if(parentExpr == null) return 0; // Must be the root node
-			final Option<Integer> offsetFromParent = parentExpr.getSourceExpr().offsetToChild(childExpr.getSourceExpr());
-			if(offsetFromParent.isNone()) throw new IllegalStateException("Looking for offset to node that isn't a child of the current node");
-			return this.parentExprOffset + offsetFromParent.orSome(0).intValue();
-		}
-		private OffsetLength sourceRange(final CoreExpr childExpr) {
-			return new OffsetLength(sourceOffset(childExpr), childExpr.getSourceExpr().getSourceLength());
-		}
-
-		CoreExpr reparse(CoreExpr e) {
-			final OffsetLength range = sourceRange(e);
-			final int nodeStartOffset = adjustOffset(range.getOffset(), false);
-			final int nodeEndOffset = adjustOffset(range.getEnd(), true);
-			final ParserReader in = ParserReader.fromSubstring("", this.newSourceCode, nodeStartOffset, nodeEndOffset);
-			try {
-				final SourceExpr node = IncrementalUpdater.this.parser.parse(in, IncrementalUpdater.this.errors);
-				if(node == null) throw new NullPointerException();
-				return IncrementalUpdater.this.desugarer.desugar(node, IncrementalUpdater.this.errors);
-			} catch (final IOException e1) {
-				throw new UnexpectedIOExceptionError(e1);
 			}
 		}
 
-		/**
-		 * @return true if the edited range affects either the first character or the character
-		 *              following the last character of the given expression.
-		 */
-		private boolean editTouchesStartOrEndOfNode(@Nullable CoreExpr expr) {
-			if(expr == null) return false;
-			final OffsetLength range = sourceRange(expr);
 
-			return editTouchesStartOrEndOfRange(range);
+		for(final java.lang.reflect.Field f : e.getClass().getDeclaredFields()) {
+			final Object child = f.get(e);
+
 		}
 
-		public boolean editTouchesStartOrEndOfRange(final OffsetLength range) {
-			return (this.editStartOffset <= range.getOffset() && this.editEndOffset >= range.getOffset()) ||
-					(this.editStartOffset <= range.getEnd() && this.editEndOffset >= range.getEnd());
-		}
-
-		private <T extends CoreExpr> boolean editTouchesStartOrEndOfChild(Collection<T> children) {
-			for(final CoreExpr child : children) {
-				if(editTouchesStartOrEndOfNode(nonNull(child)))
-					return true;
-			}
-			return false;
-		}
-
-		/**
-		 * @return True if the edit affects characters contained in the node's range
-		 */
-		private boolean touchesEdit(CoreExpr child) {
-			final OffsetLength range = sourceRange(child);
-			return this.editEndOffset >= range.getOffset() && this.editStartOffset <= range.getEnd();
-		}
-
-		@Override
-		public String transform(String text, FileRange fileRange) {
-			return text;
-		}
-
-		@SuppressWarnings("unchecked")
-		@Override
-		public <T extends Expr> T transform(T in) {
-			final Expr result = ((CoreExpr)in).acceptVisitor(this.visitor);
-			if(result == null) throw new NullPointerException();
-			return (T) result;
-		}
-		private int adjustOffset(int offset, boolean inclusive) {
-			return (inclusive ? offset >= this.editStartOffset : offset > this.editStartOffset) ? offset + this.offsetDelta : offset;
-		}
-
+		this.parentExpr = oldParentExpr;
+		this.parentExprOffset = oldParentExprOffset;
+		return result;
 	}
 
-	public IncrementalUpdater() {
+	private int sourceOffset(final CoreExpr childExpr) {
+		final CoreExpr parentExpr = this.parentExpr;
+		if(childExpr == parentExpr) return this.parentExprOffset;
+		if(parentExpr == null) return 0; // Must be the root node
+		final Option<Integer> offsetFromParent = parentExpr.getSourceExpr().offsetToChild(childExpr.getSourceExpr());
+		if(offsetFromParent.isNone()) throw new IllegalStateException("Looking for offset to node that isn't a child of the current node");
+		return this.parentExprOffset + offsetFromParent.orSome(0).intValue();
+	}
+	private OffsetLength sourceRange(final CoreExpr childExpr) {
+		return new OffsetLength(sourceOffset(childExpr), childExpr.getSourceExpr().getSourceLength());
 	}
 
-	final BanjoParser parser = new BanjoParser();
-	final BanjoScanner scanner = new BanjoScanner();
-	final BanjoDesugarer desugarer = new BanjoDesugarer();
-	final ArrayList<BanjoParseException> errors = new ArrayList<>();
+	CoreExpr reparse(CoreExpr e) {
+		final OffsetLength range = sourceRange(e);
+		final int nodeStartOffset = adjustOffset(range.getOffset(), false);
+		final int nodeEndOffset = adjustOffset(range.getEnd(), true);
+		final ParserReader in = ParserReader.fromSubstring("", this.newSourceCode, nodeStartOffset, nodeEndOffset);
+		try {
+			final SourceExpr node = IncrementalUpdater.this.parser.parse(in, IncrementalUpdater.this.errors);
+			if(node == null) throw new NullPointerException();
+			return IncrementalUpdater.this.desugarer.desugar(node, IncrementalUpdater.this.errors);
+		} catch (final IOException e1) {
+			throw new UnexpectedIOExceptionError(e1);
+		}
+	}
 
 	/**
-	 * Return an AST representing how things should be after applying the given edit.  This does
-	 * its best to re-use as much of the original AST as possible.
-	 * 
-	 * 
-	 * @param expr Original AST
-	 * @param editOffset Offset of the change
-	 * @param editLength Number of characters to remove/replace
-	 * @param replacement New text to insert
-	 * @return
+	 * @return true if the edited range affects either the first character or the character
+	 *              following the last character of the given expression.
 	 */
-	public CoreExpr applyEdit(CoreExpr expr, final int editOffset, final int editLength, final int editStartLine, final int editStartColumn, final String replacement, final String newSourceCode) {
-		/*
-		 * Different cases while transforming:
-		 * 
-		 * 1. Expr touching the change, but with a single child expr that touches the change,
-		 *    and that child completely covers the change: transform that child, adjust range
-		 * 2. Expr containing the change, but with multiple child exprs touching the change, or
-		 *    the change extends beyond the edge of a single child: re-parse from source range
-		 * 3. String literals, numbers, and identifiers where the change can applied and the token is still
-		 *    valid: apply change
-		 */
+	private boolean editTouchesStartOrEndOfNode(@Nullable CoreExpr expr) {
+		if(expr == null) return false;
+		final OffsetLength range = sourceRange(expr);
 
-		/*
-		 * Adjusting the parse tree is not a big deal.  But adjusted the desugared nodes is trickier.  The
-		 * root node will always have to updated since at least one child will be updated.  So some smarts
-		 * is needed to walk down the tree and do minimal damage
-		 */
-		// SourceExpr newContentType = parser.parse(replacement);
-		final int endOffset = editOffset + editLength;
-
-		int columnDeltaTemp=0;
-		int lineDeltaTemp=0;
-		final int offsetDelta = replacement.length() - editLength;
-		for(int i=0; i < replacement.length(); i++) {
-			final char ch = replacement.charAt(i);
-			if(ch == '\n') {
-				lineDeltaTemp++;
-				columnDeltaTemp = -editStartColumn;
-			} else {
-				columnDeltaTemp ++;
-			}
-		}
-		final int columnDelta = columnDeltaTemp;
-		final int lineDelta = lineDeltaTemp;
-
-		final ExprTransformerImplementation transformer = new ExprTransformerImplementation(endOffset, lineDelta, newSourceCode,
-				editStartLine, editStartColumn, offsetDelta, columnDelta,
-				editOffset);
-		if(transformer.editTouchesStartOrEndOfNode(expr)) {
-			return transformer.reparse(expr);
-		}
-		return transformer.transform(expr);
+		return editTouchesStartOrEndOfRange(range);
 	}
 
-	public CoreExpr applyEdit(CoreExpr ast, int offset, int length, String replacement, String newSourceCode) {
-		final ParserReader temp = ParserReader.fromSubstring("", newSourceCode, offset, offset+length);
-		return applyEdit(ast, offset, length, temp.getCurrentLineNumber(), temp.getCurrentColumnNumber(), replacement, newSourceCode);
+	public boolean editTouchesStartOrEndOfRange(final OffsetLength range) {
+		return (this.editStartOffset <= range.getOffset() && this.editEndOffset >= range.getOffset()) ||
+				(this.editStartOffset <= range.getEnd() && this.editEndOffset >= range.getEnd());
 	}
+
+	private <T extends CoreExpr> boolean editTouchesStartOrEndOfChild(Collection<T> children) {
+		for(final CoreExpr child : children) {
+			if(editTouchesStartOrEndOfNode(nonNull(child)))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * @return True if the edit affects characters contained in the node's range
+	 */
+	private boolean touchesEdit(CoreExpr child) {
+		final OffsetLength range = sourceRange(child);
+		return this.editEndOffset >= range.getOffset() && this.editStartOffset <= range.getEnd();
+	}
+
+	@Override
+	public String transform(String text, FileRange fileRange) {
+		return text;
+	}
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends Expr> T transform(T in) {
+		final Expr result = ((CoreExpr)in).acceptVisitor(this.visitor);
+		if(result == null) throw new NullPointerException();
+		return (T) result;
+	}
+	private int adjustOffset(int offset, boolean inclusive) {
+		return (inclusive ? offset >= this.editStartOffset : offset > this.editStartOffset) ? offset + this.offsetDelta : offset;
+	}
+
+}
+
+public IncrementalUpdater() {
+}
+
+final BanjoParser parser = new BanjoParser();
+final BanjoScanner scanner = new BanjoScanner();
+final BanjoDesugarer desugarer = new BanjoDesugarer();
+final ArrayList<BanjoParseException> errors = new ArrayList<>();
+
+/**
+ * Return an AST representing how things should be after applying the given edit.  This does
+ * its best to re-use as much of the original AST as possible.
+ * 
+ * 
+ * @param expr Original AST
+ * @param editOffset Offset of the change
+ * @param editLength Number of characters to remove/replace
+ * @param replacement New text to insert
+ * @return
+ */
+public CoreExpr applyEdit(CoreExpr expr, final int editOffset, final int editLength, final int editStartLine, final int editStartColumn, final String replacement, final String newSourceCode) {
+	/*
+	 * Different cases while transforming:
+	 * 
+	 * 1. Expr touching the change, but with a single child expr that touches the change,
+	 *    and that child completely covers the change: transform that child, adjust range
+	 * 2. Expr containing the change, but with multiple child exprs touching the change, or
+	 *    the change extends beyond the edge of a single child: re-parse from source range
+	 * 3. String literals, numbers, and identifiers where the change can applied and the token is still
+	 *    valid: apply change
+	 */
+
+	/*
+	 * Adjusting the parse tree is not a big deal.  But adjusted the desugared nodes is trickier.  The
+	 * root node will always have to updated since at least one child will be updated.  So some smarts
+	 * is needed to walk down the tree and do minimal damage
+	 */
+	// SourceExpr newContentType = parser.parse(replacement);
+	final int endOffset = editOffset + editLength;
+
+	int columnDeltaTemp=0;
+	int lineDeltaTemp=0;
+	final int offsetDelta = replacement.length() - editLength;
+	for(int i=0; i < replacement.length(); i++) {
+		final char ch = replacement.charAt(i);
+		if(ch == '\n') {
+			lineDeltaTemp++;
+			columnDeltaTemp = -editStartColumn;
+		} else {
+			columnDeltaTemp ++;
+		}
+	}
+	final int columnDelta = columnDeltaTemp;
+	final int lineDelta = lineDeltaTemp;
+
+	final ExprTransformerImplementation transformer = new ExprTransformerImplementation(endOffset, lineDelta, newSourceCode,
+			editStartLine, editStartColumn, offsetDelta, columnDelta,
+			editOffset);
+	if(transformer.editTouchesStartOrEndOfNode(expr)) {
+		return transformer.reparse(expr);
+	}
+	return transformer.transform(expr);
+}
+
+public CoreExpr applyEdit(CoreExpr ast, int offset, int length, String replacement, String newSourceCode) {
+	final ParserReader temp = ParserReader.fromSubstring("", newSourceCode, offset, offset+length);
+	return applyEdit(ast, offset, length, temp.getCurrentLineNumber(), temp.getCurrentColumnNumber(), replacement, newSourceCode);
+}
 }

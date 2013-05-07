@@ -1,21 +1,22 @@
 package banjo.dom.token;
 
 import banjo.dom.source.AbstractSourceNode;
-import banjo.dom.source.Precedence;
 
 public class Whitespace extends AbstractSourceNode implements Token {
-	public Whitespace(int sourceLength) {
-		super(sourceLength);
+	private final String text;
+
+	public Whitespace(int sourceLength, String text) {
+		super(sourceLength, text.hashCode());
+		this.text = text;
 	}
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(' ');
+		sb.append(this.text);
 	}
 
-	@Override
-	public Precedence getPrecedence() {
-		return Precedence.lowest();
+	public String getText() {
+		return this.text;
 	}
 
 }

@@ -8,7 +8,6 @@ public interface TokenVisitor<T> {
 	@Nullable T visitStringLiteral(FileRange range, StringLiteral stringLiteral);
 	@Nullable T visitNumberLiteral(FileRange range, NumberLiteral numberLiteral);
 	@Nullable T visitEllipsis(FileRange range, Ellipsis ellipsis);
-	@Nullable T visitUnit(FileRange range, UnitRef unit);
 	@Nullable T visitIdentifier(FileRange range, Identifier identifier);
 	@Nullable T visitOperator(FileRange range, OperatorRef operatorRef);
 	@Nullable T visitWhitespace(FileRange range, Whitespace ws);

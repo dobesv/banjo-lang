@@ -5,14 +5,14 @@ import static banjo.parser.util.Check.nonNull;
 import java.util.Collections;
 import java.util.List;
 
-import fj.data.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
 public abstract class AbstractCompositeSourceExpr extends AbstractSourceNode implements SourceExpr {
 
 	final List<SourceNode> children;
 
 	public AbstractCompositeSourceExpr(List<SourceNode> children) {
-		super(calcLength(children));
+		super(calcLength(children), children.hashCode());
 		this.children = nonNull(Collections.unmodifiableList(children));
 	}
 
@@ -32,26 +32,23 @@ public abstract class AbstractCompositeSourceExpr extends AbstractSourceNode imp
 	}
 
 	@Override
-	public Option<Integer> offsetToChild(SourceExpr sourceExpr) {
-		int len=0;
-		for(final SourceNode child : this.children) {
-			// Did we find it?
-			if(child == sourceExpr)
-				return nonNull(Option.some(len));
-			// Search recursively into sub-expressions
-			if(child instanceof SourceExpr) {
-				final Option<Integer> rec = ((SourceExpr) child).offsetToChild(sourceExpr);
-				if(rec.isSome()) {
-					return nonNull(Option.some(len + rec.some().intValue()));
-				}
-			}
-			len += child.getSourceLength();
-		}
-		return nonNull(Option.<Integer>none());
-	}
-
-	@Override
 	public List<SourceNode> getSourceNodes() {
 		return this.children;
 	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof AbstractCompositeSourceExpr))
+			return false;
+		final AbstractCompositeSourceExpr other = (AbstractCompositeSourceExpr) obj;
+		if (!this.children.equals(other.children))
+			return false;
+		return true;
+	}
+
+
 }

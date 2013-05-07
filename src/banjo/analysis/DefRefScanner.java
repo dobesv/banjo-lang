@@ -12,10 +12,10 @@ import banjo.dom.core.BadExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.core.CoreExprVisitorWithDefault;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.ExprList;
 import banjo.dom.core.Field;
-import banjo.dom.core.FieldRef;
+import banjo.dom.core.Projection;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
@@ -75,13 +75,13 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitStringLiteral(StringLiteral stringLiteral) {
+		public Void stringLiteral(StringLiteral stringLiteral) {
 			return null;
 		}
 
 		@Override
 		@Nullable
-		public Void visitNumberLiteral(NumberLiteral numberLiteral) {
+		public Void numberLiteral(NumberLiteral numberLiteral) {
 			return null;
 		}
 
@@ -99,20 +99,20 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitIdentifier(Identifier identifier) {
+		public Void identifier(Identifier identifier) {
 			return visitRef(identifier);
 		}
 
 		@Override
 		@Nullable
-		public Void visitOperator(OperatorRef operatorRef) {
+		public Void operator(OperatorRef operatorRef) {
 			// TODO - resolve operators to functions and report the location of the referenced function as the definition
 			return null;
 		}
 
 		@Override
 		@Nullable
-		public Void visitCall(Call call) {
+		public Void call(Call call) {
 			scan(call.getCallee());
 			for(final CoreExpr arg : call.getArguments()) {
 				scan(arg);
@@ -122,7 +122,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitExprList(ExprList exprList) {
+		public Void exprList(ExprList exprList) {
 			final HashMap<String,DefInfo> scope = new HashMap<>();
 			this.environment.push(scope);
 			final int scopeDepth = this.letDepth;
@@ -158,7 +158,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitFieldRef(FieldRef fieldRef) {
+		public Void projection(Projection fieldRef) {
 			scan(fieldRef.getBase());
 			// TODO Pass on the presence of the field ref so it can be highlighted as such
 			// TODO Using data flow analysis, report the set of possible definitions of that field
@@ -167,7 +167,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitFunctionLiteral(FunctionLiteral functionLiteral) {
+		public Void functionLiteral(FunctionLiteral functionLiteral) {
 			final HashMap<String,DefInfo> scope = new HashMap<>();
 			this.environment.push(scope);
 			final int scopeDepth = this.parameterScopeDepth;
@@ -181,10 +181,10 @@ public class DefRefScanner {
 				if(selfName == null) throw new NullPointerException();
 				def(selfName, DefType.SELF, scope, scopeDepth);
 			}
-			scan(functionLiteral.getContract());
+			scan(functionLiteral.getGuarantee());
 			for(final FunArg arg : functionLiteral.getArgs()) {
 				if(arg.hasContract())
-					scan(arg.getContract());
+					scan(arg.getAssertion());
 			}
 			scan(functionLiteral.getBody());
 			this.parameterScopeDepth--;
@@ -194,7 +194,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitObjectLiteral(ObjectLiteral objectLiteral) {
+		public Void objectLiteral(ObjectLiteral objectLiteral) {
 			final HashMap<String,DefInfo> scope = new HashMap<>();
 			this.environment.push(scope);
 			final int scopeDepth = this.objectDepth;
@@ -218,7 +218,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitLet(Let let) {
+		public Void let(Let let) {
 			final HashMap<String,DefInfo> scope = new HashMap<>();
 			this.environment.push(scope);
 			def(let.getName(), letDefType(let), scope, this.letDepth);
@@ -229,7 +229,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitListLiteral(ListLiteral listLiteral) {
+		public Void listLiteral(ListLiteral listLiteral) {
 			for(final CoreExpr e : listLiteral.getElements()) {
 				scan(e);
 			}
@@ -238,7 +238,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitSetLiteral(SetLiteral setLiteral) {
+		public Void setLiteral(SetLiteral setLiteral) {
 			for(final CoreExpr e : setLiteral.getElements()) {
 				scan(e);
 			}
@@ -247,7 +247,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void visitBadExpr(BadExpr badExpr) {
+		public Void badExpr(BadExpr badExpr) {
 			return null;
 		}
 	}
@@ -315,7 +315,7 @@ public class DefRefScanner {
 	}
 
 	public static final class LocalDefTypeCalculator extends
-	CoreExprVisitorWithDefault<DefType> {
+	BaseCoreExprVisitor<DefType> {
 		final DefType valueType;
 		final DefType constType;
 		final DefType functionType;
@@ -334,23 +334,23 @@ public class DefRefScanner {
 		}
 
 		@Override
-		public DefType visitStringLiteral(StringLiteral stringLiteral) {
+		public DefType stringLiteral(StringLiteral stringLiteral) {
 			return this.constType;
 		}
 
 		@Override
-		public DefType visitNumberLiteral(
+		public DefType numberLiteral(
 				NumberLiteral numberLiteral) {
 			return this.constType;
 		}
 
 		@Override
-		public DefType visitFunctionLiteral(FunctionLiteral functionLiteral) {
+		public DefType functionLiteral(FunctionLiteral functionLiteral) {
 			return this.functionType;
 		}
 
 		@Override
-		public DefType visitObjectLiteral(ObjectLiteral objectLiteral) {
+		public DefType objectLiteral(ObjectLiteral objectLiteral) {
 			for(final Field f : objectLiteral.getFields().values()) {
 				final DefType fieldDefType = f.getValue().acceptVisitor(this);
 				if(fieldDefType == this.valueType) {
@@ -361,12 +361,12 @@ public class DefRefScanner {
 		}
 
 		@Override
-		public @Nullable DefType visitLet(Let let) {
+		public @Nullable DefType let(Let let) {
 			return let.getValue().acceptVisitor(this);
 		}
 
 		@Override
-		public DefType visitListLiteral(ListLiteral listLiteral) {
+		public DefType listLiteral(ListLiteral listLiteral) {
 			for(final CoreExpr elt : listLiteral.getElements()) {
 				final DefType eltDefType = elt.acceptVisitor(this);
 				if(eltDefType != this.constType)
@@ -376,7 +376,7 @@ public class DefRefScanner {
 		}
 
 		@Override
-		public DefType visitSetLiteral(SetLiteral setLiteral) {
+		public DefType setLiteral(SetLiteral setLiteral) {
 			for(final CoreExpr elt : setLiteral.getElements()) {
 				final DefType eltDefType = elt.acceptVisitor(this);
 				if(eltDefType != this.constType)
@@ -398,27 +398,28 @@ public class DefRefScanner {
 	public void scan(CoreExpr expr, final DefRefVisitor visitor) {
 		expr.acceptVisitor(new ScanningExprVisitor(visitor));
 	}
-	public void buildTokenDefMap(CoreExpr expr, final Map<Integer, DefInfo> result, final Set<Integer> unusedDefs) {
+	public void buildTokenDefMap(CoreExpr expr, final Map<Integer, DefInfo> defs, final Map<Integer, DefInfo> refs, final Set<Integer> unusedDefs) {
 		scan(expr, new DefRefVisitor() {
 
 			@Override
 			public void visitRef(DefInfo def, int sourceOffset, Key key) {
-				result.put(sourceOffset, def);
+				refs.put(sourceOffset, def);
 				unusedDefs.add(sourceOffset);
 			}
 
 			@Override
 			public void visitDef(DefInfo def) {
-				result.put(def.getSourceOffset(), def);
+				defs.put(def.getSourceOffset(), def);
 				unusedDefs.add(def.getSourceOffset());
 			}
 		});
 	}
-	public void updateTokenDefMap(CoreExpr oldTree, CoreExpr newTree, Map<Integer,DefInfo> result, Set<Integer> unusedDefs) {
-		result.clear();
+	public void updateTokenDefMap(CoreExpr oldTree, CoreExpr newTree, final Map<Integer, DefInfo> defs, final Map<Integer, DefInfo> refs, final Set<Integer> unusedDefs) {
+		defs.clear();
+		refs.clear();
 		unusedDefs.clear();
 		// TODO Incremental update of the map ... is that feasible ?
-		buildTokenDefMap(newTree, result, unusedDefs);
+		buildTokenDefMap(newTree, defs, refs, unusedDefs);
 	}
 	public @Nullable <T> T scanTokens(final ParserReader in, CoreExpr expr, final DefRefTokenVisitor<T> visitor) {
 		final DefRefTokenAnnotator<T> helper = new DefRefTokenAnnotator<T>(visitor, expr);

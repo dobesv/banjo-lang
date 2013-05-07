@@ -3,7 +3,7 @@ package banjo.parser.errors;
 import banjo.dom.ParenType;
 import banjo.parser.util.FileRange;
 
-public class UnexpectedCloseParen extends BanjoParseException {
+public class UnexpectedCloseParen extends Problem {
 	private static final long serialVersionUID = 1L;
 
 	public UnexpectedCloseParen(FileRange range) {

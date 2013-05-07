@@ -1,13 +1,13 @@
 package banjo.parser.errors;
 
 import banjo.parser.util.FileRange;
-import banjo.parser.util.OffsetLength;
 
-public class UnsupportedBinaryOperator extends BanjoParseException {
+
+public class UnsupportedBinaryOperator extends Problem {
 	private static final long serialVersionUID = 1L;
 
-	public UnsupportedBinaryOperator(String op, OffsetLength offsetLength) {
-		super("Unsupported binary operator '"+op+"'", offsetLength);
+	public UnsupportedBinaryOperator(String op, int offset, int length) {
+		super("Unsupported binary operator '"+op+"'", offset, length);
 	}
 
 	public UnsupportedBinaryOperator(String op, FileRange range) {

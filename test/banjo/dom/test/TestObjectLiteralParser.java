@@ -1,14 +1,15 @@
 package banjo.dom.test;
 
+import static banjo.dom.test.ParseTestUtils.assertIsNumberLiteralWithValue;
+import static banjo.dom.test.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import banjo.dom.core.Field;
 import banjo.dom.core.ObjectLiteral;
-import banjo.dom.token.NumberLiteral;
-import banjo.parser.errors.BanjoParseException;
 import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.Problem;
 
 public class TestObjectLiteralParser {
 
@@ -30,10 +31,10 @@ public class TestObjectLiteralParser {
 	@Test public void mirrors1() { parse("{:x,:y}", "{x: x, y: y}"); }
 	@Test public void mirrors2() { parse(" : x\n : y", "{x: x, y: y}"); }
 	@Test public void method1() { parse("{f(x): x}", "{f: (x) -> x}"); }
-	@Test public void method2() { parse("{f(): x}", "{f: () -> x}"); }
+	@Test public void method2() { parse("{f(): x}", "{f: -> x}"); }
 	@Test public void method3() { parse("{self.f(): self}", "{f: self.() -> self}"); }
 	@Test public void method4() { parse("{self.f(x): self}", "{f: self.(x) -> self}"); }
-	@Test public void method5() { parse("test:\n f(): 1\n y(): 2", "{test: {f: () -> 1, y: () -> 2}}"); }
+	@Test public void method5() { parse("test:\n f(): 1\n y(): 2", "{test: {f: -> 1, y: -> 2}}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
 	@Test public void table1() { parse("#::a,b,c\nabc:(1,2,3)", "{abc: {a: 1, b: 2, c: 3}}"); }
@@ -43,23 +44,22 @@ public class TestObjectLiteralParser {
 		final ObjectLiteral node = parse(source, "{a: 1, b: 2, c: 3}");
 		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
 		assertEquals(3, eltsArray.length);
-		assertEquals(NumberLiteral.class, eltsArray[0].getValue().getClass());
-		assertEquals(1L, ((NumberLiteral)eltsArray[0].getValue()).getNumber().longValue());
-		assertEquals("a", eltsArray[0].getKey().toSource());
-		assertEquals(NumberLiteral.class, eltsArray[1].getValue().getClass());
-		assertEquals(2L, ((NumberLiteral)eltsArray[1].getValue()).getNumber().longValue());
-		assertEquals("b", eltsArray[1].getKey().toSource());
-		assertEquals(NumberLiteral.class, eltsArray[2].getValue().getClass());
-		assertEquals(3L, ((NumberLiteral)eltsArray[2].getValue()).getNumber().longValue());
-		assertEquals("c", eltsArray[2].getKey().toSource());
+		final long[] expectedValues = {1,2,3};
+		for(int i=0; i < expectedValues.length; i++) {
+			assertIsNumberLiteralWithValue(expectedValues[i], eltsArray[i].getValue());
+		}
+		final String[] expectedNames = {"a","b","c"};
+		for(int i=0; i < expectedNames.length; i++) {
+			assertEquals(expectedNames[i], eltsArray[i].getKey().toSource());
+		}
 	}
 
 	public ObjectLiteral parse(String source, String expectedSource) {
-		return ParseTestUtils.test(source, 0, null, ObjectLiteral.class, expectedSource);
+		return test(source, 0, null, ObjectLiteral.class, expectedSource);
 	}
 
-	private void parseError(String source, Class<? extends BanjoParseException> expectedError) {
-		ParseTestUtils.test(source, 1, expectedError, null, null);
+	private void parseError(String source, Class<? extends Problem> expectedError) {
+		test(source, 1, expectedError, null, null);
 	}
 
 }

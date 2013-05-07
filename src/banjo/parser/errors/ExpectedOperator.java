@@ -2,7 +2,7 @@ package banjo.parser.errors;
 
 import banjo.parser.util.FileRange;
 
-public class ExpectedOperator extends BanjoParseException {
+public class ExpectedOperator extends Problem {
 	private static final long serialVersionUID = 1L;
 
 	public ExpectedOperator(FileRange fileRange) {

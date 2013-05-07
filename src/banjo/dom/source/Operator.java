@@ -23,7 +23,6 @@ public enum Operator {
 	LIST_LITERAL(ParenType.BRACKETS, Position.PREFIX),
 	RETURN("^", 0x2191, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_OR_SET_LITERAL(ParenType.BRACES, Position.PREFIX),
-	UNARY_CALL("()", Position.SUFFIX, Precedence.SUFFIX), // Unary call with no parameters, possibly reading a lazy value
 	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX, "asOptionalContract"),
 	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX, "hasValue"),
 	UNARY_NEWLINE_INDENT("(nl+indent)", Position.PREFIX, Precedence.SEMICOLON),

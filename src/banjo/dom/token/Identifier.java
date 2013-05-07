@@ -1,12 +1,9 @@
 package banjo.dom.token;
 
 
-import static banjo.dom.source.AbstractSourceNode.NOT_FROM_SOURCE;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.source.Atom;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.BanjoScanner;
@@ -15,12 +12,12 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	final String id;
 
 	public Identifier(int sourceLength, String id) {
-		super(sourceLength);
+		super(sourceLength, id.hashCode());
 		this.id = id;
 	}
 
 	public Identifier(String id) {
-		super(NOT_FROM_SOURCE);
+		super(NOT_FROM_SOURCE, id.hashCode());
 		this.id = id;
 	}
 
@@ -54,12 +51,24 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	@Override
 	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		return visitor.visitIdentifier(this);
+		return visitor.identifier(this);
 	}
 
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.visitIdentifier(this);
+		return visitor.identifier(this);
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		final Identifier other = (Identifier) obj;
+		if (other == null || !this.id.equals(other.id))
+			return false;
+		return true;
 	}
 
 }

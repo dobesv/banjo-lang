@@ -1,12 +1,11 @@
 package banjo.desugar.errors;
 
-import banjo.parser.errors.BanjoParseException;
-import banjo.parser.util.OffsetLength;
+import banjo.parser.errors.Problem;
 
-public class ExpectedField extends BanjoParseException {
+public class ExpectedField extends Problem {
 	private static final long serialVersionUID = 1L;
 
-	public ExpectedField(OffsetLength sourceOffsetLength) {
-		super("Expected key : value pair or '}'", sourceOffsetLength);
+	public ExpectedField(int offset, int length) {
+		super("Expected key : value pair", offset, length);
 	}
 }

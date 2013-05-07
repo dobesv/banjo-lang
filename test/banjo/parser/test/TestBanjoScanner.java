@@ -26,7 +26,7 @@ public class TestBanjoScanner {
 		testTokenizer("// comment\n/* comment */\nfoo: bar", "{foo: bar}", ObjectLiteral.class,
 				new String[] {
 			"// comment\n",
-			"/* comment */", " ",
+			"/* comment */", "\n",
 			"foo", ":",	" ", "bar"
 		}, new Class<?>[] {
 			Comment.class,

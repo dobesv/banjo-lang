@@ -1,22 +1,29 @@
 package banjo.parser.errors;
 
+import static banjo.parser.util.Check.nonNull;
+
+import java.util.Collections;
+import java.util.List;
+
 import banjo.parser.util.FileRange;
 import banjo.parser.util.OffsetLength;
 
-public class BanjoParseException extends java.text.ParseException {
+public class Problem extends java.text.ParseException {
 	private static final long serialVersionUID = 1L;
+	@SuppressWarnings("null")
+	public static final List<Problem> NONE = Collections.emptyList();
 	private final int sourceLength;
 
-	public BanjoParseException(String message, FileRange range) {
+	public Problem(String message, FileRange range) {
 		this(message, range.getStartOffset(), range.length());
 	}
 
-	public BanjoParseException(String message, int sourceOffset, int sourceLength) {
+	public Problem(String message, int sourceOffset, int sourceLength) {
 		super(message, sourceOffset);
 		this.sourceLength = sourceLength;
 	}
 
-	public BanjoParseException(String message, OffsetLength sourceOffsetLength) {
+	public Problem(String message, OffsetLength sourceOffsetLength) {
 		super(message, sourceOffsetLength.getOffset());
 		this.sourceLength = sourceOffsetLength.getLength();
 	}
@@ -26,5 +33,9 @@ public class BanjoParseException extends java.text.ParseException {
 	}
 	public int getSourceLength() {
 		return this.sourceLength;
+	}
+
+	public static List<Problem> one(Problem problem) {
+		return nonNull(Collections.singletonList(problem));
 	}
 }

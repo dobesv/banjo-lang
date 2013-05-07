@@ -3,7 +3,7 @@ package banjo.dom.test;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.Problem;
 import banjo.parser.errors.UnsupportedUnaryOperator;
 
 public class TestMathParser {
@@ -46,7 +46,7 @@ public class TestMathParser {
 	public static void test(String source, String normalizedSource) {
 		ParseTestUtils.test(source, 0, null, null, normalizedSource);
 	}
-	private void test(String source, int expectedErrorCount, Class<? extends BanjoParseException> expectedError) {
+	private void test(String source, int expectedErrorCount, Class<? extends Problem> expectedError) {
 		ParseTestUtils.test(source, expectedErrorCount, expectedError, null, null);
 	}
 

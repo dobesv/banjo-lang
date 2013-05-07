@@ -4,7 +4,6 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +13,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.ParenType;
 import banjo.dom.source.BinaryOp;
 import banjo.dom.source.EmptyExpr;
+import banjo.dom.source.OffsetSourceExpr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
@@ -27,32 +27,31 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.UnitRef;
 import banjo.dom.token.Whitespace;
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.BanjoParser.ExtSourceExpr;
 import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.IncorrectIndentation;
+import banjo.parser.errors.Problem;
 import banjo.parser.errors.UnexpectedCloseParen;
 import banjo.parser.errors.UnsupportedBinaryOperator;
 import banjo.parser.errors.UnsupportedUnaryOperator;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
-import banjo.parser.util.FileRanged;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.ParserReader;
+import banjo.parser.util.Problematic;
 
 /**
  * Change input into an AST.
  */
-public class BanjoParser implements TokenVisitor<SourceExpr> {
+public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 
-	private final LinkedList<BanjoParseException> errors = new LinkedList<>();
 	private final LinkedList<PartialOp> opStack = new LinkedList<>();
 	private @Nullable ExtSourceExpr operand = null;
 	private boolean eof;
 	private final ArrayList<SourceNode> nodes = new ArrayList<>();
 
-	static class ExtSourceExpr {
+	public static class ExtSourceExpr extends Problematic<SourceExpr> {
 		private final FileRange range;
 		private final List<SourceNode> nodes;
 		private final SourceExpr expr;
@@ -62,19 +61,14 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 		 * SourceNodes surrounding it.
 		 */
 		public ExtSourceExpr(FileRange range, List<SourceNode> nodes,
-				SourceExpr expr) {
-			super();
+				SourceExpr expr, List<Problem> errors) {
+			super(expr, errors);
 			this.range = range;
 			this.nodes = nodes;
 			this.expr = expr;
 		}
-		/**
-		 * Create an operand info from the result of a reduction operation
-		 */
-		public ExtSourceExpr(FileRanged<SourceExpr> rhs) {
-			this(rhs.getRange(), nonNull(rhs.getValue()));
-		}
-		public ExtSourceExpr(FileRange range, SourceExpr expr) {
+		public ExtSourceExpr(FileRange range, SourceExpr expr, List<Problem> errors) {
+			super(expr, errors);
 			this.range = range;
 			this.expr = expr;
 			this.nodes = nonNull(Collections.<SourceNode>singletonList(expr));
@@ -99,48 +93,72 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 		public String toString() {
 			return this.range+": "+this.expr+" "+this.nodes;
 		}
+		public int offsetIn(FileRange range) {
+			return this.range.getStartOffset() - range.getStartOffset();
+		}
+		public SourceExpr toChildExprIn(FileRange range) {
+			final int offset = offsetIn(range);
+			if(offset == 0) return getExpr();
+			return new OffsetSourceExpr(offset, getExpr());
+		}
+
+		@Override
+		public ExtSourceExpr withProblems(List<Problem> moreProblems) {
+			if(moreProblems.isEmpty())
+				return this;
+			return new ExtSourceExpr(this.range, this.expr, ListUtil.concat(getProblems(), moreProblems));
+		}
 
 	}
 
 	abstract class PartialOp {
 		protected final Operator operator;
 		protected final FileRange range;
-		protected final List<SourceNode> children;
+		protected final List<SourceNode> nodes;
+		protected final List<Problem> problems;
 
-		public PartialOp(FileRange range, List<SourceNode> children, Operator operator) {
-			this.children = children;
+		public PartialOp(FileRange range, List<SourceNode> children, Operator operator, List<Problem> problems) {
+			this.nodes = children;
 			this.range = range;
 			this.operator = operator;
+			this.problems = problems;
 		}
 
 		@SafeVarargs
 		private final List<SourceNode> concatChildren(List<SourceNode> ... newChildren) {
-			return ListUtil.concat(this.children,newChildren);
+			return ListUtil.concat(this.nodes,newChildren);
 		}
 
 		/**
 		 * Create a node for a non-parentheses operator with a right-hand expression.
 		 */
 		public ExtSourceExpr rhs(ExtSourceExpr rightOperand) {
+			List<Problem> errors = rightOperand.getProblems();
 			if(rightOperand.getStartColumn() < getStartColumn()) {
-				BanjoParser.this.errors.add(new IncorrectIndentation(FileRange.between(this.range, rightOperand.range), getStartColumn(), rightOperand.getStartColumn()));
+				final FileRange indentRange = FileRange.between(this.range, rightOperand.range);
+				errors = ListUtil.append(errors, new IncorrectIndentation(indentRange, getStartColumn(), rightOperand.getStartColumn()));
 			}
 			final FileRange range = this.range.extend(rightOperand.getFileRange());
-			return new ExtSourceExpr(range, makeOp(concatChildren(rightOperand.getNodes()), rightOperand.getExpr()));
+			return new ExtSourceExpr(range, makeOp(concatChildren(rightOperand.getNodes()), rightOperand.toChildExprIn(range)), ListUtil.concat(errors, this.problems));
 		}
 
 		/**
 		 * Create a node for a parenthesized expression.
 		 */
 		public ExtSourceExpr closeParen(ExtSourceExpr operand, FileRange closeParenRange, List<SourceNode> closeParenNodes) {
+			List<Problem> errors = operand.getProblems();
+			if(operand.getStartColumn() < getStartColumn()) {
+				final FileRange indentRange = FileRange.between(this.range, operand.range);
+				errors = ListUtil.append(errors, new IncorrectIndentation(indentRange, getStartColumn(), operand.getStartColumn()));
+			}
 			final FileRange range = this.range.extend(closeParenRange);
-			return new ExtSourceExpr(range, makeOp(concatChildren(operand.getNodes(), closeParenNodes), operand.getExpr()));
+			return new ExtSourceExpr(range, makeOp(concatChildren(operand.getNodes(), closeParenNodes), operand.toChildExprIn(range)), ListUtil.concat(errors, this.problems));
 		}
 
 		/**
 		 * Create a node for a non-parentheses operator with a right-hand expression.
 		 */
-		abstract SourceExpr makeOp(List<SourceNode> children, SourceExpr rightOperand);
+		abstract SourceExpr makeOp(List<SourceNode> children, SourceExpr sourceExpr);
 
 		public int getStartColumn() {
 			return this.range.getStartColumn();
@@ -181,23 +199,23 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 		public PartialBinaryOp(Operator operator, ExtSourceExpr operand, ExtSourceExpr operatorExpr) {
 			super(operand.getFileRange().extend(operatorExpr.getFileRange()),
 					ListUtil.concat(operand.getNodes(), operatorExpr.getNodes()),
-					operator);
-			this.leftOperand = operand.getExpr();
+					operator, ListUtil.concat(operand.getProblems(), operatorExpr.getProblems()));
+			this.leftOperand = operand.toChildExprIn(this.range);
 		}
 
 		public PartialBinaryOp(Operator operator, ExtSourceExpr operand, List<SourceNode> operatorNodes) {
 			super(operand.getFileRange(),
 					ListUtil.concat(operand.getNodes(), operatorNodes),
-					operator);
-			this.leftOperand = operand.getExpr();
+					operator, operand.getProblems());
+			this.leftOperand = operand.toChildExprIn(this.range);
 		}
 
 		/**
 		 * A binary operator where the operator itself has no source representation (newline and indent).
 		 */
 		public PartialBinaryOp(Operator operator, ExtSourceExpr operand) {
-			super(operand.getFileRange(), operand.getNodes(), operator);
-			this.leftOperand = operand.getExpr();
+			super(operand.getFileRange(), operand.getNodes(), operator, operand.getProblems());
+			this.leftOperand = operand.toChildExprIn(this.range);
 		}
 
 		@Override
@@ -217,8 +235,8 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 			return this.leftOperand;
 		}
 
-		public List<SourceNode> getChildren() {
-			return this.children;
+		public List<SourceNode> getNodes() {
+			return this.nodes;
 		}
 
 		public FileRange getFileRange() {
@@ -227,8 +245,8 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	}
 
 	class PartialUnaryOp extends PartialOp {
-		public PartialUnaryOp(FileRange range, List<SourceNode> children, Operator operator) {
-			super(range, children, operator);
+		public PartialUnaryOp(FileRange range, List<SourceNode> children, Operator operator, List<Problem> problems) {
+			super(range, children, operator, problems);
 		}
 
 		@Override
@@ -254,35 +272,17 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	 * @return Root of the parsed syntax tree
 	 * @throws IOException If the underlying stream throws IOException
 	 */
-	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
+	public ExtSourceExpr parse(ParserReader in) throws IOException {
 		reset();
-		return new BanjoScanner().scan(in, this, this.errors);
+		final BanjoScanner scanner = new BanjoScanner();
+		final ExtSourceExpr result = nonNull(scanner.scan(in, this));
+		return result.withProblems(scanner.getProblems());
 	}
 
-	public @Nullable SourceExpr parse(ParserReader in, Collection<BanjoParseException> errors) throws IOException {
+	public ExtSourceExpr parse(String source) throws IOException {
 		reset();
-		final SourceExpr result = parse(in);
-		errors.addAll(this.errors);
-		return result;
-	}
-
-	public @Nullable SourceExpr parse(String source) throws IOException {
-		reset();
-		return new BanjoScanner().scan(source, this, this.errors);
-	}
-
-	void dropTrailingCommaOrSemicolon() {
-		if(this.operand == null &&
-				!this.opStack.isEmpty() &&
-				(this.opStack.getFirst() instanceof PartialBinaryOp) &&
-				isListSeparator(((PartialBinaryOp) this.opStack.getFirst()).getOperator())) {
-			final PartialBinaryOp op = (PartialBinaryOp) this.opStack.pop();
-			this.operand = new ExtSourceExpr(op.getFileRange(), op.getChildren(), op.getOperand());
-		}
-	}
-
-	public Collection<BanjoParseException> getErrors() {
-		return this.errors;
+		final BanjoScanner scanner = new BanjoScanner();
+		return nonNull(scanner.scan(source, this)).withProblems(scanner.getProblems());
 	}
 
 	/**
@@ -290,17 +290,6 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	 */
 	public boolean reachedEof() {
 		return this.eof;
-	}
-
-	private boolean isListSeparator(Operator operator) {
-		switch(operator) {
-		case COMMA:
-		case SEMICOLON:
-		case NEWLINE:
-			return true;
-		default:
-			return false;
-		}
 	}
 
 	/**
@@ -335,8 +324,8 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 				this.opStack.getFirst().getStartColumn() < column) {
 			final int prevColumn = this.opStack.getFirst().getStartColumn();
 			final FilePos lineStart = new FilePos(offset-(column-prevColumn), line, prevColumn);
-			final FileRange indentRange = new FileRange(range.getFilename(), lineStart, range.getStart());
-			pushPartialOp(new PartialUnaryOp(indentRange, consumeNodes(), Operator.UNARY_NEWLINE_INDENT));
+			final FileRange indentRange = new FileRange(lineStart, range.getStart());
+			pushPartialOp(new PartialUnaryOp(indentRange, consumeNodes(), Operator.UNARY_NEWLINE_INDENT, Problem.NONE));
 		}
 	}
 
@@ -355,38 +344,34 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	}
 
 	@Nullable
-	private SourceExpr visitLiteral(FileRange range, SourceExpr token) {
+	private ExtSourceExpr visitLiteral(FileRange range, SourceExpr token) {
 		checkIndentDedent(range, token);
 		this.nodes.add(token);
 		final ExtSourceExpr operand = this.operand;
-		if(operand != null) {
-			this.errors.add(new ExpectedOperator("Expected operator between "+operand.getExpr()+" and "+token, FileRange.between(operand.getFileRange(), range)));
-		}
-		this.operand = new ExtSourceExpr(range, consumeNodes(), token);
+		final List<Problem> problems = operand == null ? Problem.NONE :
+			Problem.one(new ExpectedOperator("Expected operator between "+operand.getExpr()+" and "+token, FileRange.between(operand.getFileRange(), range)));
+		this.operand = new ExtSourceExpr(range, consumeNodes(), token, problems);
 		return null;
 	}
 	@Override @Nullable
-	public SourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
+	public ExtSourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
 		return visitLiteral(range, token);
 	}
 	@Override @Nullable
-	public SourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
+	public ExtSourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
 		return visitLiteral(range, numberLiteral);
 	}
 	@Override @Nullable
-	public SourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
+	public ExtSourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
 		return visitLiteral(range, simpleName);
 	}
 	@Override @Nullable
-	public SourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
+	public ExtSourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
 		return visitLiteral(range, ellipsis);
 	}
+
 	@Override @Nullable
-	public SourceExpr visitUnit(FileRange range, UnitRef unit) {
-		return visitLiteral(range, unit);
-	}
-	@Override
-	public SourceExpr visitOperator(FileRange range, OperatorRef token) {
+	public ExtSourceExpr visitOperator(FileRange range, OperatorRef token) {
 		checkIndentDedent(range, token);
 		this.nodes.add(token);
 		ExtSourceExpr operand = this.operand;
@@ -397,34 +382,37 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 			if(suffixOperator != null) {
 				this.nodes.addAll(0, operand.getNodes()); // Insert operand nodes as prefix
 				operand = applyOperatorPrecedenceToStack(operand, suffixOperator); // Apply operator precedence
-				this.operand = operand = new ExtSourceExpr(range, new UnaryOp(consumeNodes(), nonNull(suffixOperator), operand.getExpr()));
-				return token;
+				this.operand = operand = new ExtSourceExpr(range, new UnaryOp(consumeNodes(), nonNull(suffixOperator), operand.toChildExprIn(range)), operand.getProblems());
+				return null;
 			}
 			@Nullable Operator operator = Operator.fromOp(token.getOp(), Position.INFIX);
+
+			List<Problem> problems = Problem.NONE;
 			if(operator == null) {
 				if(tryCloseParen(range, token)) {
-					return token;
+					return null;
 				}
-				this.errors.add(new UnsupportedBinaryOperator(token.getOp(), range));
+				problems = Problem.one(new UnsupportedBinaryOperator(token.getOp(), range));
 				operator = Operator.INVALID;
 			}
 			// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
 			operand = applyOperatorPrecedenceToStack(operand, operator);
-			final ExtSourceExpr operatorExpr = new ExtSourceExpr(range, consumeNodes(), token);
+			final ExtSourceExpr operatorExpr = new ExtSourceExpr(range, consumeNodes(), token, problems);
 			pushPartialOp(new PartialBinaryOp(operator, operand, operatorExpr));
 		} else {
 			// Prefix position
 			@Nullable Operator operator = Operator.fromOp(token.getOp(), Position.PREFIX);
+			List<Problem> problems = Problem.NONE;
 			if(operator == null) {
 				if(tryCloseParen(range, token)) {
-					return token;
+					return null;
 				}
-				this.errors.add(new UnsupportedUnaryOperator(token.getOp(), range));
+				problems = Problem.one(new UnsupportedUnaryOperator(token.getOp(), range));
 				operator = Operator.INVALID;
 			}
-			pushPartialOp(new PartialUnaryOp(range, consumeNodes(), nonNull(operator)));
+			pushPartialOp(new PartialUnaryOp(range, consumeNodes(), nonNull(operator), problems));
 		}
-		return token;
+		return null;
 	}
 
 	public ExtSourceExpr applyOperatorPrecedenceToStack(ExtSourceExpr operand,
@@ -447,21 +435,23 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 			final ParenType closeParenTypeMaybe = ParenType.forCloseChar(opRef.getOp().charAt(0));
 			if(closeParenTypeMaybe != null) {
 				// If there is a trailing comma, semicolon, or newline we can pop it off the stack
-				dropTrailingCommaOrSemicolon();
 				final ParenType closeParenType = nonNull(closeParenTypeMaybe);
 
 				while(!this.opStack.isEmpty()) {
 					final PartialOp po = this.opStack.pop();
 					ExtSourceExpr operand = this.operand;
 					if(operand == null) {
-						operand = new ExtSourceExpr(FileRange.between(po.range, range), new EmptyExpr());
+						operand = new ExtSourceExpr(FileRange.between(po.range, range), new EmptyExpr(), Problem.NONE);
 					}
 					if(po.isOpenParen(closeParenType)) {
 						this.operand = po.closeParen(operand, range, consumeNodes());
 						break;
 					}
 					if(po.isParen()) {
-						this.errors.add(new UnexpectedCloseParen(range, closeParenType));
+						final FileRange newRange = operand.getFileRange().extend(range);
+						final List<SourceNode> newNodes = ListUtil.concat(operand.nodes, consumeNodes());
+						final List<Problem> newProblems = ListUtil.append(operand.getProblems(), new UnexpectedCloseParen(range, closeParenType));
+						this.operand = new ExtSourceExpr(newRange, newNodes, operand.getExpr(), newProblems);
 						break;
 					} else {
 						this.operand = po.rhs(operand);
@@ -474,33 +464,32 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	}
 
 	@Override
-	public @Nullable SourceExpr visitWhitespace(FileRange range, Whitespace ws) {
+	public @Nullable ExtSourceExpr visitWhitespace(FileRange range, Whitespace ws) {
 		this.nodes.add(ws);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitComment(FileRange range, Comment c) {
+	public @Nullable ExtSourceExpr visitComment(FileRange range, Comment c) {
 		this.nodes.add(c);
 		return null;
 	}
 
 	@Override
-	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
+	public @Nullable ExtSourceExpr visitEof(FileRange entireFileRange) {
 		this.eof = true;
 		ExtSourceExpr operand = this.operand;
 		// No operand?  Treat it as an empty expression for now
 		if(operand == null) {
-			this.operand = operand = new ExtSourceExpr(entireFileRange, new EmptyExpr(consumeNodes()));
+			this.operand = operand = new ExtSourceExpr(entireFileRange, new EmptyExpr(consumeNodes()), Problem.NONE);
 		}
 		while(!this.opStack.isEmpty()) {
 			this.operand = operand = this.opStack.pop().rhs(nonNull(operand));
 		}
-		return operand.getExpr();
+		return operand;
 	}
 
 	public void reset() {
 		this.nodes.clear();
-		this.errors.clear();
 		this.opStack.clear();
 		this.operand = null;
 		this.eof = false;

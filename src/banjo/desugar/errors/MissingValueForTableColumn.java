@@ -1,18 +1,13 @@
 package banjo.desugar.errors;
 
-import banjo.parser.errors.BanjoParseException;
-import banjo.parser.util.OffsetLength;
+import banjo.parser.errors.Problem;
 
-public class MissingValueForTableColumn extends BanjoParseException {
+public class MissingValueForTableColumn extends Problem {
 	private static final long serialVersionUID = 1L;
 
-	public MissingValueForTableColumn(String message, OffsetLength range) {
-		super(message, range);
-	}
-
-	public MissingValueForTableColumn(int column, int totalColumns, OffsetLength offsetLength,
+	public MissingValueForTableColumn(int column, int totalColumns, int sourceOffset, int sourceLength,
 			String headingSource) {
-		this("Missing value for column "+headingSource+" (column "+(column+1)+")", offsetLength);
+		super("Missing value for column "+headingSource+" (column "+(column+1)+")", sourceOffset, sourceLength);
 	}
 
 }

@@ -8,18 +8,18 @@ import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 
 public interface CoreExprVisitor<T> {
-	@Nullable T visitStringLiteral(StringLiteral stringLiteral);
-	@Nullable T visitNumberLiteral(NumberLiteral numberLiteral);
-	@Nullable T visitIdentifier(Identifier identifier);
-	@Nullable T visitOperator(OperatorRef operatorRef);
-	@Nullable T visitCall(Call call);
-	@Nullable T visitExprList(ExprList exprList);
-	@Nullable T visitFieldRef(FieldRef fieldRef);
-	@Nullable T visitFunctionLiteral(FunctionLiteral functionLiteral);
-	@Nullable T visitObjectLiteral(ObjectLiteral objectLiteral);
-	@Nullable T visitLet(Let let);
-	@Nullable T visitListLiteral(ListLiteral listLiteral);
-	@Nullable T visitSetLiteral(SetLiteral setLiteral);
-	@Nullable T visitBadExpr(BadExpr badExpr);
+	@Nullable T stringLiteral(StringLiteral stringLiteral);
+	@Nullable T numberLiteral(NumberLiteral numberLiteral);
+	@Nullable T identifier(Identifier identifier);
+	@Nullable T operator(OperatorRef operatorRef);
+	@Nullable T call(Call call);
+	@Nullable T exprList(ExprList exprList);
+	@Nullable T projection(Projection projection);
+	@Nullable T functionLiteral(FunctionLiteral functionLiteral);
+	@Nullable T objectLiteral(ObjectLiteral objectLiteral);
+	@Nullable T let(Let let);
+	@Nullable T listLiteral(ListLiteral listLiteral);
+	@Nullable T setLiteral(SetLiteral setLiteral);
+	@Nullable T badExpr(BadExpr badExpr);
 	
 }

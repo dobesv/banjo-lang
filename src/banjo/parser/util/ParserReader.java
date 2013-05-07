@@ -108,6 +108,10 @@ public class ParserReader extends Reader {
 	final Pos mark = new Pos();
 	public final int fileSize; // In chars
 
+	// TODO Support different kinds of line delimiters
+	final char[][] lineDelimiters;
+	public static final char[][] DEFAULT_LINE_DELIMITERS = {{'\n'}};
+
 	@Override
 	public int read(@Nullable CharBuffer target) throws IOException {
 		if(target == null) throw new NullPointerException();
@@ -383,6 +387,7 @@ public class ParserReader extends Reader {
 		this.delegate = delegate;
 		this.filename = filename;
 		this.fileSize = fileSize;
+		this.lineDelimiters = DEFAULT_LINE_DELIMITERS;
 		mark();
 	}
 
@@ -403,6 +408,7 @@ public class ParserReader extends Reader {
 		String contentEncoding = c.getContentEncoding();
 		if(contentEncoding == null) contentEncoding = Charset.defaultCharset().name();
 		this.delegate = new BufferedReader(new InputStreamReader(c.getInputStream(), contentEncoding), this.fileSize);
+		this.lineDelimiters = DEFAULT_LINE_DELIMITERS;
 		mark();
 	}
 
@@ -451,14 +457,14 @@ public class ParserReader extends Reader {
 	 * Return the file range from the given position to the current position.
 	 */
 	public FileRange getFileRange(FilePos from) {
-		return new FileRange(this.filename, from, this.current.toFilePos());
+		return new FileRange(from, this.current.toFilePos());
 	}
 
 	/**
 	 * Return the file range from the given position to the current position.
 	 */
 	public FileRange getFileRange(Pos from) {
-		return new FileRange(this.filename, from.toFilePos(), this.current.toFilePos());
+		return new FileRange(from.toFilePos(), this.current.toFilePos());
 	}
 
 	public String getFilename() {
@@ -539,7 +545,7 @@ public class ParserReader extends Reader {
 	 */
 	public FileRange getFilePosAsRange() {
 		final FilePos pos = getFilePos();
-		return new FileRange(getFilename(), pos, pos);
+		return new FileRange(pos, pos);
 	}
 
 	/**
@@ -594,7 +600,6 @@ public class ParserReader extends Reader {
 	 * @throws IOException
 	 */
 	public FileRange subRange(FileRange range, int startOffset, int endOffset) throws IOException {
-		if(!range.getFilename().equals(getFilename())) throw new IllegalArgumentException("Given range is not for this parser's file");
 		if(endOffset < startOffset) throw new IllegalArgumentException("End offset must be greater than start offset");
 
 		final FilePos curPos = getFilePos();

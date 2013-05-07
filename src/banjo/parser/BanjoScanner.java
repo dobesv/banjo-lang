@@ -16,13 +16,13 @@ import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
-import banjo.dom.token.Whitespace;
 import banjo.dom.token.StringLiteral.BadStringEscapeSequence;
 import banjo.dom.token.TokenVisitor;
-import banjo.parser.errors.BanjoParseException;
+import banjo.dom.token.Whitespace;
 import banjo.parser.errors.EmptyBacktick;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
 import banjo.parser.errors.PrematureEndOfFile;
+import banjo.parser.errors.Problem;
 import banjo.parser.errors.SyntaxError;
 import banjo.parser.errors.UnexpectedDecimalPoint;
 import banjo.parser.errors.UnexpectedIOExceptionError;
@@ -33,7 +33,7 @@ import banjo.parser.util.ParserReader;
 import banjo.parser.util.ParserReader.Pos;
 
 public class BanjoScanner {
-	private final LinkedList<BanjoParseException> errors = new LinkedList<>();
+	private final LinkedList<Problem> problems = new LinkedList<>();
 	boolean eof = false;
 
 	public @Nullable <T> T scan(String inStr, TokenVisitor<T> visitor) {
@@ -67,7 +67,7 @@ public class BanjoScanner {
 					this.eof = true;
 					return visitor.visitEof(in.getFileRange(FilePos.START));
 				} else {
-					this.errors.add(new SyntaxError("Invalid character "+badCp, in.getFileRange(this.tokenStartPos)));
+					this.problems.add(new SyntaxError("Invalid character "+badCp, in.getFileRange(this.tokenStartPos)));
 				}
 			}
 		}
@@ -94,16 +94,16 @@ public class BanjoScanner {
 
 	public void reset() {
 		this.eof = false;
-		this.errors.clear();
+		this.problems.clear();
 	}
 
-	public @Nullable <T> T scan(ParserReader in, TokenVisitor<T> visitor, Collection<BanjoParseException> errors) throws IOException {
+	public @Nullable <T> T scan(ParserReader in, TokenVisitor<T> visitor, Collection<Problem> errors) throws IOException {
 		final T result = scan(in, visitor);
-		errors.addAll(this.errors);
+		errors.addAll(this.problems);
 		return result;
 	}
 
-	public @Nullable <T> T scan(String source, TokenVisitor<T> visitor, Collection<BanjoParseException> errors) throws IOException {
+	public @Nullable <T> T scan(String source, TokenVisitor<T> visitor, Collection<Problem> errors) throws IOException {
 		return scan(ParserReader.fromString("<string>", source), visitor, errors);
 	}
 
@@ -245,7 +245,7 @@ public class BanjoScanner {
 		in.unread(); // Push back the non-whitespace character we found
 		if(!foundWhitespace)
 			return null; // No whitespace found
-		return new Container<T>(visitor.visitWhitespace(in.getFileRange(this.tokenStartPos), new Whitespace(in.getLength(this.tokenStartPos))));
+		return new Container<T>(visitor.visitWhitespace(in.getFileRange(this.tokenStartPos), new Whitespace(in.getLength(this.tokenStartPos), in.readStringFrom(this.tokenStartPos))));
 	}
 
 	/**
@@ -298,7 +298,7 @@ public class BanjoScanner {
 	 * </table>
 	 */
 
-	public @Nullable <T> Container<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private @Nullable <T> Container<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
 		if(cp == '`') {
 			return backtick(in, visitor);
@@ -325,7 +325,7 @@ public class BanjoScanner {
 			final FilePos afterBackslash = in.getFilePos();
 			cp = in.read();
 			if(cp == -1) {
-				this.errors.add(new BadStringEscapeSequence("Backslash at end of string.", in.getFileRange(this.tokenStartPos))); // Shouldn't normally be possible
+				this.problems.add(new BadStringEscapeSequence("Backslash at end of string.", in.getFileRange(this.tokenStartPos))); // Shouldn't normally be possible
 				break;
 			}
 			switch (cp) {
@@ -360,12 +360,12 @@ public class BanjoScanner {
 			}
 
 			default:  {
-				this.errors.add(new BadStringEscapeSequence("Unknown escape sequence "+codePointToString(cp), in.getFileRange(afterBackslash)));
+				this.problems.add(new BadStringEscapeSequence("Unknown escape sequence "+codePointToString(cp), in.getFileRange(afterBackslash)));
 				break;
 			}
 			}
 		}
-		if(cp == -1) this.errors.add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(this.tokenStartPos)));
+		if(cp == -1) this.problems.add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(this.tokenStartPos)));
 		final StringLiteral stringLiteral = new StringLiteral(in.getLength(this.tokenStartPos), nonNull(this.buf.toString()));
 		return new Container<T>(visitor.visitStringLiteral(in.getFileRange(this.tokenStartPos), stringLiteral));
 	}
@@ -374,7 +374,7 @@ public class BanjoScanner {
 		String str = matchOperator(in);
 		if(str == null) str = matchID(in);
 		if(str == null) {
-			this.errors.add(new EmptyBacktick(in.getFileRange(this.tokenStartPos)));
+			this.problems.add(new EmptyBacktick(in.getFileRange(this.tokenStartPos)));
 			str = "";
 		}
 		return new Container<T>(visitor.visitStringLiteral(in.getFileRange(this.tokenStartPos), new StringLiteral(in.getLength(this.tokenStartPos), str)));
@@ -386,7 +386,7 @@ public class BanjoScanner {
 		for(int digits = 0; digits < digitCount; digits++) {
 			final int digitValue = Character.digit(in.read(), 16);
 			if(digitValue == -1) {
-				this.errors.add(new BadStringEscapeSequence("Invalid hex digit in \\x escape", in.getFileRange(afterDigits)));
+				this.problems.add(new BadStringEscapeSequence("Invalid hex digit in \\x escape", in.getFileRange(afterDigits)));
 				in.seek(afterDigits);
 				return;
 			} else {
@@ -413,7 +413,7 @@ public class BanjoScanner {
 		buf.appendCodePoint(result);
 	}
 
-	public @Nullable <T> Container<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private @Nullable <T> Container<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
 		boolean negative = false;
 		boolean isNumber = false;
@@ -448,7 +448,7 @@ public class BanjoScanner {
 		for(;;) {
 			if(cp == '.') {
 				if(radix != 10) {
-					this.errors.add(new UnexpectedDecimalPoint("Decimal point found in "+formatName+" number", in.getFileRange(afterDigits)));
+					this.problems.add(new UnexpectedDecimalPoint("Decimal point found in "+formatName+" number", in.getFileRange(afterDigits)));
 					radix = 10;
 				}
 				if(digitsLeftOfDecimalPoint != -1) {
@@ -456,7 +456,7 @@ public class BanjoScanner {
 						in.seek(this.tokenStartPos);
 						return null;
 					} else {
-						this.errors.add(new UnexpectedSecondDecimalPoint("Second decimal point in number", in.getFileRange(afterDigits)));
+						this.problems.add(new UnexpectedSecondDecimalPoint("Second decimal point in number", in.getFileRange(afterDigits)));
 						in.seek(afterDigits);
 						break;
 					}
@@ -526,7 +526,7 @@ public class BanjoScanner {
 				in.seek(this.tokenStartPos);
 				return null;
 			} else {
-				this.errors.add(new MissingDigitsAfterDecimalPoint("Missing digits after decimal point", in.getFileRange(this.tokenStartPos)));
+				this.problems.add(new MissingDigitsAfterDecimalPoint("Missing digits after decimal point", in.getFileRange(this.tokenStartPos)));
 			}
 		}
 		final int scale = (isInteger ? 0 : digitsRightOfDecimalPoint) - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
@@ -588,7 +588,7 @@ public class BanjoScanner {
 	 * 
 	 * Assumes tokenStartPos is already set to the current parse position.
 	 */
-	public @Nullable <T> Container<T> ellipsis(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private @Nullable <T> Container<T> ellipsis(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		if(in.checkNextChar('.')) {
 			if(in.read() == '.' && in.read() == '.') {
 				return new Container<T>(visitor.visitEllipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(3)));
@@ -604,8 +604,8 @@ public class BanjoScanner {
 		return new String(Character.toChars(cp));
 	}
 
-	public LinkedList<BanjoParseException> getErrors() {
-		return this.errors;
+	public LinkedList<Problem> getProblems() {
+		return this.problems;
 	}
 
 

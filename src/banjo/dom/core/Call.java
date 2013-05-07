@@ -7,7 +7,6 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 
@@ -17,13 +16,15 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	private final List<CoreExpr> arguments;
 
 	public Call(SourceExpr sourceExpr, CoreExpr callee, List<CoreExpr> arguments) {
-		super(sourceExpr);
+		super(sourceExpr, callee.hashCode() + arguments.hashCode());
 		this.callee = callee;
 		this.arguments = arguments;
 	}
+
 	public Call(SourceExpr sourceExpr, CoreExpr callee, CoreExpr ... arguments) {
 		this(sourceExpr, callee, nonNull(Arrays.asList(arguments)));
 	}
+
 
 	public CoreExpr getCallee() {
 		return this.callee;
@@ -43,7 +44,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		this.callee.toSource(sb, Precedence.SUFFIX);
 		sb.append('(');
 		boolean first = true;
-		for(final Expr arg : this.arguments) {
+		for(final CoreExpr arg : this.arguments) {
 			if(first) first = false;
 			else sb.append(", ");
 			arg.toSource(sb, Precedence.COMMA.nextHighest());
@@ -54,6 +55,23 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.visitCall(this);
+		return visitor.call(this);
 	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof Call))
+			return false;
+		final Call other = (Call) obj;
+		if (!this.arguments.equals(other.arguments))
+			return false;
+		if (!this.callee.equals(other.callee))
+			return false;
+		return true;
+	}
+
 }

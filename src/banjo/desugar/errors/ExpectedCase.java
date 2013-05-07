@@ -1,11 +1,11 @@
 package banjo.desugar.errors;
 
 import banjo.dom.Expr;
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.Problem;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.OffsetLength;
 
-public class ExpectedCase extends BanjoParseException {
+public class ExpectedCase extends Problem {
 	private static final long serialVersionUID = 1L;
 
 	public ExpectedCase(String message, FileRange range) {

@@ -69,8 +69,8 @@ public final class DefRefTokenAnnotator<T> implements TokenVisitor<T> {
 		if(def == null)
 			return this.visitor.visitIdentifier(range, identifier);
 		if(def.getSourceOffset() == range.getStartOffset())
-			return visitIdentifierDef(identifier, def);
-		return visitIdentifierRef(identifier, def);
+			return visitIdentifierDef(range, identifier, def);
+		return visitIdentifierRef(range, identifier, def);
 	}
 
 	@Override
@@ -78,11 +78,11 @@ public final class DefRefTokenAnnotator<T> implements TokenVisitor<T> {
 		return this.visitor.visitOperator(range, operatorRef);
 	}
 
-	public @Nullable T visitIdentifierDef(Identifier identifier, DefInfo def) {
-		return this.visitor.visitIdentifierDef(identifier, def);
+	public @Nullable T visitIdentifierDef(FileRange range, Identifier identifier, DefInfo def) {
+		return this.visitor.visitIdentifierDef(range, identifier, def);
 	}
 
-	public @Nullable T visitIdentifierRef(Identifier identifier, DefInfo def) {
-		return this.visitor.visitIdentifierRef(identifier, def);
+	public @Nullable T visitIdentifierRef(FileRange range, Identifier identifier, DefInfo def) {
+		return this.visitor.visitIdentifierRef(range, identifier, def);
 	}
 }

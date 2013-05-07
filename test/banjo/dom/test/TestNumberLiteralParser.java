@@ -1,29 +1,27 @@
 package banjo.dom.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
-import banjo.desugar.errors.InvalidProjection;
 import banjo.dom.Expr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
-import banjo.parser.errors.BanjoParseException;
-import banjo.parser.errors.ExpectedExpression;
 import banjo.parser.errors.ExpectedOperator;
 import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
-import banjo.parser.errors.SyntaxError;
+import banjo.parser.errors.Problem;
 import banjo.parser.errors.UnsupportedUnaryOperator;
 
 public class TestNumberLiteralParser {
 
-	// TODO Check for failure cases ...
-	
 	@Test public void idIsNotANumber() { testNonNumber("a"); }
-	// @Test public void starIsNotANumber() { testNonNumber("*", ExpectedExpression.class); }
 	@Test public void semiColonIsNotANumber() { testNonNumber(";", UnsupportedUnaryOperator.class); }
 	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
 	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
@@ -31,30 +29,31 @@ public class TestNumberLiteralParser {
 	@Test public void methodCallOnNumber() { testNonNumber("1 .negate()"); }
 	@Test public void numberAsProjection() { testNonNumber("_.1", ExpectedOperator.class); }
 	@Test public void leadingUnderscore() { testNonNumber("_1"); }
-	
-	private void testNonNumber(String inStr) {
+
+	private void testNonNumber(@NonNull String inStr) {
 		testNonNumber(inStr, null);
 	}
-	private void testNonNumber(String inStr, Class<? extends BanjoParseException> eClass) {
+	private void testNonNumber(@NonNull String inStr, Class<? extends Problem> eClass) {
 		try {
 			final BanjoParser parser = new BanjoParser();
-			Expr node = parser.parse(inStr);
-			if(node != null)
-				System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
-			for(Exception e : parser.getErrors()) {
+			final LinkedList<Problem> problems = new LinkedList<>();
+			final Expr node = parser.parse(inStr).dumpProblems(problems);
+			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
+			for(final Exception e : problems) {
 				System.out.println(e.toString());
 			}
-			if(parser.getErrors().isEmpty()) {
-				assertNull("Expecting "+eClass, eClass); // Should have thrown, if an exception type was provided
-			} else {
-				throw parser.getErrors().iterator().next();
+			if(problems.isEmpty() && eClass != null) {
+				fail("Expecting problem of class "+eClass.getSimpleName());
+			} else if(!problems.isEmpty()) {
+				// Not expecting any errors
+				throw problems.getFirst();
 			}
 			assertFalse(node instanceof NumberLiteral);
 			assertFalse(node instanceof UnaryOp && ((UnaryOp) node).getOperand() instanceof NumberLiteral);
-		} catch (BanjoParseException e) {
+		} catch (final Problem e) {
 			if(eClass == null || !eClass.isInstance(e)) throw new Error("Not expecting this exception", e);
 			// OK
-		} catch (IOException e) {
+		} catch (final IOException e) {
 			throw new Error(e);
 		}
 	}
@@ -71,12 +70,12 @@ public class TestNumberLiteralParser {
 	}
 
 	private void testInt(int n) throws IOException {
-		String dec = String.valueOf(n);
+		final String dec = String.valueOf(n);
 		final String hex = "0x"+Integer.toHexString(n);
 		assertEquals(n, parseNumber(dec).getNumber().intValue());
 		assertEquals(n, parseNumber(hex).getNumber().intValue());
 	}
-	
+
 	@Test
 	public void longs() throws IOException {
 		testLong(0);
@@ -91,7 +90,7 @@ public class TestNumberLiteralParser {
 	}
 
 	private void testLong(long n) throws IOException {
-		String dec = String.valueOf(n);
+		final String dec = String.valueOf(n);
 		final String hex = "0x"+Long.toHexString(n);
 		assertEquals(n, parseNumber(dec).getNumber().longValue());
 		assertEquals(n, parseNumber(hex).getNumber().longValue());
@@ -128,7 +127,7 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		NumberLiteral node = ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		final NumberLiteral node = ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 		assertEquals(outStr, node.getNumber().toString());
 	}
 }

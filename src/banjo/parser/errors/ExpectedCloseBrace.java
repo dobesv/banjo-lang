@@ -2,7 +2,7 @@ package banjo.parser.errors;
 
 import banjo.parser.util.FileRange;
 
-public class ExpectedCloseBrace extends BanjoParseException {
+public class ExpectedCloseBrace extends Problem {
 	private static final long serialVersionUID = 1L;
 
 	public ExpectedCloseBrace(String message, FileRange range) {

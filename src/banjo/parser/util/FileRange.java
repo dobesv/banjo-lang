@@ -6,12 +6,10 @@ import org.eclipse.jdt.annotation.Nullable;
 
 
 public final class FileRange {
-	private final String filename;
 	private final FilePos start;
 	private final FilePos end;
-	public FileRange(String filename, FilePos start, FilePos end) {
+	public FileRange(FilePos start, FilePos end) {
 		super();
-		this.filename = filename;
 		this.start = start;
 		this.end = end;
 		if(end.before(start)) {
@@ -29,7 +27,6 @@ public final class FileRange {
 	 */
 	public FileRange(FileRange head, FileRange tail) {
 		this(head, tail.getEnd());
-		if(!head.getFilename().equals(tail.getFilename())) throw new IllegalStateException(); // Don't expect parse trees to span multiple files, do we?
 	}
 	/**
 	 * Create a new file range by extending an existing one to a new end position.
@@ -38,7 +35,7 @@ public final class FileRange {
 	 * @param newTail New end position
 	 */
 	public FileRange(FileRange head, FilePos tail) {
-		this(head.getFilename(), head.getStart(), tail);
+		this(head.getStart(), tail);
 
 	}
 
@@ -47,7 +44,6 @@ public final class FileRange {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + getEnd().hashCode();
-		result = prime * result + getFilename().hashCode();
 		result = prime * result + getStart().hashCode();
 		return result;
 	}
@@ -62,8 +58,6 @@ public final class FileRange {
 		final FileRange other = (FileRange) obj;
 		if (!this.end.equals(other.end))
 			return false;
-		if (!getFilename().equals(other.getFilename()))
-			return false;
 		if (!getStart().equals(other.getStart()))
 			return false;
 		return true;
@@ -75,8 +69,6 @@ public final class FileRange {
 	@Override
 	public String toString() {
 		final StringBuffer sb = new StringBuffer();
-		sb.append(getFilename());
-		sb.append(": ");
 		sb.append(getStart());
 		if(this.end.offset > this.start.offset+1) {
 			sb.append(" to ");
@@ -102,9 +94,6 @@ public final class FileRange {
 	 */
 	public int length() {
 		return getEndOffset() - getStartOffset();
-	}
-	public String getFilename() {
-		return this.filename;
 	}
 	public int getStartLine() {
 		return this.start.line;
@@ -144,11 +133,11 @@ public final class FileRange {
 	}
 
 	public static FileRange between(FileRange a, FileRange b) {
-		return new FileRange(a.getFilename(), a.getEnd(), b.getStart());
+		return new FileRange(a.getEnd(), b.getStart());
 	}
 
 	public FileRange headRange() {
-		return new FileRange(this.filename, this.start, this.start);
+		return new FileRange(this.start, this.start);
 	}
 
 

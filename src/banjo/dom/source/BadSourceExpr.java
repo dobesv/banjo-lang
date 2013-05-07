@@ -4,12 +4,12 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.Problem;
 
 public class BadSourceExpr extends AbstractCompositeSourceExpr {
-	private final BanjoParseException error;
+	private final Problem error;
 
-	public BadSourceExpr(List<SourceNode> children, BanjoParseException err) {
+	public BadSourceExpr(List<SourceNode> children, Problem err) {
 		super(children);
 		this.error = err;
 	}
@@ -17,7 +17,7 @@ public class BadSourceExpr extends AbstractCompositeSourceExpr {
 	@Override
 	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		return visitor.visitBadSourceExpr(this);
+		return visitor.badSourceExpr(this);
 	}
 
 	@Override
@@ -25,8 +25,8 @@ public class BadSourceExpr extends AbstractCompositeSourceExpr {
 		return Precedence.lowest();
 	}
 
-	public BanjoParseException getError() {
-		return error;
+	public Problem getError() {
+		return this.error;
 	}
 
 }

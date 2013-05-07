@@ -6,21 +6,20 @@ import static banjo.parser.util.Check.nonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.source.Atom;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.Problem;
 import banjo.parser.util.FileRange;
 
 public class StringLiteral extends AbstractAtom implements Atom, Key {
 	private final String string;
 
 	public StringLiteral(int sourceLength, String string) {
-		super(sourceLength);
+		super(sourceLength, string.hashCode());
 		this.string = string;
 	}
 
-	public static class BadStringEscapeSequence extends BanjoParseException {
+	public static class BadStringEscapeSequence extends Problem {
 		private static final long serialVersionUID = 1L;
 
 		public BadStringEscapeSequence(String message, FileRange range) {
@@ -73,12 +72,26 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 
 	@Override
 	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		return visitor.visitStringLiteral(this);
+		return visitor.stringLiteral(this);
 	}
 
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.visitStringLiteral(this);
+		return visitor.stringLiteral(this);
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof StringLiteral))
+			return false;
+		final StringLiteral other = (StringLiteral) obj;
+		if (!this.string.equals(other.string))
+			return false;
+		return true;
 	}
 
 }

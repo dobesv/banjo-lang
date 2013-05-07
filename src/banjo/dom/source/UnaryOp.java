@@ -14,7 +14,6 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	public SourceExpr getOperand() {
 		return this.operand;
 	}
-
 	@Override
 	public Precedence getPrecedence() {
 		return this.operator.getPrecedence();
@@ -22,6 +21,6 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 
 	@Override
 	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		return visitor.visitUnaryOp(this);
+		return visitor.unaryOp(this);
 	}
 }

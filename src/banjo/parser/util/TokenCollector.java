@@ -1,7 +1,10 @@
 package banjo.parser.util;
 
+import static banjo.parser.util.Check.nonNull;
+
 import java.io.IOException;
 import java.util.Collection;
+import java.util.LinkedList;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -14,14 +17,14 @@ import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.UnitRef;
 import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoParser;
-import banjo.parser.errors.BanjoParseException;
+import banjo.parser.errors.Problem;
 
 public class TokenCollector implements TokenVisitor<SourceExpr> {
 	final BanjoParser parser;
 	final Collection<Token> tokens;
+	final LinkedList<Problem> problems = new LinkedList<>();
 
 	public TokenCollector(BanjoParser parser, Collection<Token> tokens) {
 		this.parser = parser;
@@ -29,13 +32,13 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 	}
 
 	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
-		return this.parser.parse(in);
+		return this.parser.parse(in).dumpProblems(this.problems);
 	}
 	public @Nullable SourceExpr parse(String source) throws IOException {
-		return this.parser.parse(source);
+		return this.parser.parse(source).dumpProblems(this.problems);
 	}
-	public Collection<BanjoParseException> getErrors() {
-		return this.parser.getErrors();
+	public Collection<Problem> getErrors() {
+		return this.problems;
 	}
 	public boolean reachedEof() {
 		return this.parser.reachedEof();
@@ -43,46 +46,48 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 	@Override
 	public @Nullable SourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
 		this.tokens.add(token);
-		return this.parser.visitStringLiteral(range, token);
+		this.parser.visitStringLiteral(range, token);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
 		this.tokens.add(numberLiteral);
-		return this.parser.visitNumberLiteral(range, numberLiteral);
+		this.parser.visitNumberLiteral(range, numberLiteral);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
 		this.tokens.add(simpleName);
-		return this.parser.visitIdentifier(range, simpleName);
+		this.parser.visitIdentifier(range, simpleName);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
 		this.tokens.add(ellipsis);
-		return this.parser.visitEllipsis(range, ellipsis);
+		this.parser.visitEllipsis(range, ellipsis);
+		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitUnit(FileRange range, UnitRef unit) {
-		this.tokens.add(unit);
-		return this.parser.visitUnit(range, unit);
-	}
-	@Override
-	public SourceExpr visitOperator(FileRange range, OperatorRef opRef) {
+	public @Nullable SourceExpr visitOperator(FileRange range, OperatorRef opRef) {
 		this.tokens.add(opRef);
-		return this.parser.visitOperator(range, opRef);
+		this.parser.visitOperator(range, opRef);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitWhitespace(FileRange range, Whitespace ws) {
 		this.tokens.add(ws);
-		return this.parser.visitWhitespace(range, ws);
+		this.parser.visitWhitespace(range, ws);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitComment(FileRange range, Comment c) {
 		this.tokens.add(c);
-		return this.parser.visitComment(range, c);
+		this.parser.visitComment(range, c);
+		return null;
 	}
 	@Override
 	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
-		return this.parser.visitEof(entireFileRange);
+		return nonNull(this.parser.visitEof(entireFileRange)).dumpProblems(this.problems);
 	}
 
 }

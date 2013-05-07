@@ -1,14 +1,13 @@
 package banjo.parser.errors;
 
-import banjo.parser.util.OffsetLength;
 
-public class ExpectedExpression extends BanjoParseException {
+public class ExpectedExpression extends Problem {
 	private static final long serialVersionUID = 1L;
 
-	public ExpectedExpression(OffsetLength fileRange) {
-		super("Expected expression", fileRange);
+	public ExpectedExpression(int sourceOffset, int sourceLength) {
+		super("Expected expression", sourceOffset, sourceLength);
 	}
-	public ExpectedExpression(OffsetLength offsetLength, String butGot) {
-		super("Expected expression here; found '"+butGot+"'", offsetLength);
+	public ExpectedExpression(int sourceOffset, int sourceLength, String butGot) {
+		super("Expected expression here; found '"+butGot+"'", sourceOffset, sourceLength);
 	}
 }

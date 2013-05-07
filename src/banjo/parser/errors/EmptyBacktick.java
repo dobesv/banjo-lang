@@ -2,7 +2,7 @@ package banjo.parser.errors;
 
 import banjo.parser.util.FileRange;
 
-public class EmptyBacktick extends BanjoParseException {
+public class EmptyBacktick extends Problem {
 	private static final long serialVersionUID = 1L;
 
 	public EmptyBacktick(FileRange range) {
