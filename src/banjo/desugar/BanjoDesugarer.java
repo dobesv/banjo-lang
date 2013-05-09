@@ -1203,7 +1203,7 @@ public class BanjoDesugarer {
 						// Have to adjust the offsets of the fields
 						final Map<String, Field> fields = new LinkedHashMap<>(object.getFields().size());
 						for(final Field f : object.getFields().values()) {
-							fields.put(f.getKey().getKeyString(), new Field(f.getSourceExpr(), f.getOffsetInObject()+operandSourceExpr.getOffsetInParent(), f.getKey(), f.getValue()));
+							fields.put(f.getKey().getKeyString(), new Field(f.getSourceLength(), f.getOffsetInObject()+operandSourceExpr.getOffsetInParent(), f.getKey(), f.getValue()));
 						}
 						return result(new ObjectLiteral(op, fields), operandCoreExpr.getProblems());
 					}

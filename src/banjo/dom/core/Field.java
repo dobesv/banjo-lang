@@ -9,11 +9,15 @@ import banjo.dom.token.Key;
 public class Field {
 	private final Key key;
 	private final CoreExpr value;
-	private final SourceExpr sourceExpr;
+	private final int sourceLength;
 	private final int offsetInObject;
 
 	public Field(SourceExpr sourceExpr, int offsetInObject, Key key, CoreExpr value) {
-		this.sourceExpr = sourceExpr;
+		this(sourceExpr.getSourceLength(), offsetInObject, key, value);
+	}
+
+	public Field(int sourceLength, int offsetInObject, Key key, CoreExpr value) {
+		this.sourceLength = sourceLength;
 		this.key = key;
 		this.value = value;
 		this.offsetInObject = offsetInObject;
@@ -38,7 +42,7 @@ public class Field {
 			return false;
 		if (!this.value.equals(other.value))
 			return false;
-		if (!this.sourceExpr.equals(other.sourceExpr))
+		if (this.sourceLength != other.sourceLength)
 			return false;
 		if (this.offsetInObject != other.offsetInObject)
 			return false;
@@ -47,7 +51,7 @@ public class Field {
 
 	@Override
 	public int hashCode() {
-		return (this.key.hashCode() + this.value.hashCode()) ^ this.sourceExpr.hashCode();
+		return (this.key.hashCode() + this.value.hashCode()) ^ this.sourceLength;
 	}
 
 	public void toSource(StringBuffer sb) {
@@ -56,11 +60,12 @@ public class Field {
 		this.value.toSource(sb, Precedence.ASSIGNMENT);
 	}
 
-	public SourceExpr getSourceExpr() {
-		return this.sourceExpr;
-	}
 	public int getOffsetInObject() {
 		return this.offsetInObject;
+	}
+
+	public int getSourceLength() {
+		return this.sourceLength;
 	}
 
 }

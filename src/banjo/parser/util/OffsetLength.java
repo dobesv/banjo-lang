@@ -18,4 +18,9 @@ public class OffsetLength {
 		return this.offset + this.length;
 	}
 
+	@Override
+	public String toString() {
+		return "OffsetLength("+this.offset+","+this.length+")";
+	}
+
 }

@@ -17,20 +17,20 @@ import banjo.dom.token.NumberLiteral;
 public class Projection extends AbstractCoreExpr implements CoreExpr {
 
 	private final CoreExpr object;
-	private final CoreExpr expr;
+	private final CoreExpr body;
 
-	public Projection(SourceExpr sourceExpr, CoreExpr object, CoreExpr expr) {
-		super(sourceExpr, expr.hashCode() + object.hashCode());
+	public Projection(SourceExpr sourceExpr, CoreExpr object, CoreExpr body) {
+		this(sourceExpr.getSourceLength(), object, body);
+	}
+
+	public Projection(int sourceLength, CoreExpr object, CoreExpr body) {
+		super(sourceLength, body.hashCode() + object.hashCode());
 		this.object = object;
-		this.expr = expr;
+		this.body = body;
 	}
 
-	public CoreExpr getBase() {
+	public CoreExpr getObject() {
 		return this.object;
-	}
-
-	public String getFieldName() {
-		return this.expr.toSource();
 	}
 
 	@Override
@@ -46,11 +46,11 @@ public class Projection extends AbstractCoreExpr implements CoreExpr {
 		this.object.toSource(sb, Precedence.SUFFIX);
 		if(num) sb.append(')');
 		sb.append('.');
-		this.expr.toSource(sb);
+		this.body.toSource(sb);
 	}
 
-	public CoreExpr getExpr() {
-		return this.expr;
+	public CoreExpr getBody() {
+		return this.body;
 	}
 
 	@Override
@@ -67,7 +67,7 @@ public class Projection extends AbstractCoreExpr implements CoreExpr {
 		if (!(obj instanceof Projection))
 			return false;
 		final Projection other = (Projection) obj;
-		if (!this.expr.equals(other.expr))
+		if (!this.body.equals(other.body))
 			return false;
 		if (!this.object.equals(other.object))
 			return false;

@@ -16,7 +16,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	private final List<CoreExpr> arguments;
 
 	public Call(SourceExpr sourceExpr, CoreExpr callee, List<CoreExpr> arguments) {
-		super(sourceExpr, callee.hashCode() + arguments.hashCode());
+		this(sourceExpr.getSourceLength(), callee, arguments);
+	}
+
+	public Call(int sourceLength, CoreExpr callee, List<CoreExpr> arguments) {
+		super(sourceLength, callee.hashCode() + arguments.hashCode());
 		this.callee = callee;
 		this.arguments = arguments;
 	}

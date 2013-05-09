@@ -33,7 +33,11 @@ public class ExprList extends AbstractCoreExpr implements CoreExpr {
 	//	}
 
 	public ExprList(SourceExpr sourceExpr, List<CoreExpr> elements) {
-		super(sourceExpr, elements.hashCode());
+		this(sourceExpr.getSourceLength(), elements);
+	}
+
+	public ExprList(int sourceLength, List<CoreExpr> elements) {
+		super(sourceLength, elements.hashCode());
 		this.elements = nonNull(Collections.unmodifiableList(elements));
 	}
 

@@ -159,7 +159,7 @@ public class DefRefScanner {
 		@Override
 		@Nullable
 		public Void projection(Projection fieldRef) {
-			scan(fieldRef.getBase());
+			scan(fieldRef.getObject());
 			// TODO Pass on the presence of the field ref so it can be highlighted as such
 			// TODO Using data flow analysis, report the set of possible definitions of that field
 			return null;

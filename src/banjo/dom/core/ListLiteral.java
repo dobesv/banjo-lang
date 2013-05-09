@@ -2,7 +2,6 @@ package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -20,7 +19,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 		this.elements = nonNull(Collections.unmodifiableList(elements));
 	}
 
-	public Collection<CoreExpr> getElements() {
+	public List<CoreExpr> getElements() {
 		return this.elements;
 	}
 

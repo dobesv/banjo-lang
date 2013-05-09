@@ -21,7 +21,11 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	private final Map<String, Field> fields;
 
 	public ObjectLiteral(SourceExpr sourceExpr, Map<String, Field> fields) {
-		super(sourceExpr, fields.hashCode());
+		this(sourceExpr.getSourceLength(), fields);
+	}
+
+	public ObjectLiteral(int sourceLength, Map<String, Field> fields) {
+		super(sourceLength, fields.hashCode());
 		this.fields = nonNull(Collections.unmodifiableMap(fields));
 	}
 
