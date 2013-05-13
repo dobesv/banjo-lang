@@ -268,15 +268,19 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	 * Parse the input fully.  The final return value is the result of visitEof().  It may be null
 	 * if there were syntax errors in the source file, or the file was empty;
 	 * 
-	 * @param scanner Scanner to get tokens from
+	 * @param in Input source to read; will be closed by this function
 	 * @return Root of the parsed syntax tree
 	 * @throws IOException If the underlying stream throws IOException
 	 */
 	public ExtSourceExpr parse(ParserReader in) throws IOException {
-		reset();
-		final BanjoScanner scanner = new BanjoScanner();
-		final ExtSourceExpr result = nonNull(scanner.scan(in, this));
-		return result.withProblems(scanner.getProblems());
+		try {
+			reset();
+			final BanjoScanner scanner = new BanjoScanner();
+			final ExtSourceExpr result = nonNull(scanner.scan(in, this));
+			return result.withProblems(scanner.getProblems());
+		} finally {
+			in.close();
+		}
 	}
 
 	public ExtSourceExpr parse(String source) throws IOException {
@@ -354,24 +358,24 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		return null;
 	}
 	@Override @Nullable
-	public ExtSourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
+	public ExtSourceExpr stringLiteral(FileRange range, StringLiteral token) {
 		return visitLiteral(range, token);
 	}
 	@Override @Nullable
-	public ExtSourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
+	public ExtSourceExpr numberLiteral(FileRange range, NumberLiteral numberLiteral) {
 		return visitLiteral(range, numberLiteral);
 	}
 	@Override @Nullable
-	public ExtSourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
+	public ExtSourceExpr identifier(FileRange range, Identifier simpleName) {
 		return visitLiteral(range, simpleName);
 	}
 	@Override @Nullable
-	public ExtSourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
+	public ExtSourceExpr ellipsis(FileRange range, Ellipsis ellipsis) {
 		return visitLiteral(range, ellipsis);
 	}
 
 	@Override @Nullable
-	public ExtSourceExpr visitOperator(FileRange range, OperatorRef token) {
+	public ExtSourceExpr operator(FileRange range, OperatorRef token) {
 		checkIndentDedent(range, token);
 		this.nodes.add(token);
 		ExtSourceExpr operand = this.operand;
@@ -464,18 +468,18 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	}
 
 	@Override
-	public @Nullable ExtSourceExpr visitWhitespace(FileRange range, Whitespace ws) {
+	public @Nullable ExtSourceExpr whitespace(FileRange range, Whitespace ws) {
 		this.nodes.add(ws);
 		return null;
 	}
 	@Override
-	public @Nullable ExtSourceExpr visitComment(FileRange range, Comment c) {
+	public @Nullable ExtSourceExpr comment(FileRange range, Comment c) {
 		this.nodes.add(c);
 		return null;
 	}
 
 	@Override
-	public @Nullable ExtSourceExpr visitEof(FileRange entireFileRange) {
+	public @Nullable ExtSourceExpr eof(FileRange entireFileRange) {
 		this.eof = true;
 		ExtSourceExpr operand = this.operand;
 		// No operand?  Treat it as an empty expression for now

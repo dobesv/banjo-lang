@@ -1,26 +1,26 @@
 package banjo.analysis;
 
+import static banjo.parser.util.Check.nonNull;
+
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.core.BadExpr;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.ExprList;
 import banjo.dom.core.Field;
-import banjo.dom.core.Projection;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.Projection;
 import banjo.dom.core.SetLiteral;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -30,47 +30,52 @@ import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.UnexpectedIOExceptionError;
 import banjo.parser.util.ParserReader;
+import fj.Ord;
 import fj.data.Option;
+import fj.data.TreeMap;
 
 public class DefRefScanner {
 
 	private final BanjoScanner scanner = new BanjoScanner();
 
 	public static class ScanningExprVisitor implements CoreExprVisitor<Void> {
-		public final LocalDefTypeCalculator localDefTypeCalculator = new LocalDefTypeCalculator(DefType.LOCAL_VALUE, DefType.LOCAL_CONST, DefType.LOCAL_FUNCTION);
-		public final LocalDefTypeCalculator fieldDefTypeCalculator = new LocalDefTypeCalculator(DefType.SELF_FIELD, DefType.SELF_CONST, DefType.SELF_METHOD);
+		public static final LocalDefTypeCalculator localDefTypeCalculator = new LocalDefTypeCalculator(DefType.LOCAL_VALUE, DefType.LOCAL_CONST, DefType.LOCAL_FUNCTION);
+		public static final LocalDefTypeCalculator fieldDefTypeCalculator = new LocalDefTypeCalculator(DefType.SELF_FIELD, DefType.SELF_CONST, DefType.SELF_METHOD);
 		protected final DefRefVisitor visitor;
-		final LinkedList<HashMap<String,DefInfo>> environment = new LinkedList<>();
-		int parameterScopeDepth = 0;
-		int objectDepth = 0;
-		int letDepth = 0;
+		final TreeMap<String, DefInfo> environment;
+		final int parameterScopeDepth;
+		final int objectDepth;
+		final int letDepth;
 
-		@Nullable CoreExpr parentExpr;
-		int parentExprOffset;
+		final int exprSourceOffset;
 
 		public ScanningExprVisitor(DefRefVisitor visitor) {
+			this(visitor, 0, 0, 0, 0, nonNull(TreeMap.<String,DefInfo>empty(Ord.stringOrd)));
+		}
+
+		public ScanningExprVisitor(DefRefVisitor visitor, int exprSourceOffset,
+				int parameterScopeDepth, int objectDepth, int letDepth, fj.data.TreeMap<String,DefInfo> environment) {
+			super();
 			this.visitor = visitor;
+			this.exprSourceOffset = exprSourceOffset;
+			this.parameterScopeDepth = parameterScopeDepth;
+			this.objectDepth = objectDepth;
+			this.letDepth = letDepth;
+			this.environment = environment;
 		}
 
-		protected void scan(@Nullable CoreExpr e) {
-			if(e == null) return;
-			final HashMap<String,DefInfo> scope = new HashMap<>();
-			this.environment.push(scope);
-			final int oldParentExprOffset = this.parentExprOffset;
-			final CoreExpr oldParentExpr = this.parentExpr;
-			this.parentExprOffset = sourceOffset(e);
-			this.parentExpr = e;
-			e.acceptVisitor(this);
-			this.parentExpr = oldParentExpr;
-			this.parentExprOffset = oldParentExprOffset;
-			if(this.environment.pop() != scope) throw new Error();
+		ScanningExprVisitor descend(int newParentExprOffset, int newParameterScopeDepth, int newObjectDepth, int newLetDepth, fj.data.TreeMap<String,DefInfo> newEnvironment) {
+			return new ScanningExprVisitor(this.visitor, newParentExprOffset, newParameterScopeDepth, newObjectDepth, newLetDepth, newEnvironment);
 		}
 
-		protected int sourceOffset(CoreExpr e) {
-			final CoreExpr parentExpr = this.parentExpr;
-			if(e == parentExpr) return this.parentExprOffset;
-			if(parentExpr == null) return 0;
-			return this.parentExprOffset + parentExpr.getSourceExpr().offsetToChild(e.getSourceExpr()).orSome(0);
+		protected final void scan(CoreExpr e) {
+			scan(e, this.exprSourceOffset + e.getOffsetInParent());
+		}
+		protected final void scan(CoreExpr e, int sourceOffset) {
+			scan(e, sourceOffset, this.parameterScopeDepth, this.objectDepth, this.letDepth, this.environment);
+		}
+		protected void scan(CoreExpr e, int exprSourceOffset, int newParameterScopeDepth, int newObjectDepth, int newLetDepth, fj.data.TreeMap<String,DefInfo> newEnvironment) {
+			e.acceptVisitor(this.descend(this.exprSourceOffset + e.getOffsetInParent(), newParameterScopeDepth, newObjectDepth, newLetDepth, newEnvironment));
 		}
 
 		@Override
@@ -87,12 +92,9 @@ public class DefRefScanner {
 
 		@Nullable
 		public Void visitRef(Key key) {
-			for(final HashMap<String,DefInfo> scope : this.environment) {
-				final DefInfo def = scope.get(key.getKeyString());
-				if(def != null) {
-					this.visitor.visitRef(def, sourceOffset(key), key);
-					return null;
-				}
+			final Option<DefInfo> binding = this.environment.get(key.getKeyString());
+			if(binding.isSome()) {
+				this.visitor.visitRef(nonNull(binding.some()), this.exprSourceOffset, key);
 			}
 			return null;
 		}
@@ -106,7 +108,7 @@ public class DefRefScanner {
 		@Override
 		@Nullable
 		public Void operator(OperatorRef operatorRef) {
-			// TODO - resolve operators to functions and report the location of the referenced function as the definition
+			// TODO - resolve operators to functions ?
 			return null;
 		}
 
@@ -115,7 +117,7 @@ public class DefRefScanner {
 		public Void call(Call call) {
 			scan(call.getCallee());
 			for(final CoreExpr arg : call.getArguments()) {
-				scan(arg);
+				scan(nonNull(arg));
 			}
 			return null;
 		}
@@ -123,35 +125,59 @@ public class DefRefScanner {
 		@Override
 		@Nullable
 		public Void exprList(ExprList exprList) {
-			final HashMap<String,DefInfo> scope = new HashMap<>();
-			this.environment.push(scope);
-			final int scopeDepth = this.letDepth;
-			this.letDepth++;
+			TreeMap<String, DefInfo> newEnvironment = this.environment;
+			final int newLetDepth = this.letDepth+1;
 			for(final CoreExpr e : exprList.getElements()) {
-				if(e instanceof Let) {
-					final Let let = (Let)e;
-					final Key name = let.getName();
-					final DefType defType = letDefType(let);
-					def(name, defType, scope, scopeDepth);
-					scan(let.getValue());
-				} else {
-					if(e == null) throw new NullPointerException();
-					scan(e);
-				}
+				final TreeMap<String, DefInfo> tempEnvironment = nonNull(newEnvironment);
+				newEnvironment = nonNull(e.acceptVisitor(new BaseCoreExprVisitor<TreeMap<String, DefInfo>>() {
+					@Override
+					@Nullable
+					public TreeMap<String, DefInfo> let(Let let) {
+						final Key name = let.getName();
+						final int nameSourceOffset = ScanningExprVisitor.this.exprSourceOffset + e.getOffsetInParent() + name.getOffsetInParent();
+						final DefType defType = letDefType(let);
+						return def(name, nameSourceOffset, defType, newLetDepth, tempEnvironment);
+					}
+
+					@Override
+					@Nullable
+					public TreeMap<String, DefInfo> fallback(
+							CoreExpr unsupported) {
+						return tempEnvironment;
+					}
+				}));
 			}
-			this.letDepth--;
-			if(this.environment.pop() != scope) throw new Error();
+			for(final CoreExpr e : exprList.getElements()) {
+				final TreeMap<String, DefInfo> tempEnvironment = nonNull(newEnvironment);
+				e.acceptVisitor(new BaseCoreExprVisitor<Void>() {
+
+					@Override
+					@Nullable
+					public Void let(Let n) {
+						scan(n.getValue(), ScanningExprVisitor.this.exprSourceOffset + n.getOffsetInParent() + n.getValue().getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, newLetDepth, tempEnvironment);
+						return null;
+					}
+
+					@Override
+					@Nullable
+					public Void fallback(CoreExpr e) {
+						scan(e, ScanningExprVisitor.this.exprSourceOffset + e.getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, newLetDepth, tempEnvironment);
+						return null;
+					}
+				});
+			}
 			return null;
 		}
 
-		private void def(Key name, DefType defType, HashMap<String, DefInfo> scope, int scopeDepth) {
-			final DefInfo def = new DefInfo(name, sourceOffset(name), defType, scopeDepth);
-			scope.put(name.getKeyString(), def);
+		private TreeMap<String, DefInfo> def(Key name, int nameSourceOffset, DefType defType, int scopeDepth, TreeMap<String, DefInfo> environment) {
+			if(name.getSourceLength() == 0) return environment; // Ignore synthetic nodes
+			final DefInfo def = new DefInfo(name, nameSourceOffset, defType, scopeDepth);
 			this.visitor.visitDef(def);
+			return nonNull(environment.set(name.getKeyString(), def));
 		}
 
 		private DefType letDefType(Let let) {
-			final DefType defType = let.getValue().acceptVisitor(this.localDefTypeCalculator);
+			final DefType defType = let.getValue().acceptVisitor(ScanningExprVisitor.localDefTypeCalculator);
 			if(defType == null) throw new NullPointerException();
 			return defType;
 		}
@@ -161,69 +187,61 @@ public class DefRefScanner {
 		public Void projection(Projection fieldRef) {
 			scan(fieldRef.getObject());
 			// TODO Pass on the presence of the field ref so it can be highlighted as such
-			// TODO Using data flow analysis, report the set of possible definitions of that field
+			// TODO Using data flow analysis, report the set of possible definitions of field references in the projection
+			// TODO Report identifier references in the projection as field references
 			return null;
 		}
 
 		@Override
 		@Nullable
 		public Void functionLiteral(FunctionLiteral functionLiteral) {
-			final HashMap<String,DefInfo> scope = new HashMap<>();
-			this.environment.push(scope);
-			final int scopeDepth = this.parameterScopeDepth;
-			final boolean hasSelfName = functionLiteral.getSelfName() != null;
-			this.parameterScopeDepth++;
+			final int newParameterScopeDepth = this.parameterScopeDepth+1;
+			TreeMap<String, DefInfo> newEnvironment = this.environment;
 			for(final FunArg arg : functionLiteral.getArgs()) {
-				def(arg.getName(), DefType.PARAMETER, scope, scopeDepth);
+				final int argNameSourceOffset = this.exprSourceOffset + arg.getOffsetInParent() + arg.getName().getOffsetInParent();
+				newEnvironment = def(arg.getName(), argNameSourceOffset, DefType.PARAMETER, newParameterScopeDepth, newEnvironment);
 			}
-			if(hasSelfName) {
-				final Key selfName = functionLiteral.getSelfName();
-				if(selfName == null) throw new NullPointerException();
-				def(selfName, DefType.SELF, scope, scopeDepth);
-			}
-			scan(functionLiteral.getGuarantee());
+			final Key selfName = functionLiteral.getSelfName();
+			newEnvironment = def(selfName, selfName.getOffsetInParent(), DefType.SELF, newParameterScopeDepth, newEnvironment);
+
+			final CoreExpr guarantee = functionLiteral.getGuarantee();
+			scan(guarantee, this.exprSourceOffset + guarantee.getOffsetInParent(), newParameterScopeDepth, this.objectDepth, this.letDepth, newEnvironment);
 			for(final FunArg arg : functionLiteral.getArgs()) {
-				if(arg.hasContract())
-					scan(arg.getAssertion());
+				if(arg.hasAssertion())
+					scan(arg.getAssertion(), this.exprSourceOffset + arg.getOffsetInParent() + arg.getAssertion().getOffsetInParent());
 			}
-			scan(functionLiteral.getBody());
-			this.parameterScopeDepth--;
-			if(this.environment.pop() != scope) throw new Error();
+			scan(functionLiteral.getBody(), this.exprSourceOffset + functionLiteral.getBody().getOffsetInParent(), newParameterScopeDepth, this.objectDepth, this.letDepth, newEnvironment);
 			return null;
 		}
 
 		@Override
 		@Nullable
 		public Void objectLiteral(ObjectLiteral objectLiteral) {
-			final HashMap<String,DefInfo> scope = new HashMap<>();
-			this.environment.push(scope);
-			final int scopeDepth = this.objectDepth;
-			this.objectDepth++;
+			final int newObjectDepth = this.objectDepth+1;
+			final TreeMap<String, DefInfo> newEnvironment = this.environment;
+			// Still debating whether to allow access to fields without using a field reference to self
+			//			for(final Field f : objectLiteral.getFields().values()) {
+			//				final int nameSourceOffset = this.exprSourceOffset + f.getOffsetInObject() + f.getKey().getOffsetInParent();
+			//				newEnvironment = def(f.getKey(), nameSourceOffset, fieldDefType(f), newObjectDepth, newEnvironment);
+			//			}
 			for(final Field f : objectLiteral.getFields().values()) {
-				def(f.getKey(), fieldDefType(f), scope, scopeDepth);
+				scan(f.getValue(), this.exprSourceOffset + f.getOffsetInObject() + f.getValue().getOffsetInParent(), this.parameterScopeDepth, newObjectDepth, this.letDepth, newEnvironment);
 			}
-			for(final Field f : objectLiteral.getFields().values()) {
-				scan(f.getValue());
-			}
-			this.objectDepth--;
-			if(this.environment.pop() != scope) throw new Error();
 			return null;
 		}
 
-		private DefType fieldDefType(Field f) {
-			final DefType defType = f.getValue().acceptVisitor(this.fieldDefTypeCalculator);
-			if(defType == null) throw new NullPointerException();
-			return defType;
-		}
+		//		private DefType fieldDefType(Field f) {
+		//			final DefType defType = f.getValue().acceptVisitor(ScanningExprVisitor.fieldDefTypeCalculator);
+		//			if(defType == null) throw new NullPointerException();
+		//			return defType;
+		//		}
 
 		@Override
 		@Nullable
 		public Void let(Let let) {
-			final HashMap<String,DefInfo> scope = new HashMap<>();
-			this.environment.push(scope);
-			def(let.getName(), letDefType(let), scope, this.letDepth);
-			scan(let.getValue());
-			if(this.environment.pop() != scope) throw new Error();
+			final int newLetDepth = this.letDepth+1;
+			final TreeMap<String, DefInfo> newEnvironment = def(let.getName(), this.exprSourceOffset+let.getName().getOffsetInParent(), letDefType(let), newLetDepth, this.environment);
+			scan(let.getValue(), this.exprSourceOffset + let.getValue().getOffsetInParent(), this.parameterScopeDepth, this.objectDepth, newLetDepth, newEnvironment);
 			return null;
 		}
 
@@ -231,7 +249,7 @@ public class DefRefScanner {
 		@Nullable
 		public Void listLiteral(ListLiteral listLiteral) {
 			for(final CoreExpr e : listLiteral.getElements()) {
-				scan(e);
+				scan(nonNull(e));
 			}
 			return null;
 		}
@@ -240,7 +258,7 @@ public class DefRefScanner {
 		@Nullable
 		public Void setLiteral(SetLiteral setLiteral) {
 			for(final CoreExpr e : setLiteral.getElements()) {
-				scan(e);
+				scan(nonNull(e));
 			}
 			return null;
 		}
@@ -296,14 +314,28 @@ public class DefRefScanner {
 			this.finder = (DefFinder) this.visitor;
 		}
 
+		public SearchingExprVisitor(int targetStartOffset,
+				DefRefVisitor visitor, int newParentExprOffset,
+				int newParameterScopeDepth, int newObjectDepth,
+				int newLetDepth, TreeMap<String, DefInfo> newEnvironment) {
+			super(visitor, newParentExprOffset, newParameterScopeDepth, newObjectDepth, newLetDepth, newEnvironment);
+			this.targetStartOffset = targetStartOffset;
+			this.finder = (DefFinder) this.visitor;
+		}
+
 		@Override
-		protected void scan(@Nullable CoreExpr e) {
-			if(e == null || this.finder.foundIt()) return;
-			final int sourceOffset = sourceOffset(e);
-			final int endOffset = sourceOffset + e.getSourceExpr().getSourceLength();
-			if(this.targetStartOffset >= sourceOffset && this.targetStartOffset < endOffset) {
-				super.scan(e);
+		protected void scan(CoreExpr e, int exprSourceOffset, int newParameterScopeDepth, int newObjectDepth, int newLetDepth, fj.data.TreeMap<String,DefInfo> newEnvironment) {
+			if(this.finder.foundIt()) return;
+			final int endOffset = exprSourceOffset + e.getSourceLength();
+			if(this.targetStartOffset >= exprSourceOffset && this.targetStartOffset < endOffset) {
+				super.scan(e, exprSourceOffset, newParameterScopeDepth, newObjectDepth, newLetDepth, newEnvironment);
 			}
+		}
+
+
+		@Override
+		ScanningExprVisitor descend(int newParentExprOffset, int newParameterScopeDepth, int newObjectDepth, int newLetDepth, fj.data.TreeMap<String,DefInfo> newEnvironment) {
+			return new SearchingExprVisitor(this.targetStartOffset, this.visitor, newParentExprOffset, newParameterScopeDepth, newObjectDepth, newLetDepth, newEnvironment);
 		}
 
 
@@ -387,11 +419,8 @@ public class DefRefScanner {
 
 	}
 
-	public static @Nullable DefInfo findDef(CoreExpr root, Key target) {
-		final Option<Integer> offset = root.getSourceExpr().offsetToChild(target.getSourceExpr());
-		if(offset.isNone())
-			return null; // Not found ... not even in that AST!
-		final SearchingExprVisitor searcher = new SearchingExprVisitor(offset.some());
+	public static @Nullable DefInfo findDef(CoreExpr root, int offset) {
+		final SearchingExprVisitor searcher = new SearchingExprVisitor(offset);
 		root.acceptVisitor(searcher);
 		return searcher.getResult();
 	}

@@ -65,7 +65,7 @@ public class BanjoScanner {
 				final int badCp = in.read();
 				if(badCp == -1) {
 					this.eof = true;
-					return visitor.visitEof(in.getFileRange(FilePos.START));
+					return visitor.eof(in.getFileRange(FilePos.START));
 				} else {
 					this.problems.add(new SyntaxError("Invalid character "+badCp, in.getFileRange(this.tokenStartPos)));
 				}
@@ -228,7 +228,7 @@ public class BanjoScanner {
 				}
 
 				final Comment comment = new Comment(in.getLength(this.tokenStartPos), in.readStringFrom(this.tokenStartPos));
-				return new Container<T>(visitor.visitComment(in.getFileRange(this.tokenStartPos), comment));
+				return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), comment));
 			} else {
 				in.unread(); // Push back the non-whitespace character we found
 				return null;
@@ -245,7 +245,7 @@ public class BanjoScanner {
 		in.unread(); // Push back the non-whitespace character we found
 		if(!foundWhitespace)
 			return null; // No whitespace found
-		return new Container<T>(visitor.visitWhitespace(in.getFileRange(this.tokenStartPos), new Whitespace(in.getLength(this.tokenStartPos), in.readStringFrom(this.tokenStartPos))));
+		return new Container<T>(visitor.whitespace(in.getFileRange(this.tokenStartPos), new Whitespace(in.getLength(this.tokenStartPos), in.readStringFrom(this.tokenStartPos))));
 	}
 
 	/**
@@ -367,7 +367,7 @@ public class BanjoScanner {
 		}
 		if(cp == -1) this.problems.add(new PrematureEndOfFile("End of file in string literal", in.getFileRange(this.tokenStartPos)));
 		final StringLiteral stringLiteral = new StringLiteral(in.getLength(this.tokenStartPos), nonNull(this.buf.toString()));
-		return new Container<T>(visitor.visitStringLiteral(in.getFileRange(this.tokenStartPos), stringLiteral));
+		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), stringLiteral));
 	}
 
 	private @Nullable <T> Container<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
@@ -377,7 +377,7 @@ public class BanjoScanner {
 			this.problems.add(new EmptyBacktick(in.getFileRange(this.tokenStartPos)));
 			str = "";
 		}
-		return new Container<T>(visitor.visitStringLiteral(in.getFileRange(this.tokenStartPos), new StringLiteral(in.getLength(this.tokenStartPos), str)));
+		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), new StringLiteral(in.getLength(this.tokenStartPos), str)));
 	}
 
 	private void hexEscape(ParserReader in, StringBuffer buf, final int digitCount) throws IOException {
@@ -552,7 +552,7 @@ public class BanjoScanner {
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
 		final NumberLiteral result = new NumberLiteral(in.getLength(this.tokenStartPos), text, number);
-		return new Container<T>(visitor.visitNumberLiteral(in.getFileRange(this.tokenStartPos), result));
+		return new Container<T>(visitor.numberLiteral(in.getFileRange(this.tokenStartPos), result));
 	}
 
 	/**
@@ -566,7 +566,7 @@ public class BanjoScanner {
 		final String identifier = matchID(in);
 		if(identifier == null)
 			return null;
-		return new Container<T>(visitor.visitIdentifier(in.getFileRange(this.tokenStartPos), new Identifier(in.getLength(this.tokenStartPos), identifier)));
+		return new Container<T>(visitor.identifier(in.getFileRange(this.tokenStartPos), new Identifier(in.getLength(this.tokenStartPos), identifier)));
 	}
 
 	/**
@@ -580,7 +580,7 @@ public class BanjoScanner {
 		final String operator = matchOperator(in);
 		if(operator == null)
 			return null;
-		return new Container<T>(visitor.visitOperator(in.getFileRange(this.tokenStartPos), new OperatorRef(in.getLength(this.tokenStartPos), operator)));
+		return new Container<T>(visitor.operator(in.getFileRange(this.tokenStartPos), new OperatorRef(in.getLength(this.tokenStartPos), operator)));
 	}
 
 	/**
@@ -591,11 +591,11 @@ public class BanjoScanner {
 	private @Nullable <T> Container<T> ellipsis(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		if(in.checkNextChar('.')) {
 			if(in.read() == '.' && in.read() == '.') {
-				return new Container<T>(visitor.visitEllipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(3)));
+				return new Container<T>(visitor.ellipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(3)));
 			}
 			in.seek(this.tokenStartPos);
 		} else if(in.checkNextChar(ELLIPSIS)) {
-			return new Container<T>(visitor.visitEllipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(1)));
+			return new Container<T>(visitor.ellipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(1)));
 		}
 		return null;
 	}

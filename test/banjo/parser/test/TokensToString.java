@@ -34,7 +34,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String visitWhitespace(@NonNull FileRange range, @NonNull Whitespace tok) {
+	public String whitespace(@NonNull FileRange range, @NonNull Whitespace tok) {
 		return token("ws", range);
 	}
 
@@ -45,12 +45,12 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String visitComment(@NonNull FileRange range, @NonNull Comment tok) {
+	public String comment(@NonNull FileRange range, @NonNull Comment tok) {
 		return token("com", range);
 	}
 
 	@Override
-	public String visitEof(@NonNull FileRange entireFileRange) {
+	public String eof(@NonNull FileRange entireFileRange) {
 		this.done = true;
 		assertEquals(0, entireFileRange.getStartOffset());
 		assertEquals(1, entireFileRange.getStartLine());
@@ -61,28 +61,28 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String visitOperator(@NonNull FileRange range, @NonNull OperatorRef tok) {
+	public String operator(@NonNull FileRange range, @NonNull OperatorRef tok) {
 		return token("op", range);
 	}
 
 	@Override
-	public String visitStringLiteral(@NonNull FileRange range, @NonNull StringLiteral tok) {
+	public String stringLiteral(@NonNull FileRange range, @NonNull StringLiteral tok) {
 		return token("str", range);
 	}
 
 	@Override
-	public String visitNumberLiteral(@NonNull FileRange range, @NonNull NumberLiteral tok) {
+	public String numberLiteral(@NonNull FileRange range, @NonNull NumberLiteral tok) {
 		return token("num", range);
 	}
 
 	@Override
-	public String visitIdentifier(@NonNull FileRange range, @NonNull Identifier tok) {
+	public String identifier(@NonNull FileRange range, @NonNull Identifier tok) {
 		return token("id", range);
 	}
 
 	@Override
 	@Nullable
-	public String visitEllipsis(@NonNull FileRange range, @NonNull Ellipsis ellipsis) {
+	public String ellipsis(@NonNull FileRange range, @NonNull Ellipsis ellipsis) {
 		return token("...", range);
 	}
 

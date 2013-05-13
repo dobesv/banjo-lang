@@ -10,7 +10,6 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.UnitRef;
 import banjo.dom.token.Whitespace;
 import banjo.parser.util.FileRange;
 
@@ -28,54 +27,49 @@ public final class DefRefTokenAnnotator<T> implements TokenVisitor<T> {
 	}
 
 	@Override
-	public @Nullable T visitStringLiteral(FileRange range, StringLiteral stringLiteral) {
-		return this.visitor.visitStringLiteral(range, stringLiteral);
+	public @Nullable T stringLiteral(FileRange range, StringLiteral stringLiteral) {
+		return this.visitor.stringLiteral(range, stringLiteral);
 	}
 
 	@Override
-	public @Nullable T visitWhitespace(FileRange range, Whitespace ws) {
-		return this.visitor.visitWhitespace(range, ws);
+	public @Nullable T whitespace(FileRange range, Whitespace ws) {
+		return this.visitor.whitespace(range, ws);
 	}
 
 	@Override
-	public @Nullable T visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
-		return this.visitor.visitNumberLiteral(range, numberLiteral);
+	public @Nullable T numberLiteral(FileRange range, NumberLiteral numberLiteral) {
+		return this.visitor.numberLiteral(range, numberLiteral);
 	}
 
 	@Override
-	public @Nullable T visitComment(FileRange range, Comment c) {
-		return this.visitor.visitComment(range, c);
+	public @Nullable T comment(FileRange range, Comment c) {
+		return this.visitor.comment(range, c);
 	}
 
 	@Override
-	public @Nullable T visitEllipsis(FileRange range, Ellipsis ellipsis) {
-		return this.visitor.visitEllipsis(range, ellipsis);
+	public @Nullable T ellipsis(FileRange range, Ellipsis ellipsis) {
+		return this.visitor.ellipsis(range, ellipsis);
 	}
 
 	@Override
-	public @Nullable T visitEof(FileRange entireFileRange) {
+	public @Nullable T eof(FileRange entireFileRange) {
 		this.eof = true;
-		return this.visitor.visitEof(entireFileRange);
+		return this.visitor.eof(entireFileRange);
 	}
 
 	@Override
-	public @Nullable T visitUnit(FileRange range, UnitRef unit) {
-		return this.visitor.visitUnit(range, unit);
-	}
-
-	@Override
-	public @Nullable T visitIdentifier(FileRange range, Identifier identifier) {
-		final DefInfo def = DefRefScanner.findDef(this.rootExpr, identifier);
+	public @Nullable T identifier(FileRange range, Identifier identifier) {
+		final DefInfo def = DefRefScanner.findDef(this.rootExpr, range.getStartOffset());
 		if(def == null)
-			return this.visitor.visitIdentifier(range, identifier);
+			return this.visitor.identifier(range, identifier);
 		if(def.getSourceOffset() == range.getStartOffset())
 			return visitIdentifierDef(range, identifier, def);
 		return visitIdentifierRef(range, identifier, def);
 	}
 
 	@Override
-	public @Nullable T visitOperator(FileRange range, OperatorRef operatorRef) {
-		return this.visitor.visitOperator(range, operatorRef);
+	public @Nullable T operator(FileRange range, OperatorRef operatorRef) {
+		return this.visitor.operator(range, operatorRef);
 	}
 
 	public @Nullable T visitIdentifierDef(FileRange range, Identifier identifier, DefInfo def) {

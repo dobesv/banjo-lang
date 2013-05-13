@@ -33,18 +33,18 @@ public class FunArg extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append(this.name);
-		if(hasContract()) {
+		if(hasAssertion()) {
 			sb.append(": ");
 			nonNull(this.assertion).toSource(sb, Precedence.COLON);
 		}
 	}
-	public boolean hasContract() {
+	public boolean hasAssertion() {
 		return !NO_ASSERTION.equals(this.assertion);
 	}
 
 	@Override
 	public Precedence getPrecedence() {
-		if(hasContract())
+		if(hasAssertion())
 			return Precedence.ASSIGNMENT;
 		else
 			return Precedence.ATOM;

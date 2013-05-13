@@ -44,50 +44,50 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 		return this.parser.reachedEof();
 	}
 	@Override
-	public @Nullable SourceExpr visitStringLiteral(FileRange range, StringLiteral token) {
+	public @Nullable SourceExpr stringLiteral(FileRange range, StringLiteral token) {
 		this.tokens.add(token);
-		this.parser.visitStringLiteral(range, token);
+		this.parser.stringLiteral(range, token);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitNumberLiteral(FileRange range, NumberLiteral numberLiteral) {
+	public @Nullable SourceExpr numberLiteral(FileRange range, NumberLiteral numberLiteral) {
 		this.tokens.add(numberLiteral);
-		this.parser.visitNumberLiteral(range, numberLiteral);
+		this.parser.numberLiteral(range, numberLiteral);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitIdentifier(FileRange range, Identifier simpleName) {
+	public @Nullable SourceExpr identifier(FileRange range, Identifier simpleName) {
 		this.tokens.add(simpleName);
-		this.parser.visitIdentifier(range, simpleName);
+		this.parser.identifier(range, simpleName);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitEllipsis(FileRange range, Ellipsis ellipsis) {
+	public @Nullable SourceExpr ellipsis(FileRange range, Ellipsis ellipsis) {
 		this.tokens.add(ellipsis);
-		this.parser.visitEllipsis(range, ellipsis);
+		this.parser.ellipsis(range, ellipsis);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitOperator(FileRange range, OperatorRef opRef) {
+	public @Nullable SourceExpr operator(FileRange range, OperatorRef opRef) {
 		this.tokens.add(opRef);
-		this.parser.visitOperator(range, opRef);
+		this.parser.operator(range, opRef);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitWhitespace(FileRange range, Whitespace ws) {
+	public @Nullable SourceExpr whitespace(FileRange range, Whitespace ws) {
 		this.tokens.add(ws);
-		this.parser.visitWhitespace(range, ws);
+		this.parser.whitespace(range, ws);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitComment(FileRange range, Comment c) {
+	public @Nullable SourceExpr comment(FileRange range, Comment c) {
 		this.tokens.add(c);
-		this.parser.visitComment(range, c);
+		this.parser.comment(range, c);
 		return null;
 	}
 	@Override
-	public @Nullable SourceExpr visitEof(FileRange entireFileRange) {
-		return nonNull(this.parser.visitEof(entireFileRange)).dumpProblems(this.problems);
+	public @Nullable SourceExpr eof(FileRange entireFileRange) {
+		return nonNull(this.parser.eof(entireFileRange)).dumpProblems(this.problems);
 	}
 
 }

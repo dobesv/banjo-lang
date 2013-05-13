@@ -34,7 +34,16 @@ public class Problem extends java.text.ParseException {
 	public int getSourceLength() {
 		return this.sourceLength;
 	}
+	public int getEndOffset() {
+		return getSourceOffset() + getSourceLength();
+	}
 
+	public boolean isWarning() {
+		return false;
+	}
+	public boolean isInternalCompilerError() {
+		return false;
+	}
 	public static List<Problem> one(Problem problem) {
 		return nonNull(Collections.singletonList(problem));
 	}
