@@ -3,6 +3,7 @@ package banjo.analysis.test;
 import static org.junit.Assert.assertEquals;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.analysis.DefInfo;
@@ -15,10 +16,10 @@ import banjo.dom.token.Key;
 
 public class TestDefRefScanner {
 
-	@Test public void testValue() { test("x = y ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.LOCAL_VALUE, "x")); }
-	@Test public void testSetValue() { test("x = {y,z} ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.LOCAL_VALUE, "x")); }
+	@Test public void testValue() { test("x = y ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.FREE, "y"), ref(DefType.LOCAL_VALUE, "x")); }
+	@Test public void testSetValue() { test("x = {y,z} ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.FREE, "y"), ref(DefType.FREE, "z"), ref(DefType.LOCAL_VALUE, "x")); }
 	@Test public void testObjValue() { test("x = {y:v1,z:v2} ; x",
-			def(DefType.LOCAL_VALUE, "x"), /*def(DefType.SELF_FIELD, "y"), def(DefType.SELF_FIELD, "z"),*/ ref(DefType.LOCAL_VALUE, "x")); }
+			def(DefType.LOCAL_VALUE, "x"), def(DefType.SELF_FIELD, "y"), def(DefType.SELF_FIELD, "z"), ref(DefType.FREE, "v1"), ref(DefType.FREE, "v2"), ref(DefType.LOCAL_VALUE, "x")); }
 	@Test public void testFunc() { test("x() = 1 ; x",
 			def(DefType.LOCAL_FUNCTION, "x"), ref(DefType.LOCAL_FUNCTION, "x")); }
 	@Test public void testFuncs() { test("x() = 1 ; id(z) = z ; id(x())",
@@ -28,9 +29,10 @@ public class TestDefRefScanner {
 	@Test public void testConst() { test("x = 1 ; x", def(DefType.LOCAL_CONST, "x"), ref(DefType.LOCAL_CONST, "x")); }
 	@Test public void testConstSet() { test("a = {1,2,3}", def(DefType.LOCAL_CONST, "a")); }
 	@Test public void testConstObj() { test("a = {a:1,b:[2],c:\"3\"}",
-			def(DefType.LOCAL_CONST, "a")/*, def(DefType.SELF_CONST, "a"), def(DefType.SELF_CONST, "b"), def(DefType.SELF_CONST, "c")*/); }
+			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_CONST, "a"), def(DefType.SELF_CONST, "b"), def(DefType.SELF_CONST, "c")); }
 
 
+	@Ignore // TODO Fix or remove this annotated token scanner thing
 	@Test public void testTokens1() { testTokens("a = 1 ; a",
 			def(DefType.LOCAL_CONST, "a"),
 			"ws","op","ws","num","ws","op","ws",
@@ -61,6 +63,7 @@ public class TestDefRefScanner {
 		scan(source, new DefRefVisitor() {
 			@Override
 			public void visitRef(@NonNull DefInfo def, int sourceOffset, @NonNull Key key) {
+				if(key.getSourceLength() == 0) return;
 				if(buf.length() > 0) buf.append(",");
 				buf.append("ref ");
 				buf.append(def.getType().name());
@@ -74,6 +77,10 @@ public class TestDefRefScanner {
 				buf.append(def.getType().name());
 				buf.append(' ');
 				buf.append(def.getNameToken().getKeyString());
+			}
+			@Override
+			public void visitUnresolved(int sourceOffset, @NonNull Key key) {
+				visitRef(DefInfo.FREE_VAR, sourceOffset, key);
 			}
 		});
 		assertEquals(joinWithCommas(events), buf.toString());

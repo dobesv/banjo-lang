@@ -1,8 +1,10 @@
 package banjo.analysis;
 
+import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 
 public class DefInfo {
+	public static final DefInfo FREE_VAR = new DefInfo(new Identifier(""), 0, DefType.FREE, 0);
 	private final Key nameToken;
 	private final int sourceOffset;
 	private final DefType type;

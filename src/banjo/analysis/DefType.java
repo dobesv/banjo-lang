@@ -14,9 +14,11 @@ public enum DefType {
 	/** A field in an object is labeled as a "field" when referred to using dot notation */
 	FIELD,
 	/** A field referred to directly by name (not using a dot) */
-	SELF_FIELD, 
+	SELF_FIELD,
 	/** A field referred to directly by name (not using a dot) and is a function literal */
-	SELF_CONST, 
+	SELF_CONST,
 	/** A field referred to directly by name (not using a dot) and is a function literal */
-	SELF_METHOD;
+	SELF_METHOD,
+	/** A reference with no matching definition */
+	FREE;
 }

@@ -95,6 +95,8 @@ public class DefRefScanner {
 			final Option<DefInfo> binding = this.environment.get(key.getKeyString());
 			if(binding.isSome()) {
 				this.visitor.visitRef(nonNull(binding.some()), this.exprSourceOffset, key);
+			} else {
+				this.visitor.visitUnresolved(this.exprSourceOffset, key);
 			}
 			return null;
 		}
@@ -218,23 +220,23 @@ public class DefRefScanner {
 		@Nullable
 		public Void objectLiteral(ObjectLiteral objectLiteral) {
 			final int newObjectDepth = this.objectDepth+1;
-			final TreeMap<String, DefInfo> newEnvironment = this.environment;
+			TreeMap<String, DefInfo> newEnvironment = this.environment;
 			// Still debating whether to allow access to fields without using a field reference to self
-			//			for(final Field f : objectLiteral.getFields().values()) {
-			//				final int nameSourceOffset = this.exprSourceOffset + f.getOffsetInObject() + f.getKey().getOffsetInParent();
-			//				newEnvironment = def(f.getKey(), nameSourceOffset, fieldDefType(f), newObjectDepth, newEnvironment);
-			//			}
+			for(final Field f : objectLiteral.getFields().values()) {
+				final int nameSourceOffset = this.exprSourceOffset + f.getOffsetInObject() + f.getKey().getOffsetInParent();
+				newEnvironment = def(f.getKey(), nameSourceOffset, fieldDefType(f), newObjectDepth, newEnvironment);
+			}
 			for(final Field f : objectLiteral.getFields().values()) {
 				scan(f.getValue(), this.exprSourceOffset + f.getOffsetInObject() + f.getValue().getOffsetInParent(), this.parameterScopeDepth, newObjectDepth, this.letDepth, newEnvironment);
 			}
 			return null;
 		}
 
-		//		private DefType fieldDefType(Field f) {
-		//			final DefType defType = f.getValue().acceptVisitor(ScanningExprVisitor.fieldDefTypeCalculator);
-		//			if(defType == null) throw new NullPointerException();
-		//			return defType;
-		//		}
+		private DefType fieldDefType(Field f) {
+			final DefType defType = f.getValue().acceptVisitor(ScanningExprVisitor.fieldDefTypeCalculator);
+			if(defType == null) throw new NullPointerException();
+			return defType;
+		}
 
 		@Override
 		@Nullable
@@ -291,6 +293,11 @@ public class DefRefScanner {
 				this.result = def;
 		}
 
+		@Override
+		public void visitUnresolved(int sourceOffset, Key key) {
+			if(sourceOffset == this.targetStartOffset)
+				this.result = DefInfo.FREE_VAR;
+		}
 		public boolean foundIt() {
 			return this.result != null;
 		}
@@ -433,13 +440,18 @@ public class DefRefScanner {
 			@Override
 			public void visitRef(DefInfo def, int sourceOffset, Key key) {
 				refs.put(sourceOffset, def);
-				unusedDefs.add(sourceOffset);
+				unusedDefs.remove(sourceOffset);
 			}
 
 			@Override
 			public void visitDef(DefInfo def) {
 				defs.put(def.getSourceOffset(), def);
 				unusedDefs.add(def.getSourceOffset());
+			}
+
+			@Override
+			public void visitUnresolved(int sourceOffset, Key key) {
+				refs.put(sourceOffset, DefInfo.FREE_VAR);
 			}
 		});
 	}
