@@ -14,11 +14,11 @@ import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.core.ExprList;
-import banjo.dom.core.Field;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
+import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.core.Projection;
 import banjo.dom.core.SetLiteral;
@@ -203,8 +203,6 @@ public class DefRefScanner {
 				final int argNameSourceOffset = this.exprSourceOffset + arg.getOffsetInParent() + arg.getName().getOffsetInParent();
 				newEnvironment = def(arg.getName(), argNameSourceOffset, DefType.PARAMETER, newParameterScopeDepth, newEnvironment);
 			}
-			final Key selfName = functionLiteral.getSelfName();
-			newEnvironment = def(selfName, selfName.getOffsetInParent(), DefType.SELF, newParameterScopeDepth, newEnvironment);
 
 			final CoreExpr guarantee = functionLiteral.getGuarantee();
 			scan(guarantee, this.exprSourceOffset + guarantee.getOffsetInParent(), newParameterScopeDepth, this.objectDepth, this.letDepth, newEnvironment);
@@ -222,18 +220,18 @@ public class DefRefScanner {
 			final int newObjectDepth = this.objectDepth+1;
 			TreeMap<String, DefInfo> newEnvironment = this.environment;
 			// Still debating whether to allow access to fields without using a field reference to self
-			for(final Field f : objectLiteral.getFields().values()) {
+			for(final Method f : objectLiteral.getFields().values()) {
 				final int nameSourceOffset = this.exprSourceOffset + f.getOffsetInObject() + f.getKey().getOffsetInParent();
 				newEnvironment = def(f.getKey(), nameSourceOffset, fieldDefType(f), newObjectDepth, newEnvironment);
 			}
-			for(final Field f : objectLiteral.getFields().values()) {
-				scan(f.getValue(), this.exprSourceOffset + f.getOffsetInObject() + f.getValue().getOffsetInParent(), this.parameterScopeDepth, newObjectDepth, this.letDepth, newEnvironment);
+			for(final Method f : objectLiteral.getFields().values()) {
+				scan(f.getImplementation(), this.exprSourceOffset + f.getOffsetInObject() + f.getImplementation().getOffsetInParent(), this.parameterScopeDepth, newObjectDepth, this.letDepth, newEnvironment);
 			}
 			return null;
 		}
 
-		private DefType fieldDefType(Field f) {
-			final DefType defType = f.getValue().acceptVisitor(ScanningExprVisitor.fieldDefTypeCalculator);
+		private DefType fieldDefType(Method f) {
+			final DefType defType = f.getImplementation().acceptVisitor(ScanningExprVisitor.fieldDefTypeCalculator);
 			if(defType == null) throw new NullPointerException();
 			return defType;
 		}
@@ -390,8 +388,8 @@ public class DefRefScanner {
 
 		@Override
 		public DefType objectLiteral(ObjectLiteral objectLiteral) {
-			for(final Field f : objectLiteral.getFields().values()) {
-				final DefType fieldDefType = f.getValue().acceptVisitor(this);
+			for(final Method f : objectLiteral.getFields().values()) {
+				final DefType fieldDefType = f.getImplementation().acceptVisitor(this);
 				if(fieldDefType == this.valueType) {
 					return this.valueType;
 				}

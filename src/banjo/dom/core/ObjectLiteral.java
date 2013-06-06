@@ -18,40 +18,36 @@ import banjo.parser.BanjoScanner;
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
-	private final Map<String, Field> fields;
+	private final Map<String, Method> fields;
 
-	public ObjectLiteral(SourceExpr sourceExpr, Map<String, Field> fields) {
+	public ObjectLiteral(SourceExpr sourceExpr, Map<String, Method> fields) {
 		this(sourceExpr.getSourceLength(), fields);
 	}
 
-	public ObjectLiteral(int sourceLength, Map<String, Field> fields) {
+	public ObjectLiteral(int sourceLength, Map<String, Method> fields) {
 		super(sourceLength, fields.hashCode());
 		this.fields = nonNull(Collections.unmodifiableMap(fields));
 	}
 
 	@SafeVarargs
-	public ObjectLiteral(SourceExpr sourceExpr, Field ... fields) {
+	public ObjectLiteral(SourceExpr sourceExpr, Method ... fields) {
 		this(sourceExpr, makeFieldMap(nonNull(Arrays.asList(fields))));
 	}
 
-	private static Map<String, Field> makeFieldMap(List<Field> fields) {
-		final LinkedHashMap<String,Field> fieldMap = new LinkedHashMap<>(fields.size());
-		for(final Field f : fields) {
+	private static Map<String, Method> makeFieldMap(List<Method> fields) {
+		final LinkedHashMap<String,Method> fieldMap = new LinkedHashMap<>(fields.size());
+		for(final Method f : fields) {
 			fieldMap.put(f.getKey().getKeyString(), f);
 		}
 		return fieldMap;
 	}
 
-	public Map<String, Field> getFields() {
+	public Map<String, Method> getFields() {
 		return this.fields;
 	}
 
-	public @Nullable Field getField(String name) {
+	public @Nullable Method getField(String name) {
 		return this.fields.get(name);
-	}
-
-	public CoreExpr getFieldValue(String name) {
-		return this.fields.get(name).getValue();
 	}
 
 	@Override
@@ -63,7 +59,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public void toSource(StringBuffer sb) {
 		sb.append('{');
 		boolean first = true;
-		for(final Field f : this.fields.values()) {
+		for(final Method f : this.fields.values()) {
 			if(first) first = false;
 			else sb.append(", ");
 			f.toSource(sb);

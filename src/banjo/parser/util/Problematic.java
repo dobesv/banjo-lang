@@ -32,7 +32,7 @@ public class Problematic<T> {
 	public T getValue() {
 		return this.value;
 	}
-	public Problematic<T> plusProblemsFrom(Problematic<T> p) {
+	public Problematic<T> plusProblemsFrom(Problematic<?> p) {
 		return withProblems(p.getProblems());
 	}
 	public Problematic<T> withProblems(List<Problem> problems) {

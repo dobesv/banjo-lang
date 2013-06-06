@@ -3,6 +3,7 @@ package banjo.desugar;
 import static banjo.parser.util.Check.nonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -14,10 +15,8 @@ import java.util.Map;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.desugar.errors.ExpectedConditional;
 import banjo.desugar.errors.ExpectedField;
 import banjo.desugar.errors.ExtraTableColumn;
-import banjo.desugar.errors.MissingElseClauseInConditional;
 import banjo.desugar.errors.MissingValueForTableColumn;
 import banjo.desugar.errors.UnexpectedEllipsis;
 import banjo.dom.core.BadExpr;
@@ -25,11 +24,11 @@ import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.ExprList;
-import banjo.dom.core.Field;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
+import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.core.OffsetCoreExpr;
 import banjo.dom.core.Projection;
@@ -102,8 +101,10 @@ public class BanjoDesugarer {
 		final SourceExpr rightSourceExpr = op.getRight();
 		final Problematic<CoreExpr> left = expr(leftSourceExpr, sourceOffset);
 		final Problematic<CoreExpr> right = expr(rightSourceExpr, sourceOffset);
-		final Field shortCircuit = new Field(op, 0, new Identifier(isAnd?"false":"true"), new FunctionLiteral(op, new FunArg(op, new Identifier("x")), new Identifier("x")));
-		final Field rightField = new Field(op, 0, new Identifier(isAnd?"true":"false"), new FunctionLiteral(op, new FunArg(op, new Identifier("_")), off(rightSourceExpr, right)));
+		@SuppressWarnings("null")
+		final Method shortCircuit = new Method(op.getSourceLength(), 0, new Identifier(isAnd?"false":"true"), new FunctionLiteral(op.getSourceLength(), Arrays.asList(new FunArg(0, Method.DEFAULT_SELF_NAME), new FunArg(0, new Identifier("x"))), FunctionLiteral.DEFAULT_GUARANTEE, new Identifier("x")), false);
+		@SuppressWarnings("null")
+		final Method rightField = new Method(op.getSourceLength(), 0, new Identifier(isAnd?"true":"false"), new FunctionLiteral(op.getSourceLength(), Arrays.asList(new FunArg(0, Method.DEFAULT_SELF_NAME), new FunArg(0, new Identifier("_"))), FunctionLiteral.DEFAULT_GUARANTEE, off(rightSourceExpr, right)), false);
 		final CoreExpr arg = new ObjectLiteral(op, rightField, shortCircuit);
 		final CoreExpr method = new Projection(op, off(leftSourceExpr, left), new Identifier("if"));
 		return result(new Call(op, method, arg), ListUtil.concat(left.getProblems(), right.getProblems()));
@@ -174,7 +175,7 @@ public class BanjoDesugarer {
 	private Problematic<CoreExpr> optionProjection(BinaryOp op, int sourceOffset) {
 		final Key argName = gensym();
 		final Problematic<CoreExpr> projection = projection(op, sourceOffset, argName, sourceOffset, op.getRight(), sourceOffset + op.getRight().getOffsetInParent());
-		final CoreExpr projectFunc = new FunctionLiteral(op, new FunArg(op, argName), projection.getValue());
+		final CoreExpr projectFunc = new FunctionLiteral(op, new FunArg(op.getSourceLength(), argName), projection.getValue());
 		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
 		final CoreExpr mapCall = new Call(op, new Projection(op, off(op.getLeft(), left), new Identifier("map")), projectFunc);
 		return result(mapCall, projection.getProblems());
@@ -185,7 +186,7 @@ public class BanjoDesugarer {
 	 * a value it returns that value, otherwise it returns the right-hand value.  The
 	 * right-hand side is only evaluated if the option value is not present.
 	 * 
-	 * <pre>x ?: y == x.orElse(-> y)</pre>
+	 * <pre>x ?: y == x.orElse({value:y})</pre>
 	 */
 	private Problematic<CoreExpr> orElse(BinaryOp op, int sourceOffset) {
 		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
@@ -193,7 +194,7 @@ public class BanjoDesugarer {
 		final Projection fieldRef = new Projection(op, off(op.getLeft(), left), new Identifier("valueOrElse"));
 		final FunctionLiteral fun = new FunctionLiteral(off(op.getRight(), right));
 		final List<Problem> problems = ListUtil.concat(left.getProblems(), right.getProblems());
-		return result(new Call(op, fieldRef, fun), problems);
+		return result(new Call(op, fieldRef, fun), problems).plusProblemsFrom(left).plusProblemsFrom(right);
 	}
 
 	private static Key off(int offset, Key key) {
@@ -358,8 +359,7 @@ public class BanjoDesugarer {
 							sourceExpr, sourceOffset,
 							args, argsSourceOffset,
 							guarantee, guaranteeSourceOffset,
-							right, rightSourceOffset,
-							FunctionLiteral.DEFAULT_SELF_NAME, sourceOffset);
+							right, rightSourceOffset);
 					final int newRightSourceOffset = sourceOffset;
 					final SourceExpr newLeft = targetBOp.getLeft();
 					final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
@@ -389,8 +389,18 @@ public class BanjoDesugarer {
 	}
 
 	/**
-	 * Requires Boolean true to have a method <code>true.if(x): x.true(true)</code> and false
-	 * to have <code>false.if(x): x.false(false)</code>
+	 * For a conditional each "=>" binary operator can yield an Option-like value.  Conditions are
+	 * chained using implicit right-associative "?:" between them ("or else")
+	 * 
+	 * a => b
+	 * means
+	 * a."=>"(-> b)
+	 * means
+	 * a.if(true:some(b) false:none)
+	 * 
+	 * a => b ; c => d ; e
+	 * means
+	 * a => b ?: c => d ?: e
 	 * 
 	 * @param args List of cond expressions, each with offsetInParent relative to the given sourceOffset
 	 */
@@ -398,61 +408,18 @@ public class BanjoDesugarer {
 		if(exprs.isEmpty()) throw new IllegalStateException();
 
 		final LinkedList<Problem> problems = new LinkedList<>();
-		final Iterator<SourceExpr> it = exprs.descendingIterator();
 
-		CoreExpr result;
-		int resultSourceOffset;
-		if(exprs.size() == 1) {
-			final MissingElseClauseInConditional problem = new MissingElseClauseInConditional(sourceOffset, op.getSourceLength());
-			problems.add(problem);
-			result = new BadExpr(op, problem);
-			resultSourceOffset = sourceOffset;
-		} else {
-			final SourceExpr lastSourceExpr = nonNull(it.next());
-			resultSourceOffset = sourceOffset + lastSourceExpr.getOffsetInParent();
-			result = expr(lastSourceExpr, resultSourceOffset).dumpProblems(problems);
+		final LinkedList<CoreExpr> coreExprs = new LinkedList<>();
+		for(final SourceExpr se : exprs) {
+			coreExprs.add(off(se.getOffsetInParent(), expr(se, sourceOffset + se.getOffsetInParent()).dumpProblems(problems)));
 		}
+
+		// Now insert ?: between each
+		final Iterator<CoreExpr> it = coreExprs.descendingIterator();
+		CoreExpr result = nonNull(it.next());
 		while(it.hasNext()) {
-			final SourceExpr e = nonNull(it.next());
-			final int eSourceOffset = sourceOffset = e.getOffsetInParent();
-			final int tempResultSourceOffset = resultSourceOffset;
-			final CoreExpr tempResult = nonNull(result);
-			resultSourceOffset = eSourceOffset;
-			result = nonNull(e.acceptVisitor(new BaseSourceExprVisitor<CoreExpr>() {
-				@Override
-				public CoreExpr binaryOp(BinaryOp condOp) {
-					switch(condOp.getOperator()) {
-					case COND: return cond(
-							condOp.getLeft(), eSourceOffset + condOp.getLeft().getOffsetInParent(),
-							condOp.getRight(), eSourceOffset + condOp.getRight().getOffsetInParent());
-					default: return fallback(condOp);
-					}
-				}
-
-				private CoreExpr cond(
-						SourceExpr conditionExpr, int conditionSourceOffset,
-						SourceExpr thenSourceExpr, int thenSourceOffset) {
-
-					final CoreExpr condition = expr(conditionExpr, conditionSourceOffset).dumpProblems(problems);
-					final Key argName = new Identifier("_");
-					final CoreExpr thenCoreExpr = expr(thenSourceExpr, thenSourceOffset).dumpProblems(problems);
-
-					// true(_): <rhs>
-					final Field trueField = new Field(e, 0, new Identifier("true"), new FunctionLiteral(e, new FunArg(e, argName), off(thenSourceOffset - eSourceOffset, thenCoreExpr)));
-					// false(_): <other clauses>
-					final Field falseField = new Field(e, 0, new Identifier("false"), new FunctionLiteral(e, new FunArg(e, argName), off(tempResultSourceOffset - eSourceOffset, tempResult)));
-					final CoreExpr arg = new ObjectLiteral(e, trueField, falseField);
-					final CoreExpr ifMethod = new Projection(e, off(conditionSourceOffset - eSourceOffset, condition), new Identifier("if"));
-					return new Call(e, ifMethod, arg);
-				}
-
-				@Override
-				public CoreExpr fallback(SourceExpr other) {
-					final Problem problem = new ExpectedConditional(eSourceOffset, e.getSourceLength());
-					problems.add(problem);
-					return new BadExpr(other, problem);
-				}
-			}));
+			final CoreExpr cond = nonNull(it.next());
+			result = new Call(0, new Projection(0, cond, new Identifier(Operator.OR_ELSE.getOp())), nonNull(Collections.singletonList(result)));
 		}
 		return result(result, problems);
 	}
@@ -538,7 +505,7 @@ public class BanjoDesugarer {
 
 	private Problematic<CoreExpr> objectLiteral(SourceExpr sourceExpr, final int sourceOffset, Collection<SourceExpr> fieldSourceExprs) {
 		// Key/value pair - treat as an object
-		final LinkedHashMap<String, Field> fields = new LinkedHashMap<>(fieldSourceExprs.size()*2);
+		final LinkedHashMap<String, Method> fields = new LinkedHashMap<>(fieldSourceExprs.size()*2);
 		final ArrayList<SourceExpr> headings = new ArrayList<>();
 		final List<Problem> problems = new ArrayList<>();
 		for(final SourceExpr fieldSourceExpr : fieldSourceExprs) {
@@ -552,7 +519,7 @@ public class BanjoDesugarer {
 	protected void addField(final int objectSourceOffset,
 			final SourceExpr fieldSourceExpr, final int fieldSourceOffset,
 			final ArrayList<SourceExpr> headings,
-			final LinkedHashMap<String, Field> fields,
+			final LinkedHashMap<String, Method> fields,
 			final List<Problem> problems) {
 		fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
 			@Override
@@ -571,13 +538,15 @@ public class BanjoDesugarer {
 				final SourceExpr right = fieldOp.getRight();
 				return pair(
 						left,  fieldSourceOffset + left.getOffsetInParent(),
-						right, fieldSourceOffset + right.getOffsetInParent());
+						right, fieldSourceOffset + right.getOffsetInParent(),
+						fieldOp.getOperator() == Operator.PAIR_INCLUDE);
 			}
 
 			@Override
 			@Nullable
 			public Void unaryOp(UnaryOp op) {
 				switch(op.getOperator()) {
+				case ANON_INCLUDE: return visitAnonInclude(op);
 				case MIRROR: return visitMirror(op);
 				case TABLE_HEADER: return visitTableHeader(op);
 				default: return fallback(op);
@@ -596,18 +565,26 @@ public class BanjoDesugarer {
 			private Void visitMirror(UnaryOp fieldOp) {
 				final SourceExpr operand = fieldOp.getOperand();
 				final int operandSourceOffset = fieldSourceOffset + operand.getOffsetInParent();
-				return pair(operand, operandSourceOffset, operand, operandSourceOffset);
+				return pair(operand, operandSourceOffset, operand, operandSourceOffset, fieldOp.getOperator() == Operator.ANON_INCLUDE);
 			}
 
 			@Nullable
-			private Void pair(SourceExpr lvalueExpr, int lvalueSourceOffset, SourceExpr valueSourceExpr, int valueSourceOffset) {
+			private Void visitAnonInclude(UnaryOp includeOp) {
+				final SourceExpr operand = includeOp.getOperand();
+				final int operandSourceOffset = fieldSourceOffset + operand.getOffsetInParent();
+				final Key fakeName = gensym();
+				return pair(fakeName, operandSourceOffset, operand, operandSourceOffset, true);
+			}
+
+			@Nullable
+			private Void pair(SourceExpr lvalueExpr, int lvalueSourceOffset, SourceExpr valueSourceExpr, int valueSourceOffset, boolean include) {
 				final CoreExpr valueCoreExpr = element(valueSourceExpr, valueSourceOffset, headings, objectSourceOffset).dumpProblems(problems);
 				addField(objectSourceOffset,
 						fieldSourceExpr, fieldSourceOffset,
 						lvalueExpr, lvalueSourceOffset,
 						valueCoreExpr, valueSourceOffset,
 						FunctionLiteral.DEFAULT_GUARANTEE, fieldSourceOffset,
-						fields, problems);
+						include, fields, problems);
 				return null;
 			}
 
@@ -635,14 +612,15 @@ public class BanjoDesugarer {
 	 * adds any problems that were found to the given problems list.
 	 * 
 	 * Each node's offset should be relative to the given parentSourceOffset.
+	 * @param include TODO
 	 */
 	private void addField(final int objectSourceOffset,
 			final SourceExpr fieldSourceExpr, final int fieldSourceOffset,
 			final SourceExpr lvalueExpr,      final int lvalueSourceOffset,
 			final CoreExpr valueExpr,         final int valueSourceOffset,
 			final CoreExpr guarantee,         final int guaranteeSourceOffset,
-			final LinkedHashMap<String, Field> fields,
-			final List<Problem> problems) {
+			final boolean include,
+			final LinkedHashMap<String, Method> fields, final List<Problem> problems) {
 
 		lvalueExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
 			@Override
@@ -682,24 +660,26 @@ public class BanjoDesugarer {
 					}
 
 					void apply(SourceExpr nameExpr, int nameSourceOffset, Key selfName, int selfNameSourceOffset) {
-						final CoreExpr newValue = functionLiteral(
+						final FunctionLiteral implementation1 = (FunctionLiteral)functionLiteral(
 								fieldSourceExpr, fieldSourceOffset,
 								argsExpr, argsSourceOffset,
 								guarantee, guaranteeSourceOffset,
-								valueExpr, valueSourceOffset,
-								selfName, selfNameSourceOffset).dumpProblems(problems);
-						final int newValueSourceOffset = fieldSourceOffset;
-						addField(objectSourceOffset,
-								fieldSourceExpr, fieldSourceOffset,
-								nameExpr, nameSourceOffset,
-								newValue, newValueSourceOffset,
-								FunctionLiteral.DEFAULT_GUARANTEE, fieldSourceOffset,
-								fields, problems);
+								valueExpr, valueSourceOffset).dumpProblems(problems);
+						final Key key = expectIdentifier(nameExpr, nameSourceOffset, problems);
+						final List<FunArg> funArgs = ListUtil.prepend(new FunArg(selfName.getSourceLength(), selfName), implementation1.getArgs());
+						final CoreExpr implementation = new FunctionLiteral(implementation1.getSourceLength(), funArgs, implementation1.getGuarantee(), implementation1.getBody());
+						final int keySourceOffset = lvalueSourceOffset;
+						final Method field = new Method(fieldSourceExpr.getSourceLength(),
+								fieldSourceOffset - objectSourceOffset,
+								off(keySourceOffset - fieldSourceOffset, key),
+								off(implementation1.getOffsetInParent(), implementation),
+								include);
+						fields.put(field.getKey().getKeyString(), field);
 					}
 					@Override
 					@Nullable
 					public Void fallback(SourceExpr other) {
-						apply(methodLeftExpr, methodLeftSourceOffset, FunctionLiteral.DEFAULT_SELF_NAME, methodLeftSourceOffset);
+						apply(methodLeftExpr, methodLeftSourceOffset, Method.DEFAULT_SELF_NAME, methodLeftSourceOffset);
 						return null;
 					}
 				});
@@ -717,6 +697,7 @@ public class BanjoDesugarer {
 						newLvalueExpr, newLvalueSourceOffset,
 						valueExpr, valueSourceOffset,
 						combinedGuarantee, newGuaranteeSourceOffset,
+						targetBOp.getOperator() == Operator.PAIR_INCLUDE,
 						fields, problems);
 				return null;
 			}
@@ -724,14 +705,15 @@ public class BanjoDesugarer {
 			@Override
 			@Nullable
 			public Void fallback(SourceExpr other) {
-				if(!guarantee.equals(FunctionLiteral.DEFAULT_GUARANTEE)) {
-					// TODO Apply guarantees on fields that are not methods ...
-				}
+				final Key selfName = Method.DEFAULT_SELF_NAME;
+				final List<FunArg> funArgs = nonNull(Collections.singletonList(new FunArg(selfName.getSourceLength(), selfName)));
+				final CoreExpr implementation = new FunctionLiteral(fieldSourceExpr.getSourceLength(), funArgs, guarantee, valueExpr);
 				final Key key = expectIdentifier(lvalueExpr, lvalueSourceOffset, problems);
 				final int keySourceOffset = lvalueSourceOffset;
-				final Field field = new Field(fieldSourceExpr, fieldSourceOffset - objectSourceOffset,
+				final Method field = new Method(fieldSourceExpr.getSourceLength(),
+						fieldSourceOffset - objectSourceOffset,
 						off(keySourceOffset - fieldSourceOffset, key),
-						off(valueSourceOffset - fieldSourceOffset, valueExpr));
+						off(valueSourceOffset - fieldSourceOffset, implementation), include);
 				fields.put(field.getKey().getKeyString(), field);
 				return null;
 			}
@@ -821,14 +803,14 @@ public class BanjoDesugarer {
 		if(values.size() < headings.size()) {
 			problems.add(new MissingValueForTableColumn(values.size(), headings.size(), sourceOffset + sourceExpr.getSourceLength(), 0, headings.get(values.size()).toSource()));
 		}
-		final LinkedHashMap<String, Field> fields = new LinkedHashMap<>(headings.size()*2);
+		final LinkedHashMap<String, Method> fields = new LinkedHashMap<>(headings.size()*2);
 		for(int i=0; i < values.size(); i++) {
 			final SourceExpr headingExpr = nonNull(headings.get(i));
 			final int headingSourceOffset = headingsSourceOffset + headingExpr.getOffsetInParent();
 			final SourceExpr cellSourceExpr = nonNull(values.get(i));
 			final int cellSourceOffset = sourceOffset + cellSourceExpr.getOffsetInParent();
 			final CoreExpr cellCoreExpr = expr(cellSourceExpr, cellSourceOffset).dumpProblems(problems);
-			addField(sourceOffset, cellSourceExpr, cellSourceOffset, headingExpr, headingSourceOffset, cellCoreExpr, cellSourceOffset, FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset, fields, problems);
+			addField(sourceOffset, cellSourceExpr, cellSourceOffset, headingExpr, headingSourceOffset, cellCoreExpr, cellSourceOffset, FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset, false, fields, problems);
 		}
 		return result(new ObjectLiteral(sourceExpr, fields), problems);
 	}
@@ -873,8 +855,8 @@ public class BanjoDesugarer {
 		final int argsSourceOffset = sourceOffset+args.getOffsetInParent();
 		return functionLiteral(sourceExpr, sourceOffset,
 				args, argsSourceOffset,
-				bodyCoreExpr.getValue(), bodySourceOffset,
-				FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset).plusProblemsFrom(bodyCoreExpr);
+				FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset,
+				bodyCoreExpr.getValue(), bodySourceOffset).plusProblemsFrom(bodyCoreExpr);
 	}
 
 	/**
@@ -889,34 +871,15 @@ public class BanjoDesugarer {
 	 * @param guarantee Function result guarantee.  Use FunctionLiteral.DEFAULT_GUARANTEE if none specified
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee; use the same offset as sourceOffset if none specified
 	 */
-	private Problematic<CoreExpr> functionLiteral(final SourceExpr sourceExpr, int sourceOffset, final SourceExpr args, int argsSourceOffset, final CoreExpr body, int bodySourceOffset, CoreExpr guarantee, int guaranteeSourceOffset) {
-		return functionLiteral(sourceExpr, sourceOffset, args, argsSourceOffset, guarantee, guaranteeSourceOffset, body, bodySourceOffset, FunctionLiteral.DEFAULT_SELF_NAME, sourceOffset);
-	}
-
-	/**
-	 * Create a function literal.
-	 * 
-	 * @param sourceExpr Original source expression wrapping the whole function
-	 * @param sourceOffset Absolute source offset of the sourceExpr
-	 * @param args Source expression for the arguments - may be a comma, newline, or semicolon separated list, or just a single item of some other type.
-	 * @param guarantee Function guarantee
-	 * @param body Function body
-	 * @param selfName Function "self name" - use FunctilnLiteral.DEFAULT_SELF_NAME if none specified
-	 * @param selfNameSourceOffset Absolute source offset of the self name - use the same value as sourceExpr if none is specified.
-	 */
 	private Problematic<CoreExpr> functionLiteral(final SourceExpr sourceExpr, final int sourceOffset,
 			final SourceExpr args, final int argsSourceOffset,
 			final CoreExpr guarantee, final int guaranteeSourceOffset,
-			final CoreExpr body, final int bodySourceOffset,
-			final Key selfName, final int selfNameSourceOffset) {
+			final CoreExpr body, final int bodySourceOffset) {
 
 		return nonNull(args.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
 			@Override
 			public Problematic<CoreExpr> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
-				case PROJECTION:
-					// selfName.(x,y) -> ...
-					return projection(op);
 				case PAIR:
 					// (x,y):Guarantee -> ...
 					return pair(op);
@@ -935,22 +898,7 @@ public class BanjoDesugarer {
 				return functionLiteral(sourceExpr, sourceOffset,
 						newArgs, newArgsSourceOffset,
 						combinedGuarantee, newGuaranteeSourceOffset,
-						body, bodySourceOffset,
-						selfName, selfNameSourceOffset).plusProblemsFrom(newGuarantee);
-			}
-
-			private Problematic<CoreExpr> projection(BinaryOp op) {
-				final SourceExpr newSelfNameSourceExpr = op.getLeft();
-				final int newSelfNameSourceOffset = argsSourceOffset + newSelfNameSourceExpr.getOffsetInParent();
-				final LinkedList<Problem> problems = new LinkedList<>();
-				final Key newSelfName = expectIdentifier(newSelfNameSourceExpr, selfNameSourceOffset, problems);
-				final SourceExpr newArgs = op.getRight();
-				final int newArgsSourceOffset = argsSourceOffset + newArgs.getOffsetInParent();
-				return functionLiteral(sourceExpr, sourceOffset,
-						newArgs, newArgsSourceOffset,
-						guarantee, guaranteeSourceOffset,
-						body, bodySourceOffset,
-						newSelfName, newSelfNameSourceOffset).withProblems(problems);
+						body, bodySourceOffset).plusProblemsFrom(newGuarantee);
 			}
 
 			@Override
@@ -960,9 +908,8 @@ public class BanjoDesugarer {
 				// Optional parentheses around formal parameter list
 				flattenCommas(stripParens(args), args.getOffsetInParent(), exprs);
 				return functionLiteral(sourceExpr, sourceOffset, exprs,
-						body, bodySourceOffset,
 						guarantee, guaranteeSourceOffset,
-						selfName, selfNameSourceOffset);
+						body, bodySourceOffset);
 			}
 		}));
 
@@ -970,9 +917,8 @@ public class BanjoDesugarer {
 
 	private Problematic<CoreExpr> functionLiteral(SourceExpr sourceExpr, final int sourceOffset,
 			List<SourceExpr> exprs,
-			final CoreExpr body, final int bodySourceOffset,
 			CoreExpr guarantee, final int guaranteeSourceOffset,
-			Key selfName, final int selfNameSourceOffset) {
+			final CoreExpr body, final int bodySourceOffset) {
 		final List<FunArg> args = exprs.isEmpty() ? nonNull(Collections.<FunArg>emptyList()) : new ArrayList<FunArg>(exprs.size());
 		final LinkedList<Problem> problems = new LinkedList<>();
 		for(final SourceExpr argExpr : exprs) {
@@ -987,7 +933,7 @@ public class BanjoDesugarer {
 						final int assertionSourceOffset = argSourceOffset + argOp.getRight().getOffsetInParent();
 						final Key name = expectIdentifier(argOp.getLeft(), nameSourceOffset, problems);
 						final CoreExpr assertion = expr(argOp.getRight(), assertionSourceOffset).dumpProblems(problems);
-						args.add(new FunArg(argExpr, name, off(assertionSourceOffset - sourceOffset, assertion)));
+						args.add(new FunArg(argExpr.getSourceLength(), name, off(assertionSourceOffset - sourceOffset, assertion)));
 						return null;
 					} else {
 						return fallback(argOp);
@@ -998,13 +944,12 @@ public class BanjoDesugarer {
 				@Nullable
 				public Void fallback(SourceExpr other) {
 					final Key name = expectIdentifier(other, argSourceOffset, problems);
-					args.add(new FunArg(argExpr, name));
+					args.add(new FunArg(argExpr.getSourceLength(), name));
 					return null;
 				}
 			});
 		}
 		return result(new FunctionLiteral(sourceExpr,
-				off(selfNameSourceOffset - sourceOffset, selfName),
 				args,
 				off(guaranteeSourceOffset - sourceOffset, guarantee),
 				off(bodySourceOffset - sourceOffset, body)), problems);
@@ -1093,6 +1038,7 @@ public class BanjoDesugarer {
 								@Override
 								public banjo.parser.util.Problematic<CoreExpr> binaryOp(BinaryOp secondOp) {
 									switch(secondOp.getOperator()) {
+									case PAIR_INCLUDE:
 									case PAIR: return object();
 									default: return fallback(secondOp);
 									}
@@ -1101,6 +1047,7 @@ public class BanjoDesugarer {
 								@Override
 								public banjo.parser.util.Problematic<CoreExpr> unaryOp(UnaryOp secondOp) {
 									switch(secondOp.getOperator()) {
+									case ANON_INCLUDE:
 									case MIRROR: return object();
 									case SET_ELEMENT: return set(secondOp.getOperator());
 									case LIST_ELEMENT: return list(secondOp.getOperator());
@@ -1115,6 +1062,7 @@ public class BanjoDesugarer {
 
 							});
 						}
+						case ANON_INCLUDE:
 						case MIRROR: return object();
 						case LIST_ELEMENT: return list(firstOp.getOperator());
 						case SET_ELEMENT: return set(firstOp.getOperator());
@@ -1126,6 +1074,7 @@ public class BanjoDesugarer {
 					@Nullable
 					public Problematic<CoreExpr> binaryOp(BinaryOp op) {
 						switch(op.getOperator()) {
+						case PAIR_INCLUDE:
 						case PAIR: return object();
 						case COND: return cond();
 						default: return fallback(op);
@@ -1152,6 +1101,7 @@ public class BanjoDesugarer {
 			case COND: return exprListToCond(op, this.sourceOffset, new LinkedList<SourceExpr>(Collections.singletonList(op)));
 			case CALL: return call(op, this.sourceOffset);
 			case FUNCTION: return functionLiteral(op, this.sourceOffset);
+			case PAIR_INCLUDE:
 			case PAIR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.<SourceExpr>singletonList(op)));
 			case ASSIGNMENT: return let(op, this.sourceOffset);
 			case PROJECTION: return projection(op, this.sourceOffset);
@@ -1187,6 +1137,7 @@ public class BanjoDesugarer {
 			case LIST_ELEMENT: return singletonListLiteral(op);
 			case SET_ELEMENT: return singletonSetLiteral(op);
 			case LAZY: return lazyValue(op);
+			case ANON_INCLUDE:
 			case MIRROR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.singletonList(operandSourceExpr)));
 			case LIST_LITERAL: {
 				final LinkedList<SourceExpr> exprs = new LinkedList<>();
@@ -1201,9 +1152,9 @@ public class BanjoDesugarer {
 					@Nullable
 					public Problematic<CoreExpr> objectLiteral(ObjectLiteral object) {
 						// Have to adjust the offsets of the fields
-						final Map<String, Field> fields = new LinkedHashMap<>(object.getFields().size());
-						for(final Field f : object.getFields().values()) {
-							fields.put(f.getKey().getKeyString(), new Field(f.getSourceLength(), f.getOffsetInObject()+operandSourceExpr.getOffsetInParent(), f.getKey(), f.getValue()));
+						final Map<String, Method> fields = new LinkedHashMap<>(object.getFields().size());
+						for(final Method f : object.getFields().values()) {
+							fields.put(f.getKey().getKeyString(), new Method(f.getSourceLength(), f.getOffsetInObject()+operandSourceExpr.getOffsetInParent(), f.getKey(), f.getImplementation(), f.isInclude()));
 						}
 						return result(new ObjectLiteral(op, fields), operandCoreExpr.getProblems());
 					}

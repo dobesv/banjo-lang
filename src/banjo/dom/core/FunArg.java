@@ -5,7 +5,6 @@ import static banjo.parser.util.Check.nonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Precedence;
-import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 
@@ -15,13 +14,13 @@ public class FunArg extends AbstractCoreExpr implements CoreExpr {
 
 	public static final CoreExpr NO_ASSERTION = new Identifier("Object");
 
-	public FunArg(SourceExpr sourceExpr, Key name, CoreExpr assertion) {
-		super(sourceExpr, name.hashCode() + assertion.hashCode());
+	public FunArg(int sourceLength, Key name, CoreExpr assertion) {
+		super(sourceLength, name.hashCode() + assertion.hashCode());
 		this.name = name;
 		this.assertion = assertion;
 	}
-	public FunArg(SourceExpr sourceExpr, Key name) {
-		this(sourceExpr, name, NO_ASSERTION);
+	public FunArg(int sourceLength, Key name) {
+		this(sourceLength, name, NO_ASSERTION);
 	}
 
 	public Key getName() {

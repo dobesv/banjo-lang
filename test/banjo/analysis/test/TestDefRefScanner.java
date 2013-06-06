@@ -19,7 +19,7 @@ public class TestDefRefScanner {
 	@Test public void testValue() { test("x = y ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.FREE, "y"), ref(DefType.LOCAL_VALUE, "x")); }
 	@Test public void testSetValue() { test("x = {y,z} ; x", def(DefType.LOCAL_VALUE, "x"), ref(DefType.FREE, "y"), ref(DefType.FREE, "z"), ref(DefType.LOCAL_VALUE, "x")); }
 	@Test public void testObjValue() { test("x = {y:v1,z:v2} ; x",
-			def(DefType.LOCAL_VALUE, "x"), def(DefType.SELF_FIELD, "y"), def(DefType.SELF_FIELD, "z"), ref(DefType.FREE, "v1"), ref(DefType.FREE, "v2"), ref(DefType.LOCAL_VALUE, "x")); }
+			def(DefType.LOCAL_CONST, "x"), def(DefType.SELF_METHOD, "y"), def(DefType.SELF_METHOD, "z"), ref(DefType.FREE, "v1"), ref(DefType.FREE, "v2"), ref(DefType.LOCAL_CONST, "x")); }
 	@Test public void testFunc() { test("x() = 1 ; x",
 			def(DefType.LOCAL_FUNCTION, "x"), ref(DefType.LOCAL_FUNCTION, "x")); }
 	@Test public void testFuncs() { test("x() = 1 ; id(z) = z ; id(x())",
@@ -29,7 +29,7 @@ public class TestDefRefScanner {
 	@Test public void testConst() { test("x = 1 ; x", def(DefType.LOCAL_CONST, "x"), ref(DefType.LOCAL_CONST, "x")); }
 	@Test public void testConstSet() { test("a = {1,2,3}", def(DefType.LOCAL_CONST, "a")); }
 	@Test public void testConstObj() { test("a = {a:1,b:[2],c:\"3\"}",
-			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_CONST, "a"), def(DefType.SELF_CONST, "b"), def(DefType.SELF_CONST, "c")); }
+			def(DefType.LOCAL_CONST, "a"), def(DefType.SELF_METHOD, "a"), def(DefType.SELF_METHOD, "b"), def(DefType.SELF_METHOD, "c")); }
 
 
 	@Ignore // TODO Fix or remove this annotated token scanner thing

@@ -15,9 +15,9 @@ import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.ExprList;
-import banjo.dom.core.Field;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ListLiteral;
+import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.core.OffsetCoreExpr;
 import banjo.dom.core.Projection;
@@ -232,8 +232,8 @@ public class IncrementalUpdater {
 			@Nullable
 			public CoreExpr objectLiteral(ObjectLiteral n) {
 				boolean containedInChild = false;
-				final Map<String, Field> fields = n.getFields();
-				for(final Field field : fields.values()) {
+				final Map<String, Method> fields = n.getFields();
+				for(final Method field : fields.values()) {
 					final int fieldStartOffset = exprStartOffset + field.getOffsetInObject();
 					final int fieldEndOffset = fieldStartOffset + field.getSourceLength();
 					if(editOutside(fieldStartOffset, fieldEndOffset, editStartOffset, editEndOffset))
@@ -242,7 +242,7 @@ public class IncrementalUpdater {
 					final Key key = field.getKey();
 					final int keyStartOffset = fieldStartOffset + key.getOffsetInParent();
 					final int keyEndOffset = keyStartOffset + key.getSourceLength();
-					final CoreExpr value = field.getValue();
+					final CoreExpr value = field.getImplementation();
 					final int valueStartOffset = fieldStartOffset + value.getOffsetInParent();
 					final int valueEndOffset = valueStartOffset + value.getSourceLength();
 
@@ -267,14 +267,14 @@ public class IncrementalUpdater {
 				// edge of the parent node, so we have to reparse the whole node.
 				if(!containedInChild)
 					return fallback(n);
-				final LinkedHashMap<String,Field> newFields = new LinkedHashMap<>(fields);
+				final LinkedHashMap<String,Method> newFields = new LinkedHashMap<>(fields);
 				int offsetDelta=0;
-				for(final Field field : fields.values()) {
+				for(final Method field : fields.values()) {
 					final int fieldStartOffset = exprStartOffset + field.getOffsetInObject();
 					final Key key = field.getKey();
 					final int keyStartOffset = fieldStartOffset + key.getOffsetInParent();
 					final Key newKey = process(key, keyStartOffset);
-					final CoreExpr value = field.getValue();
+					final CoreExpr value = field.getImplementation();
 					final int valueStartOffset = fieldStartOffset + value.getOffsetInParent();
 					final CoreExpr newValue = process(value, valueStartOffset);
 					final int keyLengthDelta = newKey.getSourceLength() - key.getSourceLength();
@@ -283,7 +283,7 @@ public class IncrementalUpdater {
 					final int newSourceLength = field.getSourceLength() + lengthDelta;
 					final int newOffsetInObject = field.getOffsetInObject() + offsetDelta;
 					if(newKey != key || newValue != value || lengthDelta != 0 || offsetDelta != 0) {
-						final Field newField = new Field(newSourceLength, newOffsetInObject, newKey, off(keyLengthDelta, newValue));
+						final Method newField = new Method(newSourceLength, newOffsetInObject, newKey, off(keyLengthDelta, newValue), field.isInclude());
 						newFields.put(newKey.getKeyString(), newField);
 						offsetDelta += lengthDelta;
 					}

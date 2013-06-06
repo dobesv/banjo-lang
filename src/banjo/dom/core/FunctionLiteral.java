@@ -9,32 +9,23 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 
 public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	private final List<FunArg> args;
 	private final CoreExpr guarantee;
 	private final CoreExpr body;
-	private final Key selfName;
 
 	public static final CoreExpr DEFAULT_GUARANTEE = FunArg.NO_ASSERTION;
-	public static final Key DEFAULT_SELF_NAME = new Identifier("_self");
 
-	public FunctionLiteral(SourceExpr sourceExpr, Key selfName, List<FunArg> args, CoreExpr contract, CoreExpr body) {
-		this(sourceExpr.getSourceLength(), selfName, args, contract, body);
+	public FunctionLiteral(SourceExpr sourceExpr, List<FunArg> args, CoreExpr guarantee, CoreExpr body) {
+		this(sourceExpr.getSourceLength(), args, guarantee, body);
 	}
-	public FunctionLiteral(int sourceLength, Key selfName, List<FunArg> args, CoreExpr contract, CoreExpr body) {
-		super(sourceLength, selfName.hashCode() + args.hashCode() + contract.hashCode() + body.hashCode());
+	public FunctionLiteral(int sourceLength, List<FunArg> args, CoreExpr guarantee, CoreExpr body) {
+		super(sourceLength, args.hashCode() + guarantee.hashCode() + body.hashCode());
 		this.args = nonNull(Collections.unmodifiableList(args));
-		this.guarantee = contract;
+		this.guarantee = guarantee;
 		this.body = body;
-		this.selfName = selfName;
-	}
-
-	public FunctionLiteral(int sourceLength, List<FunArg> args, CoreExpr contract, CoreExpr body) {
-		this(sourceLength, DEFAULT_SELF_NAME, args, contract, body);
 	}
 
 	/**
@@ -74,13 +65,8 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		// Using getKeyString() here because the selfName might have an offset attached to it
-		final boolean showSelfName = !this.selfName.equals(DEFAULT_SELF_NAME);
 		final boolean showGuarantee = !this.guarantee.equals(DEFAULT_GUARANTEE);
-		if(showSelfName || showGuarantee || !this.args.isEmpty()) {
-			if(showSelfName) {
-				nonNull(this.selfName).toSource(sb);
-				sb.append(".");
-			}
+		if(showGuarantee || !this.args.isEmpty()) {
 			sb.append('(');
 			boolean first = true;
 			for(final FunArg arg : this.args) {
@@ -110,17 +96,9 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 		return !this.guarantee.equals(DEFAULT_GUARANTEE);
 	}
 
-	public boolean hasSelfName() {
-		return !this.selfName.equals(DEFAULT_SELF_NAME);
-	}
-
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.functionLiteral(this);
-	}
-
-	public Key getSelfName() {
-		return this.selfName;
 	}
 
 	@Override
@@ -138,9 +116,22 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 			return false;
 		if (!this.guarantee.equals(other.guarantee))
 			return false;
-		if (!this.selfName.equals(other.selfName))
-			return false;
 		return true;
 	}
 
+	public static boolean isFunctionLiteral(CoreExpr expr) {
+		return nonNull(expr.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
+			@Override
+			@Nullable
+			public Boolean functionLiteral(FunctionLiteral n) {
+				return true;
+			}
+
+			@Override
+			@Nullable
+			public Boolean fallback(CoreExpr unsupported) {
+				return false;
+			}
+		})).booleanValue();
+	}
 }

@@ -4,9 +4,14 @@ import static banjo.dom.test.ParseTestUtils.assertIsNumberLiteralWithValue;
 import static banjo.dom.test.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
-import banjo.dom.core.Field;
+import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.CoreExpr;
+import banjo.dom.core.FunctionLiteral;
+import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.parser.errors.IncorrectIndentation;
 import banjo.parser.errors.Problem;
@@ -30,11 +35,11 @@ public class TestObjectLiteralParser {
 
 	@Test public void mirrors1() { parse("{:x,:y}", "{x: x, y: y}"); }
 	@Test public void mirrors2() { parse(" : x\n : y", "{x: x, y: y}"); }
-	@Test public void method1() { parse("{f(x): x}", "{f: (x) -> x}"); }
-	@Test public void method2() { parse("{f(): x}", "{f: -> x}"); }
-	@Test public void method3() { parse("{self.f(): self}", "{f: self.() -> self}"); }
-	@Test public void method4() { parse("{self.f(x): self}", "{f: self.(x) -> self}"); }
-	@Test public void method5() { parse("test:\n f(): 1\n y(): 2", "{test: {f: -> 1, y: -> 2}}"); }
+	@Test public void method1() { parse("{f(x): x}", "{f(x): x}"); }
+	@Test public void method2() { parse("{f(): x}", "{f: x}"); }
+	@Test public void method3() { parse("{self.f(): self}", "{self.f: self}"); }
+	@Test public void method4() { parse("{self.f(x): self}", "{self.f(x): self}"); }
+	@Test public void method5() { parse("test:\n f(): 1\n y(): 2", "{test: {f: 1, y: 2}}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\":1,\"b.c\":2,\"-f\":3}", "{\"a b\": 1, \"b.c\": 2, \"-f\": 3}"); }
 
 	@Test public void table1() { parse("#::a,b,c\nabc:(1,2,3)", "{abc: {a: 1, b: 2, c: 3}}"); }
@@ -42,11 +47,26 @@ public class TestObjectLiteralParser {
 
 	private void abc(String source, int expectedErrorCount) {
 		final ObjectLiteral node = parse(source, "{a: 1, b: 2, c: 3}");
-		final Field[] eltsArray = node.getFields().values().toArray(new Field[3]);
+		final Method[] eltsArray = node.getFields().values().toArray(new Method[3]);
 		assertEquals(3, eltsArray.length);
 		final long[] expectedValues = {1,2,3};
 		for(int i=0; i < expectedValues.length; i++) {
-			assertIsNumberLiteralWithValue(expectedValues[i], eltsArray[i].getValue());
+			final long expectedValue = expectedValues[i];
+			eltsArray[i].getImplementation().acceptVisitor(new BaseCoreExprVisitor<Void>() {
+				@Override
+				@Nullable
+				public Void fallback(@NonNull CoreExpr unsupported) {
+					throw new Error();
+				}
+
+				@Override
+				@Nullable
+				public Void functionLiteral(@NonNull FunctionLiteral implementation) {
+					assertEquals(1, implementation.getArgs().size());
+					assertIsNumberLiteralWithValue(expectedValue, implementation.getBody());
+					return null;
+				}
+			});
 		}
 		final String[] expectedNames = {"a","b","c"};
 		for(int i=0; i < expectedNames.length; i++) {

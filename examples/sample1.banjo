@@ -2,3 +2,9 @@
 list = • "one"
        • "two"
        • "three"
+
+       
+       
+bla =
+    super :< Seq
+    self.length() : self.super.length() + 1

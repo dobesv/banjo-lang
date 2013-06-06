@@ -43,4 +43,14 @@ public class ListUtil {
 		return result;
 	}
 
+	public static <T> List<T> prepend(T head, List<T> tail) {
+		if(tail.isEmpty())
+			return nonNull(Collections.<T>singletonList(head));
+		final int count = tail.size() + 1;
+		final ArrayList<T> result = new ArrayList<>(count);
+		result.add(head);
+		result.addAll(tail);
+		return result;
+	}
+
 }
