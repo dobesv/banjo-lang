@@ -9,10 +9,10 @@ import banjo.dom.ParenType;
 
 public enum Operator {
 	// Unary operators
-	PLUS("+", Position.PREFIX, Precedence.UNARY_PREFIX, "plus"),
-	NEGATE("-", Position.PREFIX, Precedence.UNARY_PREFIX, "negate"),
-	COMPLEMENT("~", Position.PREFIX, Precedence.UNARY_PREFIX, "complement"),
-	NOT("!", Position.PREFIX, Precedence.UNARY_PREFIX, "false"),
+	PLUS("+", Position.PREFIX, Precedence.UNARY_PREFIX),
+	NEGATE("-", Position.PREFIX, Precedence.UNARY_PREFIX),
+	COMPLEMENT("~", Position.PREFIX, Precedence.UNARY_PREFIX),
+	NOT("!", Position.PREFIX, Precedence.UNARY_PREFIX),
 	MIRROR(":", Position.PREFIX, Precedence.UNARY_PREFIX),
 	ANON_INCLUDE(":<", Position.PREFIX, Precedence.BULLET),
 	LIST_ELEMENT("*", 0x2022, Position.PREFIX, Precedence.BULLET),
@@ -33,21 +33,21 @@ public enum Operator {
 	CALL(ParenType.PARENS, Position.INFIX),
 	PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("?.", Position.INFIX, Precedence.SUFFIX),
-	POW("^", Position.INFIX, Precedence.MULDIV, "toThePowerOf"),
-	MUL("*", 0x00D7, Position.INFIX, Precedence.MULDIV, "times"),
-	DIV("/", 0x00F7, Position.INFIX, Precedence.MULDIV, "dividedBy"),
-	ADD("+", Position.INFIX, Precedence.ADDSUB, "plus"),
-	SUB("-", Position.INFIX, Precedence.ADDSUB, "minus"),
+	POW("^", Position.INFIX, Precedence.MULDIV),
+	MUL("*", 0x00D7, Position.INFIX, Precedence.MULDIV),
+	DIV("/", 0x00F7, Position.INFIX, Precedence.MULDIV),
+	ADD("+", Position.INFIX, Precedence.ADDSUB),
+	SUB("-", Position.INFIX, Precedence.ADDSUB),
 	GT(">", Position.INFIX, Precedence.ORDERING),
 	GE(">=", 0x2265, Position.INFIX, Precedence.ORDERING),
 	LT("<", Position.INFIX, Precedence.ORDERING),
 	LE("<=", 0x2264, Position.INFIX, Precedence.ORDERING),
-	EQ("==", Position.INFIX, Precedence.EQUALITY, "eq"),
+	EQ("==", Position.INFIX, Precedence.EQUALITY),
 	NEQ("!=", 0x2260, Position.INFIX, Precedence.EQUALITY),
-	CMP("<=>", Position.INFIX, Precedence.EQUALITY, "cmp"),
-	INTERSECT("&", 0x2229, Position.INFIX, Precedence.INTERSECT, "intersection"),
-	XOR("><", 0x22BB, Position.INFIX, Precedence.XOR, "xor"),
-	UNION("|", 0x222A, Position.INFIX, Precedence.UNION, "union"),
+	CMP("<=>", Position.INFIX, Precedence.EQUALITY),
+	INTERSECT("&", 0x2229, Position.INFIX, Precedence.INTERSECT),
+	XOR("><", 0x22BB, Position.INFIX, Precedence.XOR),
+	UNION("|", 0x222A, Position.INFIX, Precedence.UNION),
 	LAZY_AND("&&", 0x2227, Position.INFIX, Precedence.LAZY_AND),
 	LAZY_OR("||", 0x2228, Position.INFIX, Precedence.LAZY_OR),
 	COMMA(",", Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
@@ -56,7 +56,6 @@ public enum Operator {
 	PAIR(":", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	PAIR_INCLUDE(":<", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COND("=>", 0x21D2, Position.INFIX, Precedence.COND, Associativity.RIGHT),
-	OR_ELSE("?:", Position.INFIX, Precedence.COND, Associativity.RIGHT),
 	SEMICOLON(";", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
@@ -70,25 +69,23 @@ public enum Operator {
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence precedence;
 	private final @Nullable ParenType parenType; // nullable
-	private final @Nullable String methodName; // nullable
 	private final Associativity associativity;
 	private final Position position;
 
-	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Precedence precedence, Associativity associativity, @Nullable String methodName) {
+	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Precedence precedence, Associativity associativity) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.precedence = precedence;
 		this.parenType = parenType;
-		this.methodName = methodName;
 		this.associativity = associativity;
 		this.position = position;
 	}
 
-	Operator(String op, int codePoint, ParenType parenType, Position position, Precedence p, String methodName) {
-		this(op, codePoint, parenType, position, p, Associativity.NA, methodName);
+	Operator(String op, int codePoint, ParenType parenType, Position position, Precedence p) {
+		this(op, codePoint, parenType, position, p, Associativity.NA);
 	}
-	Operator(String op, int codePoint, Position position, Precedence p, String methodName) {
-		this(op, codePoint, null, position, p, defaultAssociativity(position), methodName);
+	Operator(String op, int codePoint, Position position, Precedence p) {
+		this(op, codePoint, null, position, p, defaultAssociativity(position));
 	}
 
 	public static Associativity defaultAssociativity(Position position) {
@@ -104,22 +101,16 @@ public enum Operator {
 		this(op, CODEPOINT_NONE, position, p);
 	}
 	Operator(String op, int cp, Position position, Precedence p, Associativity associativity) {
-		this(op, cp, null, position, p, associativity, null);
+		this(op, cp, null, position, p, associativity);
 	}
 	Operator(String op, Position position, Precedence p, Associativity associativity) {
 		this(op, CODEPOINT_NONE, position, p, associativity);
 	}
-	Operator(String op, Position position, Precedence p, String methodName) {
-		this(op, CODEPOINT_NONE, position, p, methodName);
-	}
-	Operator(String op, int codePoint, Position position, Precedence p) {
-		this(op, codePoint, position, p, defaultAssociativity(position));
-	}
 	Operator(String op, int codePoint, Precedence p, Associativity associativity) {
-		this(op, codePoint, null, Position.INFIX, p, associativity, null);
+		this(op, codePoint, null, Position.INFIX, p, associativity);
 	}
 	Operator(ParenType parenType, Position position) {
-		this(nonNull(String.valueOf(parenType.getStartChar())), CODEPOINT_NONE, parenType, position, Precedence.SUFFIX, defaultAssociativity(position), null);
+		this(nonNull(String.valueOf(parenType.getStartChar())), CODEPOINT_NONE, parenType, position, Precedence.SUFFIX, defaultAssociativity(position));
 	}
 
 	public static @Nullable Operator fromOp(String op, Position pos) {
@@ -160,10 +151,6 @@ public enum Operator {
 	public boolean isParen() {
 		return this.parenType != null;
 	}
-	public @Nullable String getMethodName() {
-		return this.methodName;
-	}
-
 	public Associativity getAssociativity() {
 		return this.associativity;
 	}
@@ -179,7 +166,7 @@ public enum Operator {
 
 
 	Operator(String op, Precedence precedence, Position position, String methodName) {
-		this(op, CODEPOINT_NONE, position, precedence, methodName);
+		this(op, CODEPOINT_NONE, position, precedence);
 	}
 
 	public String getOp() {
@@ -201,9 +188,4 @@ public enum Operator {
 	public boolean isPrefix() {
 		return this.position == Position.PREFIX;
 	}
-
-	public boolean hasMethodName() {
-		return this.methodName != null;
-	}
-
 }

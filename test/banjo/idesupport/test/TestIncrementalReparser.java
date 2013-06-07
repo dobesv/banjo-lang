@@ -26,7 +26,7 @@ public class TestIncrementalReparser {
 	@Test public void test4() { testEdit("a = b; a", "foo = bar; a", ExprList.class, 0, 5, "foo = bar"); }
 	@Test public void test5() { testEdit("a = b; a", "a = foo; a", ExprList.class, 1, 4, " = foo"); }
 	@Test public void test6() { testEdit("a = b; a", "{}", ExprList.class, 0, 8, "{}"); }
-	@Test public void test7() { testEdit("a = b; a", "a = b.plus(a); a", ExprList.class, 5, 0, " + a"); }
+	@Test public void test7() { testEdit("a = b; a", "a = b.\\+(a); a", ExprList.class, 5, 0, " + a"); }
 	@Test public void test8() { testEdit("a = 1; a", "a = 12; a", ExprList.class, 5, 0, "2"); }
 	@Test public void test9() { testEdit("a = 1; a", "a = 1.2; a", ExprList.class, 5, 0, ".2"); }
 	@Test public void test10() { testEdit("{a: \"bla\"}", "{a: \"yay\"}", ObjectLiteral.class, 5, 3, "yay", reg(4,5)); }

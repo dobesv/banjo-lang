@@ -3,7 +3,6 @@ package banjo.desugar;
 import static banjo.parser.util.Check.nonNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -87,51 +86,26 @@ public class BanjoDesugarer {
 		return result;
 	}
 
-	/**
-	 * Lazy logical or operators "||" and "&&".
-	 * 
-	 * <pre>left || right == left.if(true: id, false(_): right)</pre>
-	 * <pre>left && right == left.if(false: id, true(_): right)</pre>
-	 * 
-	 * What this means is that for ||, it returns the lhs if value is true, otherwise it evaluates the rhs.  For &&
-	 * it return the lhs if it is false, otherwise it evaluates the rhs.
-	 */
-	private Problematic<CoreExpr> lazyCond(boolean isAnd, BinaryOp op, int sourceOffset) {
-		final SourceExpr leftSourceExpr = op.getLeft();
-		final SourceExpr rightSourceExpr = op.getRight();
-		final Problematic<CoreExpr> left = expr(leftSourceExpr, sourceOffset);
-		final Problematic<CoreExpr> right = expr(rightSourceExpr, sourceOffset);
-		@SuppressWarnings("null")
-		final Method shortCircuit = new Method(op.getSourceLength(), 0, new Identifier(isAnd?"false":"true"), new FunctionLiteral(op.getSourceLength(), Arrays.asList(new FunArg(0, Method.DEFAULT_SELF_NAME), new FunArg(0, new Identifier("x"))), FunctionLiteral.DEFAULT_GUARANTEE, new Identifier("x")), false);
-		@SuppressWarnings("null")
-		final Method rightField = new Method(op.getSourceLength(), 0, new Identifier(isAnd?"true":"false"), new FunctionLiteral(op.getSourceLength(), Arrays.asList(new FunArg(0, Method.DEFAULT_SELF_NAME), new FunArg(0, new Identifier("_"))), FunctionLiteral.DEFAULT_GUARANTEE, off(rightSourceExpr, right)), false);
-		final CoreExpr arg = new ObjectLiteral(op, rightField, shortCircuit);
-		final CoreExpr method = new Projection(op, off(leftSourceExpr, left), new Identifier("if"));
-		return result(new Call(op, method, arg), ListUtil.concat(left.getProblems(), right.getProblems()));
-	}
-	private Problematic<CoreExpr> lazyAnd(BinaryOp op, int sourceOffset) { return lazyCond(true, op, sourceOffset); }
-	private Problematic<CoreExpr> lazyOr(BinaryOp op, int sourceOffset) { return lazyCond(false, op, sourceOffset); }
-
 	private Problematic<CoreExpr> comparison(BinaryOp op, int sourceOffset) {
 		final SourceExpr leftSourceExpr = op.getLeft();
 		final SourceExpr rightSourceExpr = op.getRight();
 		final Problematic<CoreExpr> leftCoreExpr = expr(leftSourceExpr, sourceOffset);
 		final Problematic<CoreExpr> rightCoreExpr = expr(rightSourceExpr, sourceOffset);
-		final Projection fieldRef = new Projection(op, off(leftSourceExpr, leftCoreExpr), new Identifier(nonNull(Operator.CMP.getMethodName())));
+		final Projection fieldRef = new Projection(op, off(leftSourceExpr, leftCoreExpr), new Identifier(nonNull(Operator.CMP.getOp())));
 		final CoreExpr cmp = new Call(op, fieldRef, off(rightSourceExpr, rightCoreExpr));
 		boolean checkEqual;
 		String checkField;
 		switch(op.getOperator()) {
-		case GT: checkEqual = true; checkField = "greater"; break;
-		case GE: checkEqual = false; checkField = "less"; break;
-		case LT: checkEqual = true; checkField = "less"; break;
-		case LE: checkEqual = false; checkField = "greater"; break;
+		case GT: checkEqual = true; checkField = ">"; break;
+		case GE: checkEqual = false; checkField = "<"; break;
+		case LT: checkEqual = true; checkField = "<"; break;
+		case LE: checkEqual = false; checkField = ">"; break;
 		default: throw new Error();
 		}
 		final Projection cmpFieldRef = new Projection(op, cmp, new Identifier(checkField));
 		CoreExpr check = new Call(op, cmpFieldRef);
 		if(!checkEqual)
-			check = new Call(op, new Projection(op, check, new Identifier(nonNull(Operator.NOT.getMethodName()))));
+			check = new Call(op, new Projection(op, check, new Identifier(nonNull(Operator.NOT.getOp()))));
 		return result(check, ListUtil.concat(leftCoreExpr.getProblems(), rightCoreExpr.getProblems()));
 	}
 
@@ -179,22 +153,6 @@ public class BanjoDesugarer {
 		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
 		final CoreExpr mapCall = new Call(op, new Projection(op, off(op.getLeft(), left), new Identifier("map")), projectFunc);
 		return result(mapCall, projection.getProblems());
-	}
-
-	/**
-	 * The "or else" operator "?:" operates on an option value.  If the option has
-	 * a value it returns that value, otherwise it returns the right-hand value.  The
-	 * right-hand side is only evaluated if the option value is not present.
-	 * 
-	 * <pre>x ?: y == x.orElse({value:y})</pre>
-	 */
-	private Problematic<CoreExpr> orElse(BinaryOp op, int sourceOffset) {
-		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
-		final Problematic<CoreExpr> right = expr(op.getRight(), sourceOffset);
-		final Projection fieldRef = new Projection(op, off(op.getLeft(), left), new Identifier("valueOrElse"));
-		final FunctionLiteral fun = new FunctionLiteral(off(op.getRight(), right));
-		final List<Problem> problems = ListUtil.concat(left.getProblems(), right.getProblems());
-		return result(new Call(op, fieldRef, fun), problems).plusProblemsFrom(left).plusProblemsFrom(right);
 	}
 
 	private static Key off(int offset, Key key) {
@@ -419,7 +377,7 @@ public class BanjoDesugarer {
 		CoreExpr result = nonNull(it.next());
 		while(it.hasNext()) {
 			final CoreExpr cond = nonNull(it.next());
-			result = new Call(0, new Projection(0, cond, new Identifier(Operator.OR_ELSE.getOp())), nonNull(Collections.singletonList(result)));
+			result = new Call(0, new Projection(0, cond, new Identifier(Operator.LAZY_OR.getOp())), nonNull(Collections.singletonList(result)));
 		}
 		return result(result, problems);
 	}
@@ -1096,9 +1054,6 @@ public class BanjoDesugarer {
 					}
 				}));
 			}
-			case LAZY_AND: return lazyAnd(op, this.sourceOffset);
-			case LAZY_OR: return lazyOr(op, this.sourceOffset);
-			case COND: return exprListToCond(op, this.sourceOffset, new LinkedList<SourceExpr>(Collections.singletonList(op)));
 			case CALL: return call(op, this.sourceOffset);
 			case FUNCTION: return functionLiteral(op, this.sourceOffset);
 			case PAIR_INCLUDE:
@@ -1106,27 +1061,46 @@ public class BanjoDesugarer {
 			case ASSIGNMENT: return let(op, this.sourceOffset);
 			case PROJECTION: return projection(op, this.sourceOffset);
 			case MAP_PROJECTION: return optionProjection(op, this.sourceOffset);
-			case OR_ELSE: return orElse(op, this.sourceOffset);
+
+
 			case GT:
 			case GE:
 			case LT:
 			case LE:
 				return comparison(op, this.sourceOffset);
 
+
+				// Normal operators are translated into a method call
+			case POW:
+			case MUL:
+			case DIV:
+			case ADD:
+			case SUB:
+			case INTERSECT:
+			case XOR:
+			case UNION:
+			case LOOKUP: return binaryOpToMethodCall(op, false);
+
+			// Short-circuit operators have a lazy right operand
+			case LAZY_AND:
+			case LAZY_OR:
+			case COND: return binaryOpToMethodCall(op, true);
+
 			default:
-				final String methodName = op.getOperator().getMethodName();
-				if(methodName != null) {
-					final int leftSourceOffset = this.sourceOffset + op.getLeft().getOffsetInParent();
-					final int rightSourceOffset = this.sourceOffset + op.getRight().getOffsetInParent();
-					final Problematic<CoreExpr> left = expr(op.getLeft(), leftSourceOffset);
-					final Problematic<CoreExpr> right = expr(op.getRight(), rightSourceOffset);
-					final CoreExpr leftWithOffset = off(op.getLeft(), left.getValue());
-					final CoreExpr rightWithOffset = off(op.getRight(), right.getValue());
-					return result(new Call(op, new Projection(op, leftWithOffset, new Identifier(methodName)), rightWithOffset), left, right);
-				}
 				final Problem problem = new UnsupportedBinaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
 				return result(new BadExpr(op, problem), problem);
 			}
+		}
+
+		public Problematic<CoreExpr> binaryOpToMethodCall(final BinaryOp op, boolean lazyRightOperand) {
+			final int leftSourceOffset = this.sourceOffset + op.getLeft().getOffsetInParent();
+			final int rightSourceOffset = this.sourceOffset + op.getRight().getOffsetInParent();
+			final Problematic<CoreExpr> left = expr(op.getLeft(), leftSourceOffset);
+			final Problematic<CoreExpr> right = expr(op.getRight(), rightSourceOffset);
+			final CoreExpr leftWithOffset = off(op.getLeft(), left.getValue());
+			final CoreExpr rightWithOffset = off(op.getRight(), right.getValue());
+			final CoreExpr rightMaybeLazy = lazyRightOperand ? new FunctionLiteral(rightWithOffset) : rightWithOffset;
+			return result(new Call(op, new Projection(op, leftWithOffset, new Identifier(op.getOperator().getOp())), rightMaybeLazy), left, right);
 		}
 
 		@Override
@@ -1187,17 +1161,21 @@ public class BanjoDesugarer {
 			case RETURN:
 			case UNARY_NEWLINE_INDENT:
 				return expr(operandSourceExpr, operandSourceOffset);
-			default: {
-				final String methodName = op.getOperator().getMethodName();
-				if(methodName != null) {
-					final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-					return result(new Call(op, new Projection(op, off(operandSourceExpr, operandCoreExpr), new Identifier(methodName))), operandCoreExpr.getProblems());
-				} else {
-					final UnsupportedUnaryOperator problem = new UnsupportedUnaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
-					final BadExpr bad = new BadExpr(op, problem);
-					return result(bad, problem);
-				}
-			}
+
+			case OPTIONAL:
+			case EXISTS:
+			case NOT:
+			case COMPLEMENT:
+			case PLUS:
+			case NEGATE:
+				final String methodName = op.getOperator().getOp();
+				final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
+				return result(new Call(op, new Projection(op, off(operandSourceExpr, operandCoreExpr), new Identifier(methodName))), operandCoreExpr.getProblems());
+
+			default:
+				final Problem problem = new UnsupportedUnaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
+				return result(new BadExpr(op, problem), problem);
+
 			}
 		}
 
