@@ -12,7 +12,11 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr value;
 
 	public Let(SourceExpr sourceExpr, Key name, CoreExpr value) {
-		super(sourceExpr, name.hashCode() + value.hashCode());
+		this(sourceExpr.getSourceLength(), name, value);
+	}
+
+	public Let(int sourceLength, Key name, CoreExpr value) {
+		super(sourceLength, name.hashCode() + value.hashCode());
 		this.name = name;
 		this.value = value;
 	}

@@ -23,16 +23,18 @@ public enum Operator {
 	PARENS(ParenType.PARENS, Position.PREFIX),
 	LIST_LITERAL(ParenType.BRACKETS, Position.PREFIX),
 	RETURN("^", 0x2191, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
-	OBJECT_OR_SET_LITERAL(ParenType.BRACES, Position.PREFIX),
-	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX, "asOptionalContract"),
-	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX, "hasValue"),
+	OBJECT_LITERAL(ParenType.BRACES, Position.PREFIX),
+	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX),
+	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX),
 	UNARY_NEWLINE_INDENT("(nl+indent)", Position.PREFIX, Precedence.SEMICOLON),
 
 	// Binary operators
 	LOOKUP(ParenType.BRACKETS, Position.INFIX),
 	CALL(ParenType.PARENS, Position.INFIX),
 	PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
-	MAP_PROJECTION("?.", Position.INFIX, Precedence.SUFFIX),
+	OPT_PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
+	MAP_PROJECTION("*.", Position.INFIX, Precedence.SUFFIX),
+	MAP_OPT_PROJECTION("*.?", Position.INFIX, Precedence.SUFFIX),
 	POW("^", Position.INFIX, Precedence.MULDIV),
 	MUL("*", 0x00D7, Position.INFIX, Precedence.MULDIV),
 	DIV("/", 0x00F7, Position.INFIX, Precedence.MULDIV),
@@ -110,7 +112,7 @@ public enum Operator {
 		this(op, codePoint, null, Position.INFIX, p, associativity);
 	}
 	Operator(ParenType parenType, Position position) {
-		this(nonNull(String.valueOf(parenType.getStartChar())), CODEPOINT_NONE, parenType, position, Precedence.SUFFIX, defaultAssociativity(position));
+		this(parenType.getEmptyPairString(), CODEPOINT_NONE, parenType, position, Precedence.SUFFIX, defaultAssociativity(position));
 	}
 
 	public static @Nullable Operator fromOp(String op, Position pos) {
@@ -118,7 +120,10 @@ public enum Operator {
 			// Wrong position
 			if(operator.getPosition() != pos)
 				continue;
-			if(op.equals(operator.getOp()) || (operator.codePoint > 0 && op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
+			if(operator.isParen()) {
+				if(op.length() == 1 && operator.getParenType().getStartChar() == op.charAt(0))
+					return operator;
+			} else if(op.equals(operator.getOp()) || (operator.codePoint > 0 && op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
 				return operator;
 			}
 		}
@@ -165,7 +170,7 @@ public enum Operator {
 
 
 
-	Operator(String op, Precedence precedence, Position position, String methodName) {
+	Operator(String op, Precedence precedence, Position position) {
 		this(op, CODEPOINT_NONE, position, precedence);
 	}
 

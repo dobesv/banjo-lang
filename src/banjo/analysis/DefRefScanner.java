@@ -13,7 +13,7 @@ import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.core.ExprList;
+import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
@@ -124,50 +124,81 @@ public class DefRefScanner {
 			return null;
 		}
 
+		private class ExprListDefFinder extends BaseCoreExprVisitor<TreeMap<String, DefInfo>> {
+			private final int newLetDepth;
+			private final TreeMap<String, DefInfo> tempEnvironment;
+			private final int sourceOffset;
+
+			private ExprListDefFinder(int newLetDepth, int sourceOffset, TreeMap<String, DefInfo> env) {
+				this.newLetDepth = newLetDepth;
+				this.tempEnvironment = env;
+				this.sourceOffset = sourceOffset;
+			}
+
+			@Override
+			@Nullable
+			public TreeMap<String, DefInfo> fallback(CoreExpr unsupported) {
+				return this.tempEnvironment;
+			}
+
+			@Override
+			@Nullable
+			public TreeMap<String, DefInfo> exprPair(ExprPair n) {
+				final TreeMap<String, DefInfo> e1 = n.getAction().acceptVisitor(new ExprListDefFinder(this.newLetDepth, this.sourceOffset + n.getAction().getOffsetInParent(), this.tempEnvironment));
+				return n.getResult().acceptVisitor(new ExprListDefFinder(this.newLetDepth, this.sourceOffset + n.getResult().getOffsetInParent(), nonNull(e1)));
+			}
+
+			@Override
+			@Nullable
+			public TreeMap<String, DefInfo> let(Let let) {
+				final Key name = let.getName();
+				final int nameSourceOffset = this.sourceOffset + name.getOffsetInParent();
+				final DefType defType = letDefType(let);
+				return def(name, nameSourceOffset, defType, this.newLetDepth, this.tempEnvironment);
+			}
+		}
+
+		private class ExprListScanner extends BaseCoreExprVisitor<Void> {
+			private final int newLetDepth;
+			private final TreeMap<String, DefInfo> tempEnvironment;
+			private final int sourceOffset;
+
+			private ExprListScanner(int newLetDepth, int sourceOffset, TreeMap<String, DefInfo> env) {
+				this.newLetDepth = newLetDepth;
+				this.tempEnvironment = env;
+				this.sourceOffset = sourceOffset;
+			}
+
+			@Override
+			@Nullable
+			public Void fallback(CoreExpr e) {
+				scan(e, this.sourceOffset, ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, this.newLetDepth, this.tempEnvironment);
+				return null;
+			}
+
+			@Override
+			@Nullable
+			public Void exprPair(ExprPair n) {
+				scan(n.getAction(), this.sourceOffset + n.getAction().getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, this.newLetDepth, this.tempEnvironment);
+				scan(n.getResult(), this.sourceOffset + n.getResult().getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, this.newLetDepth, this.tempEnvironment);
+				return null;
+			}
+
+			@Override
+			@Nullable
+			public Void let(Let n) {
+				scan(n.getValue(), this.sourceOffset + n.getValue().getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, this.newLetDepth, this.tempEnvironment);
+				return null;
+			}
+		}
+
+
 		@Override
 		@Nullable
-		public Void exprList(ExprList exprList) {
-			TreeMap<String, DefInfo> newEnvironment = this.environment;
+		public Void exprPair(ExprPair n) {
 			final int newLetDepth = this.letDepth+1;
-			for(final CoreExpr e : exprList.getElements()) {
-				final TreeMap<String, DefInfo> tempEnvironment = nonNull(newEnvironment);
-				newEnvironment = nonNull(e.acceptVisitor(new BaseCoreExprVisitor<TreeMap<String, DefInfo>>() {
-					@Override
-					@Nullable
-					public TreeMap<String, DefInfo> let(Let let) {
-						final Key name = let.getName();
-						final int nameSourceOffset = ScanningExprVisitor.this.exprSourceOffset + e.getOffsetInParent() + name.getOffsetInParent();
-						final DefType defType = letDefType(let);
-						return def(name, nameSourceOffset, defType, newLetDepth, tempEnvironment);
-					}
-
-					@Override
-					@Nullable
-					public TreeMap<String, DefInfo> fallback(
-							CoreExpr unsupported) {
-						return tempEnvironment;
-					}
-				}));
-			}
-			for(final CoreExpr e : exprList.getElements()) {
-				final TreeMap<String, DefInfo> tempEnvironment = nonNull(newEnvironment);
-				e.acceptVisitor(new BaseCoreExprVisitor<Void>() {
-
-					@Override
-					@Nullable
-					public Void let(Let n) {
-						scan(n.getValue(), ScanningExprVisitor.this.exprSourceOffset + n.getOffsetInParent() + n.getValue().getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, newLetDepth, tempEnvironment);
-						return null;
-					}
-
-					@Override
-					@Nullable
-					public Void fallback(CoreExpr e) {
-						scan(e, ScanningExprVisitor.this.exprSourceOffset + e.getOffsetInParent(), ScanningExprVisitor.this.parameterScopeDepth, ScanningExprVisitor.this.objectDepth, newLetDepth, tempEnvironment);
-						return null;
-					}
-				});
-			}
+			final TreeMap<String, DefInfo> newEnvironment = n.getAction().acceptVisitor(new ExprListDefFinder(newLetDepth, this.exprSourceOffset, this.environment));
+			n.getAction().acceptVisitor(new ExprListScanner(newLetDepth, this.exprSourceOffset, nonNull(newEnvironment)));
 			return null;
 		}
 

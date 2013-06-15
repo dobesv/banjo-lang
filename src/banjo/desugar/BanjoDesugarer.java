@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -22,7 +23,7 @@ import banjo.dom.core.BadExpr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprList;
+import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunArg;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
@@ -115,9 +116,10 @@ public class BanjoDesugarer {
 	 * @see Projection
 	 * @param op BinaryOp describing the projection (having PROJECTION as its operator)
 	 * @param sourceOffset Source offset to the start of op
+	 * @param optionalProjection TODO
 	 */
-	private Problematic<CoreExpr> projection(BinaryOp op, int sourceOffset) {
-		return projection(op, sourceOffset, op.getLeft(), sourceOffset + op.getLeft().getOffsetInParent(), op.getRight(), sourceOffset + op.getRight().getOffsetInParent());
+	private Problematic<CoreExpr> projection(BinaryOp op, int sourceOffset, boolean optionalProjection) {
+		return projection(op, sourceOffset, op.getLeft(), sourceOffset + op.getLeft().getOffsetInParent(), op.getRight(), sourceOffset + op.getRight().getOffsetInParent(), optionalProjection);
 	}
 
 	/**
@@ -125,13 +127,14 @@ public class BanjoDesugarer {
 	 * 
 	 * @param sourceExpr Root source expression for the projection.
 	 * @param sourceOffset Absolute file offset of the start of the expression described by op
-	 * @param baseCoreExpr Desugared left-hand side of the projection; the "base" object we're projecting from
 	 * @param objectSourceOffset Absolute file offset of the start of the left-hand side of the projection
-	 * @param projectionCoreExpr Desugared right-hand side of the project; the description of the projection
 	 * @param exprSourceOffset Absolute file offset of the right-hand side of the projection
+	 * @param optional TODO
+	 * @param baseCoreExpr Desugared left-hand side of the projection; the "base" object we're projecting from
+	 * @param projectionCoreExpr Desugared right-hand side of the project; the description of the projection
 	 * @return A new CoreExpr, possibly with errors
 	 */
-	private Problematic<CoreExpr> projection(final SourceExpr sourceExpr, final int sourceOffset, final SourceExpr objectExpr, final int objectSourceOffset, final SourceExpr expr, final int exprSourceOffset) {
+	private Problematic<CoreExpr> projection(final SourceExpr sourceExpr, final int sourceOffset, final SourceExpr objectExpr, final int objectSourceOffset, final SourceExpr expr, final int exprSourceOffset, boolean optional) {
 		final Problematic<CoreExpr> object = expr(objectExpr, sourceOffset);
 		final Problematic<CoreExpr> exprCoreExpr = expr(expr, sourceOffset);
 		return result(new Projection(sourceExpr,
@@ -144,11 +147,11 @@ public class BanjoDesugarer {
 	 * new option value which is the result of the projection.  The right-hand side
 	 * is only evaluated if the option value is present.
 	 * 
-	 * <pre> x?.foo == x.map((x) -> x.foo)</pre>
+	 * <pre> x*.foo == x.map((x) -> x.foo)</pre>
 	 */
-	private Problematic<CoreExpr> optionProjection(BinaryOp op, int sourceOffset) {
+	private Problematic<CoreExpr> mapProjection(BinaryOp op, int sourceOffset, boolean optionalProjection) {
 		final Key argName = gensym();
-		final Problematic<CoreExpr> projection = projection(op, sourceOffset, argName, sourceOffset, op.getRight(), sourceOffset + op.getRight().getOffsetInParent());
+		final Problematic<CoreExpr> projection = projection(op, sourceOffset, argName, sourceOffset, op.getRight(), sourceOffset + op.getRight().getOffsetInParent(), optionalProjection);
 		final CoreExpr projectFunc = new FunctionLiteral(op, new FunArg(op.getSourceLength(), argName), projection.getValue());
 		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
 		final CoreExpr mapCall = new Call(op, new Projection(op, off(op.getLeft(), left), new Identifier("map")), projectFunc);
@@ -209,13 +212,23 @@ public class BanjoDesugarer {
 		final List<CoreExpr> args = arg.getValue().acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
 			@Override
 			@NonNull
-			public List<CoreExpr> exprList(ExprList n) {
-				final List<CoreExpr> elts = n.getElements();
-				final List<CoreExpr> args = new ArrayList<>(elts.size());
-				for(final CoreExpr elt : elts) {
-					// Adjust the offset in parent so it's relative to the whole call, not just the argument list
-					args.add(off(argsOffset, nonNull(elt)));
-				}
+			public List<CoreExpr> exprPair(ExprPair n) {
+				final List<CoreExpr> args = new ArrayList<>();
+				new BaseCoreExprVisitor<Void>() {
+					@Override
+					@Nullable
+					public Void exprPair(ExprPair n) {
+						n.getAction().acceptVisitor(this);
+						n.getResult().acceptVisitor(this);
+						return null;
+					}
+					@Override
+					@Nullable
+					public Void fallback(CoreExpr other) {
+						args.add(other);
+						return null;
+					}
+				}.exprPair(n);
 				return args;
 			}
 
@@ -257,7 +270,7 @@ public class BanjoDesugarer {
 		//		return result(new Let(op, name, off(dsValueOffset,valueCoreExpr)), problems);
 	}
 
-	public Problematic<CoreExpr> let(final BinaryOp sourceExpr, final int sourceOffset,
+	private Problematic<CoreExpr> let(final BinaryOp sourceExpr, final int sourceOffset,
 			final SourceExpr left, final int leftSourceOffset,
 			final CoreExpr right, final int rightSourceOffset) {
 		return nonNull(left.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
@@ -300,7 +313,7 @@ public class BanjoDesugarer {
 		}));
 	}
 
-	protected Problematic<CoreExpr> let(
+	private Problematic<CoreExpr> let(
 			final BinaryOp sourceExpr, final int sourceOffset,
 			final SourceExpr left,    final int leftSourceOffset,
 			final CoreExpr right,     final int rightSourceOffset,
@@ -310,21 +323,171 @@ public class BanjoDesugarer {
 			@Nullable
 			public Problematic<CoreExpr> binaryOp(BinaryOp targetBOp) {
 				switch(targetBOp.getOperator()) {
-				case CALL: {
-					final SourceExpr args = targetBOp.getRight();
-					final int argsSourceOffset = leftSourceOffset + args.getOffsetInParent();
-					final Problematic<CoreExpr> newRight = functionLiteral(
-							sourceExpr, sourceOffset,
-							args, argsSourceOffset,
-							guarantee, guaranteeSourceOffset,
-							right, rightSourceOffset);
-					final int newRightSourceOffset = sourceOffset;
-					final SourceExpr newLeft = targetBOp.getLeft();
-					final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
-					return let(sourceExpr, sourceOffset, newLeft, newLeftSourceOffset, newRight.getValue(), newRightSourceOffset).plusProblemsFrom(newRight);
-				}
+				// f(x) = x + 1 - local function definition
+				case CALL: return localFunctionDef(targetBOp);
 				default: return fallback(targetBOp);
 				}
+			}
+
+			public Problematic<CoreExpr> localFunctionDef(BinaryOp targetBOp) {
+				final SourceExpr args = targetBOp.getRight();
+				final int argsSourceOffset = leftSourceOffset + args.getOffsetInParent();
+				final Problematic<CoreExpr> newRight = functionLiteral(
+						sourceExpr, sourceOffset,
+						args, argsSourceOffset,
+						guarantee, guaranteeSourceOffset,
+						right, rightSourceOffset);
+				final int newRightSourceOffset = sourceOffset;
+				final SourceExpr newLeft = targetBOp.getLeft();
+				final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
+				return let(sourceExpr, sourceOffset, newLeft, newLeftSourceOffset, newRight.getValue(), newRightSourceOffset).plusProblemsFrom(newRight);
+			}
+
+			@Override
+			@Nullable
+			public Problematic<CoreExpr> unaryOp(UnaryOp op) {
+				switch(op.getOperator()) {
+				case PARENS:
+					switch(op.getOperator().getParenType()) {
+					// { ... } = ... - object parsing
+					case BRACES: return parseObject(op);
+					// [ ... ] = ... - list/sequence parsing
+					case BRACKETS: return parseList(op);
+					// ( ... ) = ... - operator precedence fix
+					case PARENS: return let(sourceExpr, sourceOffset,
+							op, leftSourceOffset,
+							right, rightSourceOffset,
+							guarantee, guaranteeSourceOffset);
+					default: break;
+					}
+				default: break;
+				}
+				return super.unaryOp(op);
+			}
+
+			private Problematic<CoreExpr> parseList(final UnaryOp op) {
+				// Put the list into a temporary
+				// Then read elements in sequence into the lhs identifiers
+				// Put the object into a temporary if necessary
+				// Read elements by name into the lhs identifiers
+				// Lhs identifiers can be a pair to specify a rename
+				// Lhs identifiers might be a :foo to specify no rename
+				return nonNull(right.acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
+					/**
+					 * If the right-hand side is an identifier, we don't need to stick it into a temporary variable
+					 */
+					@Override
+					public @Nullable
+					Problematic<CoreExpr> identifier(Identifier id) {
+						return readElements(id, null);
+					}
+
+					/**
+					 * If the right-hand side is not an identifier, we need to stick it into a temporary variable
+					 * and reference that in our projections.  This avoids multiple evaluations of the right-hand
+					 * side.
+					 */
+					@Override
+					@Nullable
+					public Problematic<CoreExpr> fallback(CoreExpr unsupported) {
+						final Identifier tempIdent = new Identifier(unsupported.toSource());
+						final Let tempLet = new Let(0, tempIdent, right);
+						return readElements(tempIdent, tempLet);
+					}
+
+
+					public Problematic<CoreExpr> readElements(final Identifier temp, @Nullable CoreExpr result) {
+						final ArrayList<SourceExpr> vars = flattenCommas(op.getOperand(), 0, new ArrayList<SourceExpr>());
+						final ArrayList<Problem> problems = new ArrayList<>();
+						for(final ListIterator<SourceExpr> it = vars.listIterator(); it.hasNext(); ) {
+							final int index = it.nextIndex();
+							final SourceExpr var = it.next();
+							final Key id = expectIdentifier(var, leftSourceOffset+var.getOffsetInParent(), problems);
+							final NumberLiteral arrayIndexExpr = new NumberLiteral(0, nonNull(String.valueOf(index)), nonNull(Integer.valueOf(index)));
+							final CoreExpr lookupExpr = binaryOpToMethodCall(op.getSourceLength(), temp, Operator.LOOKUP, arrayIndexExpr);
+							final Let e = new Let(0, id, lookupExpr);
+							if(result != null)
+								result = new ExprPair(0, result, e);
+							else
+								result = e;
+						}
+						return result(result, problems);
+					}
+				}));
+			}
+
+			private Problematic<CoreExpr> parseObject(final UnaryOp op) {
+				// Put the object into a temporary if necessary
+				// Read elements by name into the lhs identifiers
+				// Lhs identifiers can be a pair to specify a rename
+				// Lhs identifiers might be a :foo to specify no rename
+				return nonNull(right.acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
+					/**
+					 * If the right-hand side is an identifier, we don't need to stick it into a temporary variable
+					 */
+					@Override
+					public @Nullable
+					Problematic<CoreExpr> identifier(Identifier id) {
+						return readElements(id, null);
+					}
+
+					/**
+					 * If the right-hand side is not an identifier, we need to stick it into a temporary variable
+					 * and reference that in our projections.  This avoids multiple evaluations of the right-hand
+					 * side.
+					 */
+					@Override
+					@Nullable
+					public Problematic<CoreExpr> fallback(CoreExpr unsupported) {
+						final Identifier tempIdent = new Identifier(unsupported.toSource());
+						final Let tempLet = new Let(0, tempIdent, right);
+						return readElements(tempIdent, tempLet);
+					}
+
+
+					public Problematic<CoreExpr> readElements(final Identifier temp, @Nullable CoreExpr result) {
+						final ArrayList<SourceExpr> vars = flattenCommas(op.getOperand(), 0, new ArrayList<SourceExpr>());
+						final ArrayList<Problem> problems = new ArrayList<>();
+						for(final SourceExpr var : vars) {
+							final CoreExpr e = nonNull(var.acceptVisitor(new BaseSourceExprVisitor<CoreExpr>() {
+								@Override
+								@Nullable
+								public CoreExpr fallback(SourceExpr other) {
+									final ExpectedField problem = new ExpectedField(leftSourceOffset + var.getOffsetInParent(), other.getSourceLength());
+									problems.add(problem);
+									return new BadExpr(other, problem);
+								}
+
+								@Override
+								@Nullable
+								public CoreExpr key(Key key) {
+									return new Let(op.getSourceLength(), off(var.getOffsetInParent(), key), new Projection(key.getSourceLength(), temp, key));
+								}
+
+								@Override
+								public @Nullable CoreExpr binaryOp(BinaryOp op) {
+									if(op.getOperator() == Operator.PAIR) {
+										final int keyOffset = leftSourceOffset + var.getOffsetInParent() + op.getLeft().getOffsetInParent();
+										final Key key = expectIdentifier(op.getLeft(), keyOffset, problems);
+
+										// For something like {a:b} = c, use b = c.a
+										// This makes sense if you think that the reverse operation would be c = {a:b}
+										return BanjoDesugarer.this.let(sourceExpr, sourceOffset,
+												op.getLeft(), leftSourceOffset + var.getOffsetInParent(),
+												new Projection(key.getSourceLength(), temp, key), keyOffset,
+												FunctionLiteral.DEFAULT_GUARANTEE, 0).dumpProblems(problems);
+									}
+									return fallback(op);
+								}
+							}));
+							if(result != null)
+								result = new ExprPair(0, result, e);
+							else
+								result = e;
+						}
+						return result(result, problems);
+					}
+				}));
 			}
 
 			@Override
@@ -950,6 +1113,61 @@ public class BanjoDesugarer {
 		return exprs;
 	}
 
+	private Problematic<CoreExpr> binaryOpToMethodCall(int sourceOffset, final BinaryOp op, boolean lazyRightOperand) {
+		final int sourceLength = op.getSourceLength();
+		final SourceExpr leftSourceExpr = op.getLeft();
+		final int leftSourceOffset = sourceOffset + leftSourceExpr.getOffsetInParent();
+		final Operator operator = op.getOperator();
+		final SourceExpr rightSourceExpr = op.getRight();
+		final int rightSourceOffset = sourceOffset + rightSourceExpr.getOffsetInParent();
+		return binaryOpToMethodCall(sourceLength, leftSourceExpr,
+				leftSourceOffset, operator, rightSourceExpr,
+				rightSourceOffset, lazyRightOperand);
+	}
+
+	private Problematic<CoreExpr> binaryOpToMethodCall(
+			final int sourceLength, final SourceExpr leftSourceExpr,
+			final int leftSourceOffset, final Operator operator,
+			final SourceExpr rightSourceExpr, final int rightSourceOffset,
+			boolean lazyRightOperand) {
+		final Problematic<CoreExpr> left = expr(leftSourceExpr, leftSourceOffset);
+		final Problematic<CoreExpr> right = lazyRightOperand ? lazyValue(rightSourceExpr, rightSourceOffset) : expr(rightSourceExpr, rightSourceOffset);
+		final CoreExpr leftCoreExpr = off(leftSourceExpr, left.getValue());
+		final CoreExpr rightCoreExpr = off(rightSourceExpr, right.getValue());
+		return result(binaryOpToMethodCall(sourceLength, leftCoreExpr, operator, rightCoreExpr), left, right);
+	}
+
+	private Call binaryOpToMethodCall(final int sourceLength,
+			final CoreExpr leftCoreExpr, final Operator operator,
+			final CoreExpr rightCoreExpr) {
+		return new Call(sourceLength, new Projection(sourceLength, leftCoreExpr, new Identifier(operator.getOp())), rightCoreExpr);
+	}
+
+
+	private Problematic<CoreExpr> lazyValue(SourceExpr sourceExpr, int sourceOffset) {
+		final int operandSourceOffset = sourceOffset + sourceExpr.getOffsetInParent();
+		final Problematic<CoreExpr> operandCoreExpr = expr(sourceExpr, operandSourceOffset);
+		final int sourceLength = sourceExpr.getSourceLength();
+		return result(new FunctionLiteral(sourceLength, nonNull(Collections.<FunArg>emptyList()), FunctionLiteral.DEFAULT_GUARANTEE, off(sourceExpr, operandCoreExpr)), operandCoreExpr.getProblems());
+	}
+
+
+	private Problematic<CoreExpr> singletonSetLiteral(UnaryOp op, int sourceOffset) {
+		final SourceExpr operandSourceExpr = op.getOperand();
+		final int operandSourceOffset = sourceOffset + operandSourceExpr.getOffsetInParent();
+		final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
+		return result(new SetLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
+	}
+
+
+	private Problematic<CoreExpr> singletonListLiteral(UnaryOp op, int sourceOffset) {
+		final SourceExpr operandSourceExpr = op.getOperand();
+		final int operandSourceOffset = sourceOffset + operandSourceExpr.getOffsetInParent();
+		final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
+		return result(new ListLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
+	}
+
+
 	class DesugarVisitor implements SourceExprVisitor<Problematic<CoreExpr>> {
 		private final int sourceOffset;
 		public DesugarVisitor(int sourceOffset) {
@@ -1042,15 +1260,16 @@ public class BanjoDesugarer {
 					@Override
 					@Nullable
 					public Problematic<CoreExpr> fallback(SourceExpr other) {
-						final ArrayList<CoreExpr> coreExprs = new ArrayList<>(sourceExprs.size());
 						final LinkedList<Problem> problems = new LinkedList<>();
-						for(final SourceExpr e : sourceExprs) {
-							if(e == null) throw new NullPointerException();
+						CoreExpr result = null;
+						for(final ListIterator<SourceExpr> i = sourceExprs.listIterator(sourceExprs.size()); i.hasPrevious(); ) {
+							final SourceExpr e = nonNull(i.previous());
 							final int exprSourceOffset = DesugarVisitor.this.sourceOffset + e.getOffsetInParent();
-							final CoreExpr dsExpr = expr(e, exprSourceOffset).dumpProblems(problems);
-							coreExprs.add(off(exprSourceOffset - DesugarVisitor.this.sourceOffset, dsExpr));
+							final CoreExpr coreExpr = expr(e, exprSourceOffset).dumpProblems(problems);
+							if(result == null) result = coreExpr;
+							else result = new ExprPair(0, coreExpr, result);
 						}
-						return result(new ExprList(op, coreExprs), problems);
+						return result(nonNull(result), problems);
 					}
 				}));
 			}
@@ -1059,8 +1278,10 @@ public class BanjoDesugarer {
 			case PAIR_INCLUDE:
 			case PAIR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.<SourceExpr>singletonList(op)));
 			case ASSIGNMENT: return let(op, this.sourceOffset);
-			case PROJECTION: return projection(op, this.sourceOffset);
-			case MAP_PROJECTION: return optionProjection(op, this.sourceOffset);
+			case PROJECTION: return projection(op, this.sourceOffset, false);
+			case OPT_PROJECTION: return projection(op, this.sourceOffset, true);
+			case MAP_PROJECTION: return mapProjection(op, this.sourceOffset, false);
+			case MAP_OPT_PROJECTION: return mapProjection(op, this.sourceOffset, true);
 
 
 			case GT:
@@ -1079,12 +1300,12 @@ public class BanjoDesugarer {
 			case INTERSECT:
 			case XOR:
 			case UNION:
-			case LOOKUP: return binaryOpToMethodCall(op, false);
+			case LOOKUP: return binaryOpToMethodCall(this.sourceOffset, op, false);
 
 			// Short-circuit operators have a lazy right operand
 			case LAZY_AND:
 			case LAZY_OR:
-			case COND: return binaryOpToMethodCall(op, true);
+			case COND: return binaryOpToMethodCall(this.sourceOffset, op, true);
 
 			default:
 				final Problem problem = new UnsupportedBinaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
@@ -1092,25 +1313,14 @@ public class BanjoDesugarer {
 			}
 		}
 
-		public Problematic<CoreExpr> binaryOpToMethodCall(final BinaryOp op, boolean lazyRightOperand) {
-			final int leftSourceOffset = this.sourceOffset + op.getLeft().getOffsetInParent();
-			final int rightSourceOffset = this.sourceOffset + op.getRight().getOffsetInParent();
-			final Problematic<CoreExpr> left = expr(op.getLeft(), leftSourceOffset);
-			final Problematic<CoreExpr> right = expr(op.getRight(), rightSourceOffset);
-			final CoreExpr leftWithOffset = off(op.getLeft(), left.getValue());
-			final CoreExpr rightWithOffset = off(op.getRight(), right.getValue());
-			final CoreExpr rightMaybeLazy = lazyRightOperand ? new FunctionLiteral(rightWithOffset) : rightWithOffset;
-			return result(new Call(op, new Projection(op, leftWithOffset, new Identifier(op.getOperator().getOp())), rightMaybeLazy), left, right);
-		}
-
 		@Override
 		public Problematic<CoreExpr> unaryOp(final UnaryOp op) {
 			final SourceExpr operandSourceExpr = op.getOperand();
 			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
 			switch(op.getOperator()) {
-			case LIST_ELEMENT: return singletonListLiteral(op);
-			case SET_ELEMENT: return singletonSetLiteral(op);
-			case LAZY: return lazyValue(op);
+			case LIST_ELEMENT: return singletonListLiteral(op, this.sourceOffset);
+			case SET_ELEMENT: return singletonSetLiteral(op, this.sourceOffset);
+			case LAZY: return lazyValue(op.getOperand(), this.sourceOffset + op.getOperand().getOffsetInParent());
 			case ANON_INCLUDE:
 			case MIRROR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.singletonList(operandSourceExpr)));
 			case LIST_LITERAL: {
@@ -1118,7 +1328,7 @@ public class BanjoDesugarer {
 				flattenCommas(operandSourceExpr, operandSourceExpr.getOffsetInParent(), exprs);
 				return listLiteral(operandSourceExpr, this.sourceOffset, exprs, null);
 			}
-			case OBJECT_OR_SET_LITERAL: {
+			case OBJECT_LITERAL: {
 				// Expecting an object or set in here.
 				final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
 				return nonNull(operandCoreExpr.getValue().acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
@@ -1135,25 +1345,9 @@ public class BanjoDesugarer {
 
 					@Override
 					@Nullable
-					public Problematic<CoreExpr> setLiteral(SetLiteral set) {
-						// Have to adjust the offsets of the elements
-						final List<CoreExpr> elements = offAll(operandSourceExpr, set.getElements());
-						return result(new SetLiteral(op, elements), operandCoreExpr.getProblems());
-					}
-
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> exprList(ExprList exprList) {
-						// Have to adjust the offsets of the elements
-						final List<CoreExpr> elements = offAll(operandSourceExpr, exprList.getElements());
-						return result(new SetLiteral(op, elements), operandCoreExpr.getProblems());
-					}
-					@Override
-					@Nullable
 					public Problematic<CoreExpr> fallback(CoreExpr other) {
-						// Have to adjust the offsets of the elements
-						final List<CoreExpr> elements = nonNull(Collections.singletonList(off(operandSourceExpr, other)));
-						return result(new SetLiteral(op, elements), operandCoreExpr.getProblems());
+						final ExpectedField problem = new ExpectedField(DesugarVisitor.this.sourceOffset, other.getSourceLength());
+						return result(new ObjectLiteral(0, nonNull(Collections.<String,Method>emptyMap())), problem);
 					}
 				}));
 			}
@@ -1177,27 +1371,6 @@ public class BanjoDesugarer {
 				return result(new BadExpr(op, problem), problem);
 
 			}
-		}
-
-		public Problematic<CoreExpr> lazyValue(UnaryOp op) {
-			final SourceExpr operandSourceExpr = op.getOperand();
-			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
-			final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-			return result(new FunctionLiteral(op.getSourceLength(), nonNull(Collections.<FunArg>emptyList()), FunctionLiteral.DEFAULT_GUARANTEE, off(operandSourceExpr, operandCoreExpr)), operandCoreExpr.getProblems());
-		}
-
-		public Problematic<CoreExpr> singletonSetLiteral(UnaryOp op) {
-			final SourceExpr operandSourceExpr = op.getOperand();
-			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
-			final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-			return result(new SetLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
-		}
-
-		public Problematic<CoreExpr> singletonListLiteral(UnaryOp op) {
-			final SourceExpr operandSourceExpr = op.getOperand();
-			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
-			final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-			return result(new ListLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
 		}
 
 		@Override
@@ -1248,7 +1421,7 @@ public class BanjoDesugarer {
 		@Override
 		@Nullable
 		public Problematic<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
-			return result(new ExprList(emptyExpr, nonNull(Collections.<CoreExpr>emptyList())));
+			return result(new ObjectLiteral(0, nonNull(Collections.<String, Method>emptyMap())));
 		}
 	}
 
@@ -1259,8 +1432,8 @@ public class BanjoDesugarer {
 	protected static Problematic<CoreExpr> result(CoreExpr e, Problem ... problems) {
 		return new Problematic<CoreExpr>(e, problems);
 	}
-	protected static Problematic<CoreExpr> result(CoreExpr e, List<Problem> problems) {
-		return new Problematic<CoreExpr>(e, problems);
+	protected static Problematic<CoreExpr> result(@Nullable CoreExpr e, List<Problem> problems) {
+		return new Problematic<CoreExpr>(nonNull(e), problems);
 	}
 	protected static Problematic<CoreExpr> result(CoreExpr e, Problematic<?> left, Problematic<?> right) {
 		return new Problematic<CoreExpr>(e, left, right);

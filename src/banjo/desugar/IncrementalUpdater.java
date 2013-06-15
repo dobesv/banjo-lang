@@ -14,7 +14,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprList;
+import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
@@ -187,7 +187,7 @@ public class IncrementalUpdater {
 				int calleeLengthDelta;
 				if(editInside(calleeStartOffset, calleeEndOffset)) {
 					contained = true;
-					newCallee = process(callee, exprStartOffset + callee.getOffsetInParent());
+					newCallee = process(callee, calleeStartOffset);
 					calleeLengthDelta = newCallee.getSourceLength() - callee.getSourceLength();
 				} else {
 					newCallee = callee;
@@ -201,10 +201,36 @@ public class IncrementalUpdater {
 
 			@Override
 			@Nullable
-			public CoreExpr exprList(ExprList n) {
-				final OffsetValue<List<CoreExpr>> newElements = tryChildElements(n.getElements());
-				if(newElements != null && newElements.getValue() != n.getElements()) {
-					return new ExprList(n.getSourceLength() + newElements.getOffset(), newElements.getValue());
+			public CoreExpr exprPair(ExprPair n) {
+				boolean contained = false;
+				final CoreExpr action = n.getAction();
+				final int actionStartOffset = exprStartOffset + action.getOffsetInParent();
+				final int actionEndOffset = actionStartOffset + action.getSourceLength();
+				CoreExpr newAction;
+				int actionLengthDelta;
+				if(editInside(actionStartOffset, actionEndOffset)) {
+					contained = true;
+					newAction = process(action, actionStartOffset);
+					actionLengthDelta = newAction.getSourceLength() - action.getSourceLength();
+				} else {
+					newAction = action;
+					actionLengthDelta = 0;
+				}
+				final CoreExpr result = n.getResult();
+				final int resultStartOffset = exprStartOffset + result.getOffsetInParent();
+				final int resultEndOffset = resultStartOffset + result.getSourceLength();
+				CoreExpr newResult;
+				int resultLengthDelta;
+				if(editInside(resultStartOffset, resultEndOffset)) {
+					contained = true;
+					newResult = process(result, resultStartOffset);
+					resultLengthDelta = newResult.getSourceLength() - result.getSourceLength();
+				} else {
+					newResult = result;
+					resultLengthDelta = 0;
+				}
+				if(contained) {
+					return new ExprPair(n.getSourceLength() + actionLengthDelta + resultLengthDelta, newAction, off(resultLengthDelta, newResult));
 				}
 				return fallback(n);
 			}

@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprList;
+import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.token.Identifier;
@@ -26,9 +26,8 @@ public class TestLetParser {
 
 	private void hello(String source, int expectedErrorCount) {
 		if(expectedErrorCount == 0) {
-			final ExprList node = ParseTestUtils.test(source, expectedErrorCount, null, ExprList.class, "hello = \"world\"; hello");
-			assertEquals(2, node.getElements().size());
-			final Let let = (Let) node.getElements().get(0);
+			final ExprPair node = ParseTestUtils.test(source, expectedErrorCount, null, ExprPair.class, "hello = \"world\"; hello");
+			final Let let = (Let) node.getAction();
 
 			assertEquals("hello", let.getName().getKeyString());
 			let.getValue().acceptVisitor(new BaseCoreExprVisitor<Void>() {
@@ -46,7 +45,7 @@ public class TestLetParser {
 					return null;
 				}
 			});
-			node.getElements().get(1).acceptVisitor(new BaseCoreExprVisitor<Void>() {
+			node.getResult().acceptVisitor(new BaseCoreExprVisitor<Void>() {
 				@Override
 				@Nullable
 				public Void identifier(@NonNull Identifier identifier) {

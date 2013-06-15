@@ -24,7 +24,7 @@ public class TestProjectionParser {
 	@Test public void specialCharField1q() { ParseTestUtils.test("a.\"--\"", Projection.class); }
 	@Test public void specialCharField2q() { ParseTestUtils.test("a.\"..\"", Projection.class); }
 	@Test public void specialCharField3q() { ParseTestUtils.test("a.\".\"", Projection.class); }
-	@Test public void aOptionDotB() { ParseTestUtils.test("a?.b", "a.map(((__t1) -> __t1.b))", Call.class); }
+	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map(((__t1) -> __t1.b))", Call.class); }
 
 
 }

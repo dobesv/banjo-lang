@@ -60,7 +60,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	@Nullable
-	public T exprList(ExprList n) {
+	public T exprPair(ExprPair n) {
 		return fallback(n);
 	}
 

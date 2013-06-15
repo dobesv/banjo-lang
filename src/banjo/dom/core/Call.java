@@ -29,6 +29,10 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		this(sourceExpr, callee, nonNull(Arrays.asList(arguments)));
 	}
 
+	public Call(int sourceLength, CoreExpr callee, CoreExpr ... arguments) {
+		this(sourceLength, callee, nonNull(Arrays.asList(arguments)));
+	}
+
 
 	public CoreExpr getCallee() {
 		return this.callee;
