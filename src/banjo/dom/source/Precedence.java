@@ -3,7 +3,7 @@ package banjo.dom.source;
 
 public enum Precedence {
 	// Listed here from HIGHEST to LOWEST
-	ATOM, // Identifier, string/number/character/object literal/constructor, parenthesized expr 
+	ATOM, // Identifier, string/number/character/object literal/constructor, parenthesized expr
 	SUFFIX, // array index, member access, function/method call
 	UNARY_PREFIX, // +, -, ~
 	MULDIV, // *, /, %
@@ -18,13 +18,13 @@ public enum Precedence {
 	LAZY_OR, // ||
 	TERNARY, // ? :
 	COLON, // Key/value pair
-	COMMA, // ',' "sequence operator"
 	BULLET, // Bullets list
 	FUNCTION, // ->
 	ASSIGNMENT, // let, =, +=, *=, ...
 	COND, // '=>' implication / cond
+	COMMA, // ',' "sequence operator"
 	SEMICOLON; // ';' "sequence operator"
-	
+
 	public boolean isHigherThan(Precedence other) {
 		return ordinal() < other.ordinal();
 	}
@@ -49,5 +49,5 @@ public enum Precedence {
 	public static Precedence lowest() {
 		return values()[values().length-1];
 	}
-	
+
 }

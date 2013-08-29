@@ -5,7 +5,7 @@ import static banjo.parser.util.Check.nonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 
-public final class FileRange {
+public final class FileRange implements Comparable<FileRange> {
 	private final FilePos start;
 	private final FilePos end;
 	public FileRange(FilePos start, FilePos end) {
@@ -138,6 +138,17 @@ public final class FileRange {
 
 	public FileRange headRange() {
 		return new FileRange(this.start, this.start);
+	}
+
+	@Override
+	public int compareTo(FileRange o) {
+		int cmp = Integer.compare(getStartOffset(), o.getStartOffset());
+		if(cmp == 0) cmp = Integer.compare(getEndOffset(), o.getEndOffset());
+		return cmp;
+	}
+
+	public OffsetLength toOffsetLength() {
+		return new OffsetLength(getStartOffset(), length());
 	}
 
 

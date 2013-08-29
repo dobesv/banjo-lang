@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.core.BadExpr;
+import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
@@ -28,8 +28,8 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
-import banjo.parser.errors.UnexpectedIOExceptionError;
 import banjo.parser.util.ParserReader;
+import banjo.parser.util.UnexpectedIOExceptionError;
 import fj.Ord;
 import fj.data.Option;
 import fj.data.TreeMap;
@@ -117,7 +117,7 @@ public class DefRefScanner {
 		@Override
 		@Nullable
 		public Void call(Call call) {
-			scan(call.getCallee());
+			scan(call.getObject());
 			for(final CoreExpr arg : call.getArguments()) {
 				scan(nonNull(arg));
 			}
@@ -251,11 +251,11 @@ public class DefRefScanner {
 			final int newObjectDepth = this.objectDepth+1;
 			TreeMap<String, DefInfo> newEnvironment = this.environment;
 			// Still debating whether to allow access to fields without using a field reference to self
-			for(final Method f : objectLiteral.getFields().values()) {
+			for(final Method f : objectLiteral.getMethods().values()) {
 				final int nameSourceOffset = this.exprSourceOffset + f.getOffsetInObject() + f.getKey().getOffsetInParent();
 				newEnvironment = def(f.getKey(), nameSourceOffset, fieldDefType(f), newObjectDepth, newEnvironment);
 			}
-			for(final Method f : objectLiteral.getFields().values()) {
+			for(final Method f : objectLiteral.getMethods().values()) {
 				scan(f.getImplementation(), this.exprSourceOffset + f.getOffsetInObject() + f.getImplementation().getOffsetInParent(), this.parameterScopeDepth, newObjectDepth, this.letDepth, newEnvironment);
 			}
 			return null;
@@ -296,7 +296,7 @@ public class DefRefScanner {
 
 		@Override
 		@Nullable
-		public Void badExpr(BadExpr badExpr) {
+		public Void badExpr(BadCoreExpr badExpr) {
 			return null;
 		}
 	}
@@ -419,7 +419,7 @@ public class DefRefScanner {
 
 		@Override
 		public DefType objectLiteral(ObjectLiteral objectLiteral) {
-			for(final Method f : objectLiteral.getFields().values()) {
+			for(final Method f : objectLiteral.getMethods().values()) {
 				final DefType fieldDefType = f.getImplementation().acceptVisitor(this);
 				if(fieldDefType == this.valueType) {
 					return this.valueType;

@@ -3,51 +3,53 @@ package banjo.dom.core;
 import static banjo.parser.util.Check.nonNull;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
-import banjo.dom.source.SourceExpr;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
+import banjo.parser.util.ListUtil;
+import fj.Ord;
+import fj.data.List;
+import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
-	private final Map<String, Method> fields;
+	public static final TreeMap<String, fj.data.List<Method>> EMPTY_METHOD_MAP = nonNull(TreeMap.<String, fj.data.List<Method>>empty(Ord.stringOrd));
+	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
+	private final Iterable<Method> methods;
+	@Nullable
+	private TreeMap<String, fj.data.List<Method>> methodMap;
 
-	public ObjectLiteral(SourceExpr sourceExpr, Map<String, Method> fields) {
-		this(sourceExpr.getSourceLength(), fields);
-	}
-
-	public ObjectLiteral(int sourceLength, Map<String, Method> fields) {
-		super(sourceLength, fields.hashCode());
-		this.fields = nonNull(Collections.unmodifiableMap(fields));
+	public ObjectLiteral(Iterable<Method> fields) {
+		super(fields.hashCode());
+		this.methods = nonNull(fields);
+		this.methodMap = makeMethodMap(fields);
 	}
 
 	@SafeVarargs
-	public ObjectLiteral(SourceExpr sourceExpr, Method ... fields) {
-		this(sourceExpr, makeFieldMap(nonNull(Arrays.asList(fields))));
+	public ObjectLiteral(Method ... methods) {
+		this(nonNull(Arrays.asList(methods)));
 	}
 
-	private static Map<String, Method> makeFieldMap(List<Method> fields) {
-		final LinkedHashMap<String,Method> fieldMap = new LinkedHashMap<>(fields.size());
-		for(final Method f : fields) {
-			fieldMap.put(f.getKey().getKeyString(), f);
+	private static TreeMap<String, fj.data.List<Method>> makeMethodMap(Iterable<Method> methods) {
+		TreeMap<String,fj.data.List<Method>> methodMap = EMPTY_METHOD_MAP;
+		for(final Method method : methods) {
+			final String k = method.getKey().getKeyString();
+			methodMap = nonNull(methodMap.set(k, methodMap.get(k).orSome(EMPTY_METHOD_LIST).snoc(method)));
 		}
-		return fieldMap;
+		return methodMap;
 	}
 
-	public Map<String, Method> getFields() {
-		return this.fields;
+	public Iterable<Method> getMethods() {
+		return this.methods;
 	}
 
-	public @Nullable Method getField(String name) {
-		return this.fields.get(name);
+	public @Nullable Iterable<Method> getMethod(String name) {
+		return getMethodMap().get(name).orSome(EMPTY_METHOD_LIST);
 	}
 
 	@Override
@@ -59,7 +61,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public void toSource(StringBuffer sb) {
 		sb.append('{');
 		boolean first = true;
-		for(final Method f : this.fields.values()) {
+		for(final Method f : this.methods) {
 			if(first) first = false;
 			else sb.append(", ");
 			f.toSource(sb);
@@ -95,9 +97,29 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		if (!(obj instanceof ObjectLiteral))
 			return false;
 		final ObjectLiteral other = (ObjectLiteral) obj;
-		if (!this.fields.equals(other.fields))
+		if (!this.methods.equals(other.methods))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final ObjectLiteral other = (ObjectLiteral) o;
+			cmp = ListUtil.compare(this.methods, other.methods);
+		}
+		return cmp;
+	}
+
+	public TreeMap<String, fj.data.List<Method>> getMethodMap() {
+		final TreeMap<String, List<Method>> methodMap = this.methodMap;
+		if(methodMap == null)
+			return this.methodMap = makeMethodMap(this.methods);
+		else
+			return methodMap;
 	}
 
 }

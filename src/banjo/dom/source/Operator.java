@@ -8,20 +8,20 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.ParenType;
 
 public enum Operator {
+	// Nullary operator
+	EMPTY("", Position.NA, Precedence.ATOM),
+
 	// Unary operators
 	PLUS("+", Position.PREFIX, Precedence.UNARY_PREFIX),
 	NEGATE("-", Position.PREFIX, Precedence.UNARY_PREFIX),
 	COMPLEMENT("~", Position.PREFIX, Precedence.UNARY_PREFIX),
 	NOT("!", Position.PREFIX, Precedence.UNARY_PREFIX),
-	MIRROR(":", Position.PREFIX, Precedence.UNARY_PREFIX),
-	ANON_INCLUDE(":<", Position.PREFIX, Precedence.BULLET),
 	LIST_ELEMENT("*", 0x2022, Position.PREFIX, Precedence.BULLET),
-	SET_ELEMENT("|", Position.PREFIX, Precedence.BULLET),
 	LAZY("->", 0x21a6, Position.PREFIX, Precedence.FUNCTION),
 	TABLE_HEADER("#::", Position.PREFIX, Precedence.BULLET),
 	TABLE_ROW("::", Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, Position.PREFIX),
-	LIST_LITERAL(ParenType.BRACKETS, Position.PREFIX),
+	BRACKETS(ParenType.BRACKETS, Position.PREFIX),
 	RETURN("^", 0x2191, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, Position.PREFIX),
 	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX),
@@ -31,6 +31,7 @@ public enum Operator {
 	// Binary operators
 	LOOKUP(ParenType.BRACKETS, Position.INFIX),
 	CALL(ParenType.PARENS, Position.INFIX),
+	EXTEND(".+", 0x03A6, Position.INFIX, Precedence.FUNCTION),
 	PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
 	OPT_PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", Position.INFIX, Precedence.SUFFIX),
@@ -52,21 +53,22 @@ public enum Operator {
 	UNION("|", 0x222A, Position.INFIX, Precedence.UNION),
 	LAZY_AND("&&", 0x2227, Position.INFIX, Precedence.LAZY_AND),
 	LAZY_OR("||", 0x2228, Position.INFIX, Precedence.LAZY_OR),
-	COMMA(",", Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	FUNCTION("->", 0x21A6, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
-	PAIR(":", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
-	PAIR_INCLUDE(":<", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
+	MONAD_EXTRACT("<-", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
+	MONAD_BIND(">>=", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
+	COLON(":", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COND("=>", 0x21D2, Position.INFIX, Precedence.COND, Associativity.RIGHT),
+	COMMA(",", Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	SEMICOLON(";", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
 	// Special case operators
-	INVALID("~~~INVALID~~~", Position.INFIX, Precedence.ATOM),
-	MISSING("~~~MISSING~~~", Position.INFIX, Precedence.ATOM); // Newline and indent
+	INVALID("~~~INVALID~~~", Position.NA, Precedence.ATOM),
+	MISSING("~~~MISSING~~~", Position.NA, Precedence.ATOM); // Newline and indent
 
 	public static enum Associativity { LEFT, RIGHT, NA; }
-	public static enum Position { PREFIX, INFIX, SUFFIX }
+	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
 	private final String op;
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence precedence;
@@ -74,7 +76,7 @@ public enum Operator {
 	private final Associativity associativity;
 	private final Position position;
 
-	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Precedence precedence, Associativity associativity) {
+	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.precedence = precedence;
@@ -84,10 +86,10 @@ public enum Operator {
 	}
 
 	Operator(String op, int codePoint, ParenType parenType, Position position, Precedence p) {
-		this(op, codePoint, parenType, position, p, Associativity.NA);
+		this(op, codePoint, parenType, position, Associativity.NA, p);
 	}
 	Operator(String op, int codePoint, Position position, Precedence p) {
-		this(op, codePoint, null, position, p, defaultAssociativity(position));
+		this(op, codePoint, null, position, defaultAssociativity(position), p);
 	}
 
 	public static Associativity defaultAssociativity(Position position) {
@@ -103,16 +105,16 @@ public enum Operator {
 		this(op, CODEPOINT_NONE, position, p);
 	}
 	Operator(String op, int cp, Position position, Precedence p, Associativity associativity) {
-		this(op, cp, null, position, p, associativity);
+		this(op, cp, null, position, associativity, p);
 	}
 	Operator(String op, Position position, Precedence p, Associativity associativity) {
 		this(op, CODEPOINT_NONE, position, p, associativity);
 	}
 	Operator(String op, int codePoint, Precedence p, Associativity associativity) {
-		this(op, codePoint, null, Position.INFIX, p, associativity);
+		this(op, codePoint, null, Position.INFIX, associativity, p);
 	}
 	Operator(ParenType parenType, Position position) {
-		this(parenType.getEmptyPairString(), CODEPOINT_NONE, parenType, position, Precedence.SUFFIX, defaultAssociativity(position));
+		this(parenType.getEmptyPairString(), CODEPOINT_NONE, parenType, position, defaultAssociativity(position), Precedence.SUFFIX);
 	}
 
 	public static @Nullable Operator fromOp(String op, Position pos) {

@@ -11,11 +11,4 @@ public interface Token {
 
 	public String toSource();
 
-	/**
-	 * Length of the token in the source file.
-	 * 
-	 * TODO What if it's not parsed from a source file but created programmatically?
-	 */
-	public int getSourceLength();
-
 }

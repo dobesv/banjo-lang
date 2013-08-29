@@ -8,7 +8,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
 	public UnaryOp(List<SourceNode> children, Operator operator, SourceExpr operand) {
-		super(children, operator);
+		super(children, operator, operand);
 		this.operand = operand;
 	}
 	public SourceExpr getOperand() {
@@ -23,4 +23,15 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.unaryOp(this);
 	}
+	@Override
+	public void toSource(StringBuffer sb) {
+		final boolean paren = this.operator.isParen();
+		final boolean prefix = this.operator.isPrefix();
+		if(paren) sb.append(this.operator.getParenType().getStartChar());
+		else if(prefix) sb.append(this.operator.getOp());
+		this.operand.toSource(sb, getPrecedence());
+		if(paren) sb.append(this.operator.getParenType().getEndChar());
+		else if(!prefix) sb.append(this.operator.getOp());
+	}
+
 }

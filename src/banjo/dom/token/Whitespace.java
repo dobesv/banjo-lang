@@ -1,12 +1,13 @@
 package banjo.dom.token;
 
-import banjo.dom.source.AbstractSourceNode;
+import banjo.dom.Expr;
 
-public class Whitespace extends AbstractSourceNode implements Token {
+
+public class Whitespace extends AbstractAtom implements Token {
 	private final String text;
 
-	public Whitespace(int sourceLength, String text) {
-		super(sourceLength, text.hashCode());
+	public Whitespace(String text) {
+		super(text.hashCode());
 		this.text = text;
 	}
 
@@ -17,6 +18,18 @@ public class Whitespace extends AbstractSourceNode implements Token {
 
 	public String getText() {
 		return this.text;
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final Whitespace other = (Whitespace) o;
+			cmp = this.text.compareTo(other.text);
+		}
+		return cmp;
 	}
 
 }

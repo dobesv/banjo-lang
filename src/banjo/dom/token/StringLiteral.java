@@ -5,26 +5,17 @@ import static banjo.parser.util.Check.nonNull;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
-import banjo.parser.errors.Problem;
-import banjo.parser.util.FileRange;
 
 public class StringLiteral extends AbstractAtom implements Atom, Key {
 	private final String string;
 
-	public StringLiteral(int sourceLength, String string) {
-		super(sourceLength, string.hashCode());
+	public StringLiteral(String string) {
+		super(string.hashCode());
 		this.string = string;
-	}
-
-	public static class BadStringEscapeSequence extends Problem {
-		private static final long serialVersionUID = 1L;
-
-		public BadStringEscapeSequence(String message, FileRange range) {
-			super(message, range);
-		}
 	}
 
 	public String getString() {
@@ -93,5 +84,18 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 			return false;
 		return true;
 	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final StringLiteral other = (StringLiteral) o;
+			if(cmp == 0) cmp = this.string.compareTo(other.string);
+		}
+		return cmp;
+	}
+
 
 }

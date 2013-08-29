@@ -2,6 +2,7 @@ package banjo.dom.token;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
@@ -12,8 +13,8 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	private final String op;
 
-	public OperatorRef(int sourceLength, String op) {
-		super(sourceLength, op.hashCode());
+	public OperatorRef(String op) {
+		super(op.hashCode());
 		this.op = op;
 	}
 
@@ -55,6 +56,18 @@ public class OperatorRef extends AbstractAtom implements Atom {
 		if (!this.op.equals(other.op))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final OperatorRef other = (OperatorRef) o;
+			if(cmp == 0) cmp = this.op.compareTo(other.op);
+		}
+		return cmp;
 	}
 
 }

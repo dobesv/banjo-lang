@@ -1,27 +1,33 @@
 package banjo.dom.test;
 
+import static banjo.parser.util.Check.nonNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.LinkedList;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.desugar.BanjoDesugarer;
+import banjo.desugar.BanjoDesugarer.DesugarResult;
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
-import banjo.parser.errors.Problem;
-import banjo.parser.errors.UnexpectedIOExceptionError;
+import banjo.parser.BanjoParser.ExtSourceExpr;
+import banjo.parser.util.OffsetLength;
 import banjo.parser.util.ParserReader;
+import banjo.parser.util.SourceMap;
+import banjo.parser.util.UnexpectedIOExceptionError;
+import fj.P2;
+import fj.data.Set;
 
 @NonNullByDefault(false)
 public class ParseTestUtils {
@@ -30,62 +36,107 @@ public class ParseTestUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends Problem> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
+	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
 		final BanjoParser parser = new BanjoParser();
 		return test(source, expectedErrors, expectedErrorClass, expectedClass,
 				normalizedSource, parser);
 	}
 
 	public static <T extends Expr> T test(String source, int expectedErrors,
-			Class<? extends Problem> expectedErrorClass,
+			Class<? extends BadExpr> expectedErrorClass,
 			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
-		final LinkedList<Problem> problems = new LinkedList<>();
+		SourceMap<SourceExpr> sourceMaps = new SourceMap<>();
 		SourceExpr parseTree;
 		try {
-			parseTree = parser.parse(source).dumpProblems(problems);
+			final ExtSourceExpr parseResult = parser.parse(source);
+			parseTree = parseResult.getExpr();
+			sourceMaps = parseResult.getSourceMaps();
 		} catch (final IOException e1) {
 			throw new Error(e1);
 		}
 		System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
 		final ParserReader in = ParserReader.fromString("<source>", source);
 		assertTrue(parser.reachedEof());
+		int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
+		if(errCount == 0) {
+			final BanjoDesugarer desugarer = new BanjoDesugarer(sourceMaps);
+			final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
+			final CoreExpr ast = desugarResult.getValue();
+			System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
 
-		final BanjoDesugarer desugarer = new BanjoDesugarer();
-		final CoreExpr ast = desugarer.desugar(parseTree).dumpProblems(problems);
-		System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
+			errCount = desugarErrors(expectedErrorClass, desugarResult, in);
+			if(normalizedSource != null)
+				assertEquals(normalizedSource, ast.toSource());
+			if(errCount == 0 && expectedClass != null) {
+				assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
+				assertNotNull(ast);
+				return expectedClass.cast(ast);
+			}
 
-		if(normalizedSource != null)
-			assertEquals(normalizedSource, ast.toSource());
-		if(expectedClass != null) {
-			assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
-			return expectedClass.cast(ast);
 		}
-
-		errors(expectedErrors, expectedErrorClass, problems, in);
-		assertEquals("Wrong number of errors found", expectedErrors, problems.size());
+		assertEquals("Wrong number of errors found", expectedErrors, errCount);
 		return null;
 	}
 
-	private static void errors(int expectedCount,
-			Class<? extends Problem> expectedClass,
-			final Collection<Problem> errors,
+	public static int parseErrors(Class<? extends BadExpr> expectedClass,
+			SourceMap<SourceExpr> sourceMaps,
 			ParserReader in) throws Error {
-		if(!errors.isEmpty()) {
-			System.out.println("Errors:");
-			for(final Problem e : errors) {
+		int count = 0;
+		BadExpr first = null;
+		for(final P2<SourceExpr, Set<OffsetLength>> p : sourceMaps) {
+			final SourceExpr n = p._1();
+			if(n instanceof BadExpr) {
+				final BadExpr e = (BadExpr) n;
+				if(count == 0) {
+					System.out.println("Parse Errors:");
+					first = e;
+				}
 				try {
-					System.out.println("  "+in.calcRange(e.getSourceOffset(), e.getSourceLength())+": "+e.getMessage());
+					final Set<OffsetLength> locs = p._2();
+					for(final OffsetLength range : locs) {
+						System.out.println("  "+in.calcRange(range.getOffset(), range.getLength())+": "+e.getMessage());
+						count ++;
+					}
 				} catch (final IOException e1) {
 					throw new UnexpectedIOExceptionError(e1);
 				}
 			}
-			if(expectedCount==0)
-				throw new Error(errors.iterator().next());
-			if(expectedClass != null)
-				assertEquals(expectedClass, errors.iterator().next().getClass());
 		}
+		if(expectedClass != null && first != null)
+			assertEquals(expectedClass, first.getClass());
+		return count;
+	}
+
+	private static int desugarErrors(Class<? extends BadExpr> expectedClass,
+			DesugarResult<CoreExpr> ds,
+			ParserReader in) throws Error {
+		int count = 0;
+		BadExpr first = null;
+		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getSourceExprMap()) {
+			final CoreExpr n = p._1();
+			if(n instanceof BadExpr) {
+				final BadExpr e = (BadExpr) n;
+				if(count == 0) {
+					System.out.println("Desugar Errors:");
+					first = e;
+				}
+				try {
+					for(final SourceExpr sourceExpr : p._2()) {
+						for(final OffsetLength range : ds.getSourceMaps().get(nonNull(sourceExpr))) {
+							System.out.println("  "+in.calcRange(range.getOffset(), range.getLength())+": "+e.getMessage());
+							count ++;
+						}
+					}
+				} catch (final IOException e1) {
+					throw new UnexpectedIOExceptionError(e1);
+				}
+			}
+		}
+		if(expectedClass != null && first != null)
+			assertEquals(expectedClass, first.getClass());
+		return count;
 	}
 
 	public static void test(String source, String expectedSource) {
@@ -110,7 +161,7 @@ public class ParseTestUtils {
 			}
 			@Override
 			public Void fallback(@NonNull CoreExpr unsupported) {
-				fail("Not a number literal: "+unsupported.getExprClass()+" ("+unsupported+")");
+				fail("Not a number literal: "+unsupported);
 				return null;
 			}
 		});

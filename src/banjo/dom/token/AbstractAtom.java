@@ -1,20 +1,26 @@
 package banjo.dom.token;
 
-import static banjo.parser.util.Check.nonNull;
-import banjo.dom.Expr;
-import banjo.dom.source.AbstractSourceNode;
+import banjo.dom.AbstractExpr;
+import banjo.dom.source.Precedence;
 
 
 
-public abstract class AbstractAtom extends AbstractSourceNode implements Atom {
 
-	public AbstractAtom(int sourceLength, int hashCode) {
-		super(sourceLength, hashCode);
+public abstract class AbstractAtom extends AbstractExpr {
+
+	public AbstractAtom(int hashCode) {
+		super(hashCode);
 	}
 
 	@Override
-	public Class<? extends Expr> getExprClass() {
-		return nonNull(getClass());
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
+	}
+
+
+	@Override
+	public void toSource(StringBuffer sb, Precedence outerPrec) {
+		toSource(sb);
 	}
 
 }

@@ -14,7 +14,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
@@ -27,11 +26,11 @@ import banjo.dom.token.Key;
 import banjo.parser.BanjoParser;
 import banjo.parser.BanjoScanner;
 import banjo.parser.errors.Problem;
-import banjo.parser.errors.UnexpectedIOExceptionError;
 import banjo.parser.util.OffsetLength;
 import banjo.parser.util.OffsetValue;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.Problematic;
+import banjo.parser.util.UnexpectedIOExceptionError;
 
 public class IncrementalUpdater {
 	final BanjoParser parser = new BanjoParser();
@@ -178,20 +177,17 @@ public class IncrementalUpdater {
 				}
 				// Different list means "edit was contained in a child"
 				boolean contained = newArgs.getValue() != n.getArguments();
-				final int argsLengthDelta = newArgs.getOffset();
 
-				final CoreExpr callee = n.getCallee();
+				final CoreExpr callee = n.getObject();
 				final int calleeStartOffset = exprStartOffset + callee.getOffsetInParent();
 				final int calleeEndOffset = calleeStartOffset + callee.getSourceLength();
 				final CoreExpr newCallee;
-				int calleeLengthDelta;
+				final int calleeLengthDelta;
 				if(editInside(calleeStartOffset, calleeEndOffset)) {
 					contained = true;
 					newCallee = process(callee, calleeStartOffset);
-					calleeLengthDelta = newCallee.getSourceLength() - callee.getSourceLength();
 				} else {
-					newCallee = callee;
-					calleeLengthDelta = 0;
+					newCallee = adjustOffset(callee);
 				}
 				if(contained) {
 					return new Call(n.getSourceLength() + argsLengthDelta + calleeLengthDelta, newCallee, newArgs.getValue());
@@ -207,27 +203,21 @@ public class IncrementalUpdater {
 				final int actionStartOffset = exprStartOffset + action.getOffsetInParent();
 				final int actionEndOffset = actionStartOffset + action.getSourceLength();
 				CoreExpr newAction;
-				int actionLengthDelta;
 				if(editInside(actionStartOffset, actionEndOffset)) {
 					contained = true;
 					newAction = process(action, actionStartOffset);
-					actionLengthDelta = newAction.getSourceLength() - action.getSourceLength();
 				} else {
-					newAction = action;
-					actionLengthDelta = 0;
+					newAction = adjustOffset(action);
 				}
 				final CoreExpr result = n.getResult();
 				final int resultStartOffset = exprStartOffset + result.getOffsetInParent();
 				final int resultEndOffset = resultStartOffset + result.getSourceLength();
 				CoreExpr newResult;
-				int resultLengthDelta;
 				if(editInside(resultStartOffset, resultEndOffset)) {
 					contained = true;
 					newResult = process(result, resultStartOffset);
-					resultLengthDelta = newResult.getSourceLength() - result.getSourceLength();
 				} else {
-					newResult = result;
-					resultLengthDelta = 0;
+					newResult = adjustOffset(result);
 				}
 				if(contained) {
 					return new ExprPair(n.getSourceLength() + actionLengthDelta + resultLengthDelta, newAction, off(resultLengthDelta, newResult));
@@ -258,7 +248,7 @@ public class IncrementalUpdater {
 			@Nullable
 			public CoreExpr objectLiteral(ObjectLiteral n) {
 				boolean containedInChild = false;
-				final Map<String, Method> fields = n.getFields();
+				final Map<String, Method> fields = n.getMethods();
 				for(final Method field : fields.values()) {
 					final int fieldStartOffset = exprStartOffset + field.getOffsetInObject();
 					final int fieldEndOffset = fieldStartOffset + field.getSourceLength();
@@ -294,7 +284,6 @@ public class IncrementalUpdater {
 				if(!containedInChild)
 					return fallback(n);
 				final LinkedHashMap<String,Method> newFields = new LinkedHashMap<>(fields);
-				int offsetDelta=0;
 				for(final Method field : fields.values()) {
 					final int fieldStartOffset = exprStartOffset + field.getOffsetInObject();
 					final Key key = field.getKey();
@@ -303,15 +292,11 @@ public class IncrementalUpdater {
 					final CoreExpr value = field.getImplementation();
 					final int valueStartOffset = fieldStartOffset + value.getOffsetInParent();
 					final CoreExpr newValue = process(value, valueStartOffset);
-					final int keyLengthDelta = newKey.getSourceLength() - key.getSourceLength();
-					final int valueLengthDelta = newValue.getSourceLength() - value.getSourceLength();
-					final int lengthDelta = keyLengthDelta + valueLengthDelta;
 					final int newSourceLength = field.getSourceLength() + lengthDelta;
 					final int newOffsetInObject = field.getOffsetInObject() + offsetDelta;
 					if(newKey != key || newValue != value || lengthDelta != 0 || offsetDelta != 0) {
 						final Method newField = new Method(newSourceLength, newOffsetInObject, newKey, off(keyLengthDelta, newValue), field.isInclude());
 						newFields.put(newKey.getKeyString(), newField);
-						offsetDelta += lengthDelta;
 					}
 				}
 				final int newObjectSourceLength = n.getSourceLength() + offsetDelta;

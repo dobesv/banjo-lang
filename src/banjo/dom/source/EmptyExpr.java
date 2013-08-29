@@ -12,10 +12,10 @@ import org.eclipse.jdt.annotation.Nullable;
  * are parsed as a parenthese with the "empty" expression inside.  This may also show up in
  * a list with consecutive or trailing separators.
  */
-public class EmptyExpr extends AbstractCompositeSourceExpr implements SourceExpr {
+public class EmptyExpr extends AbstractOp implements SourceExpr {
 
 	public EmptyExpr(List<SourceNode> children) {
-		super(children);
+		super(children, Operator.EMPTY);
 	}
 
 	public EmptyExpr() {
@@ -23,14 +23,14 @@ public class EmptyExpr extends AbstractCompositeSourceExpr implements SourceExpr
 	}
 
 	@Override
-	public Precedence getPrecedence() {
-		return Precedence.ATOM;
-	}
-
-	@Override
 	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.emptyExpr(this);
+	}
+
+	@Override
+	public void toSource(StringBuffer sb) {
+		// Empty ... do nothing
 	}
 
 }

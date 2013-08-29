@@ -30,17 +30,6 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return nonNull(buf.toString());
 	}
 
-	/**
-	 * Get the offset of this expression in its "parent" expression (in characters).  In
-	 * general this is provided by a wrapper around an expression that adds an offset.  This
-	 * allows expression subtrees to be shared around more easily because the wrapper can be
-	 * discarded without affecting the inner object.
-	 */
-	@Override
-	public int getOffsetInParent() {
-		return 0;
-	}
-
 	@Override
 	public String toSource() {
 		return toSource(Precedence.lowest());
@@ -60,11 +49,6 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		if(value == newValue)
 			return opt;
 		return newValue;
-	}
-
-	@Override
-	public Class<? extends Expr> getExprClass() {
-		return nonNull(getClass());
 	}
 
 }

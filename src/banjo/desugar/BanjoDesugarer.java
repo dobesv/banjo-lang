@@ -3,111 +3,172 @@ package banjo.desugar;
 import static banjo.parser.util.Check.nonNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.desugar.errors.ExpectedField;
-import banjo.desugar.errors.ExtraTableColumn;
-import banjo.desugar.errors.MissingValueForTableColumn;
-import banjo.desugar.errors.UnexpectedEllipsis;
-import banjo.dom.core.BadExpr;
-import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.Expr;
+import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprPair;
 import banjo.dom.core.FunArg;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
-import banjo.dom.core.OffsetCoreExpr;
-import banjo.dom.core.Projection;
-import banjo.dom.core.SetLiteral;
 import banjo.dom.source.BadSourceExpr;
 import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.BinaryOp;
 import banjo.dom.source.EmptyExpr;
-import banjo.dom.source.OffsetSourceExpr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.source.UnaryOp;
+import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OffsetKey;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.errors.ExpectedElement;
-import banjo.parser.errors.ExpectedExpression;
-import banjo.parser.errors.ExpectedIdentifier;
-import banjo.parser.errors.Problem;
-import banjo.parser.errors.UnsupportedBinaryOperator;
-import banjo.parser.errors.UnsupportedUnaryOperator;
-import banjo.parser.util.ListUtil;
-import banjo.parser.util.Problematic;
+import banjo.parser.util.SourceMap;
+import fj.F;
+import fj.Ord;
+import fj.P;
+import fj.P2;
+import fj.data.Set;
+import fj.data.TreeMap;
 
 public class BanjoDesugarer {
-	protected final LinkedHashMap<SourceExpr,Problematic<CoreExpr>> cache = new LinkedHashMap<>();
+	final SourceMap<SourceExpr> sourceMaps;
+	final TreeMap<Expr, CoreExpr> cache;
+	final TreeMap<CoreExpr, fj.data.Set<SourceExpr>> sourceExprMap;
+	final int counter;
+
+	public static class DesugarResult<T> extends BanjoDesugarer {
+		final T value;
+		public DesugarResult(T expr, SourceMap<SourceExpr> sourceMaps, TreeMap<Expr, CoreExpr> cache, TreeMap<CoreExpr, fj.data.Set<SourceExpr>> sourceExprMap, int counter) {
+			super(sourceMaps, cache, sourceExprMap, counter);
+			this.value = expr;
+		}
+
+		public DesugarResult(T result, BanjoDesugarer ds) {
+			this(result, ds.sourceMaps, ds.cache, ds.sourceExprMap, ds.counter + 1);
+		}
+
+		public T getValue() {
+			return this.value;
+		}
+	}
+
+	@SuppressWarnings("null")
+	private static final TreeMap<Expr, CoreExpr> EMPTY_CACHE = TreeMap.empty(Ord.<Expr>comparableOrd());
+	@SuppressWarnings("null")
+	static final fj.data.Set<SourceExpr> EMPTY_SOURCE_EXPR_SET = fj.data.Set.empty(SourceMap.<SourceExpr>exprOrd());
+	@SuppressWarnings("null")
+	static final fj.data.TreeMap<CoreExpr, fj.data.Set<SourceExpr>> EMPTY_SOURCE_EXPR_MAP = TreeMap.empty(SourceMap.<CoreExpr>exprOrd());
+
+	<TT> DesugarResult<TT> withValue(TT result) {
+		return new DesugarResult<TT>(result, this);
+	}
+
+	@SuppressWarnings("null")
+	protected DesugarResult<CoreExpr> withDesugared(SourceExpr sourceExpr, CoreExpr expr) {
+		final TreeMap<Expr, CoreExpr> newCache = this.cache.set(sourceExpr, expr);
+		final TreeMap<CoreExpr, Set<SourceExpr>> newSourceExprMap = this.sourceExprMap.set(expr, this.sourceExprMap.get(expr).orSome(EMPTY_SOURCE_EXPR_SET).insert(sourceExpr));
+		return new DesugarResult<CoreExpr>(expr, this.sourceMaps, newCache, newSourceExprMap, this.counter+1);
+	}
+
+	@SuppressWarnings("null")
+	protected DesugarResult<Key> withDesugared(SourceExpr sourceExpr, Key expr) {
+		final TreeMap<Expr, CoreExpr> newCache = this.cache.set(sourceExpr, expr);
+		final TreeMap<CoreExpr, Set<SourceExpr>> newSourceExprMap = this.sourceExprMap.set(expr, this.sourceExprMap.get(expr).orSome(EMPTY_SOURCE_EXPR_SET).insert(sourceExpr));
+		return new DesugarResult<Key>(expr, this.sourceMaps, newCache, newSourceExprMap, this.counter+1);
+	}
+
+
+	/**
+	 * Desugarer with no source maps and an empty cache
+	 */
+	public BanjoDesugarer() {
+		this(new SourceMap<SourceExpr>(), EMPTY_CACHE, EMPTY_SOURCE_EXPR_MAP, 1);
+	}
+
+	/**
+	 * Desugarer with a source map
+	 */
+	public BanjoDesugarer(SourceMap<SourceExpr> sourceMaps) {
+		this(sourceMaps, EMPTY_CACHE, EMPTY_SOURCE_EXPR_MAP, 1);
+	}
+
+
+	/**
+	 * Desugarer with sourcemaps and a starting cache value
+	 */
+	public BanjoDesugarer(SourceMap<SourceExpr> sourceMaps, TreeMap<Expr, CoreExpr> cache, TreeMap<CoreExpr, fj.data.Set<SourceExpr>> sourceExprMap, int counter) {
+		super();
+		this.sourceMaps = sourceMaps;
+		this.cache = cache;
+		this.sourceExprMap = sourceExprMap;
+		this.counter = counter;
+	}
+
 
 	/**
 	 * Coming in we have a tree of basically just unary and binary operations and parens and atoms.
 	 * 
-	 * Desugaring changes that into function calls, projections, etc..
+	 * Desugaring changes that into function calls, projections, object literals, etc..
 	 */
-	public Problematic<CoreExpr> desugar(SourceExpr node) {
-		return expr(node, 0);
+	public DesugarResult<CoreExpr> desugar(SourceExpr rootNode) {
+		return expr(rootNode);
 	}
 
-	public Problematic<CoreExpr> expr(OffsetSourceExpr node, int parentSourceOffset) {
-		final SourceExpr sourceExpr = node.getValue();
-		final int sourceOffset = node.getOffset() + parentSourceOffset;
-		return expr(sourceExpr, sourceOffset);
-	}
-
-	public Problematic<CoreExpr> expr(SourceExpr sourceExpr, int sourceOffset) {
-		// TODO When fetching from the cache, the offsets in the errors might be a off ... problem!
-		final Problematic<CoreExpr> cachedResult = this.cache.get(sourceExpr);
+	public DesugarResult<CoreExpr> expr(SourceExpr sourceExpr) {
+		final CoreExpr cachedResult = this.cache.get(sourceExpr).toNull();
 		if(cachedResult != null) {
-			return cachedResult;
+			return withDesugared(sourceExpr, cachedResult);
 		}
-		final Problematic<CoreExpr> result = nonNull(sourceExpr.acceptVisitor(new DesugarVisitor(sourceOffset)));
-		this.cache.put(sourceExpr, result);
-		return result;
+
+		return nonNull(sourceExpr.acceptVisitor(new DesugarVisitor()));
 	}
 
-	private Problematic<CoreExpr> comparison(BinaryOp op, int sourceOffset) {
-		final SourceExpr leftSourceExpr = op.getLeft();
-		final SourceExpr rightSourceExpr = op.getRight();
-		final Problematic<CoreExpr> leftCoreExpr = expr(leftSourceExpr, sourceOffset);
-		final Problematic<CoreExpr> rightCoreExpr = expr(rightSourceExpr, sourceOffset);
-		final Projection fieldRef = new Projection(op, off(leftSourceExpr, leftCoreExpr), new Identifier(nonNull(Operator.CMP.getOp())));
-		final CoreExpr cmp = new Call(op, fieldRef, off(rightSourceExpr, rightCoreExpr));
-		boolean checkEqual;
+	/**
+	 * Desugar a few exprs at once.  The state is accumulated from one to the next so that the
+	 * last element of the array has the accumulated cache from the previous desugarings.
+	 */
+	public DesugarResult<CoreExpr[]> exprs(SourceExpr ... sourceExprs) {
+		final CoreExpr[] results = new CoreExpr[sourceExprs.length];
+		BanjoDesugarer desugarer = this;
+		for(int i=0; i < sourceExprs.length; i++) {
+			@SuppressWarnings("null")
+			final DesugarResult<CoreExpr> resultDs = desugarer.expr(sourceExprs[i]);
+			desugarer = resultDs;
+			results[i] = resultDs.getValue();
+		}
+		return new DesugarResult<CoreExpr[]>(results, desugarer);
+	}
+
+	private DesugarResult<CoreExpr> comparison(BinaryOp op) {
+		final DesugarResult<CoreExpr[]> ds = exprs(op.getLeft(), op.getRight());
+		final CoreExpr[] operands = ds.getValue();
+		final CoreExpr cmp = new Call(nonNull(operands[0]), new Identifier(nonNull(Operator.CMP.getOp())), nonNull(operands[1]));
+		boolean invertCheck;
 		String checkField;
 		switch(op.getOperator()) {
-		case GT: checkEqual = true; checkField = ">"; break;
-		case GE: checkEqual = false; checkField = "<"; break;
-		case LT: checkEqual = true; checkField = "<"; break;
-		case LE: checkEqual = false; checkField = ">"; break;
+		case GT: invertCheck = false; checkField = ">"; break;
+		case GE: invertCheck = true; checkField = "<"; break;
+		case LT: invertCheck = false; checkField = "<"; break;
+		case LE: invertCheck = true; checkField = ">"; break;
 		default: throw new Error();
 		}
-		final Projection cmpFieldRef = new Projection(op, cmp, new Identifier(checkField));
-		CoreExpr check = new Call(op, cmpFieldRef);
-		if(!checkEqual)
-			check = new Call(op, new Projection(op, check, new Identifier(nonNull(Operator.NOT.getOp()))));
-		return result(check, ListUtil.concat(leftCoreExpr.getProblems(), rightCoreExpr.getProblems()));
+		CoreExpr check = new Call(cmp, new Identifier(checkField));
+		if(invertCheck)
+			check = new Call(check, new Identifier(nonNull(Operator.NOT.getOp())));
+		return ds.withDesugared(op, check);
 	}
 
 	/**
@@ -116,443 +177,143 @@ public class BanjoDesugarer {
 	 * @see Projection
 	 * @param op BinaryOp describing the projection (having PROJECTION as its operator)
 	 * @param sourceOffset Source offset to the start of op
-	 * @param optionalProjection TODO
+	 * @param optionalProjection True if the projection should return some() or none() depending on the existence of the field
 	 */
-	private Problematic<CoreExpr> projection(BinaryOp op, int sourceOffset, boolean optionalProjection) {
-		return projection(op, sourceOffset, op.getLeft(), sourceOffset + op.getLeft().getOffsetInParent(), op.getRight(), sourceOffset + op.getRight().getOffsetInParent(), optionalProjection);
+	DesugarResult<CoreExpr> projection(BinaryOp op, boolean optionalProjection) {
+		return projection(op, op.getLeft(), op.getRight(), optionalProjection);
 	}
 
 	/**
-	 * Create a projection.
+	 * Desugar a projection.  The most basic form of projection is <code>foo.bar</code> which desugars
+	 * the property <code>bar</code> in object <code>foo</code>, translating into a call <code>foo.bar()</code>.
+	 * 
+	 * More complex projections are possible also, however.  <code>foo.{bar,baz}</code> will translate into
+	 * <code>{bar:foo.bar(), baz:foo.baz()}</code> and <code>foo.[bar,baz]</code> will translate into
+	 * <code>[foo.bar(), foo.baz()]</code>.  Renames are possible when selecting fields for a new object,
+	 * so <code>foo.{bar:baz,baz:bar}</code> would swap the fields as if <code>{bar:foo.baz(), baz:foo.bar()}</code>
+	 * were written.
 	 * 
 	 * @param sourceExpr Root source expression for the projection.
-	 * @param sourceOffset Absolute file offset of the start of the expression described by op
 	 * @param objectSourceOffset Absolute file offset of the start of the left-hand side of the projection
-	 * @param exprSourceOffset Absolute file offset of the right-hand side of the projection
 	 * @param optional TODO
 	 * @param baseCoreExpr Desugared left-hand side of the projection; the "base" object we're projecting from
 	 * @param projectionCoreExpr Desugared right-hand side of the project; the description of the projection
 	 * @return A new CoreExpr, possibly with errors
 	 */
-	private Problematic<CoreExpr> projection(final SourceExpr sourceExpr, final int sourceOffset, final SourceExpr objectExpr, final int objectSourceOffset, final SourceExpr expr, final int exprSourceOffset, boolean optional) {
-		final Problematic<CoreExpr> object = expr(objectExpr, sourceOffset);
-		final Problematic<CoreExpr> exprCoreExpr = expr(expr, sourceOffset);
-		return result(new Projection(sourceExpr,
-				off(objectSourceOffset - sourceOffset, object.getValue()),
-				off(exprSourceOffset - sourceOffset, exprCoreExpr.getValue())), object, exprCoreExpr);
+	DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr expr, boolean optional) {
+		final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
+		return nonNull(expr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			@Override
+			@Nullable
+			public DesugarResult<CoreExpr> key(Key key) {
+				return objectDs.withDesugared(sourceExpr, new Call(objectDs.getValue(), key));
+			}
+
+			@Override
+			@Nullable
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+				// TODO: Implement list / object projections
+				return objectDs.withDesugared(sourceExpr, new BadCoreExpr("Expected identifier"));
+			}
+
+		}));
 	}
 
 	/**
 	 * Optional projection is a projection that works on an option type - it gives a
 	 * new option value which is the result of the projection.  The right-hand side
-	 * is only evaluated if the option value is present.
+	 * is only evaluated if the option value is present.  Also works with lists in that
+	 * the elements of the projection will all be mapped
 	 * 
 	 * <pre> x*.foo == x.map((x) -> x.foo)</pre>
 	 */
-	private Problematic<CoreExpr> mapProjection(BinaryOp op, int sourceOffset, boolean optionalProjection) {
-		final Key argName = gensym();
-		final Problematic<CoreExpr> projection = projection(op, sourceOffset, argName, sourceOffset, op.getRight(), sourceOffset + op.getRight().getOffsetInParent(), optionalProjection);
-		final CoreExpr projectFunc = new FunctionLiteral(op, new FunArg(op.getSourceLength(), argName), projection.getValue());
-		final Problematic<CoreExpr> left = expr(op.getLeft(), sourceOffset);
-		final CoreExpr mapCall = new Call(op, new Projection(op, off(op.getLeft(), left), new Identifier("map")), projectFunc);
-		return result(mapCall, projection.getProblems());
-	}
-
-	private static Key off(int offset, Key key) {
-		if(offset == 0) return key;
-		return new OffsetKey(offset, key);
-	}
-	private static CoreExpr off(SourceExpr sourceExpr, CoreExpr e) {
-		return off(sourceExpr.getOffsetInParent(), e);
-	}
-
-	private static CoreExpr off(SourceExpr sourceExpr, Problematic<CoreExpr> e) {
-		return off(sourceExpr, e.getValue());
-	}
-
-	private static CoreExpr off(int offset, Problematic<CoreExpr> e) {
-		return off(offset, e.getValue());
-	}
-
-	private static CoreExpr off(int offset, CoreExpr value) {
-		if(offset == 0) return value;
-		else return new OffsetCoreExpr(offset, value);
-	}
-
-	private static List<CoreExpr> offAll(SourceExpr sourceExpr, Collection<CoreExpr> exprs) {
-		return offAll(sourceExpr.getOffsetInParent(), exprs);
-	}
-
-	private static SourceExpr off(int offset, SourceExpr value) {
-		if(offset == 0) return value;
-		else return new OffsetSourceExpr(offset, value);
-	}
-
-
-	private static List<CoreExpr> offAll(int offsetInParent, Collection<CoreExpr> exprs) {
-		final ArrayList<CoreExpr> result = new ArrayList<>(exprs.size());
-		for(final CoreExpr e : exprs) {
-			result.add(off(offsetInParent, nonNull(e)));
-		}
-		return result;
-	}
-
-
-
-	int gensymCounter = 0;
-	private Key gensym() {
-		this.gensymCounter++;
-		return new Identifier("__t"+this.gensymCounter);
-	}
-
-	private Problematic<CoreExpr> call(BinaryOp op, int sourceOffset) {
-		final Problematic<CoreExpr> callee = expr(op.getLeft(), sourceOffset);
-		final Problematic<CoreExpr> arg = expr(op.getRight(), sourceOffset);
-		final int argsOffset = op.getRight().getOffsetInParent();
-		final List<CoreExpr> args = arg.getValue().acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
-			@Override
-			@NonNull
-			public List<CoreExpr> exprPair(ExprPair n) {
-				final List<CoreExpr> args = new ArrayList<>();
-				new BaseCoreExprVisitor<Void>() {
-					@Override
-					@Nullable
-					public Void exprPair(ExprPair n) {
-						n.getAction().acceptVisitor(this);
-						n.getResult().acceptVisitor(this);
-						return null;
-					}
-					@Override
-					@Nullable
-					public Void fallback(CoreExpr other) {
-						args.add(other);
-						return null;
-					}
-				}.exprPair(n);
-				return args;
-			}
-
-			@Override
-			@NonNull
-			public List<CoreExpr> fallback(CoreExpr other) {
-				// Adjust the offset in parent so it's relative to the whole call, not just the argument list
-				return nonNull(Collections.singletonList(off(argsOffset, arg)));
-			}
-		});
-		return result(new Call(op, off(op.getLeft(), callee), nonNull(args)), ListUtil.concat(callee.getProblems(), arg.getProblems()));
-	}
-
-	private Problematic<CoreExpr> let(final BinaryOp op, final int sourceOffset) {
-		final int leftSourceOffset = sourceOffset + op.getLeft().getOffsetInParent();
-		final int rightSourceOffset = sourceOffset + op.getRight().getOffsetInParent();
-		final Problematic<CoreExpr> rightCoreExpr = expr(op.getRight(), rightSourceOffset);
-
-		return let(op, sourceOffset, op.getLeft(), leftSourceOffset, rightCoreExpr.getValue(), rightSourceOffset).plusProblemsFrom(rightCoreExpr);
-		//		if(isPair(targetOffsetExpr)) {
-		//		}
-		//
-		//		Problematic<CoreExpr> valueCoreExpr = expr(op.getRight(), sourceOffset);
-		//		problems.addAll(valueCoreExpr.getProblems());
-		//		final int dsValueOffset = op.getRight().getOffset();
-		//		if(isCall(targetOffsetExpr.getValue())) {
-		//		}
-		//		OffsetKey name;
-		//		if(!(targetOffsetExpr.getValue() instanceof Key)) {
-		//			name = new OffsetKey(targetOffsetExpr.getOffset(), new Identifier(targetOffsetExpr.getSourceLength(), targetOffsetExpr.toSource()));
-		//			problems.add(new ExpectedIdentifier(targetOffsetExpr.getValue(), sourceOffset + targetOffsetExpr.getOffset(), targetOffsetExpr.getSourceLength()));
-		//		} else {
-		//			name = new OffsetKey(targetOffsetExpr.getOffset(), (Key)targetOffsetExpr.getValue());
-		//		}
-		//		// TODO If there was a contract specified, maybe we should check it here ... or maybe report an error ... kind of an odd case
-		//		//if(!(guarantee.getValue().equals(FunctionLiteral.NO_GUARANTEE))) {
-		//		// Error: contract not expected here
-		//		//}
-		//		return result(new Let(op, name, off(dsValueOffset,valueCoreExpr)), problems);
-	}
-
-	private Problematic<CoreExpr> let(final BinaryOp sourceExpr, final int sourceOffset,
-			final SourceExpr left, final int leftSourceOffset,
-			final CoreExpr right, final int rightSourceOffset) {
-		return nonNull(left.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> binaryOp(BinaryOp targetBOp) {
-				switch(targetBOp.getOperator()) {
-				case PAIR: {
-
-					final int guaranteeSourceOffset = leftSourceOffset + targetBOp.getRight().getOffsetInParent();
-					final Problematic<CoreExpr> guarantee = expr(targetBOp.getRight(), guaranteeSourceOffset);
-					final SourceExpr newLeft = targetBOp.getLeft();
-					final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
-					return let(sourceExpr, sourceOffset, newLeft, newLeftSourceOffset, right, rightSourceOffset, guarantee.getValue(), guaranteeSourceOffset).plusProblemsFrom(guarantee);
-				}
-
-				default: return fallback(targetBOp);
-				}
-			}
-
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> unaryOp(UnaryOp target) {
-				switch(sourceExpr.getOperator()) {
-				case PARENS: { // Need parens if it's a method with a guarantee on it, like (foo() : Bar) : ...
-					final SourceExpr newLeft = target.getOperand();
-					final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
-					return let(sourceExpr, sourceOffset, newLeft, newLeftSourceOffset, right, rightSourceOffset);
-				}
-				default:
-					return fallback(target);
-				}
-			}
-
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> fallback(SourceExpr other) {
-				return let(sourceExpr, sourceOffset, left, leftSourceOffset, right, rightSourceOffset, FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset);
-			}
-		}));
-	}
-
-	private Problematic<CoreExpr> let(
-			final BinaryOp sourceExpr, final int sourceOffset,
-			final SourceExpr left,    final int leftSourceOffset,
-			final CoreExpr right,     final int rightSourceOffset,
-			final CoreExpr guarantee, final int guaranteeSourceOffset) {
-		return nonNull(left.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> binaryOp(BinaryOp targetBOp) {
-				switch(targetBOp.getOperator()) {
-				// f(x) = x + 1 - local function definition
-				case CALL: return localFunctionDef(targetBOp);
-				default: return fallback(targetBOp);
-				}
-			}
-
-			public Problematic<CoreExpr> localFunctionDef(BinaryOp targetBOp) {
-				final SourceExpr args = targetBOp.getRight();
-				final int argsSourceOffset = leftSourceOffset + args.getOffsetInParent();
-				final Problematic<CoreExpr> newRight = functionLiteral(
-						sourceExpr, sourceOffset,
-						args, argsSourceOffset,
-						guarantee, guaranteeSourceOffset,
-						right, rightSourceOffset);
-				final int newRightSourceOffset = sourceOffset;
-				final SourceExpr newLeft = targetBOp.getLeft();
-				final int newLeftSourceOffset = leftSourceOffset + newLeft.getOffsetInParent();
-				return let(sourceExpr, sourceOffset, newLeft, newLeftSourceOffset, newRight.getValue(), newRightSourceOffset).plusProblemsFrom(newRight);
-			}
-
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> unaryOp(UnaryOp op) {
-				switch(op.getOperator()) {
-				case PARENS:
-					switch(op.getOperator().getParenType()) {
-					// { ... } = ... - object parsing
-					case BRACES: return parseObject(op);
-					// [ ... ] = ... - list/sequence parsing
-					case BRACKETS: return parseList(op);
-					// ( ... ) = ... - operator precedence fix
-					case PARENS: return let(sourceExpr, sourceOffset,
-							op, leftSourceOffset,
-							right, rightSourceOffset,
-							guarantee, guaranteeSourceOffset);
-					default: break;
-					}
-				default: break;
-				}
-				return super.unaryOp(op);
-			}
-
-			private Problematic<CoreExpr> parseList(final UnaryOp op) {
-				// Put the list into a temporary
-				// Then read elements in sequence into the lhs identifiers
-				// Put the object into a temporary if necessary
-				// Read elements by name into the lhs identifiers
-				// Lhs identifiers can be a pair to specify a rename
-				// Lhs identifiers might be a :foo to specify no rename
-				return nonNull(right.acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
-					/**
-					 * If the right-hand side is an identifier, we don't need to stick it into a temporary variable
-					 */
-					@Override
-					public @Nullable
-					Problematic<CoreExpr> identifier(Identifier id) {
-						return readElements(id, null);
-					}
-
-					/**
-					 * If the right-hand side is not an identifier, we need to stick it into a temporary variable
-					 * and reference that in our projections.  This avoids multiple evaluations of the right-hand
-					 * side.
-					 */
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> fallback(CoreExpr unsupported) {
-						final Identifier tempIdent = new Identifier(unsupported.toSource());
-						final Let tempLet = new Let(0, tempIdent, right);
-						return readElements(tempIdent, tempLet);
-					}
-
-
-					public Problematic<CoreExpr> readElements(final Identifier temp, @Nullable CoreExpr result) {
-						final ArrayList<SourceExpr> vars = flattenCommas(op.getOperand(), 0, new ArrayList<SourceExpr>());
-						final ArrayList<Problem> problems = new ArrayList<>();
-						for(final ListIterator<SourceExpr> it = vars.listIterator(); it.hasNext(); ) {
-							final int index = it.nextIndex();
-							final SourceExpr var = it.next();
-							final Key id = expectIdentifier(var, leftSourceOffset+var.getOffsetInParent(), problems);
-							final NumberLiteral arrayIndexExpr = new NumberLiteral(0, nonNull(String.valueOf(index)), nonNull(Integer.valueOf(index)));
-							final CoreExpr lookupExpr = binaryOpToMethodCall(op.getSourceLength(), temp, Operator.LOOKUP, arrayIndexExpr);
-							final Let e = new Let(0, id, lookupExpr);
-							if(result != null)
-								result = new ExprPair(0, result, e);
-							else
-								result = e;
-						}
-						return result(result, problems);
-					}
-				}));
-			}
-
-			private Problematic<CoreExpr> parseObject(final UnaryOp op) {
-				// Put the object into a temporary if necessary
-				// Read elements by name into the lhs identifiers
-				// Lhs identifiers can be a pair to specify a rename
-				// Lhs identifiers might be a :foo to specify no rename
-				return nonNull(right.acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
-					/**
-					 * If the right-hand side is an identifier, we don't need to stick it into a temporary variable
-					 */
-					@Override
-					public @Nullable
-					Problematic<CoreExpr> identifier(Identifier id) {
-						return readElements(id, null);
-					}
-
-					/**
-					 * If the right-hand side is not an identifier, we need to stick it into a temporary variable
-					 * and reference that in our projections.  This avoids multiple evaluations of the right-hand
-					 * side.
-					 */
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> fallback(CoreExpr unsupported) {
-						final Identifier tempIdent = new Identifier(unsupported.toSource());
-						final Let tempLet = new Let(0, tempIdent, right);
-						return readElements(tempIdent, tempLet);
-					}
-
-
-					public Problematic<CoreExpr> readElements(final Identifier temp, @Nullable CoreExpr result) {
-						final ArrayList<SourceExpr> vars = flattenCommas(op.getOperand(), 0, new ArrayList<SourceExpr>());
-						final ArrayList<Problem> problems = new ArrayList<>();
-						for(final SourceExpr var : vars) {
-							final CoreExpr e = nonNull(var.acceptVisitor(new BaseSourceExprVisitor<CoreExpr>() {
-								@Override
-								@Nullable
-								public CoreExpr fallback(SourceExpr other) {
-									final ExpectedField problem = new ExpectedField(leftSourceOffset + var.getOffsetInParent(), other.getSourceLength());
-									problems.add(problem);
-									return new BadExpr(other, problem);
-								}
-
-								@Override
-								@Nullable
-								public CoreExpr key(Key key) {
-									return new Let(op.getSourceLength(), off(var.getOffsetInParent(), key), new Projection(key.getSourceLength(), temp, key));
-								}
-
-								@Override
-								public @Nullable CoreExpr binaryOp(BinaryOp op) {
-									if(op.getOperator() == Operator.PAIR) {
-										final int keyOffset = leftSourceOffset + var.getOffsetInParent() + op.getLeft().getOffsetInParent();
-										final Key key = expectIdentifier(op.getLeft(), keyOffset, problems);
-
-										// For something like {a:b} = c, use b = c.a
-										// This makes sense if you think that the reverse operation would be c = {a:b}
-										return BanjoDesugarer.this.let(sourceExpr, sourceOffset,
-												op.getLeft(), leftSourceOffset + var.getOffsetInParent(),
-												new Projection(key.getSourceLength(), temp, key), keyOffset,
-												FunctionLiteral.DEFAULT_GUARANTEE, 0).dumpProblems(problems);
-									}
-									return fallback(op);
-								}
-							}));
-							if(result != null)
-								result = new ExprPair(0, result, e);
-							else
-								result = e;
-						}
-						return result(result, problems);
-					}
-				}));
-			}
-
-			@Override
-			public Problematic<CoreExpr> key(Key name) {
-				// TODO If guarantee is not the default, apply that guarantee ...
-				return result(
-						new Let(sourceExpr,
-								off(leftSourceOffset - sourceOffset, name),
-								off(rightSourceOffset - sourceOffset, right)));
-			}
-
-			@Override
-			@Nullable
-			public Problematic<CoreExpr> fallback(SourceExpr other) {
-				final Problem problem = new ExpectedIdentifier(other, leftSourceOffset, other.getSourceLength());
-				return key(new Identifier(other.getSourceLength(), other.toSource())).with(problem);
-			}
-
-		}));
+	DesugarResult<CoreExpr> mapProjection(BinaryOp op, boolean optionalProjection) {
+		final DesugarResult<Key> argNameDs = gensym("arg");
+		final DesugarResult<CoreExpr> projectionDs = argNameDs.projection(op, argNameDs.getValue(), op.getRight(), optionalProjection);
+		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, new FunArg(argNameDs.getValue()), projectionDs.getValue());
+		final DesugarResult<CoreExpr> leftDs = projectFuncDs.expr(op.getLeft());
+		final DesugarResult<CoreExpr> mapCallDs = leftDs.withDesugared(op, new Call(leftDs.getValue(), new Identifier("map"), projectFuncDs.getValue()));
+		return mapCallDs;
 	}
 
 	/**
-	 * For a conditional each "=>" binary operator can yield an Option-like value.  Conditions are
-	 * chained using implicit right-associative "?:" between them ("or else")
-	 * 
-	 * a => b
-	 * means
-	 * a."=>"(-> b)
-	 * means
-	 * a.if(true:some(b) false:none)
-	 * 
-	 * a => b ; c => d ; e
-	 * means
-	 * a => b ?: c => d ?: e
-	 * 
-	 * @param args List of cond expressions, each with offsetInParent relative to the given sourceOffset
+	 * Create a function object - an object with a single method with a special name and the given body.
 	 */
-	private Problematic<CoreExpr> exprListToCond(SourceExpr op, int sourceOffset, LinkedList<SourceExpr> exprs) {
-		if(exprs.isEmpty()) throw new IllegalStateException();
-
-		final LinkedList<Problem> problems = new LinkedList<>();
-
-		final LinkedList<CoreExpr> coreExprs = new LinkedList<>();
-		for(final SourceExpr se : exprs) {
-			coreExprs.add(off(se.getOffsetInParent(), expr(se, sourceOffset + se.getOffsetInParent()).dumpProblems(problems)));
-		}
-
-		// Now insert ?: between each
-		final Iterator<CoreExpr> it = coreExprs.descendingIterator();
-		CoreExpr result = nonNull(it.next());
-		while(it.hasNext()) {
-			final CoreExpr cond = nonNull(it.next());
-			result = new Call(0, new Projection(0, cond, new Identifier(Operator.LAZY_OR.getOp())), nonNull(Collections.singletonList(result)));
-		}
-		return result(result, problems);
+	DesugarResult<CoreExpr> function(BinaryOp op, FunArg funArg, CoreExpr body) {
+		final Method applyMethod = new Method(Method.NO_SELF_NAME, Method.APPLY_FUNCTION_METHOD_NAME, nonNull(Arrays.asList(funArg)), Method.NO_GUARANTEE, body);
+		return this.<CoreExpr>withValue(new ObjectLiteral(applyMethod));
 	}
 
-	private Problematic<CoreExpr> listLiteral(SourceExpr sourceExpr, int sourceOffset, List<SourceExpr> list, @Nullable Operator requireBullet) {
-		final List<Problem> problems = new ArrayList<>();
-		return result(new ListLiteral(sourceExpr, elements(sourceOffset, list, requireBullet, problems)), problems);
+	DesugarResult<Key> gensym(String s) {
+		return this.<Key>withValue(new Identifier("__g_"+s+this.counter));
 	}
 
-	private Problematic<CoreExpr> setLiteral(SourceExpr sourceExpr, int sourceOffset, List<SourceExpr> list, @Nullable Operator requireBullet) {
-		final List<Problem> problems = new ArrayList<>();
-		return result(new SetLiteral(sourceExpr, elements(sourceOffset, list, requireBullet, problems)), problems);
+
+	DesugarResult<CoreExpr> call(final BinaryOp op) {
+		final ArrayList<SourceExpr> argSourceExprs = flattenCommas(op.getRight(), new ArrayList<SourceExpr>());
+		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			@Override
+			@Nullable
+			public DesugarResult<CoreExpr> binaryOp(final BinaryOp calleeOp) {
+				// If there's a simple projection with an identifier then it's a direct method call
+				if(calleeOp.getOperator() == Operator.PROJECTION) {
+					return calleeOp.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+						@Override
+						@Nullable
+						public DesugarResult<CoreExpr> key(Key key) {
+							return call(op, calleeOp.getLeft(), key, argSourceExprs);
+						}
+
+						@Override
+						@Nullable
+						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+							return callFunction();
+						}
+					});
+				}
+				return callFunction();
+			}
+
+			@Override
+			@Nullable
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+				return callFunction();
+			}
+
+			public DesugarResult<CoreExpr> callFunction() {
+				return call(op, op.getLeft(), Method.APPLY_FUNCTION_METHOD_NAME, argSourceExprs);
+			}
+		}));
+	}
+
+	DesugarResult<CoreExpr> call(SourceExpr sourceExpr, SourceExpr object, Key methodName, List<SourceExpr> argSourceExprs) {
+		final DesugarResult<CoreExpr> objectDs = expr(object);
+		return objectDs.call(sourceExpr, objectDs.getValue(), methodName, argSourceExprs);
+	}
+
+	DesugarResult<CoreExpr> call(SourceExpr sourceExpr, CoreExpr object, Key methodName, List<SourceExpr> argSourceExprs) {
+		final ArrayList<CoreExpr> argCoreExprs = new ArrayList<>(argSourceExprs.size());
+		BanjoDesugarer ds = BanjoDesugarer.this;
+		for(final SourceExpr argSourceExpr : argSourceExprs) {
+			final DesugarResult<CoreExpr> dsr = ds.expr(nonNull(argSourceExpr));
+			argCoreExprs.add(dsr.getValue());
+			ds = dsr;
+		}
+		return ds.withDesugared(sourceExpr, new Call(object, methodName, argCoreExprs));
+	}
+
+	private DesugarResult<CoreExpr> listLiteral(SourceExpr sourceExpr, @Nullable Operator requireBullet) {
+		final List<SourceExpr> list = flattenCommas(sourceExpr, new ArrayList<SourceExpr>());
+		return listLiteral(sourceExpr, list, requireBullet);
+	}
+
+	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, List<SourceExpr> list, @Nullable Operator requireBullet) {
+		return elements(sourceExpr, list, requireBullet, new F<List<CoreExpr>,CoreExpr>() {
+			@Override
+			public CoreExpr f(List<CoreExpr> a) {
+				return new ListLiteral(a);
+			}
+		});
 	}
 
 	/**
@@ -564,89 +325,82 @@ public class BanjoDesugarer {
 	 * @param problems List to add problems to if they are found
 	 * @return A list of CoreExpr, each with offsetFromParent relative to the given sourceOffset
 	 */
-	private ArrayList<CoreExpr> elements(final int sourceOffset, List<SourceExpr> list, @Nullable final Operator requireBullet, final List<Problem> problems) {
+	private DesugarResult<CoreExpr> elements(SourceExpr sourceExpr, final List<SourceExpr> list, @Nullable final Operator requireBullet, F<List<CoreExpr>, CoreExpr> cb) {
 		final ArrayList<CoreExpr> elements = new ArrayList<>(list.size());
+		BanjoDesugarer currDs = this;
 		if(!list.isEmpty()) {
 			final ArrayList<SourceExpr> headings = new ArrayList<>();
 			for(final SourceExpr e : list) {
 				if(e == null) throw new NullPointerException();
-				final int elementSourceOffset = sourceOffset + e.getOffsetInParent();
-				e.acceptVisitor(new BaseSourceExprVisitor<Void>() {
+				final BanjoDesugarer ds = nonNull(currDs);
+				currDs = nonNull(e.acceptVisitor(new BaseSourceExprVisitor<BanjoDesugarer>() {
 					@Override
-					@Nullable
-					public Void unaryOp(UnaryOp op) {
+					public BanjoDesugarer unaryOp(UnaryOp op) {
 						if(op.getOperator() == Operator.TABLE_HEADER) {
 							headings.clear();
 							// Table headings here will end up each with an offset relative to the list itself, since they have no parent
-							final int headingsOffsetFromList = e.getOffsetInParent() + op.getOperand().getOffsetInParent();
-							flattenCommas(op.getOperand(), headingsOffsetFromList, headings);
-							return null;
+							flattenCommas(op.getOperand(), headings);
+							return ds;
 						} else {
 							if(requireBullet != null) {
 								if(op.getOperator() == requireBullet) {
-									return visitElement(elementSourceOffset + op.getOperand().getOffsetInParent(), op.getOperand());
+									return visitElement(op.getOperand());
 								} else {
-									problems.add(new ExpectedElement(elementSourceOffset, e.getSourceLength()));
-									return null;
+									elements.add(new BadCoreExpr("Expected "+requireBullet.getOp()));
+									return visitElement(op);
 								}
 							}
-							return visitElement(elementSourceOffset, op);
+							return visitElement(op);
 						}
 					}
 
-					@Nullable
-					public Void visitElement(int elementSourceOffset, SourceExpr eltSourceExpr) {
-						final int bulletOffset = 0;
-						Problematic<CoreExpr> coreElt;
+					public BanjoDesugarer visitElement(SourceExpr eltSourceExpr) {
+						DesugarResult<CoreExpr> coreEltDs;
 						if(!headings.isEmpty()) {
-							coreElt = makeRow(eltSourceExpr, sourceOffset, headings, sourceOffset);
+							coreEltDs = ds.makeRow(eltSourceExpr, headings);
 						} else {
-							coreElt = expr(eltSourceExpr, sourceOffset + bulletOffset);
+							coreEltDs = ds.expr(eltSourceExpr);
 						}
-						elements.add(off(elementSourceOffset - sourceOffset, coreElt));
-						problems.addAll(coreElt.getProblems());
-						return null;
+						elements.add(coreEltDs.getValue());
+						return coreEltDs;
 					}
 
 					@Override
-					@Nullable
-					public Void fallback(SourceExpr other) {
+					public BanjoDesugarer fallback(SourceExpr other) {
 						if(requireBullet != null) {
-							problems.add(new ExpectedElement(sourceOffset + e.getOffsetInParent(), e.getSourceLength()));
+							elements.add(new BadCoreExpr("Expected "+requireBullet.getOp()));
 						} else {
-							visitElement(elementSourceOffset, other);
 						}
-						return null;
+						return visitElement(other);
 					}
-				});
+				}));
 			}
 		}
-		return elements;
+		return currDs.withDesugared(sourceExpr, nonNull(cb.f(elements)));
 	}
 
-	private Problematic<CoreExpr> objectLiteral(SourceExpr sourceExpr, final int sourceOffset, Collection<SourceExpr> fieldSourceExprs) {
-		// Key/value pair - treat as an object
-		final LinkedHashMap<String, Method> fields = new LinkedHashMap<>(fieldSourceExprs.size()*2);
+	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr) {
+		final ArrayList<SourceExpr> fieldSourceExprs = flattenCommas(sourceExpr, new ArrayList<SourceExpr>());
+		return objectLiteral(sourceExpr, fieldSourceExprs);
+	}
+	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, final Collection<SourceExpr> fieldSourceExprs) {
 		final ArrayList<SourceExpr> headings = new ArrayList<>();
-		final List<Problem> problems = new ArrayList<>();
+		DesugarResult<fj.data.List<Method>> ds = this.withValue(nonNull(fj.data.List.<Method>nil()));
 		for(final SourceExpr fieldSourceExpr : fieldSourceExprs) {
 			if(fieldSourceExpr == null) throw new NullPointerException();
-			final int fieldSourceOffset = sourceOffset + fieldSourceExpr.getOffsetInParent();
-			addField(sourceOffset, fieldSourceExpr, fieldSourceOffset, headings, fields, problems);
+			ds = addMethod(fieldSourceExpr, headings, ds.getValue());
 		}
-		return result(new ObjectLiteral(sourceExpr, fields), problems);
+		final fj.data.List<Method> fields = nonNull(ds.getValue().reverse()); // addMethod adds to the start instead of the end
+		return ds.withDesugared(sourceExpr, new ObjectLiteral(fields));
 	}
 
-	protected void addField(final int objectSourceOffset,
-			final SourceExpr fieldSourceExpr, final int fieldSourceOffset,
-			final ArrayList<SourceExpr> headings,
-			final LinkedHashMap<String, Method> fields,
-			final List<Problem> problems) {
-		fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
+	protected DesugarResult<fj.data.List<Method>> addMethod(final SourceExpr fieldSourceExpr, final ArrayList<SourceExpr> headings,
+			final fj.data.List<Method> fields) {
+		return nonNull(fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<Method>>>() {
 			@Override
 			@Nullable
-			public Void binaryOp(BinaryOp op) {
-				if(op.getOperator() == Operator.PAIR) {
+			public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp op) {
+				if(op.getOperator() == Operator.ASSIGNMENT) {
 					return visitPair(op);
 				} else {
 					return fallback(op);
@@ -654,77 +408,54 @@ public class BanjoDesugarer {
 			}
 
 			@Nullable
-			private Void visitPair(BinaryOp fieldOp) {
+			private DesugarResult<fj.data.List<Method>> visitPair(BinaryOp fieldOp) {
 				final SourceExpr left = fieldOp.getLeft();
 				final SourceExpr right = fieldOp.getRight();
-				return pair(
-						left,  fieldSourceOffset + left.getOffsetInParent(),
-						right, fieldSourceOffset + right.getOffsetInParent(),
-						fieldOp.getOperator() == Operator.PAIR_INCLUDE);
+				return pair(left, right);
 			}
 
 			@Override
 			@Nullable
-			public Void unaryOp(UnaryOp op) {
+			public DesugarResult<fj.data.List<Method>> unaryOp(UnaryOp op) {
 				switch(op.getOperator()) {
-				case ANON_INCLUDE: return visitAnonInclude(op);
-				case MIRROR: return visitMirror(op);
 				case TABLE_HEADER: return visitTableHeader(op);
 				default: return fallback(op);
 				}
 			}
 
 			@Nullable
-			private Void visitTableHeader(UnaryOp headerOp) {
+			private DesugarResult<fj.data.List<Method>> visitTableHeader(UnaryOp headerOp) {
 				headings.clear();
-				final int headingsOffsetFromObject = fieldSourceExpr.getOffsetInParent() + headerOp.getOperand().getOffsetInParent();
-				flattenCommas(headerOp.getOperand(), headingsOffsetFromObject, headings);
-				return null;
+				flattenCommas(headerOp.getOperand(), headings);
+				throw new Error("Not implemented");
+			}
+
+			@Override
+			@Nullable
+			public DesugarResult<fj.data.List<Method>> key(Key key) {
+				return pair(key, key);
 			}
 
 			@Nullable
-			private Void visitMirror(UnaryOp fieldOp) {
-				final SourceExpr operand = fieldOp.getOperand();
-				final int operandSourceOffset = fieldSourceOffset + operand.getOffsetInParent();
-				return pair(operand, operandSourceOffset, operand, operandSourceOffset, fieldOp.getOperator() == Operator.ANON_INCLUDE);
-			}
-
-			@Nullable
-			private Void visitAnonInclude(UnaryOp includeOp) {
-				final SourceExpr operand = includeOp.getOperand();
-				final int operandSourceOffset = fieldSourceOffset + operand.getOffsetInParent();
-				final Key fakeName = gensym();
-				return pair(fakeName, operandSourceOffset, operand, operandSourceOffset, true);
-			}
-
-			@Nullable
-			private Void pair(SourceExpr lvalueExpr, int lvalueSourceOffset, SourceExpr valueSourceExpr, int valueSourceOffset, boolean include) {
-				final CoreExpr valueCoreExpr = element(valueSourceExpr, valueSourceOffset, headings, objectSourceOffset).dumpProblems(problems);
-				addField(objectSourceOffset,
-						fieldSourceExpr, fieldSourceOffset,
-						lvalueExpr, lvalueSourceOffset,
-						valueCoreExpr, valueSourceOffset,
-						FunctionLiteral.DEFAULT_GUARANTEE, fieldSourceOffset,
-						include, fields, problems);
-				return null;
+			private DesugarResult<fj.data.List<Method>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr) {
+				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
+				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Method.NO_GUARANTEE, fields);
 			}
 
 
 			@Override
 			@Nullable
-			public Void fallback(SourceExpr other) {
-				problems.add(new ExpectedField(fieldSourceOffset, fieldSourceExpr.getSourceLength()));
-				return null;
+			public DesugarResult<fj.data.List<Method>> fallback(SourceExpr other) {
+				return addMethod(fieldSourceExpr, new Identifier(other.toSource()), new BadCoreExpr("Expected method definition"), Method.NO_GUARANTEE, fields);
 			}
-		});
+		}));
 	}
 
-	protected Problematic<CoreExpr> element(SourceExpr sourceExpr,
-			int sourceOffset, ArrayList<SourceExpr> headings, int headingsSourceOffset) {
+	protected DesugarResult<CoreExpr> element(SourceExpr sourceExpr, ArrayList<SourceExpr> headings) {
 		if(headings.isEmpty()) {
-			return expr(sourceExpr, sourceOffset);
+			return expr(sourceExpr);
 		} else {
-			return makeRow(sourceExpr, sourceOffset, headings, headingsSourceOffset);
+			return makeRow(sourceExpr, headings);
 		}
 	}
 
@@ -733,121 +464,166 @@ public class BanjoDesugarer {
 	 * adds any problems that were found to the given problems list.
 	 * 
 	 * Each node's offset should be relative to the given parentSourceOffset.
-	 * @param include TODO
 	 */
-	private void addField(final int objectSourceOffset,
-			final SourceExpr fieldSourceExpr, final int fieldSourceOffset,
-			final SourceExpr lvalueExpr,      final int lvalueSourceOffset,
-			final CoreExpr valueExpr,         final int valueSourceOffset,
-			final CoreExpr guarantee,         final int guaranteeSourceOffset,
-			final boolean include,
-			final LinkedHashMap<String, Method> fields, final List<Problem> problems) {
+	DesugarResult<fj.data.List<Method>> addMethod(final SourceExpr fieldSourceExpr, final SourceExpr lvalueExpr, final CoreExpr body, final CoreExpr guarantee, final fj.data.List<Method> methods) {
 
-		lvalueExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
+		return nonNull(lvalueExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<Method>>>() {
 			@Override
 			@Nullable
-			public Void binaryOp(BinaryOp targetBOp) {
+			public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp targetBOp) {
 				switch(targetBOp.getOperator()) {
-				case PAIR: return pair(targetBOp);
-				case CALL: return method(targetBOp);
+				case COLON: return methodWithGuarantee(targetBOp);
+				case CALL: return methodWithArgs(targetBOp);
+				case PROJECTION: return methodWithSelfNameAndNoArgsOrNoName(targetBOp); // self.(x) = ... or self.x = ...
 				default: return fallback(targetBOp);
 				}
 			}
 
-			private @Nullable Void method(final BinaryOp signature) {
-				final SourceExpr methodLeftExpr = signature.getLeft();
-				final int methodLeftSourceOffset = lvalueSourceOffset + methodLeftExpr.getOffsetInParent();
-				final SourceExpr argsExpr = signature.getRight();
-				final int argsSourceOffset = lvalueSourceOffset + signature.getRight().getOffsetInParent();
-				methodLeftExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
+			@Override
+			@Nullable
+			public DesugarResult<fj.data.List<Method>> unaryOp(final UnaryOp targetOp) {
+				switch(targetOp.getOperator()) {
+				case PARENS: return targetOp.getOperand().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<Method>>>() {
 					@Override
 					@Nullable
-					public Void binaryOp(BinaryOp methodDefBOp) {
+					public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp op) {
+						final DesugarResult<Key> selfNameDs = expectIdentifier(op.getLeft());
+						final DesugarResult<Method> methodDs = selfNameDs.method(new Identifier(op.getOperator().getOp()), op.getRight(), selfNameDs.getValue(), guarantee, body);
+						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+					}
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<Method>> unaryOp(UnaryOp op) {
+						final DesugarResult<Key> selfNameDs = expectIdentifier(op.getOperand());
+						final DesugarResult<Method> methodDs = selfNameDs.method(new Identifier(op.getOperator().getOp()), nonNull(Collections.<SourceExpr>emptyList()), selfNameDs.getValue(), guarantee, body);
+						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+					}
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<Method>> fallback(SourceExpr other) {
+						return parenMethod(targetOp, Method.APPLY_FUNCTION_METHOD_NAME);
+					}
+				});
+				case BRACKETS: return parenMethod(targetOp, Method.LOOKUP_METHOD_NAME);
+				default: return super.unaryOp(targetOp);
+				}
+
+			}
+
+			private DesugarResult<fj.data.List<Method>> parenMethod(final UnaryOp signature, Key methodName) {
+				final DesugarResult<Method> methodDs = method(methodName, signature.getOperand(), Method.NO_SELF_NAME, guarantee, body);
+				return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+			}
+
+			/**
+			 * Desugar a method in one of the two forms:
+			 * 
+			 *   self.x = ... no-arg method uses self ...
+			 *   self.(x) = ... no-name method uses self ...
+			 */
+			private DesugarResult<fj.data.List<Method>> methodWithSelfNameAndNoArgsOrNoName(final BinaryOp signature) {
+				final DesugarResult<Key> selfNameDs = expectIdentifier(signature.getLeft());
+				return nonNull(signature.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<Method>>>() {
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<Method>> unaryOp(UnaryOp signature2) {
+						switch(signature2.getOperator()) {
+						case PARENS: return specialMethod(signature2, Method.APPLY_FUNCTION_METHOD_NAME);
+						case BRACKETS: return specialMethod(signature2, Method.LOOKUP_METHOD_NAME);
+						default: return fallback(signature2);
+						}
+					}
+
+					private DesugarResult<fj.data.List<Method>> specialMethod(UnaryOp signature2, final Key methodName) {
+						final DesugarResult<Method> methodDs = selfNameDs.method(methodName, signature2.getOperand(), selfNameDs.getValue(), guarantee, body);
+						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+					}
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<Method>> fallback(SourceExpr signature2) {
+						// self.x = ... means self.x() = ...
+						final DesugarResult<Key> nameDs = selfNameDs.expectIdentifier(signature2);
+						final DesugarResult<Method> methodDs = nameDs.method(nameDs.getValue(), new EmptyExpr(), selfNameDs.getValue(), guarantee, body);
+						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+					}
+				}));
+			}
+
+			/**
+			 * Desugar the field definition as a method that takes parameters.
+			 */
+			private DesugarResult<fj.data.List<Method>> methodWithArgs(final BinaryOp signature) {
+				final SourceExpr methodLeftExpr = signature.getLeft();
+				final SourceExpr argsExpr = signature.getRight();
+				return nonNull(methodLeftExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<Method>>>() {
+					@Override
+					public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp methodDefBOp) {
 						switch(methodDefBOp.getOperator()) {
 						case PROJECTION: return projection(methodDefBOp);
 						default: return fallback(methodDefBOp);
 						}
 					}
 
-					@Nullable
-					private Void projection(BinaryOp methodDefBOp) {
+					private DesugarResult<fj.data.List<Method>> projection(BinaryOp methodDefBOp) {
 						final SourceExpr nameSourceExpr = methodDefBOp.getRight();
-						final int nameSourceOffset = methodLeftSourceOffset + nameSourceExpr.getOffsetInParent();
 						final SourceExpr selfNameSourceExpr = methodDefBOp.getLeft();
-						final int selfNameSourceOffset = methodLeftSourceOffset + selfNameSourceExpr.getOffsetInParent();
-						final Key selfName = expectIdentifier(selfNameSourceExpr, methodLeftSourceOffset, problems);
-						apply(nameSourceExpr, nameSourceOffset, selfName, selfNameSourceOffset);
-						return null;
+						final DesugarResult<Key> selfNameDs = expectIdentifier(selfNameSourceExpr);
+						return apply(nameSourceExpr, selfNameDs.getValue(), selfNameDs);
 					}
 
-					void apply(SourceExpr nameExpr, int nameSourceOffset, Key selfName, int selfNameSourceOffset) {
-						final FunctionLiteral implementation1 = (FunctionLiteral)functionLiteral(
-								fieldSourceExpr, fieldSourceOffset,
-								argsExpr, argsSourceOffset,
-								guarantee, guaranteeSourceOffset,
-								valueExpr, valueSourceOffset).dumpProblems(problems);
-						final Key key = expectIdentifier(nameExpr, nameSourceOffset, problems);
-						final List<FunArg> funArgs = ListUtil.prepend(new FunArg(selfName.getSourceLength(), selfName), implementation1.getArgs());
-						final CoreExpr implementation = new FunctionLiteral(implementation1.getSourceLength(), funArgs, implementation1.getGuarantee(), implementation1.getBody());
-						final int keySourceOffset = lvalueSourceOffset;
-						final Method field = new Method(fieldSourceExpr.getSourceLength(),
-								fieldSourceOffset - objectSourceOffset,
-								off(keySourceOffset - fieldSourceOffset, key),
-								off(implementation1.getOffsetInParent(), implementation),
-								include);
-						fields.put(field.getKey().getKeyString(), field);
+					DesugarResult<fj.data.List<Method>> apply(SourceExpr nameExpr, Key selfName, BanjoDesugarer ds) {
+						final DesugarResult<Key> keyDs = ds.expectIdentifier(nameExpr);
+						final DesugarResult<Method> methodDs = keyDs.method(
+								keyDs.getValue(),
+								argsExpr,
+								selfName,
+								guarantee,
+								body);
+						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
 					}
 					@Override
-					@Nullable
-					public Void fallback(SourceExpr other) {
-						apply(methodLeftExpr, methodLeftSourceOffset, Method.DEFAULT_SELF_NAME, methodLeftSourceOffset);
-						return null;
+					public DesugarResult<fj.data.List<Method>> fallback(SourceExpr other) {
+						return apply(methodLeftExpr, Method.NO_SELF_NAME, BanjoDesugarer.this);
 					}
-				});
-				return null;
+				}));
 			}
 
-			private @Nullable Void pair(BinaryOp targetBOp) {
+			/**
+			 * Desugar the field as a method that doesn't take any parameters
+			 */
+			private DesugarResult<fj.data.List<Method>> methodWithGuarantee(BinaryOp targetBOp) {
 				final SourceExpr newLvalueExpr = targetBOp.getLeft();
-				final int newLvalueSourceOffset = lvalueSourceOffset + newLvalueExpr.getOffsetInParent();
-				final int newGuaranteeSourceOffset = lvalueSourceOffset + targetBOp.getRight().getOffsetInParent();
-				final CoreExpr newGuarantee = expr(targetBOp.getRight(), newGuaranteeSourceOffset).dumpProblems(problems);
-				final CoreExpr combinedGuarantee = composeGuarantees(guarantee, guaranteeSourceOffset, newGuarantee, newGuaranteeSourceOffset);
-				addField(objectSourceOffset,
-						fieldSourceExpr, fieldSourceOffset,
-						newLvalueExpr, newLvalueSourceOffset,
-						valueExpr, valueSourceOffset,
-						combinedGuarantee, newGuaranteeSourceOffset,
-						targetBOp.getOperator() == Operator.PAIR_INCLUDE,
-						fields, problems);
-				return null;
+				final DesugarResult<CoreExpr> newGuaranteeDs = expr(targetBOp.getRight());
+				final CoreExpr combinedGuarantee = composeGuarantees(guarantee, newGuaranteeDs.getValue());
+				return newGuaranteeDs.addMethod(fieldSourceExpr, newLvalueExpr, body, combinedGuarantee, methods);
 			}
 
+			/**
+			 * In this case the lvalue wasn't something we recognize normally so it should be an identifier, which is the name of the
+			 * method.
+			 */
 			@Override
-			@Nullable
-			public Void fallback(SourceExpr other) {
-				final Key selfName = Method.DEFAULT_SELF_NAME;
-				final List<FunArg> funArgs = nonNull(Collections.singletonList(new FunArg(selfName.getSourceLength(), selfName)));
-				final CoreExpr implementation = new FunctionLiteral(fieldSourceExpr.getSourceLength(), funArgs, guarantee, valueExpr);
-				final Key key = expectIdentifier(lvalueExpr, lvalueSourceOffset, problems);
-				final int keySourceOffset = lvalueSourceOffset;
-				final Method field = new Method(fieldSourceExpr.getSourceLength(),
-						fieldSourceOffset - objectSourceOffset,
-						off(keySourceOffset - fieldSourceOffset, key),
-						off(valueSourceOffset - fieldSourceOffset, implementation), include);
-				fields.put(field.getKey().getKeyString(), field);
-				return null;
+			public DesugarResult<fj.data.List<Method>> fallback(SourceExpr other) {
+				final List<FunArg> funArgs = nonNull(Collections.<FunArg>emptyList());
+				final DesugarResult<Key> keyDs = expectIdentifier(lvalueExpr);
+				final Method method = new Method(Method.NO_SELF_NAME, keyDs.getValue(), funArgs, guarantee, body);
+				return keyDs.withValue(nonNull(methods.cons(method)));
 			}
-		});
+		}));
 
 	}
 
-	public Key expectIdentifier(final SourceExpr sourceExpr,
-			final int sourceOffset,
-			final List<Problem> problems) {
-		return nonNull(sourceExpr.acceptVisitor(new BaseSourceExprVisitor<Key>() {
+	/**
+	 * Desugar something the MUST be an identifier.  If it's not an identifier, a placeholder
+	 * is returned - an instance of BadIdentifier - that can be used as an identifier to continue
+	 * with desugaring but which will be reported as an error.
+	 */
+	public DesugarResult<Key> expectIdentifier(final SourceExpr sourceExpr) {
+		return withDesugared(sourceExpr, nonNull(sourceExpr.acceptVisitor(new BaseSourceExprVisitor<Key>() {
 			@Override
-			@Nullable
 			public Key key(Key key) {
 				return key;
 			}
@@ -855,29 +631,9 @@ public class BanjoDesugarer {
 			@Override
 			@Nullable
 			public Key fallback(SourceExpr other) {
-				problems.add(new ExpectedIdentifier(other, sourceOffset, other.getSourceLength()));
-				return new Identifier(other.getSourceLength(), other.toSource());
+				return new BadIdentifier(sourceExpr);
 			}
-		}));
-	}
-
-	public Key expectIdentifier(final CoreExpr coreExpr,
-			final int sourceOffset,
-			final List<Problem> problems) {
-		return nonNull(coreExpr.acceptVisitor(new BaseCoreExprVisitor<Key>() {
-			@Override
-			@Nullable
-			public Key key(Key key) {
-				return key;
-			}
-
-			@Override
-			@Nullable
-			public Key fallback(CoreExpr other) {
-				problems.add(new ExpectedIdentifier(other, sourceOffset, other.getSourceLength()));
-				return new Identifier(other.getSourceLength(), other.toSource());
-			}
-		}));
+		})));
 	}
 
 	/**
@@ -891,12 +647,10 @@ public class BanjoDesugarer {
 	 * @param newGuaranteeSourceOffset Absolute source offset of the new guarantee
 	 * @return A new CoreExpr repreesnting the combined guarantee
 	 */
-	protected CoreExpr composeGuarantees(CoreExpr guarantee,
-			int guaranteeSourceOffset, CoreExpr newGuarantee,
-			int newGuaranteeSourceOffset) {
-		if(guarantee.equals(FunctionLiteral.DEFAULT_GUARANTEE)) {
+	protected CoreExpr composeGuarantees(CoreExpr guarantee, CoreExpr newGuarantee) {
+		if(guarantee.equals(Method.NO_GUARANTEE)) {
 			return newGuarantee;
-		} else if(newGuarantee.equals(FunctionLiteral.DEFAULT_GUARANTEE)) {
+		} else if(newGuarantee.equals(Method.NO_GUARANTEE)) {
 			return guarantee;
 		} else {
 			// TODO Implement guarantee merging
@@ -913,27 +667,28 @@ public class BanjoDesugarer {
 	 * @param headingsSourceOffset Absolute source offset that the heading's offsetFromParent is relative to
 	 * @return
 	 */
-	private Problematic<CoreExpr> makeRow(SourceExpr sourceExpr, int sourceOffset, List<SourceExpr> headings, int headingsSourceOffset) {
-		final List<SourceExpr> values = flattenCommas(stripParens(sourceExpr), 0, new ArrayList<SourceExpr>(headings.size()));
-		final LinkedList<Problem> problems = new LinkedList<>();
+	private DesugarResult<CoreExpr> makeRow(SourceExpr sourceExpr, List<SourceExpr> headings) {
+		final List<SourceExpr> values = flattenCommas(stripParens(sourceExpr), new ArrayList<SourceExpr>(headings.size()));
 		for(int i=headings.size(); i < values.size(); i++) {
 			final SourceExpr val = values.get(i);
-			final int valSourceOffset = sourceOffset = val.getOffsetInParent();
-			problems.add(new ExtraTableColumn(i, headings.size(), val.toSource(), valSourceOffset, val.getSourceLength()));
+			// TODO Report problems.add(new ExtraTableColumn(i, headings.size(), val.toSource(), valSourceOffset, val.getSourceLength()));
 		}
 		if(values.size() < headings.size()) {
-			problems.add(new MissingValueForTableColumn(values.size(), headings.size(), sourceOffset + sourceExpr.getSourceLength(), 0, headings.get(values.size()).toSource()));
+			// TODO Report problems.add(new MissingValueForTableColumn(values.size(), headings.size(), sourceOffset + sourceExpr.getSourceLength(), 0, headings.get(values.size()).toSource()));
 		}
-		final LinkedHashMap<String, Method> fields = new LinkedHashMap<>(headings.size()*2);
-		for(int i=0; i < values.size(); i++) {
+		fj.data.List<Method> fields = ObjectLiteral.EMPTY_METHOD_LIST;
+		final int count = Math.min(headings.size(), values.size());
+		BanjoDesugarer ds = this;
+		for(int i=0; i < count; i++) {
 			final SourceExpr headingExpr = nonNull(headings.get(i));
-			final int headingSourceOffset = headingsSourceOffset + headingExpr.getOffsetInParent();
 			final SourceExpr cellSourceExpr = nonNull(values.get(i));
-			final int cellSourceOffset = sourceOffset + cellSourceExpr.getOffsetInParent();
-			final CoreExpr cellCoreExpr = expr(cellSourceExpr, cellSourceOffset).dumpProblems(problems);
-			addField(sourceOffset, cellSourceExpr, cellSourceOffset, headingExpr, headingSourceOffset, cellCoreExpr, cellSourceOffset, FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset, false, fields, problems);
+			final DesugarResult<CoreExpr> cellCoreExprDs = ds.expr(cellSourceExpr);
+			final DesugarResult<fj.data.List<Method>> fieldsDs = cellCoreExprDs.addMethod(cellSourceExpr, headingExpr, cellCoreExprDs.getValue(), Method.NO_GUARANTEE, fields);
+			ds = fieldsDs;
+			fields = fieldsDs.getValue();
 		}
-		return result(new ObjectLiteral(sourceExpr, fields), problems);
+		fields = nonNull(fields.reverse()); // addMethod adds to the start instead of the end
+		return ds.withDesugared(sourceExpr, new ObjectLiteral(fields));
 	}
 
 	/**
@@ -948,7 +703,7 @@ public class BanjoDesugarer {
 				switch(op.getOperator()) {
 				case PARENS:
 				case RETURN:
-					return off(op.getOperand().getOffsetInParent(), op.getOperand());
+					return op.getOperand();
 				default:
 					return op;
 				}
@@ -968,115 +723,209 @@ public class BanjoDesugarer {
 	 * @param sourceExpr Function literal source expression, already identified as a BinaryOp with operator ->
 	 * @param sourceOffset Absolute source offset of sourceExpr
 	 */
-	private Problematic<CoreExpr> functionLiteral(BinaryOp sourceExpr, int sourceOffset) {
-		final SourceExpr args = sourceExpr.getLeft();
-		final SourceExpr body = sourceExpr.getRight();
-		final int bodySourceOffset = sourceOffset + sourceExpr.getRight().getOffsetInParent();
-		final Problematic<CoreExpr> bodyCoreExpr = expr(body, bodySourceOffset);
-		final int argsSourceOffset = sourceOffset+args.getOffsetInParent();
-		return functionLiteral(sourceExpr, sourceOffset,
-				args, argsSourceOffset,
-				FunctionLiteral.DEFAULT_GUARANTEE, sourceOffset,
-				bodyCoreExpr.getValue(), bodySourceOffset).plusProblemsFrom(bodyCoreExpr);
+	DesugarResult<CoreExpr> functionLiteral(BinaryOp sourceExpr) {
+		final DesugarResult<CoreExpr> bodyDs = expr(sourceExpr.getRight());
+		final CoreExpr body = bodyDs.getValue();
+		final SourceExpr argsSourceExpr = sourceExpr.getLeft();
+		return bodyDs.functionLiteral(sourceExpr, argsSourceExpr, body);
+	}
+
+	public DesugarResult<CoreExpr> functionLiteral(SourceExpr sourceExpr,
+			final SourceExpr argsSourceExpr, final CoreExpr body) {
+		final DesugarResult<Method> methodDs = method(Method.APPLY_FUNCTION_METHOD_NAME, argsSourceExpr, Method.NO_SELF_NAME, Method.NO_GUARANTEE, body);
+		return methodDs.withDesugared(sourceExpr, new ObjectLiteral(methodDs.getValue()));
 	}
 
 	/**
 	 * Create a function literal from an args definition (still in source form) and a body (already desugared).
-	 * 
-	 * @param sourceExpr Function source expression, covering the whole function definition
-	 * @param sourceOffset Absolute source offset of sourceExpr
 	 * @param args Argument source expression
-	 * @param argsSourceOffset Absolute offset in characters to the args
-	 * @param body Function body as a core expression
-	 * @param bodySourceOffset Absolute source offset of the function body expression
 	 * @param guarantee Function result guarantee.  Use FunctionLiteral.DEFAULT_GUARANTEE if none specified
+	 * @param body Function body as a core expression
+	 * @param sourceOffset Absolute source offset of sourceExpr
+	 * @param argsSourceOffset Absolute offset in characters to the args
+	 * @param bodySourceOffset Absolute source offset of the function body expression
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee; use the same offset as sourceOffset if none specified
 	 */
-	private Problematic<CoreExpr> functionLiteral(final SourceExpr sourceExpr, final int sourceOffset,
-			final SourceExpr args, final int argsSourceOffset,
-			final CoreExpr guarantee, final int guaranteeSourceOffset,
-			final CoreExpr body, final int bodySourceOffset) {
-
-		return nonNull(args.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
+	DesugarResult<Method> method(final Key methodName, final SourceExpr args, final Key selfName, final CoreExpr guarantee, final CoreExpr body) {
+		return nonNull(args.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<Method>>() {
 			@Override
-			public Problematic<CoreExpr> binaryOp(BinaryOp op) {
+			public DesugarResult<Method> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
-				case PAIR:
-					// (x,y):Guarantee -> ...
-					return pair(op);
+				case COLON:
+					// (x,y):Guarantee = ...
+					return applyGuarantee(op);
 				default:
 					return fallback(op);
 				}
 			}
 
-			private Problematic<CoreExpr> pair(BinaryOp op) {
+			private DesugarResult<Method> applyGuarantee(BinaryOp op) {
 				final SourceExpr newArgs = op.getLeft();
-				final int newArgsSourceOffset = argsSourceOffset + newArgs.getOffsetInParent();
 				final SourceExpr newGuaranteeSourceExpr = op.getRight();
-				final int newGuaranteeSourceOffset = argsSourceOffset + newGuaranteeSourceExpr.getOffsetInParent();
-				final Problematic<CoreExpr> newGuarantee = expr(newGuaranteeSourceExpr, newGuaranteeSourceOffset);
-				final CoreExpr combinedGuarantee = composeGuarantees(guarantee, guaranteeSourceOffset, newGuarantee.getValue(), newGuaranteeSourceOffset);
-				return functionLiteral(sourceExpr, sourceOffset,
-						newArgs, newArgsSourceOffset,
-						combinedGuarantee, newGuaranteeSourceOffset,
-						body, bodySourceOffset).plusProblemsFrom(newGuarantee);
+				final DesugarResult<CoreExpr> newGuaranteeDs = expr(newGuaranteeSourceExpr);
+				final CoreExpr combinedGuarantee = composeGuarantees(guarantee, newGuaranteeDs.getValue());
+				return newGuaranteeDs.method(methodName, newArgs, selfName, combinedGuarantee, body);
 			}
 
 			@Override
-			public Problematic<CoreExpr> fallback(SourceExpr other) {
+			public DesugarResult<Method> fallback(SourceExpr other) {
 				// Args should be comma-separated
 				final List<SourceExpr> exprs = new LinkedList<>();
 				// Optional parentheses around formal parameter list
-				flattenCommas(stripParens(args), args.getOffsetInParent(), exprs);
-				return functionLiteral(sourceExpr, sourceOffset, exprs,
-						guarantee, guaranteeSourceOffset,
-						body, bodySourceOffset);
+				flattenCommas(stripParens(args), exprs);
+				return method(methodName, exprs, selfName, guarantee, body);
 			}
 		}));
 
 	}
 
-	private Problematic<CoreExpr> functionLiteral(SourceExpr sourceExpr, final int sourceOffset,
-			List<SourceExpr> exprs,
-			CoreExpr guarantee, final int guaranteeSourceOffset,
-			final CoreExpr body, final int bodySourceOffset) {
-		final List<FunArg> args = exprs.isEmpty() ? nonNull(Collections.<FunArg>emptyList()) : new ArrayList<FunArg>(exprs.size());
-		final LinkedList<Problem> problems = new LinkedList<>();
-		for(final SourceExpr argExpr : exprs) {
-			final int argSourceOffset = sourceOffset + argExpr.getOffsetInParent();
-			argExpr.acceptVisitor(new BaseSourceExprVisitor<Void>() {
-
-				@Override
-				@Nullable
-				public Void binaryOp(final BinaryOp argOp) {
-					if(argOp.getOperator() == Operator.PAIR) {
-						final int nameSourceOffset = argSourceOffset + argOp.getLeft().getOffsetInParent();
-						final int assertionSourceOffset = argSourceOffset + argOp.getRight().getOffsetInParent();
-						final Key name = expectIdentifier(argOp.getLeft(), nameSourceOffset, problems);
-						final CoreExpr assertion = expr(argOp.getRight(), assertionSourceOffset).dumpProblems(problems);
-						args.add(new FunArg(argExpr.getSourceLength(), name, off(assertionSourceOffset - sourceOffset, assertion)));
-						return null;
-					} else {
-						return fallback(argOp);
-					}
-				}
-
-				@Override
-				@Nullable
-				public Void fallback(SourceExpr other) {
-					final Key name = expectIdentifier(other, argSourceOffset, problems);
-					args.add(new FunArg(argExpr.getSourceLength(), name));
-					return null;
-				}
-			});
+	DesugarResult<Method> method(Key methodName, List<SourceExpr> argSourceExprs, Key selfName, CoreExpr guarantee, CoreExpr currBody) {
+		final List<FunArg> args = argSourceExprs.isEmpty() ? nonNull(Collections.<FunArg>emptyList()) : new ArrayList<FunArg>(argSourceExprs.size());
+		DesugarResult<CoreExpr> currBodyDs = withValue(currBody);
+		for(final SourceExpr argExpr : argSourceExprs) {
+			currBodyDs = methodArg(args, nonNull(argExpr), nonNull(currBodyDs));
 		}
-		return result(new FunctionLiteral(sourceExpr,
-				args,
-				off(guaranteeSourceOffset - sourceOffset, guarantee),
-				off(bodySourceOffset - sourceOffset, body)), problems);
+		return currBodyDs.withValue(new Method(selfName, methodName, args, guarantee, currBodyDs.getValue()));
 	}
 
-	private <L extends List<SourceExpr>> L flattenCommas(SourceExpr arg, final int offsetAdjust, final L exprs) {
+	public DesugarResult<CoreExpr> methodArg(final List<FunArg> args,
+			final SourceExpr argExpr, final DesugarResult<CoreExpr> bodyDs) {
+		return nonNull(argExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+
+			@Override
+			@Nullable
+			public DesugarResult<CoreExpr> unaryOp(UnaryOp argOp) {
+				switch(argOp.getOperator()) {
+				case OBJECT_LITERAL: return unpackObject(argOp);
+				case BRACKETS: return unpackList(argOp);
+				default: return fallback(argOp);
+				}
+			}
+
+			/**
+			 * If we find curly braces, we are pulling fields from a record.
+			 * 
+			 * ({a,:b,c:d}) -> body == (_abc) -> ((a,b,d) -> body)(_abc.a,_abc.b,_abc.c)
+			 * 
+			 * Note how a pair causes a rename and the left side of the pair is what we pull from the record and
+			 * the right side of the pair is the resulting name of the parameter.  This is based on the idea that
+			 * if you wrote that expression in the scope of the body it would yield something like the original
+			 * record.
+			 */
+			@Nullable
+			public DesugarResult<CoreExpr> unpackObject(UnaryOp pattern) {
+				final SourceExpr field = pattern.getOperand();
+				final Key objectTmpName = new Identifier("__"+pattern.toSource());
+				final DesugarResult<fj.data.List<P2<CoreExpr, Key>>> argsDs = collectFields(bodyDs, field, objectTmpName, nonNull(fj.data.List.<P2<CoreExpr, Key>>nil()));
+				final List<FunArg> args = new ArrayList<FunArg>();
+				final List<CoreExpr> params = new ArrayList<>();
+				for(final P2<CoreExpr, Key> pair : argsDs.getValue().reverse()) {
+					args.add(new FunArg(nonNull(pair._2())));
+					params.add(pair._1());
+				}
+				final ObjectLiteral func = new ObjectLiteral(new Method(Method.NO_SELF_NAME, Method.APPLY_FUNCTION_METHOD_NAME, args, Method.NO_GUARANTEE, bodyDs.getValue()));
+				final Call newBody = new Call(func, Method.APPLY_FUNCTION_METHOD_NAME);
+				args.add(new FunArg(objectTmpName));
+				return argsDs.withDesugared(pattern, newBody);
+			}
+
+			public DesugarResult<fj.data.List<P2<CoreExpr, Key>>> collectFields(final BanjoDesugarer ds, final SourceExpr field, final Key objectName, final fj.data.List<P2<CoreExpr, Key>> currFields) {
+				return nonNull(field.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<P2<CoreExpr, Key>>>>() {
+					DesugarResult<fj.data.List<P2<CoreExpr, Key>>> field(SourceExpr fieldName, SourceExpr argName) {
+						// TODO Now somehow we have to change the body into a function definition and call it with the right argument
+						final DesugarResult<CoreExpr> fieldNameDs = ds.projection(field, objectName, fieldName, false);
+						final DesugarResult<Key> argNameDs = fieldNameDs.expectIdentifier(argName);
+						return argNameDs.withValue(nonNull(currFields.cons(P.p(fieldNameDs.getValue(), argNameDs.getValue()))));
+					}
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<P2<CoreExpr, Key>>> key(Key key) {
+						return field(key, key);
+					}
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<P2<CoreExpr, Key>>> binaryOp(BinaryOp op) {
+						switch(op.getOperator()) {
+						case ASSIGNMENT: {
+							// Field name = variable name
+							return field(op.getLeft(), op.getRight());
+						}
+						case COMMA:
+						case NEWLINE:
+						case SEMICOLON: {
+							final DesugarResult<fj.data.List<P2<CoreExpr, Key>>> leftDs = collectFields(ds, op.getLeft(), objectName, currFields);
+							return collectFields(leftDs, op.getRight(), objectName, leftDs.getValue());
+						}
+
+						default:
+							return fallback(op);
+						}
+					}
+
+					@Override
+					@Nullable
+					public DesugarResult<fj.data.List<P2<CoreExpr, Key>>> fallback(SourceExpr op) {
+						// Unexpected whatever-it-is
+						return field(op, op);
+					}
+				}));
+			}
+
+			/**
+			 * If we find square brackets we are pulling elements from a sequence.
+			 * 
+			 * ([a,b,c,d]) -> body == (_abcd) -> ((a,b,c,d) -> body)(_abcd[0], _abcd[1], _abcd[2], _abcd[3])
+			 */
+			@Nullable
+			public final DesugarResult<CoreExpr> unpackList(UnaryOp pattern) {
+				final Key listTmpName = new Identifier("__"+pattern.toSource());
+				final ArrayList<SourceExpr> elementSourceExprs = flattenCommas(pattern.getOperand(), new ArrayList<SourceExpr>());
+				final List<FunArg> args = new ArrayList<FunArg>();
+				final List<CoreExpr> params = new ArrayList<>();
+				DesugarResult<?> tmpDs = bodyDs;
+				for(final ListIterator<SourceExpr> it = elementSourceExprs.listIterator(); it.hasNext(); ) {
+					final int n = it.nextIndex();
+					final SourceExpr eltSourceExpr = nonNull(it.next());
+					final DesugarResult<Key> argNameDs = tmpDs.expectIdentifier(eltSourceExpr);
+					args.add(new FunArg(argNameDs.getValue()));
+					params.add(new Call(listTmpName, new Identifier(Operator.LOOKUP.getOp()), new NumberLiteral(nonNull(String.valueOf(n)), n)));
+					tmpDs = argNameDs;
+				}
+				final ObjectLiteral func = new ObjectLiteral(new Method(Method.NO_SELF_NAME, Method.APPLY_FUNCTION_METHOD_NAME, args, Method.NO_GUARANTEE, bodyDs.getValue()));
+				final Call newBody = new Call(func, Method.APPLY_FUNCTION_METHOD_NAME);
+				args.add(new FunArg(listTmpName));
+				return tmpDs.withDesugared(pattern, newBody);
+			}
+
+
+			@Override
+			public DesugarResult<CoreExpr> binaryOp(final BinaryOp argOp) {
+				if(argOp.getOperator() == Operator.COLON) {
+					final DesugarResult<Key> nameDs = expectIdentifier(argOp.getLeft());
+					final DesugarResult<CoreExpr> assertionDs = nameDs.expr(argOp.getRight());
+					args.add(new FunArg(nameDs.getValue(), assertionDs.getValue()));
+					return assertionDs;
+				} else {
+					return fallback(argOp);
+				}
+			}
+
+			@Override
+			public DesugarResult<CoreExpr> key(Key key) {
+				args.add(new FunArg(key));
+				return bodyDs;
+			}
+			@Override
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+				// TODO Report an error
+				return key(new BadIdentifier("Invalid argument specification", other.toSource()));
+			}
+		}));
+	}
+
+	private <L extends List<SourceExpr>> L flattenCommas(final SourceExpr arg, final L exprs) {
 		arg.acceptVisitor(new BaseSourceExprVisitor<Void>() {
 			@Override
 			@Nullable
@@ -1092,8 +941,8 @@ public class BanjoDesugarer {
 				case COMMA:
 				case SEMICOLON:
 				case NEWLINE:
-					flattenCommas(op.getLeft(), offsetAdjust + op.getLeft().getOffsetInParent(), exprs);
-					flattenCommas(op.getRight(), offsetAdjust + op.getRight().getOffsetInParent(), exprs);
+					flattenCommas(op.getLeft(), exprs);
+					flattenCommas(op.getRight(), exprs);
 					break;
 
 				default:
@@ -1106,189 +955,154 @@ public class BanjoDesugarer {
 			@Override
 			@Nullable
 			public Void fallback(SourceExpr other) {
-				exprs.add(off(offsetAdjust, other));
+				exprs.add(arg);
 				return null;
 			}
 		});
 		return exprs;
 	}
 
-	private Problematic<CoreExpr> binaryOpToMethodCall(int sourceOffset, final BinaryOp op, boolean lazyRightOperand) {
-		final int sourceLength = op.getSourceLength();
+	DesugarResult<CoreExpr> binaryOpToMethodCall(final BinaryOp op, boolean lazyRightOperand) {
 		final SourceExpr leftSourceExpr = op.getLeft();
-		final int leftSourceOffset = sourceOffset + leftSourceExpr.getOffsetInParent();
 		final Operator operator = op.getOperator();
 		final SourceExpr rightSourceExpr = op.getRight();
-		final int rightSourceOffset = sourceOffset + rightSourceExpr.getOffsetInParent();
-		return binaryOpToMethodCall(sourceLength, leftSourceExpr,
-				leftSourceOffset, operator, rightSourceExpr,
-				rightSourceOffset, lazyRightOperand);
+		return binaryOpToMethodCall(op, leftSourceExpr, operator, rightSourceExpr, lazyRightOperand);
 	}
 
-	private Problematic<CoreExpr> binaryOpToMethodCall(
-			final int sourceLength, final SourceExpr leftSourceExpr,
-			final int leftSourceOffset, final Operator operator,
-			final SourceExpr rightSourceExpr, final int rightSourceOffset,
-			boolean lazyRightOperand) {
-		final Problematic<CoreExpr> left = expr(leftSourceExpr, leftSourceOffset);
-		final Problematic<CoreExpr> right = lazyRightOperand ? lazyValue(rightSourceExpr, rightSourceOffset) : expr(rightSourceExpr, rightSourceOffset);
-		final CoreExpr leftCoreExpr = off(leftSourceExpr, left.getValue());
-		final CoreExpr rightCoreExpr = off(rightSourceExpr, right.getValue());
-		return result(binaryOpToMethodCall(sourceLength, leftCoreExpr, operator, rightCoreExpr), left, right);
+	DesugarResult<CoreExpr> binaryOpToMethodCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator,
+			final SourceExpr rightSourceExpr, boolean lazyRightOperand) {
+		final DesugarResult<CoreExpr> leftDs = expr(leftSourceExpr);
+		final DesugarResult<CoreExpr> rightDs = lazyRightOperand ? leftDs.lazyValue(rightSourceExpr) : leftDs.expr(rightSourceExpr);
+		return rightDs.withDesugared(op, binaryOpToMethodCall(leftDs.getValue(), operator, rightDs.getValue()));
 	}
 
-	private Call binaryOpToMethodCall(final int sourceLength,
-			final CoreExpr leftCoreExpr, final Operator operator,
-			final CoreExpr rightCoreExpr) {
-		return new Call(sourceLength, new Projection(sourceLength, leftCoreExpr, new Identifier(operator.getOp())), rightCoreExpr);
+	Call binaryOpToMethodCall(final CoreExpr leftCoreExpr, final Operator operator,	final CoreExpr rightCoreExpr) {
+		return new Call(leftCoreExpr, new Identifier(operator.getOp()), rightCoreExpr);
 	}
 
 
-	private Problematic<CoreExpr> lazyValue(SourceExpr sourceExpr, int sourceOffset) {
-		final int operandSourceOffset = sourceOffset + sourceExpr.getOffsetInParent();
-		final Problematic<CoreExpr> operandCoreExpr = expr(sourceExpr, operandSourceOffset);
-		final int sourceLength = sourceExpr.getSourceLength();
-		return result(new FunctionLiteral(sourceLength, nonNull(Collections.<FunArg>emptyList()), FunctionLiteral.DEFAULT_GUARANTEE, off(sourceExpr, operandCoreExpr)), operandCoreExpr.getProblems());
+	DesugarResult<CoreExpr> lazyValue(SourceExpr sourceExpr) {
+		final DesugarResult<CoreExpr> bodyDs = expr(sourceExpr);
+		return bodyDs.functionLiteral(sourceExpr, new EmptyExpr(), bodyDs.getValue());
 	}
 
-
-	private Problematic<CoreExpr> singletonSetLiteral(UnaryOp op, int sourceOffset) {
+	DesugarResult<CoreExpr> singletonListLiteral(UnaryOp op) {
 		final SourceExpr operandSourceExpr = op.getOperand();
-		final int operandSourceOffset = sourceOffset + operandSourceExpr.getOffsetInParent();
-		final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-		return result(new SetLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
+		final DesugarResult<CoreExpr> operandDs = expr(operandSourceExpr);
+		return operandDs.withDesugared(op, new ListLiteral(nonNull(Collections.singletonList(operandDs.getValue()))));
 	}
 
+	private DesugarResult<CoreExpr> exprPair(final BinaryOp pairOp) {
+		final SourceExpr next = pairOp.getRight();
+		final SourceExpr curr = pairOp.getLeft();
+		return nonNull(curr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			@Override
+			public DesugarResult<CoreExpr> binaryOp(BinaryOp leftOp) {
+				switch(leftOp.getOperator()) {
+				case MONAD_EXTRACT: return monadExtract(leftOp);
+				case ASSIGNMENT: return let(leftOp);
 
-	private Problematic<CoreExpr> singletonListLiteral(UnaryOp op, int sourceOffset) {
-		final SourceExpr operandSourceExpr = op.getOperand();
-		final int operandSourceOffset = sourceOffset + operandSourceExpr.getOffsetInParent();
-		final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-		return result(new ListLiteral(op, nonNull(Collections.singletonList(off(operandSourceExpr, operandCoreExpr)))), operandCoreExpr.getProblems());
+				default:
+					return fallback(leftOp);
+				}
+			}
+
+			@Override
+			public DesugarResult<CoreExpr> unaryOp(UnaryOp unaryOp) {
+				switch(unaryOp.getOperator()) {
+				case LIST_ELEMENT: return listLiteral(unaryOp, unaryOp.getOperator());
+				default:
+					return fallback(unaryOp);
+				}
+			}
+
+			private DesugarResult<CoreExpr> let(final BinaryOp letOp) {
+				return nonNull(letOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+					@Override
+					public DesugarResult<CoreExpr> binaryOp(BinaryOp op) {
+						switch(op.getOperator()) {
+						case CALL: return functionDef(op);
+						default:
+							return fallback(op);
+						}
+					}
+
+					public DesugarResult<CoreExpr> functionDef(BinaryOp callOp) {
+						// f(x) = y ; z == (f -> z)(x -> y)
+						final DesugarResult<CoreExpr> bodyDs = expr(next); // z
+						final DesugarResult<Key> funcNameDs = bodyDs.expectIdentifier(callOp.getLeft()); // f
+						final DesugarResult<CoreExpr> contDs = funcNameDs.functionLiteral(letOp, funcNameDs.getValue(), bodyDs.getValue()); // (f -> z)
+						final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight()); // y
+						final DesugarResult<CoreExpr> funcDs = rhsDs.functionLiteral(letOp, callOp.getRight(), rhsDs.getValue()); // (x -> y)
+						return funcDs.withDesugared(pairOp, new Call(contDs.getValue(), Method.APPLY_FUNCTION_METHOD_NAME, funcDs.getValue())); // (f -> z)(x -> y)
+
+					}
+
+					@Override
+					public DesugarResult<CoreExpr> fallback(SourceExpr argPattern) {
+						// x = y, z == (x -> z)(y)
+						final DesugarResult<CoreExpr> bodyDs = expr(next);
+						final DesugarResult<CoreExpr> contDs = bodyDs.functionLiteral(letOp, argPattern, bodyDs.getValue());
+						final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight());
+						return rhsDs.withDesugared(pairOp, new Call(contDs.getValue(), Method.APPLY_FUNCTION_METHOD_NAME, rhsDs.getValue()));
+					}
+				}));
+			}
+			private DesugarResult<CoreExpr> monadExtract(BinaryOp arrowOp) {
+				// x <- y, z == (y)."<-"(x -> z)
+				final DesugarResult<CoreExpr> rhsDs = expr(arrowOp.getRight());
+				final DesugarResult<CoreExpr> bodyDs = rhsDs.expr(next);
+				final DesugarResult<CoreExpr> contDs = functionLiteral(arrowOp, arrowOp.getLeft(), bodyDs.getValue());
+				return contDs.withDesugared(pairOp, new Call(rhsDs.getValue(), new Identifier(Operator.MONAD_EXTRACT.getOp()), contDs.getValue()));
+			}
+
+			/**
+			 * In this case the left-hand expression isn't a kind of let so we don't have to introduce a new variable.  This
+			 * is the "and then" monad operation, denoted ">>" in Haskell but we'll use ";" since ">>" is so bit-shifty.
+			 * We have to make the next step lazy, too, to allow the monad to do control flow.
+			 * 
+			 * x ; y == (x).";"(-> y)
+			 */
+			@Override
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+				final DesugarResult<CoreExpr> rhsDs = expr(other);
+				final DesugarResult<CoreExpr> bodyDs = rhsDs.expr(next);
+				final DesugarResult<CoreExpr> contDs = bodyDs.functionLiteral(other, new EmptyExpr(), bodyDs.getValue());
+				return contDs.withDesugared(pairOp, new Call(rhsDs.getValue(), new Identifier(Operator.SEMICOLON.getOp()), contDs.getValue()));
+			}
+
+		}));
 	}
 
+	public DesugarResult<CoreExpr> listLiteral(final SourceExpr operandSourceExpr) {
+		final LinkedList<SourceExpr> exprs = flattenCommas(operandSourceExpr, new LinkedList<SourceExpr>());
+		return listLiteral(operandSourceExpr, exprs, null);
+	}
 
-	class DesugarVisitor implements SourceExprVisitor<Problematic<CoreExpr>> {
-		private final int sourceOffset;
-		public DesugarVisitor(int sourceOffset) {
-			this.sourceOffset = sourceOffset;
-		}
-
+	class DesugarVisitor implements SourceExprVisitor<DesugarResult<CoreExpr>> {
 		@Override
-		public Problematic<CoreExpr> binaryOp(final BinaryOp op) {
+		public DesugarResult<CoreExpr> binaryOp(final BinaryOp op) {
 			// Comma outside of a parentheses should be a list or map without the braces/brackets
 			switch(op.getOperator()) {
 			case COMMA:
 			case SEMICOLON:
 			case NEWLINE: {
-				final LinkedList<SourceExpr> sourceExprs = flattenCommas(op, 0, new LinkedList<SourceExpr>());
-				if(sourceExprs.isEmpty()) {
-					final Problem problem = new ExpectedExpression(this.sourceOffset, op.getSourceLength());
-					return result(new BadExpr(op, problem), problem);
-				}
-				return nonNull(nonNull(sourceExprs.get(0)).acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
-					public Problematic<CoreExpr> object() {
-						return objectLiteral(op, DesugarVisitor.this.sourceOffset, sourceExprs);
-					}
-
-					public Problematic<CoreExpr> set(@Nullable Operator bullet) {
-						return setLiteral(op, DesugarVisitor.this.sourceOffset, sourceExprs, bullet);
-					}
-
-					public Problematic<CoreExpr> list(@Nullable Operator bullet) {
-						return listLiteral(op, DesugarVisitor.this.sourceOffset, sourceExprs, bullet);
-					}
-
-					public Problematic<CoreExpr> cond() {
-						return exprListToCond(op, DesugarVisitor.this.sourceOffset, sourceExprs);
-					}
-
-
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> unaryOp(UnaryOp firstOp) {
-						switch(firstOp.getOperator()) {
-						case TABLE_HEADER: {
-							final SourceExpr second = nonNull(sourceExprs.get(1));
-							return second.acceptVisitor(new BaseSourceExprVisitor<Problematic<CoreExpr>>() {
-								@Override
-								public banjo.parser.util.Problematic<CoreExpr> binaryOp(BinaryOp secondOp) {
-									switch(secondOp.getOperator()) {
-									case PAIR_INCLUDE:
-									case PAIR: return object();
-									default: return fallback(secondOp);
-									}
-								}
-
-								@Override
-								public banjo.parser.util.Problematic<CoreExpr> unaryOp(UnaryOp secondOp) {
-									switch(secondOp.getOperator()) {
-									case ANON_INCLUDE:
-									case MIRROR: return object();
-									case SET_ELEMENT: return set(secondOp.getOperator());
-									case LIST_ELEMENT: return list(secondOp.getOperator());
-									default: return fallback(secondOp);
-									}
-								}
-
-								@Override
-								public banjo.parser.util.Problematic<CoreExpr> fallback(SourceExpr other) {
-									return list(null);
-								}
-
-							});
-						}
-						case ANON_INCLUDE:
-						case MIRROR: return object();
-						case LIST_ELEMENT: return list(firstOp.getOperator());
-						case SET_ELEMENT: return set(firstOp.getOperator());
-						default: return fallback(firstOp);
-						}
-					}
-
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> binaryOp(BinaryOp op) {
-						switch(op.getOperator()) {
-						case PAIR_INCLUDE:
-						case PAIR: return object();
-						case COND: return cond();
-						default: return fallback(op);
-						}
-					}
-
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> fallback(SourceExpr other) {
-						final LinkedList<Problem> problems = new LinkedList<>();
-						CoreExpr result = null;
-						for(final ListIterator<SourceExpr> i = sourceExprs.listIterator(sourceExprs.size()); i.hasPrevious(); ) {
-							final SourceExpr e = nonNull(i.previous());
-							final int exprSourceOffset = DesugarVisitor.this.sourceOffset + e.getOffsetInParent();
-							final CoreExpr coreExpr = expr(e, exprSourceOffset).dumpProblems(problems);
-							if(result == null) result = coreExpr;
-							else result = new ExprPair(0, coreExpr, result);
-						}
-						return result(nonNull(result), problems);
-					}
-				}));
+				return exprPair(op);
 			}
-			case CALL: return call(op, this.sourceOffset);
-			case FUNCTION: return functionLiteral(op, this.sourceOffset);
-			case PAIR_INCLUDE:
-			case PAIR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.<SourceExpr>singletonList(op)));
-			case ASSIGNMENT: return let(op, this.sourceOffset);
-			case PROJECTION: return projection(op, this.sourceOffset, false);
-			case OPT_PROJECTION: return projection(op, this.sourceOffset, true);
-			case MAP_PROJECTION: return mapProjection(op, this.sourceOffset, false);
-			case MAP_OPT_PROJECTION: return mapProjection(op, this.sourceOffset, true);
+			case CALL: return call(op);
+			case FUNCTION: return functionLiteral(op);
+			case ASSIGNMENT: return expr(op.getRight());
+			case PROJECTION: return projection(op, false);
+			case OPT_PROJECTION: return projection(op, true);
+			case MAP_PROJECTION: return mapProjection(op, false);
+			case MAP_OPT_PROJECTION: return mapProjection(op, true);
 
 
 			case GT:
 			case GE:
 			case LT:
 			case LE:
-				return comparison(op, this.sourceOffset);
+				return comparison(op);
 
 
 				// Normal operators are translated into a method call
@@ -1300,61 +1114,31 @@ public class BanjoDesugarer {
 			case INTERSECT:
 			case XOR:
 			case UNION:
-			case LOOKUP: return binaryOpToMethodCall(this.sourceOffset, op, false);
+			case LOOKUP: return binaryOpToMethodCall(op, false);
 
 			// Short-circuit operators have a lazy right operand
 			case LAZY_AND:
 			case LAZY_OR:
-			case COND: return binaryOpToMethodCall(this.sourceOffset, op, true);
+			case COND: return binaryOpToMethodCall(op, true);
 
 			default:
-				final Problem problem = new UnsupportedBinaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
-				return result(new BadExpr(op, problem), problem);
+				return withDesugared(op, new BadCoreExpr("Unimplemented binary operator: '"+op.getOperator()+"'"));
 			}
 		}
 
 		@Override
-		public Problematic<CoreExpr> unaryOp(final UnaryOp op) {
+		public DesugarResult<CoreExpr> unaryOp(final UnaryOp op) {
 			final SourceExpr operandSourceExpr = op.getOperand();
-			final int operandSourceOffset = this.sourceOffset + operandSourceExpr.getOffsetInParent();
 			switch(op.getOperator()) {
-			case LIST_ELEMENT: return singletonListLiteral(op, this.sourceOffset);
-			case SET_ELEMENT: return singletonSetLiteral(op, this.sourceOffset);
-			case LAZY: return lazyValue(op.getOperand(), this.sourceOffset + op.getOperand().getOffsetInParent());
-			case ANON_INCLUDE:
-			case MIRROR: return objectLiteral(op, this.sourceOffset, nonNull(Collections.singletonList(operandSourceExpr)));
-			case LIST_LITERAL: {
-				final LinkedList<SourceExpr> exprs = new LinkedList<>();
-				flattenCommas(operandSourceExpr, operandSourceExpr.getOffsetInParent(), exprs);
-				return listLiteral(operandSourceExpr, this.sourceOffset, exprs, null);
-			}
-			case OBJECT_LITERAL: {
-				// Expecting an object or set in here.
-				final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-				return nonNull(operandCoreExpr.getValue().acceptVisitor(new BaseCoreExprVisitor<Problematic<CoreExpr>>() {
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> objectLiteral(ObjectLiteral object) {
-						// Have to adjust the offsets of the fields
-						final Map<String, Method> fields = new LinkedHashMap<>(object.getFields().size());
-						for(final Method f : object.getFields().values()) {
-							fields.put(f.getKey().getKeyString(), new Method(f.getSourceLength(), f.getOffsetInObject()+operandSourceExpr.getOffsetInParent(), f.getKey(), f.getImplementation(), f.isInclude()));
-						}
-						return result(new ObjectLiteral(op, fields), operandCoreExpr.getProblems());
-					}
+			case LIST_ELEMENT: return singletonListLiteral(op);
+			case LAZY: return lazyValue(op.getOperand());
+			case BRACKETS: return listLiteral(operandSourceExpr);
+			case OBJECT_LITERAL: return objectLiteral(operandSourceExpr);
 
-					@Override
-					@Nullable
-					public Problematic<CoreExpr> fallback(CoreExpr other) {
-						final ExpectedField problem = new ExpectedField(DesugarVisitor.this.sourceOffset, other.getSourceLength());
-						return result(new ObjectLiteral(0, nonNull(Collections.<String,Method>emptyMap())), problem);
-					}
-				}));
-			}
 			case PARENS:
 			case RETURN:
 			case UNARY_NEWLINE_INDENT:
-				return expr(operandSourceExpr, operandSourceOffset);
+				return expr(operandSourceExpr);
 
 			case OPTIONAL:
 			case EXISTS:
@@ -1363,34 +1147,35 @@ public class BanjoDesugarer {
 			case PLUS:
 			case NEGATE:
 				final String methodName = op.getOperator().getOp();
-				final Problematic<CoreExpr> operandCoreExpr = expr(operandSourceExpr, operandSourceOffset);
-				return result(new Call(op, new Projection(op, off(operandSourceExpr, operandCoreExpr), new Identifier(methodName))), operandCoreExpr.getProblems());
+				final DesugarResult<CoreExpr> operandCoreExpr = expr(operandSourceExpr);
+				return operandCoreExpr.withDesugared(op, new Call(operandCoreExpr.getValue(), new Identifier(methodName)));
 
+			case INVALID:
+				return withDesugared(op, new BadCoreExpr("Invalid unary operator"));
 			default:
-				final Problem problem = new UnsupportedUnaryOperator(op.getOperator().getOp(), this.sourceOffset, op.getSourceLength());
-				return result(new BadExpr(op, problem), problem);
+				return withDesugared(op, new BadCoreExpr("Unimplemented unary operator: '"+op.getOperator()+"'"));
 
 			}
 		}
 
 		@Override
-		public Problematic<CoreExpr> stringLiteral(StringLiteral stringLiteral) {
-			return result(stringLiteral);
+		public DesugarResult<CoreExpr> stringLiteral(StringLiteral stringLiteral) {
+			return withDesugared(stringLiteral, (CoreExpr)stringLiteral);
 		}
 
 		@Override
-		public Problematic<CoreExpr> numberLiteral(NumberLiteral numberLiteral) {
-			return result(numberLiteral);
+		public DesugarResult<CoreExpr> numberLiteral(NumberLiteral numberLiteral) {
+			return withDesugared(numberLiteral, numberLiteral);
 		}
 
 		@Override
-		public Problematic<CoreExpr> identifier(Identifier simpleName) {
-			return result(simpleName);
+		public DesugarResult<CoreExpr> identifier(Identifier simpleName) {
+			return withDesugared(simpleName, (CoreExpr)simpleName);
 		}
 
 		@Override
-		public Problematic<CoreExpr> operator(OperatorRef operatorRef) {
-			return result(operatorRef);
+		public DesugarResult<CoreExpr> operator(OperatorRef operatorRef) {
+			return withDesugared(operatorRef, operatorRef);
 		}
 
 		//	@Override @Nullable
@@ -1409,34 +1194,28 @@ public class BanjoDesugarer {
 		//	}
 
 		@Override
-		public Problematic<CoreExpr> ellipsis(Ellipsis ellipsis) {
-			final UnexpectedEllipsis error = new UnexpectedEllipsis(ellipsis, this.sourceOffset);
-			return result(new BadExpr(ellipsis, error), error);
+		public DesugarResult<CoreExpr> ellipsis(Ellipsis ellipsis) {
+			return withDesugared(ellipsis, new BadCoreExpr("Unexpected ellipsis"));
 		}
 		@Override
 		@Nullable
-		public Problematic<CoreExpr> badSourceExpr(BadSourceExpr badSourceExpr) {
-			return result(new BadExpr(badSourceExpr, badSourceExpr.getError()), badSourceExpr.getError());
+		public DesugarResult<CoreExpr> badSourceExpr(BadSourceExpr badSourceExpr) {
+			return withDesugared(badSourceExpr, new BadCoreExpr(badSourceExpr.getMessage()));
 		}
 		@Override
 		@Nullable
-		public Problematic<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
-			return result(new ObjectLiteral(0, nonNull(Collections.<String, Method>emptyMap())));
+		public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
+			return withDesugared(emptyExpr, new ObjectLiteral());
 		}
 	}
 
-	protected static Problematic<CoreExpr> result(final CoreExpr e) {
-		return new Problematic<CoreExpr>(e);
+	public SourceMap<SourceExpr> getSourceMaps() {
+		return this.sourceMaps;
 	}
 
-	protected static Problematic<CoreExpr> result(CoreExpr e, Problem ... problems) {
-		return new Problematic<CoreExpr>(e, problems);
+	public TreeMap<CoreExpr, fj.data.Set<SourceExpr>> getSourceExprMap() {
+		return this.sourceExprMap;
 	}
-	protected static Problematic<CoreExpr> result(@Nullable CoreExpr e, List<Problem> problems) {
-		return new Problematic<CoreExpr>(nonNull(e), problems);
-	}
-	protected static Problematic<CoreExpr> result(CoreExpr e, Problematic<?> left, Problematic<?> right) {
-		return new Problematic<CoreExpr>(e, left, right);
-	}
+
 
 }

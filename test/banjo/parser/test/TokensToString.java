@@ -9,6 +9,7 @@ import java.util.Arrays;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
@@ -105,6 +106,12 @@ public class TokensToString implements TokenVisitor<String> {
 			}
 		}
 		assertEquals(Arrays.asList(expectedTokens).toString(), foundTokens.toString());
+	}
+
+	@Override
+	@Nullable
+	public String badToken(@NonNull FileRange fileRange, @NonNull BadToken badToken) {
+		return token("bad", fileRange);
 	}
 
 }

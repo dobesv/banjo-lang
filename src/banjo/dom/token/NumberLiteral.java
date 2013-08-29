@@ -2,11 +2,15 @@ package banjo.dom.token;
 
 import static banjo.parser.util.Check.nonNull;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 
@@ -15,8 +19,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	final String text;
 	final Number number;
 
-	public NumberLiteral(int sourceLength, String text, Number number) {
-		super(sourceLength, number.hashCode());
+	public NumberLiteral(String text, Number number) {
+		super(number.hashCode());
 		this.text = text;
 		this.number = number;
 	}
@@ -63,5 +67,28 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 				return false;
 			}
 		})).booleanValue();
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final NumberLiteral other = (NumberLiteral) o;
+			if(cmp == 0) cmp = this.text.compareTo(other.text); // TODO Comparing by text here because Number doesn't implement Comparable (!?!?)
+		}
+		return cmp;
+	}
+
+	static Number negateNumber(Number num) {
+		if(num instanceof BigDecimal) return nonNull(((BigDecimal)num).negate());
+		if(num instanceof BigInteger) return nonNull(((BigInteger)num).negate());
+		if(num instanceof Long) return new Long(-((Long)num).longValue());
+		if(num instanceof Integer) return new Integer(-((Integer)num).intValue());
+		throw new Error("Unexpected number subclass: "+num.getClass());
+	}
+	public NumberLiteral negate() {
+		return new NumberLiteral("-"+this.text, negateNumber(this.number));
 	}
 }

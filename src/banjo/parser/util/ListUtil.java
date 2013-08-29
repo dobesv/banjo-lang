@@ -4,7 +4,10 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 public class ListUtil {
 
@@ -51,6 +54,17 @@ public class ListUtil {
 		result.add(head);
 		result.addAll(tail);
 		return result;
+	}
+
+	public static <T extends Comparable<T>> int compare(@Nullable Iterable<? extends T> list1, @Nullable Iterable<? extends T> list2) {
+		if(list1 == null) return (list2 == null ? 0 : 1);
+		if(list2 == null) return -1;
+		final Iterator<? extends T> it1 = list1.iterator(), it2 = list2.iterator();
+		while(it1.hasNext() && it2.hasNext()) {
+			final int cmp = it1.next().compareTo(it2.next());
+			if(cmp != 0) return cmp;
+		}
+		return Boolean.compare(it1.hasNext(), it2.hasNext());
 	}
 
 }

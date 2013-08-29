@@ -1,4 +1,4 @@
-package banjo.parser.errors;
+package banjo.parser.util;
 
 import java.io.IOException;
 

@@ -4,15 +4,16 @@ import static banjo.parser.util.Check.nonNull;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.source.AbstractSourceNode;
+import banjo.dom.Expr;
 import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 
-public class Ellipsis extends AbstractSourceNode implements SourceExpr, Token {
+public class Ellipsis extends AbstractAtom implements SourceExpr, Token {
+	static final int hashCode = "...".hashCode();
 
 	public Ellipsis(int length) {
-		super(length, 31);
+		super(hashCode);
 	}
 
 	@Override
@@ -45,4 +46,12 @@ public class Ellipsis extends AbstractSourceNode implements SourceExpr, Token {
 			}
 		}));
 	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		return getClass().getName().compareTo(o.getClass().getName());
+	}
+
 }

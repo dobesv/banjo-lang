@@ -5,54 +5,45 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.LinkedList;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
-import banjo.parser.errors.ExpectedOperator;
-import banjo.parser.errors.MissingDigitsAfterDecimalPoint;
-import banjo.parser.errors.Problem;
-import banjo.parser.errors.UnsupportedUnaryOperator;
+import banjo.parser.BanjoParser.ExtSourceExpr;
+import banjo.parser.util.ParserReader;
 
 public class TestNumberLiteralParser {
 
 	@Test public void idIsNotANumber() { testNonNumber("a"); }
-	@Test public void semiColonIsNotANumber() { testNonNumber(";", UnsupportedUnaryOperator.class); }
-	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
-	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
-	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.negate()", ExpectedOperator.class); }
+	//	@Test public void semiColonIsNotANumber() { testNonNumber(";", UnsupportedUnaryOperator.class); }
+	//	@Test public void requireDigitsAfterDecimalPoint1() { testNonNumber("1.", MissingDigitsAfterDecimalPoint.class); }
+	//	@Test public void requireDigitsAfterDecimalPoint2() { testNonNumber("(1.)", MissingDigitsAfterDecimalPoint.class); }
+	@Test public void requireDigitsAfterDecimalPoint3() { testNonNumber("1.foo"); }
 	@Test public void methodCallOnNumber() { testNonNumber("1 .negate()"); }
-	@Test public void numberAsProjection() { testNonNumber("_.1", ExpectedOperator.class); }
+	@Test public void numberAsProjection() { testNonNumber("_.1"); }
 	@Test public void leadingUnderscore() { testNonNumber("_1"); }
 
 	private void testNonNumber(@NonNull String inStr) {
 		testNonNumber(inStr, null);
 	}
-	private void testNonNumber(@NonNull String inStr, Class<? extends Problem> eClass) {
+	private void testNonNumber(@NonNull String inStr, Class<? extends BadExpr> eClass) {
 		try {
 			final BanjoParser parser = new BanjoParser();
-			final LinkedList<Problem> problems = new LinkedList<>();
-			final Expr node = parser.parse(inStr).dumpProblems(problems);
+			final ExtSourceExpr parseResult = parser.parse(inStr);
+			final Expr node = parseResult.getExpr();
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
-			for(final Exception e : problems) {
-				System.out.println(e.toString());
-			}
-			if(problems.isEmpty() && eClass != null) {
+			final int errCount = ParseTestUtils.parseErrors(eClass, parseResult.getSourceMaps(), ParserReader.fromString("--", inStr));
+			if(eClass != null && errCount == 0)
 				fail("Expecting problem of class "+eClass.getSimpleName());
-			} else if(!problems.isEmpty()) {
-				// Not expecting any errors
-				throw problems.getFirst();
-			}
+			else
+				assertEquals("Not expecting any errors", 0, errCount);
 			assertFalse(node instanceof NumberLiteral);
 			assertFalse(node instanceof UnaryOp && ((UnaryOp) node).getOperand() instanceof NumberLiteral);
-		} catch (final Problem e) {
-			if(eClass == null || !eClass.isInstance(e)) throw new Error("Not expecting this exception", e);
-			// OK
 		} catch (final IOException e) {
 			throw new Error(e);
 		}
@@ -116,8 +107,8 @@ public class TestNumberLiteralParser {
 		testDecimal("123.4e4", "1.234E+6");
 		testDecimal("1.234e-10", "1.234E-10");
 		testDecimal("123.4e-4", "0.01234");
-		testDecimal(".001", "0.001");
-		testDecimal(".1", "0.1");
+		//testDecimal(".001", "0.001");
+		//testDecimal(".1", "0.1");
 		testDecimal("1.000000000000000000000001");
 		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789");
 		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");

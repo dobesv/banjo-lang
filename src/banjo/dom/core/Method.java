@@ -1,6 +1,7 @@
 package banjo.dom.core;
 
 import java.util.Iterator;
+import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -8,95 +9,88 @@ import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.parser.util.AbstractCachedHashCode;
+import banjo.parser.util.ListUtil;
 
-public class Method {
+public class Method extends AbstractCachedHashCode implements Comparable<Method> {
+	private final Key selfName;
 	private final Key key;
-	private final CoreExpr implementation;
-	private final int offsetInObject;
-	private final int sourceLength;
-	private final boolean include;
+	private final List<FunArg> args;
+	private final CoreExpr guarantee;
+	private final CoreExpr body;
 
-	public static final Key DEFAULT_SELF_NAME = new Identifier("_self");
+	public static final CoreExpr NO_GUARANTEE = FunArg.NO_ASSERTION;
+	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(Operator.CALL.getOp());
+	public static final Key LOOKUP_METHOD_NAME = new Identifier(Operator.LOOKUP.getOp());
+	public static final Key NO_SELF_NAME = new Identifier("");
 
-	public Method(int sourceLength, int offsetInObject, Key key, CoreExpr implementation, boolean include) {
-		super();
-		this.sourceLength = sourceLength;
-		this.offsetInObject = offsetInObject;
+	public Method(Key selfName, Key key, List<FunArg> args, CoreExpr guarantee, CoreExpr body) {
+		super(calcHash(selfName, key, args, guarantee, body));
+		this.selfName = selfName;
 		this.key = key;
-		this.implementation = implementation;
-		this.include = include;
-		if(!FunctionLiteral.isFunctionLiteral(implementation)) throw new IllegalArgumentException();
+		this.args = args;
+		this.guarantee = guarantee;
+		this.body = body;
+	}
+
+	private static int calcHash(Key selfName, Key key, List<FunArg> args,
+			CoreExpr guarantee, CoreExpr body) {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + selfName.hashCode();
+		result = prime * result + key.hashCode();
+		result = prime * result + args.hashCode();
+		result = prime * result + guarantee.hashCode();
+		result = prime * result + body.hashCode();
+		return result;
 	}
 
 	public Key getKey() {
 		return this.key;
 	}
 
-	public CoreExpr getImplementation() {
-		return this.implementation;
-	}
+
 
 	public void toSource(final StringBuffer sb) {
-		this.implementation.acceptVisitor(new BaseCoreExprVisitor<Void>() {
-			@Override
-			@Nullable
-			public Void functionLiteral(FunctionLiteral implementation) {
-				final Iterator<FunArg> it = implementation.getArgs().iterator();
-				if(it.hasNext()) {
-					final FunArg selfArg = it.next();
-					if(!selfArg.getName().equals(DEFAULT_SELF_NAME)) {
-						selfArg.toSource(sb);
-						sb.append('.');
-					}
-				}
-				Method.this.key.toSource(sb);
-				if(it.hasNext()) {
-					sb.append('(');
-					boolean first = true;
-					while(it.hasNext()) {
-						final FunArg arg = it.next();
-						if(first) first = false;
-						else sb.append(", ");
-						arg.toSource(sb);
-					}
-					sb.append(')');
-				}
-				sb.append(Method.this.include ? Operator.PAIR_INCLUDE.getOp() : Operator.PAIR.getOp());
-				sb.append(' ');
-				implementation.getBody().toSource(sb, Precedence.COLON);
-				return null;
+		if(!this.selfName.equals(NO_SELF_NAME)) {
+			this.selfName.toSource(sb);
+			sb.append('.');
+		} else if(this.key.equals(this.body) && this.args.isEmpty() && this.guarantee.equals(NO_GUARANTEE)) {
+			this.key.toSource(sb);
+			return;
+		}
+		final boolean applyMethod = this.key.getKeyString().equals(APPLY_FUNCTION_METHOD_NAME.getKeyString());
+		if(!applyMethod) {
+			this.key.toSource(sb);
+		}
+		final Iterator<FunArg> it = this.args.iterator();
+		if(it.hasNext() || applyMethod) {
+			sb.append('(');
+			boolean first = true;
+			while(it.hasNext()) {
+				final FunArg arg = it.next();
+				if(first) first = false;
+				else sb.append(", ");
+				arg.toSource(sb);
 			}
-
-			@Override
-			@Nullable
-			public Void fallback(CoreExpr unsupported) {
-				// Shouldn't happen, really ...
-				Method.this.key.toSource(sb);
-				sb.append(':');
-				sb.append(' ');
-				unsupported.toSource(sb, Precedence.COLON);
-				return null;
-			}
-		});
+			sb.append(')');
+		}
+		sb.append(' ');
+		sb.append(Operator.ASSIGNMENT.getOp());
+		sb.append(' ');
+		this.body.toSource(sb, Precedence.COLON);
 	}
 
-	public int getOffsetInObject() {
-		return this.offsetInObject;
+	public List<FunArg> getArgs() {
+		return this.args;
 	}
 
-	public int getSourceLength() {
-		return this.sourceLength;
+	public CoreExpr getGuarantee() {
+		return this.guarantee;
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + this.implementation.hashCode();
-		result = prime * result + this.key.hashCode();
-		result = prime * result + this.offsetInObject;
-		result = prime * result + this.sourceLength;
-		return result;
+	public CoreExpr getBody() {
+		return this.body;
 	}
 
 	@Override
@@ -108,19 +102,27 @@ public class Method {
 		if (!(obj instanceof Method))
 			return false;
 		final Method other = (Method) obj;
-		if (!this.implementation.equals(other.implementation))
+		if (!this.args.equals(other.args))
+			return false;
+		if (!this.body.equals(other.body))
+			return false;
+		if (!this.guarantee.equals(other.guarantee))
 			return false;
 		if (!this.key.equals(other.key))
 			return false;
-		if (this.offsetInObject != other.offsetInObject)
-			return false;
-		if (this.sourceLength != other.sourceLength)
+		if (!this.selfName.equals(other.selfName))
 			return false;
 		return true;
 	}
 
-	public boolean isInclude() {
-		return this.include;
+	@Override
+	public int compareTo(Method other) {
+		int cmp = this.key.compareTo(other.key);
+		if(cmp == 0) cmp = ListUtil.compare(this.args, other.args);
+		if(cmp == 0) cmp = this.guarantee.compareTo(other.guarantee);
+		if(cmp == 0) cmp = this.selfName.compareTo(other.selfName);
+		if(cmp == 0) cmp = this.body.compareTo(other.body);
+		return 0;
 	}
 
 

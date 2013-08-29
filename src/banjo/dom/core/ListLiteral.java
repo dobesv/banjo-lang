@@ -7,15 +7,16 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
-import banjo.dom.source.SourceExpr;
+import banjo.parser.util.ListUtil;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	private final List<CoreExpr> elements;
 
-	public ListLiteral(SourceExpr sourceExpr, List<CoreExpr> elements) {
-		super(sourceExpr, elements.hashCode());
+	public ListLiteral(List<CoreExpr> elements) {
+		super(elements.hashCode());
 		this.elements = nonNull(Collections.unmodifiableList(elements));
 	}
 
@@ -57,6 +58,18 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 		if (!this.elements.equals(other.elements))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final ListLiteral other = (ListLiteral) o;
+			if(cmp == 0) cmp = ListUtil.<Expr>compare(this.elements, other.elements);
+		}
+		return cmp;
 	}
 
 }

@@ -12,5 +12,6 @@ public interface TokenVisitor<T> {
 	@Nullable T operator(FileRange range, OperatorRef operatorRef);
 	@Nullable T whitespace(FileRange range, Whitespace ws);
 	@Nullable T comment(FileRange range, Comment c);
+	@Nullable T badToken(FileRange fileRange, BadToken badToken);
 	@Nullable T eof(FileRange entireFileRange);
 }

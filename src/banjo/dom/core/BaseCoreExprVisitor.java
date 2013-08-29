@@ -3,6 +3,7 @@ package banjo.dom.core;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.token.Atom;
+import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
@@ -60,31 +61,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	@Nullable
-	public T exprPair(ExprPair n) {
-		return fallback(n);
-	}
-
-	@Override
-	@Nullable
-	public T projection(Projection n) {
-		return fallback(n);
-	}
-
-	@Override
-	@Nullable
-	public T functionLiteral(FunctionLiteral n) {
-		return fallback(n);
-	}
-
-	@Override
-	@Nullable
 	public T objectLiteral(ObjectLiteral n) {
-		return fallback(n);
-	}
-
-	@Override
-	@Nullable
-	public T let(Let n) {
 		return fallback(n);
 	}
 
@@ -96,13 +73,13 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	@Nullable
-	public T setLiteral(SetLiteral n) {
+	public T badExpr(BadCoreExpr n) {
 		return fallback(n);
 	}
 
 	@Override
 	@Nullable
-	public T badExpr(BadExpr n) {
+	public T badIdentifier(BadIdentifier n) {
 		return fallback(n);
 	}
 

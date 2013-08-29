@@ -2,14 +2,14 @@ package banjo.dom.token;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.source.AbstractSourceNode;
+import banjo.parser.util.AbstractCachedHashCode;
 
 
-public class Comment extends AbstractSourceNode implements Token {
+public class Comment extends AbstractCachedHashCode implements Token {
 	private final String text;
 
-	public Comment(int sourceLength, String body) {
-		super(sourceLength, body.hashCode());
+	public Comment(String body) {
+		super(body.hashCode());
 		this.text = body;
 	}
 
@@ -39,5 +39,10 @@ public class Comment extends AbstractSourceNode implements Token {
 		if (!this.text.equals(other.text))
 			return false;
 		return true;
+	}
+
+	@Override
+	public String toSource() {
+		return this.text;
 	}
 }

@@ -7,20 +7,21 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.parser.util.AbstractCachedHashCode;
 
-public class FunArg extends AbstractCoreExpr implements CoreExpr {
+public class FunArg extends AbstractCachedHashCode implements Comparable<FunArg> {
 	private final Key name;
 	private final CoreExpr assertion;
 
 	public static final CoreExpr NO_ASSERTION = new Identifier("Object");
 
-	public FunArg(int sourceLength, Key name, CoreExpr assertion) {
-		super(sourceLength, name.hashCode() + assertion.hashCode());
+	public FunArg(Key name, CoreExpr assertion) {
+		super(name.hashCode() + assertion.hashCode());
 		this.name = name;
 		this.assertion = assertion;
 	}
-	public FunArg(int sourceLength, Key name) {
-		this(sourceLength, name, NO_ASSERTION);
+	public FunArg(Key name) {
+		this(name, NO_ASSERTION);
 	}
 
 	public Key getName() {
@@ -29,7 +30,7 @@ public class FunArg extends AbstractCoreExpr implements CoreExpr {
 	public CoreExpr getAssertion() {
 		return this.assertion;
 	}
-	@Override
+
 	public void toSource(StringBuffer sb) {
 		sb.append(this.name);
 		if(hasAssertion()) {
@@ -39,19 +40,6 @@ public class FunArg extends AbstractCoreExpr implements CoreExpr {
 	}
 	public boolean hasAssertion() {
 		return !NO_ASSERTION.equals(this.assertion);
-	}
-
-	@Override
-	public Precedence getPrecedence() {
-		if(hasAssertion())
-			return Precedence.ASSIGNMENT;
-		else
-			return Precedence.ATOM;
-	}
-
-	@Override
-	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		throw new Error();
 	}
 
 	@Override
@@ -68,6 +56,19 @@ public class FunArg extends AbstractCoreExpr implements CoreExpr {
 		if (!this.name.equals(other.name))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(FunArg o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final FunArg other = o;
+			if(cmp == 0) cmp = this.name.compareTo(other.name);
+			if(cmp == 0) cmp = this.assertion.compareTo(other.assertion);
+		}
+		return cmp;
 	}
 
 }

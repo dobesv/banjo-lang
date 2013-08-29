@@ -4,11 +4,11 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.LinkedList;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.SourceExpr;
+import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
@@ -19,12 +19,10 @@ import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
 import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoParser;
-import banjo.parser.errors.Problem;
 
 public class TokenCollector implements TokenVisitor<SourceExpr> {
 	final BanjoParser parser;
 	final Collection<Token> tokens;
-	final LinkedList<Problem> problems = new LinkedList<>();
 
 	public TokenCollector(BanjoParser parser, Collection<Token> tokens) {
 		this.parser = parser;
@@ -32,13 +30,10 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 	}
 
 	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
-		return this.parser.parse(in).dumpProblems(this.problems);
+		return this.parser.parse(in).getExpr();
 	}
 	public @Nullable SourceExpr parse(String source) throws IOException {
-		return this.parser.parse(source).dumpProblems(this.problems);
-	}
-	public Collection<Problem> getErrors() {
-		return this.problems;
+		return this.parser.parse(source).getExpr();
 	}
 	public boolean reachedEof() {
 		return this.parser.reachedEof();
@@ -87,7 +82,15 @@ public class TokenCollector implements TokenVisitor<SourceExpr> {
 	}
 	@Override
 	public @Nullable SourceExpr eof(FileRange entireFileRange) {
-		return nonNull(this.parser.eof(entireFileRange)).dumpProblems(this.problems);
+		return nonNull(this.parser.eof(entireFileRange)).getExpr();
+	}
+
+	@Override
+	@Nullable
+	public SourceExpr badToken(FileRange fileRange, BadToken badToken) {
+		this.tokens.add(badToken);
+		this.parser.badToken(fileRange, badToken);
+		return null;
 	}
 
 }

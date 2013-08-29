@@ -1,80 +1,23 @@
 package banjo.dom.test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static banjo.dom.test.ParseTestUtils.test;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
-import banjo.dom.core.BaseCoreExprVisitor;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ExprPair;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.Let;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.StringLiteral;
+import banjo.dom.source.BadSourceExpr.ExpectedOperator;
 
 public class TestLetParser {
-	@Test public void oneLine()         { hello("hello = \"world\" ; hello", 0); }
-	@Test public void twoLine()         { hello("hello = \"world\"\nhello", 0); }
-	@Test public void twoLineIndented() { hello("   hello = \"world\"\n   hello", 0); }
-	@Test public void badBackdent()     { hello("   hello = \"world\"\nhello", 1); } // Backdent here should be reported as an error
+	private static final String HELLO_WORLD_NORMALIZED = "{(hello) = hello}(\"world\")";
+
+	@Test public void oneLine()         { test("hello = \"world\" ; hello", HELLO_WORLD_NORMALIZED); }
+	@Test public void twoLine()         { test("hello = \"world\"\nhello", HELLO_WORLD_NORMALIZED); }
+	@Test public void twoLineIndented() { test("   hello = \"world\"\n   hello", HELLO_WORLD_NORMALIZED); }
+	@Test public void badBackdent()     { test("   hello = \"world\"\nhello", 1, ExpectedOperator.class, null, null); } // Backdent here should be reported as an error
 	// TODO Check indentation
-	@Test public void badIndent()       { hello(" hello = \"world\"\n   hello", 1); } // Indent here should be reported as an error
+	@Test public void badIndent()       { test(" hello = \"world\"\n   hello", 1, ExpectedOperator.class, null, null); } // Indent here should be reported as an error
 
-
-	private void hello(String source, int expectedErrorCount) {
-		if(expectedErrorCount == 0) {
-			final ExprPair node = ParseTestUtils.test(source, expectedErrorCount, null, ExprPair.class, "hello = \"world\"; hello");
-			final Let let = (Let) node.getAction();
-
-			assertEquals("hello", let.getName().getKeyString());
-			let.getValue().acceptVisitor(new BaseCoreExprVisitor<Void>() {
-				@Override
-				@Nullable
-				public Void stringLiteral(@NonNull StringLiteral n) {
-					assertEquals("world", n.getString());
-					return null;
-				}
-
-				@Override
-				@Nullable
-				public Void fallback(@NonNull CoreExpr unsupported) {
-					fail("Expected string literal: "+unsupported);
-					return null;
-				}
-			});
-			node.getResult().acceptVisitor(new BaseCoreExprVisitor<Void>() {
-				@Override
-				@Nullable
-				public Void identifier(@NonNull Identifier identifier) {
-					assertEquals("hello", identifier.getId());
-					return null;
-				}
-				@Override
-				@Nullable
-				public Void fallback(@NonNull CoreExpr unsupported) {
-					fail("Expecting identifier: "+unsupported);
-					return null;
-				}
-
-			});
-		} else {
-			ParseTestUtils.test(source, expectedErrorCount, null, null, null);
-		}
-	}
-
-
-	@Test public void f1() { func("f(x) = x", 0, "f = (x) -> x"); }
-	@Test public void f2() { func("f(x,y) = x", 0, "f = (x, y) -> x"); }
-	@Test public void f3() { func("f() = x", 0, "f = -> x"); }
-	//@Test public void f4() { func("f() = x", 0, "f = () -> x"); }
-
-	public void func(String source, int expectedErrorCount, String expectedSource) {
-		final Let let = ParseTestUtils.test(source, expectedErrorCount, null, Let.class, expectedSource);
-		assertEquals("f", let.getName().getKeyString());
-		assertEquals(FunctionLiteral.class, let.getValue().getClass());
-	}
+	@Test public void f1() { test("f(x) = x ; f(0)", "{(f) = f(0)}({(x) = x})"); }
+	@Test public void f2() { test("f(x,y) = x ; f(1,2)", "{(f) = f(1, 2)}({(x, y) = x})"); }
+	@Test public void f3() { test("f() = x ; f()", "{(f) = f()}({() = x})"); }
 
 }

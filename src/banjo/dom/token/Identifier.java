@@ -3,6 +3,7 @@ package banjo.dom.token;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
@@ -11,13 +12,8 @@ import banjo.parser.BanjoScanner;
 public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	final String id;
 
-	public Identifier(int sourceLength, String id) {
-		super(sourceLength, id.hashCode());
-		this.id = id;
-	}
-
 	public Identifier(String id) {
-		super(NOT_FROM_SOURCE, id.hashCode());
+		super(id.hashCode());
 		this.id = id;
 	}
 
@@ -69,6 +65,18 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 		if (other == null || !this.id.equals(other.id))
 			return false;
 		return true;
+	}
+
+	@Override
+	public int compareTo(Expr o) {
+		if(this == o)
+			return 0;
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp == 0) {
+			final Identifier other = (Identifier) o;
+			if(cmp == 0) cmp = this.id.compareTo(other.id);
+		}
+		return cmp;
 	}
 
 }

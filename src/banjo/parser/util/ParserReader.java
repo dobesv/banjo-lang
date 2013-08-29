@@ -622,8 +622,21 @@ public class ParserReader extends Reader {
 	 * @return A new String taken from that range
 	 * @throws IOException If there's a problem reading the data
 	 */
-
 	public String readStringFrom(Pos start) throws IOException {
+		final int endOffset = this.current.offset;
+		seek(start);
+		return readString(endOffset - start.offset);
+	}
+
+	/**
+	 * Read a string starting at the given file position up to the current position.  Useful if you have been parsing some stuff
+	 * and want to bundle up everything you parsed into a new Token.
+	 * 
+	 * @param start Start position of the token to read
+	 * @return A new String taken from that range
+	 * @throws IOException If there's a problem reading the data
+	 */
+	public String readStringFrom(FilePos start) throws IOException {
 		final int endOffset = this.current.offset;
 		seek(start);
 		return readString(endOffset - start.offset);

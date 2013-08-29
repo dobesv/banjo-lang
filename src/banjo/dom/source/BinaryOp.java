@@ -9,7 +9,7 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr right;
 
 	public BinaryOp(List<SourceNode> children, Operator operator, SourceExpr left, SourceExpr right) {
-		super(children, operator);
+		super(children, operator, left, right);
 		this.left = left;
 		this.right = right;
 	}
@@ -26,4 +26,10 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		return visitor.binaryOp(this);
 	}
 
+	@Override
+	public void toSource(StringBuffer sb) {
+		this.left.toSource(sb, getPrecedence());
+		sb.append(this.operator.getOp());
+		this.right.toSource(sb, getPrecedence());
+	}
 }
