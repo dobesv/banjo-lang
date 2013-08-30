@@ -24,6 +24,7 @@ public enum Operator {
 	BRACKETS(ParenType.BRACKETS, Position.PREFIX),
 	RETURN("^", 0x2191, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, Position.PREFIX),
+	INSPECT("#", Precedence.SUFFIX, Position.SUFFIX),
 	OPTIONAL("?", Precedence.SUFFIX, Position.SUFFIX),
 	EXISTS("??", Precedence.SUFFIX, Position.SUFFIX),
 	UNARY_NEWLINE_INDENT("(nl+indent)", Position.PREFIX, Precedence.SEMICOLON),
@@ -33,7 +34,7 @@ public enum Operator {
 	CALL(ParenType.PARENS, Position.INFIX),
 	EXTEND(".+", 0x03A6, Position.INFIX, Precedence.FUNCTION),
 	PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
-	OPT_PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
+	OPT_PROJECTION(".?", Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", Position.INFIX, Precedence.SUFFIX),
 	MAP_OPT_PROJECTION("*.?", Position.INFIX, Precedence.SUFFIX),
 	POW("^", Position.INFIX, Precedence.MULDIV),

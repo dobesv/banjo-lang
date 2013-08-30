@@ -88,4 +88,10 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	public T operator(OperatorRef n) {
 		return fallback(n);
 	}
+
+	@Override
+	@Nullable
+	public T inspect(Inspect n) {
+		return fallback(n);
+	}
 }

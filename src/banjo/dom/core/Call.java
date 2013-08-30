@@ -9,7 +9,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
-import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
 
@@ -19,7 +18,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	private final Key methodName;
 	private final List<CoreExpr> arguments;
 
-	Key APPLY_FUNCTION_METHOD_NAME = new Identifier("()");
+	public static final Key APPLY_FUNCTION_METHOD_NAME = Method.APPLY_FUNCTION_METHOD_NAME;
 
 	public Call(CoreExpr object, Key methodName, List<CoreExpr> arguments) {
 		super(object.hashCode() + arguments.hashCode());

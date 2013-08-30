@@ -17,6 +17,7 @@ import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunArg;
+import banjo.dom.core.Inspect;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
@@ -200,10 +201,9 @@ public class BanjoDesugarer {
 	 * @see Projection
 	 * @param op BinaryOp describing the projection (having PROJECTION as its operator)
 	 * @param sourceOffset Source offset to the start of op
-	 * @param optionalProjection True if the projection should return some() or none() depending on the existence of the field
 	 */
-	protected DesugarResult<CoreExpr> projection(BinaryOp op, boolean optionalProjection) {
-		return projection(op, op.getLeft(), op.getRight(), optionalProjection);
+	protected DesugarResult<CoreExpr> projection(BinaryOp op) {
+		return projection(op, op.getLeft(), op.getRight());
 	}
 
 	/**
@@ -218,13 +218,13 @@ public class BanjoDesugarer {
 	 * 
 	 * @param sourceExpr Root source expression for the projection.
 	 * @param objectSourceOffset Absolute file offset of the start of the left-hand side of the projection
-	 * @param optional TODO
 	 * @param baseCoreExpr Desugared left-hand side of the projection; the "base" object we're projecting from
 	 * @param projectionCoreExpr Desugared right-hand side of the project; the description of the projection
 	 * @return A new CoreExpr, possibly with errors
 	 */
-	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr expr, boolean optional) {
+	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr expr) {
 		final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
+		// TODO Optional projection
 		return nonNull(expr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			@Nullable
@@ -243,16 +243,48 @@ public class BanjoDesugarer {
 	}
 
 	/**
-	 * Optional projection is a projection that works on an option type - it gives a
-	 * new option value which is the result of the projection.  The right-hand side
-	 * is only evaluated if the option value is present.  Also works with lists in that
-	 * the elements of the projection will all be mapped
+	 * Optional projection means we have to check whether the field is there or not
+	 * before calling.  If the field is not there, return none.
 	 * 
+	 * <pre>x.?foo == x#["foo"] && x.foo</pre>
+	 * <pre>x.?foo(bar) == x#["foo"] && x.foo(bar)</pre>
+	 */
+	protected DesugarResult<CoreExpr> optionalProjection(BinaryOp op) {
+		return optionalProjection(op, op.getLeft(), op.getRight());
+	}
+
+	public DesugarResult<CoreExpr> optionalProjection(SourceExpr sourceExpr, final SourceExpr targetSourceExpr, final SourceExpr projectionSourceExpr) {
+		final DesugarResult<CoreExpr> targetDs = expr(targetSourceExpr);
+		final CoreExpr target = targetDs.getValue();
+		final DesugarResult<Key> methodNameDs = targetDs.expectIdentifier(projectionSourceExpr); // Only simple projections for now
+		final Inspect metadata = new Inspect(target);
+		final Call lookup = new Call(metadata, Method.LOOKUP_METHOD_NAME, new StringLiteral(methodNameDs.getValue().getKeyString()));
+		final DesugarResult<CoreExpr> projectionDs = methodNameDs.projection(sourceExpr, targetSourceExpr, projectionSourceExpr);
+		final DesugarResult<CoreExpr> lazyProjectionDs = projectionDs.function(projectionSourceExpr, projectionDs.getValue());
+		final Call lazyAnd = new Call(lookup, new Identifier(Operator.LAZY_AND.getOp()), lazyProjectionDs.getValue());
+
+		return lazyProjectionDs.withDesugared(sourceExpr, lazyAnd);
+	}
+
+	/**
+	 * <pre> x*.?foo == x.map((x) -> x.?foo)</pre>
+	 * <pre> x*.?foo(y) == x.map((x) -> x.?foo(y)</pre>
+	 */
+	protected DesugarResult<CoreExpr> mapOptionalProjection(BinaryOp op) {
+		final DesugarResult<Key> argNameDs = gensym("arg");
+		final DesugarResult<CoreExpr> projectionDs = argNameDs.optionalProjection(op, argNameDs.getValue(), op.getRight());
+		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, new FunArg(argNameDs.getValue()), projectionDs.getValue());
+		final DesugarResult<CoreExpr> leftDs = projectFuncDs.expr(op.getLeft());
+		final DesugarResult<CoreExpr> mapCallDs = leftDs.withDesugared(op, new Call(leftDs.getValue(), new Identifier("map"), projectFuncDs.getValue()));
+		return mapCallDs;
+	}
+
+	/**
 	 * <pre> x*.foo == x.map((x) -> x.foo)</pre>
 	 */
-	protected DesugarResult<CoreExpr> mapProjection(BinaryOp op, boolean optionalProjection) {
+	protected DesugarResult<CoreExpr> mapProjection(BinaryOp op) {
 		final DesugarResult<Key> argNameDs = gensym("arg");
-		final DesugarResult<CoreExpr> projectionDs = argNameDs.projection(op, argNameDs.getValue(), op.getRight(), optionalProjection);
+		final DesugarResult<CoreExpr> projectionDs = argNameDs.projection(op, argNameDs.getValue(), op.getRight());
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, new FunArg(argNameDs.getValue()), projectionDs.getValue());
 		final DesugarResult<CoreExpr> leftDs = projectFuncDs.expr(op.getLeft());
 		final DesugarResult<CoreExpr> mapCallDs = leftDs.withDesugared(op, new Call(leftDs.getValue(), new Identifier("map"), projectFuncDs.getValue()));
@@ -262,8 +294,16 @@ public class BanjoDesugarer {
 	/**
 	 * Create a function object - an object with a single method with a special name and the given body.
 	 */
-	protected DesugarResult<CoreExpr> function(BinaryOp op, FunArg funArg, CoreExpr body) {
+	protected DesugarResult<CoreExpr> function(SourceExpr op, FunArg funArg, CoreExpr body) {
 		final Method applyMethod = new Method(Method.NO_SELF_NAME, Method.APPLY_FUNCTION_METHOD_NAME, nonNull(Arrays.asList(funArg)), Method.NO_GUARANTEE, body);
+		return this.<CoreExpr>withValue(new ObjectLiteral(applyMethod), op);
+	}
+
+	/**
+	 * Create a function object - an object with a single method with a special name and the given body.
+	 */
+	protected DesugarResult<CoreExpr> function(SourceExpr op, CoreExpr body) {
+		final Method applyMethod = new Method(Method.NO_SELF_NAME, Method.APPLY_FUNCTION_METHOD_NAME, nonNull(Collections.<FunArg>emptyList()), Method.NO_GUARANTEE, body);
 		return this.<CoreExpr>withValue(new ObjectLiteral(applyMethod), op);
 	}
 
@@ -858,7 +898,7 @@ public class BanjoDesugarer {
 				return nonNull(field.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<P2<CoreExpr, Key>>>>() {
 					DesugarResult<fj.data.List<P2<CoreExpr, Key>>> field(SourceExpr fieldName, SourceExpr argName) {
 						// TODO Now somehow we have to change the body into a function definition and call it with the right argument
-						final DesugarResult<CoreExpr> fieldNameDs = ds.projection(field, objectName, fieldName, false);
+						final DesugarResult<CoreExpr> fieldNameDs = ds.projection(field, objectName, fieldName);
 						final DesugarResult<Key> argNameDs = fieldNameDs.expectIdentifier(argName);
 						return argNameDs.withValue(nonNull(currFields.cons(P.p(fieldNameDs.getValue(), argNameDs.getValue()))), field);
 					}
@@ -1113,10 +1153,10 @@ public class BanjoDesugarer {
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
 			case ASSIGNMENT: return expr(op.getRight());
-			case PROJECTION: return projection(op, false);
-			case OPT_PROJECTION: return projection(op, true);
-			case MAP_PROJECTION: return mapProjection(op, false);
-			case MAP_OPT_PROJECTION: return mapProjection(op, true);
+			case PROJECTION: return projection(op);
+			case OPT_PROJECTION: return optionalProjection(op);
+			case MAP_PROJECTION: return mapProjection(op);
+			case MAP_OPT_PROJECTION: return mapOptionalProjection(op);
 
 
 			case GT:
@@ -1170,6 +1210,9 @@ public class BanjoDesugarer {
 				final String methodName = op.getOperator().getOp();
 				final DesugarResult<CoreExpr> operandCoreExpr = expr(operandSourceExpr);
 				return operandCoreExpr.withDesugared(op, new Call(operandCoreExpr.getValue(), new Identifier(methodName)));
+
+			case INSPECT:
+				return inspect(op);
 
 			case INVALID:
 				return withDesugared(op, new BadCoreExpr("Invalid unary operator"));
@@ -1232,6 +1275,11 @@ public class BanjoDesugarer {
 
 	public SourceMap<SourceExpr> getSourceMaps() {
 		return this.sourceMaps;
+	}
+
+	public DesugarResult<CoreExpr> inspect(UnaryOp op) {
+		final DesugarResult<CoreExpr> exprDs = expr(op.getOperand());
+		return exprDs.withDesugared(op, new Inspect(exprDs.getValue()));
 	}
 
 	public TreeMap<CoreExpr, fj.data.Set<SourceExpr>> getSourceExprMap() {
