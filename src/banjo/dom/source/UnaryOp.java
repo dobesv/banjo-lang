@@ -1,14 +1,12 @@
 package banjo.dom.source;
 
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
-	public UnaryOp(List<SourceNode> children, Operator operator, SourceExpr operand) {
-		super(children, operator, operand);
+	public UnaryOp(Operator operator, SourceExpr operand) {
+		super(operator, operand);
 		this.operand = operand;
 	}
 	public SourceExpr getOperand() {

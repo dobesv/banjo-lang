@@ -1,7 +1,6 @@
 package banjo.dom.source;
 
 import java.util.Arrays;
-import java.util.List;
 
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
@@ -10,7 +9,7 @@ public abstract class AbstractOp extends AbstractExpr {
 	protected final Operator operator;
 	protected final SourceExpr[] operands;
 
-	public AbstractOp(List<SourceNode> children, Operator operator, SourceExpr ... operands) {
+	public AbstractOp(Operator operator, SourceExpr ... operands) {
 		super(operator.hashCode() ^ Arrays.hashCode(operands));
 		this.operator = operator;
 		this.operands = operands;

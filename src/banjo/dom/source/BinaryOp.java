@@ -1,15 +1,13 @@
 package banjo.dom.source;
 
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(List<SourceNode> children, Operator operator, SourceExpr left, SourceExpr right) {
-		super(children, operator, left, right);
+	public BinaryOp(Operator operator, SourceExpr left, SourceExpr right) {
+		super(operator, left, right);
 		this.left = left;
 		this.right = right;
 	}

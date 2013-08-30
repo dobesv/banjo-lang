@@ -46,4 +46,12 @@ public class OffsetLength implements Comparable<OffsetLength> {
 		if(cmp != 0) return cmp;
 		return Integer.compare(this.length, o.length);
 	}
+	public int getEndOffset() {
+		return this.offset + this.length;
+	}
+
+	@Override
+	public String toString() {
+		return "(offset " + this.offset + " length " + this.length + ")";
+	}
 }

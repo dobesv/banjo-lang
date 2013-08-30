@@ -22,10 +22,9 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
 import banjo.parser.BanjoParser.ExtSourceExpr;
-import banjo.parser.util.OffsetLength;
+import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceMap;
-import banjo.parser.util.UnexpectedIOExceptionError;
 import fj.P2;
 import fj.data.Set;
 
@@ -85,7 +84,7 @@ public class ParseTestUtils {
 			ParserReader in) throws Error {
 		int count = 0;
 		BadExpr first = null;
-		for(final P2<SourceExpr, Set<OffsetLength>> p : sourceMaps) {
+		for(final P2<SourceExpr, Set<FileRange>> p : sourceMaps) {
 			final SourceExpr n = p._1();
 			if(n instanceof BadExpr) {
 				final BadExpr e = (BadExpr) n;
@@ -93,14 +92,10 @@ public class ParseTestUtils {
 					System.out.println("Parse Errors:");
 					first = e;
 				}
-				try {
-					final Set<OffsetLength> locs = p._2();
-					for(final OffsetLength range : locs) {
-						System.out.println("  "+in.calcRange(range.getOffset(), range.getLength())+": "+e.getMessage());
-						count ++;
-					}
-				} catch (final IOException e1) {
-					throw new UnexpectedIOExceptionError(e1);
+				final Set<FileRange> locs = p._2();
+				for(final FileRange range : locs) {
+					System.out.println("  "+range+": "+e.getMessage());
+					count ++;
 				}
 			}
 		}
@@ -122,15 +117,11 @@ public class ParseTestUtils {
 					System.out.println("Desugar Errors:");
 					first = e;
 				}
-				try {
-					for(final SourceExpr sourceExpr : p._2()) {
-						for(final OffsetLength range : ds.getSourceMaps().get(nonNull(sourceExpr))) {
-							System.out.println("  "+in.calcRange(range.getOffset(), range.getLength())+": "+e.getMessage());
-							count ++;
-						}
+				for(final SourceExpr sourceExpr : p._2()) {
+					for(final FileRange range : ds.getSourceMaps().get(nonNull(sourceExpr))) {
+						System.out.println("  "+range+": "+e.getMessage());
+						count ++;
 					}
-				} catch (final IOException e1) {
-					throw new UnexpectedIOExceptionError(e1);
 				}
 			}
 		}

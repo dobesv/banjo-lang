@@ -13,8 +13,10 @@ public class TestLetParser {
 	@Test public void twoLine()         { test("hello = \"world\"\nhello", HELLO_WORLD_NORMALIZED); }
 	@Test public void twoLineIndented() { test("   hello = \"world\"\n   hello", HELLO_WORLD_NORMALIZED); }
 	@Test public void badBackdent()     { test("   hello = \"world\"\nhello", 1, ExpectedOperator.class, null, null); } // Backdent here should be reported as an error
-	// TODO Check indentation
 	@Test public void badIndent()       { test(" hello = \"world\"\n   hello", 1, ExpectedOperator.class, null, null); } // Indent here should be reported as an error
+
+	@Test public void foo1() { test("a = foo ; a", "{(a) = a}(foo)"); }
+	@Test public void foo2() { test("a = b ; c", "{(a) = c}(b)"); }
 
 	@Test public void f1() { test("f(x) = x ; f(0)", "{(f) = f(0)}({(x) = x})"); }
 	@Test public void f2() { test("f(x,y) = x ; f(1,2)", "{(f) = f(1, 2)}({(x, y) = x})"); }

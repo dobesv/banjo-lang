@@ -151,5 +151,11 @@ public final class FileRange implements Comparable<FileRange> {
 		return new OffsetLength(getStartOffset(), length());
 	}
 
+	public boolean isSubrange(FileRange bounds) {
+		// We're a sub-range if the bounds start at or before (i.e. not after) our start, and end at or after (i.e. not before) our end
+		return !bounds.getStart().after(this.start) &&
+				!bounds.getEnd().before(this.end);
+	}
+
 
 }

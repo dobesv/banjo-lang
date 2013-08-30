@@ -101,7 +101,6 @@ public class ParserReader extends Reader {
 	}
 
 	final Reader delegate;
-	final String filename;
 
 	final Pos current = new Pos();
 	final Pos previous = new Pos(); // Previous position
@@ -204,7 +203,8 @@ public class ParserReader extends Reader {
 	 * @throws IndexOutOfBoundsException If the offset provided is before the last mark or beyond the end of the file
 	 */
 	public void seek(int offset) throws IOException {
-		if(offset > this.fileSize) throw new IndexOutOfBoundsException("Past EOF");
+		if(offset > this.fileSize)
+			throw new IndexOutOfBoundsException("Past EOF");
 
 		if(offset == this.current.offset) {
 			// Do nothing, we're already there
@@ -385,7 +385,6 @@ public class ParserReader extends Reader {
 			delegate = new BufferedReader(delegate, fileSize);
 		}
 		this.delegate = delegate;
-		this.filename = filename;
 		this.fileSize = fileSize;
 		this.lineDelimiters = DEFAULT_LINE_DELIMITERS;
 		mark();
@@ -401,7 +400,6 @@ public class ParserReader extends Reader {
 		final URLConnection c = url.openConnection();
 		final String urlString = url.toString();
 		if(urlString == null) throw new NullPointerException();
-		this.filename = urlString;
 		this.fileSize = c.getContentLength();
 		if(this.fileSize == -1)
 			throw new UnsupportedOperationException("Don't yet support reading a file where we don't know the file size in advance.");
@@ -431,7 +429,7 @@ public class ParserReader extends Reader {
 	 * Parse a substring of the given string.
 	 * 
 	 * <p> This may eventually be implemented so it doesn't copy parts the original string but rather
-	 * pretends to have an EOF at the given offet.
+	 * pretends to have an EOF at the given offset.
 	 * 
 	 * @param filename File to use for reporting errors
 	 * @param body Text to use an input
@@ -465,10 +463,6 @@ public class ParserReader extends Reader {
 	 */
 	public FileRange getFileRange(Pos from) {
 		return new FileRange(from.toFilePos(), this.current.toFilePos());
-	}
-
-	public String getFilename() {
-		return this.filename;
 	}
 
 	/**

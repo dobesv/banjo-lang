@@ -1,10 +1,5 @@
 package banjo.dom.source;
 
-import static banjo.parser.util.Check.nonNull;
-
-import java.util.Collections;
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 /**
@@ -14,12 +9,8 @@ import org.eclipse.jdt.annotation.Nullable;
  */
 public class EmptyExpr extends AbstractOp implements SourceExpr {
 
-	public EmptyExpr(List<SourceNode> children) {
-		super(children, Operator.EMPTY);
-	}
-
 	public EmptyExpr() {
-		this(nonNull(Collections.<SourceNode>emptyList()));
+		super(Operator.EMPTY);
 	}
 
 	@Override
