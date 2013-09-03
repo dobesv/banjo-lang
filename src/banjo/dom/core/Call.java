@@ -47,20 +47,23 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		this.object.toSource(sb, Precedence.SUFFIX);
-		final boolean applyCall = this.methodName.equals(Method.APPLY_FUNCTION_METHOD_NAME);
-		if(!applyCall) {
+		final boolean applyCall = this.methodName.getKeyString().equals(Method.APPLY_FUNCTION_METHOD_NAME.getKeyString());
+		final boolean lookupCall = !applyCall && this.methodName.getKeyString().equals(Method.LOOKUP_METHOD_NAME.getKeyString());
+		if(!(applyCall || lookupCall)) {
 			sb.append('.');
 			this.methodName.toSource(sb);
 		}
 		if(!this.arguments.isEmpty() || applyCall) {
-			sb.append('(');
+			if(lookupCall) sb.append('[');
+			else sb.append('(');
 			boolean first = true;
 			for(final CoreExpr arg : this.arguments) {
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb, Precedence.COMMA.nextHighest());
 			}
-			sb.append(')');
+			if(lookupCall) sb.append(']');
+			else sb.append(')');
 		}
 	}
 

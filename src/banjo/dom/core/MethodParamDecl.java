@@ -9,18 +9,18 @@ import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.parser.util.AbstractCachedHashCode;
 
-public class FunArg extends AbstractCachedHashCode implements Comparable<FunArg> {
+public class MethodParamDecl extends AbstractCachedHashCode implements Comparable<MethodParamDecl> {
 	private final Key name;
 	private final CoreExpr assertion;
 
 	public static final CoreExpr NO_ASSERTION = new Identifier("Object");
 
-	public FunArg(Key name, CoreExpr assertion) {
+	public MethodParamDecl(Key name, CoreExpr assertion) {
 		super(name.hashCode() + assertion.hashCode());
 		this.name = name;
 		this.assertion = assertion;
 	}
-	public FunArg(Key name) {
+	public MethodParamDecl(Key name) {
 		this(name, NO_ASSERTION);
 	}
 
@@ -48,9 +48,9 @@ public class FunArg extends AbstractCachedHashCode implements Comparable<FunArg>
 			return true;
 		if (!super.equals(obj))
 			return false;
-		if (!(obj instanceof FunArg))
+		if (!(obj instanceof MethodParamDecl))
 			return false;
-		final FunArg other = (FunArg) obj;
+		final MethodParamDecl other = (MethodParamDecl) obj;
 		if (!this.assertion.equals(other.assertion))
 			return false;
 		if (!this.name.equals(other.name))
@@ -59,12 +59,12 @@ public class FunArg extends AbstractCachedHashCode implements Comparable<FunArg>
 	}
 
 	@Override
-	public int compareTo(FunArg o) {
+	public int compareTo(MethodParamDecl o) {
 		if(this == o)
 			return 0;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
-			final FunArg other = o;
+			final MethodParamDecl other = o;
 			if(cmp == 0) cmp = this.name.compareTo(other.name);
 			if(cmp == 0) cmp = this.assertion.compareTo(other.assertion);
 		}

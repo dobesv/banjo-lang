@@ -38,6 +38,10 @@ public class TestObjectLiteralParser {
 	@Test public void bracketsMethod2() { parse("{[x] = x}", "{\\[\\](x) = x}"); }
 	@Test public void plusMethod() { parse("{(x + y) = y}", "{x.\\+(y) = y}"); }
 	@Test public void timesMethod() { parse("{(x * y) = y}", "{x.\\*(y) = y}"); }
+	@Test public void logicalOrMethod() { parse("{(x || y) = y}", "{x.\\|\\|(y) = y}"); }
+	@Test public void logicalAndMethod() { parse("{(x && y) = y}", "{x.\\&\\&(y) = y}"); }
+	@Test public void notMethod() { parse("{(! x) = y}", "{x.\\! = y}"); }
+	@Test public void complementMethod() { parse("{(~ x) = y}", "{x.\\~ = y}"); }
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{x.\\<(y) = y}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
 

@@ -7,9 +7,7 @@ import java.util.Iterator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
-import fj.F;
 import fj.Ord;
-import fj.Ordering;
 import fj.P2;
 import fj.data.Set;
 import fj.data.TreeMap;
@@ -29,28 +27,11 @@ public class SourceMap<T extends Expr> implements Iterable<P2<T,Set<FileRange>>>
 		this.map = map;
 	}
 
-	public static <T extends Expr> Ord<T> exprOrd() {
-		return nonNull(Ord.ord(new F<T, F<T, Ordering>>() {
-			@Override
-			public F<T, Ordering> f(final T a1) {
-				return new F<T, Ordering>() {
-					@SuppressWarnings("null")
-					@Override
-					public Ordering f(final T a2) {
-						final int x = a1.compareTo(a2);
-						return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-					}
-				};
-			}
-		}));
-	}
-
-
 	/**
 	 * Create a new empty source map
 	 */
 	public SourceMap() {
-		this(nonNull(TreeMap.<T, fj.data.Set<FileRange>>empty(SourceMap.<T>exprOrd())));
+		this(nonNull(TreeMap.<T, fj.data.Set<FileRange>>empty(ExprOrd.<T>exprOrd())));
 	}
 
 	/**

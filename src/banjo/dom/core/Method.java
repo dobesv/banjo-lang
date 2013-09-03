@@ -15,16 +15,16 @@ import banjo.parser.util.ListUtil;
 public class Method extends AbstractCachedHashCode implements Comparable<Method> {
 	private final Key selfName;
 	private final Key key;
-	private final List<FunArg> args;
+	private final List<MethodParamDecl> args;
 	private final CoreExpr guarantee;
 	private final CoreExpr body;
 
-	public static final CoreExpr NO_GUARANTEE = FunArg.NO_ASSERTION;
+	public static final CoreExpr NO_GUARANTEE = MethodParamDecl.NO_ASSERTION;
 	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(Operator.CALL.getOp());
 	public static final Key LOOKUP_METHOD_NAME = new Identifier(Operator.LOOKUP.getOp());
 	public static final Key NO_SELF_NAME = new Identifier("");
 
-	public Method(Key selfName, Key key, List<FunArg> args, CoreExpr guarantee, CoreExpr body) {
+	public Method(Key selfName, Key key, List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
 		super(calcHash(selfName, key, args, guarantee, body));
 		this.selfName = selfName;
 		this.key = key;
@@ -33,7 +33,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.body = body;
 	}
 
-	private static int calcHash(Key selfName, Key key, List<FunArg> args,
+	private static int calcHash(Key selfName, Key key, List<MethodParamDecl> args,
 			CoreExpr guarantee, CoreExpr body) {
 		final int prime = 31;
 		int result = 1;
@@ -63,12 +63,12 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		if(!applyMethod) {
 			this.key.toSource(sb);
 		}
-		final Iterator<FunArg> it = this.args.iterator();
+		final Iterator<MethodParamDecl> it = this.args.iterator();
 		if(it.hasNext() || applyMethod) {
 			sb.append('(');
 			boolean first = true;
 			while(it.hasNext()) {
-				final FunArg arg = it.next();
+				final MethodParamDecl arg = it.next();
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb);
@@ -81,7 +81,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.body.toSource(sb, Precedence.COLON);
 	}
 
-	public List<FunArg> getArgs() {
+	public List<MethodParamDecl> getArgs() {
 		return this.args;
 	}
 
