@@ -57,7 +57,6 @@ public enum Operator {
 	FUNCTION("->", 0x21A6, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	MONAD_EXTRACT("<-", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
-	MONAD_BIND(">>=", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	COLON(":", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COND("=>", 0x21D2, Position.INFIX, Precedence.COND, Associativity.RIGHT),
 	COMMA(",", Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
