@@ -94,4 +94,10 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	public T inspect(Inspect n) {
 		return fallback(n);
 	}
+
+	@Override
+	@Nullable
+	public T extend(Extend n) {
+		return fallback(n);
+	}
 }

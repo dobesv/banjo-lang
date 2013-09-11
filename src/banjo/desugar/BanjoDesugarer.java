@@ -16,6 +16,7 @@ import banjo.dom.Expr;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.Extend;
 import banjo.dom.core.Inspect;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
@@ -211,9 +212,9 @@ public class BanjoDesugarer {
 	 * the property <code>bar</code> in object <code>foo</code>, translating into a call <code>foo.bar()</code>.
 	 * 
 	 * More complex projections are possible also, however.  <code>foo.{bar,baz}</code> will translate into
-	 * <code>{bar:foo.bar(), baz:foo.baz()}</code> and <code>foo.[bar,baz]</code> will translate into
+	 * <code>{bar:foo.bar, baz:foo.baz}</code> and <code>foo.[bar,baz]</code> will translate into
 	 * <code>[foo.bar(), foo.baz()]</code>.  Renames are possible when selecting fields for a new object,
-	 * so <code>foo.{bar:baz,baz:bar}</code> would swap the fields as if <code>{bar:foo.baz(), baz:foo.bar()}</code>
+	 * so <code>foo.{bar:baz,baz:bar}</code> would swap the fields as if <code>{bar:foo.baz, baz:foo.bar}</code>
 	 * were written.
 	 * 
 	 * @param sourceExpr Root source expression for the projection.
@@ -224,19 +225,22 @@ public class BanjoDesugarer {
 	 */
 	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr expr) {
 		final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
-		// TODO Optional projection
+		return objectDs.projection(sourceExpr, objectDs.getValue(), expr);
+	}
+
+	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final CoreExpr objectCoreExpr, final SourceExpr expr) {
 		return nonNull(expr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			@Nullable
 			public DesugarResult<CoreExpr> key(Key key) {
-				return objectDs.withDesugared(sourceExpr, new Call(objectDs.getValue(), key));
+				return withDesugared(sourceExpr, new Call(objectCoreExpr, key));
 			}
 
 			@Override
 			@Nullable
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
 				// TODO: Implement list / object projections
-				return objectDs.withDesugared(sourceExpr, new BadCoreExpr("Expected identifier"));
+				return withDesugared(sourceExpr, new BadCoreExpr("Expected identifier"));
 			}
 
 		}));
@@ -284,7 +288,7 @@ public class BanjoDesugarer {
 	 */
 	protected DesugarResult<CoreExpr> mapProjection(BinaryOp op) {
 		final DesugarResult<Key> argNameDs = gensym("arg");
-		final DesugarResult<CoreExpr> projectionDs = argNameDs.projection(op, argNameDs.getValue(), op.getRight());
+		final DesugarResult<CoreExpr> projectionDs = argNameDs.projection(op, (CoreExpr)argNameDs.getValue(), op.getRight());
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, new MethodParamDecl(argNameDs.getValue()), projectionDs.getValue());
 		final DesugarResult<CoreExpr> leftDs = projectFuncDs.expr(op.getLeft());
 		final DesugarResult<CoreExpr> mapCallDs = leftDs.withDesugared(op, new Call(leftDs.getValue(), new Identifier("map"), projectFuncDs.getValue()));
@@ -899,19 +903,23 @@ public class BanjoDesugarer {
 
 			public DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> collectFields(final BanjoDesugarer ds, final SourceExpr field, final Key objectName, final fj.data.List<P2<CoreExpr, SourceExpr>> currFields) {
 				return nonNull(field.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>>>() {
-					DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> field(SourceExpr fieldName, SourceExpr argPattern) {
-						final DesugarResult<CoreExpr> fieldNameDs = ds.projection(field, objectName, fieldName);
-						return fieldNameDs.withValue(nonNull(currFields.cons(P.p(fieldNameDs.getValue(), argPattern))), field);
+					/**
+					 * 
+					 * @param argSourceExpr For x = y, this would be the expression for x
+					 * @param parameterPattern For x = y, this would be the expression for y
+					 * @return
+					 */
+					DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> field(SourceExpr argSourceExpr, final SourceExpr parameterPattern) {
+						final DesugarResult<CoreExpr> argDs = ds.projection(field, (CoreExpr)objectName, argSourceExpr);
+						return argDs.withValue(nonNull(currFields.cons(P.p(argDs.getValue(), parameterPattern))), field);
 					}
 
 					@Override
-					@Nullable
 					public DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> key(Key key) {
 						return field(key, key);
 					}
 
 					@Override
-					@Nullable
 					public DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> binaryOp(BinaryOp op) {
 						switch(op.getOperator()) {
 						case ASSIGNMENT: {
@@ -931,7 +939,6 @@ public class BanjoDesugarer {
 					}
 
 					@Override
-					@Nullable
 					public DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> fallback(SourceExpr op) {
 						// Unexpected whatever-it-is
 						return field(op, op);
@@ -1187,6 +1194,8 @@ public class BanjoDesugarer {
 			case UNION:
 			case LOOKUP: return binaryOpToMethodCall(op, false);
 
+			case EXTEND: return extend(op);
+
 			// Short-circuit operators have a lazy right operand
 			case LAZY_AND:
 			case LAZY_OR:
@@ -1290,6 +1299,12 @@ public class BanjoDesugarer {
 	public DesugarResult<CoreExpr> inspect(UnaryOp op) {
 		final DesugarResult<CoreExpr> exprDs = expr(op.getOperand());
 		return exprDs.withDesugared(op, new Inspect(exprDs.getValue()));
+	}
+
+	public DesugarResult<CoreExpr> extend(BinaryOp op) {
+		final DesugarResult<CoreExpr> leftDs = expr(op.getLeft());
+		final DesugarResult<CoreExpr> rightDs = leftDs.expr(op.getRight());
+		return rightDs.withDesugared(op, new Extend(leftDs.getValue(), rightDs.getValue()));
 	}
 
 	public TreeMap<CoreExpr, fj.data.Set<SourceExpr>> getSourceExprMap() {

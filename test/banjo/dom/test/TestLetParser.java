@@ -18,6 +18,8 @@ public class TestLetParser {
 	@Test public void foo1() { test("a = foo ; a", "{(a) = a}(foo)"); }
 	@Test public void foo2() { test("a = b ; c", "{(a) = c}(b)"); }
 
+	@Test public void noCont() { test("main(x) = x", "x"); }
+
 	@Test public void f1() { test("f(x) = x ; f(0)", "{(f) = f(0)}({(x) = x})"); }
 	@Test public void f2() { test("f(x,y) = x ; f(1,2)", "{(f) = f(1, 2)}({(x, y) = x})"); }
 	@Test public void f3() { test("f() = x ; f()", "{(f) = f()}({() = x})"); }

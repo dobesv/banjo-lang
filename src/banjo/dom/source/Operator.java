@@ -32,7 +32,7 @@ public enum Operator {
 	// Binary operators
 	LOOKUP(ParenType.BRACKETS, Position.INFIX),
 	CALL(ParenType.PARENS, Position.INFIX),
-	EXTEND(".+", 0x03A6, Position.INFIX, Precedence.FUNCTION),
+	EXTEND("{+}", 0x03A6, Position.INFIX, Precedence.FUNCTION),
 	PROJECTION(".", Position.INFIX, Precedence.SUFFIX),
 	OPT_PROJECTION(".?", Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", Position.INFIX, Precedence.SUFFIX),

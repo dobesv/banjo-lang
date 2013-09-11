@@ -167,7 +167,12 @@ public class BanjoScanner {
 		case ')': return ")";
 		case '[': return "[";
 		case ']': return "]";
-		case '{': return "{";
+		case '{': {
+			// Special case for "{+}"
+			if(in.startsWith("+}"))
+				return "{+}";
+			return "{";
+		}
 		case '}': return "}";
 		}
 		if(!isOperatorChar(first)) {

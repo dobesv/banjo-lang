@@ -18,6 +18,10 @@ public class TestPatterns {
 	@Test public void testUnpackObject9() { test("{x,y,z} -> z", "{(__g_obj3) = {(x, y, z) = z}(__g_obj3.x, __g_obj3.y, __g_obj3.z)}"); }
 	@Test public void testUnpackObjectUsingAssignment() { test("{x,y,z} = foo; z", "{(__g_obj3) = {(x, y, z) = z}(__g_obj3.x, __g_obj3.y, __g_obj3.z)}(foo)"); }
 
+	// {x.y.z = foo} should be roughly equivalent to {x = {y = {z = foo}}}
+	//@Test public void testUnpackObjWithAliasedProjection() { test("{x.y.z = foo}", ""); }
+	//@Test public void testUnpackObjWithAliasedCall() { test("{x(1) = foo}", ""); }
+
 	@Test public void testUnpackList1() { test("([y]) -> y", "{(__g_lst3) = {(y) = y}(__g_lst3[0])}"); }
 	@Test public void testUnpackList2() { test("([x,y,z]) -> z", "{(__g_lst3) = {(x, y, z) = z}(__g_lst3[0], __g_lst3[1], __g_lst3[2])}"); }
 	@Test public void testUnpackList3() { test("([x,{z}]) -> z", "{(__g_lst3) = {(x, __g_obj5) = {(z) = z}(__g_obj5.z)}(__g_lst3[0], __g_lst3[1])}"); }

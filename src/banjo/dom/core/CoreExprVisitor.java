@@ -19,5 +19,6 @@ public interface CoreExprVisitor<T> {
 	@Nullable T badExpr(BadCoreExpr badExpr);
 	@Nullable T badIdentifier(BadIdentifier badIdentifier);
 	@Nullable T inspect(Inspect inspect);
+	@Nullable T extend(Extend extend);
 
 }
