@@ -47,6 +47,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 			return false;
 		if (!obj.getClass().equals(this.getClass()))
 			return false;
+		if(obj.hashCode() != this.hashCode())
+			return false;
 		final AbstractBadExpr other = (AbstractBadExpr) obj;
 		if (!this.message.equals(other.message))
 			return false;

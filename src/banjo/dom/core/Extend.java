@@ -69,7 +69,7 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
+		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof Extend))
 			return false;

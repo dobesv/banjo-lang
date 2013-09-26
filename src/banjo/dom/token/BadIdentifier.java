@@ -54,6 +54,15 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
+	public boolean equals(@Nullable Object obj) {
+		if(obj == this) return true;
+		if(obj == null || !(obj instanceof BadIdentifier)) return false;
+		if(obj.hashCode() != this.hashCode()) return false;
+		final BadIdentifier x = (BadIdentifier) obj;
+		return x.message.equals(this.message) && x.originalSource.equals(this.originalSource);
+	}
+
+	@Override
 	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		throw new Error("Not a source expression, really.");

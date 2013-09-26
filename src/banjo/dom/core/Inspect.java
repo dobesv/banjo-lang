@@ -48,4 +48,19 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		return visitor.inspect(this);
 	}
 
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof Inspect))
+			return false;
+		final Inspect other = (Inspect) obj;
+		if (!this.target.equals(other.target))
+			return false;
+		return true;
+	}
+
+
 }

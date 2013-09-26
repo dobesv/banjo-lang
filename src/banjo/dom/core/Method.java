@@ -97,7 +97,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
+		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof Method))
 			return false;
@@ -123,6 +123,18 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		if(cmp == 0) cmp = this.selfName.compareTo(other.selfName);
 		if(cmp == 0) cmp = this.body.compareTo(other.body);
 		return 0;
+	}
+
+	public boolean hasSelfName() {
+		return !this.selfName.equals(NO_SELF_NAME);
+	}
+
+	public Key getSelfName() {
+		return this.selfName;
+	}
+
+	public boolean hasGuarantee() {
+		return !this.guarantee.equals(NO_GUARANTEE);
 	}
 
 

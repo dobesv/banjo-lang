@@ -2,6 +2,8 @@ package banjo.dom.source;
 
 import java.util.Arrays;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
 
@@ -40,5 +42,14 @@ public abstract class AbstractOp extends AbstractExpr {
 		return cmp;
 	}
 
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if(obj == this) return true;
+		if(obj == null) return false;
+		if(!(obj instanceof AbstractOp)) return false;
+		if(obj.hashCode() != this.hashCode()) return false;
+		final AbstractOp x = (AbstractOp) obj;
+		return x.operator == this.operator && Arrays.equals(x.operands, this.operands);
+	}
 
 }

@@ -38,17 +38,17 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	private final LinkedList<PartialOp> opStack = new LinkedList<>();
 	private @Nullable ExtSourceExpr operand = null;
 	private boolean eof;
-	static final SourceMap<SourceExpr> EMPTY_SOURCE_MAP = new SourceMap<SourceExpr>();
+	static final SourceMap EMPTY_SOURCE_MAP = new SourceMap();
 
 	public static class ExtSourceExpr {
 		private final FileRange range;
-		private final SourceMap<SourceExpr> sourceMaps;
+		private final SourceMap sourceMaps;
 		private final SourceExpr expr;
 
 		/**
 		 * Create one from a SourceExpr with a file range and source maps for all its children
 		 */
-		public ExtSourceExpr(SourceExpr expr, FileRange range, SourceMap<SourceExpr> sourceMaps) {
+		public ExtSourceExpr(SourceExpr expr, FileRange range, SourceMap sourceMaps) {
 			this.range = range;
 			this.expr = expr;
 			this.sourceMaps = sourceMaps.insert(expr, range);
@@ -78,7 +78,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		public String toString() {
 			return this.range+": "+this.expr;
 		}
-		public SourceMap<SourceExpr> getSourceMaps() {
+		public SourceMap getSourceMaps() {
 			return this.sourceMaps;
 		}
 	}
@@ -86,7 +86,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	abstract class PartialOp {
 		protected final Operator operator;
 		protected final FileRange range;
-		protected final SourceMap<SourceExpr> sourceMaps;
+		protected final SourceMap sourceMaps;
 		protected final ExtSourceExpr operatorExpr;
 
 		/**
@@ -96,7 +96,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		 * @param operator
 		 * @param problems
 		 */
-		public PartialOp(FileRange range, SourceMap<SourceExpr> sourceMaps, Operator operator, ExtSourceExpr operatorExpr) {
+		public PartialOp(FileRange range, SourceMap sourceMaps, Operator operator, ExtSourceExpr operatorExpr) {
 			this.sourceMaps = sourceMaps;
 			this.range = range;
 			this.operator = operator;
@@ -127,7 +127,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 				rightOperand = new ExtSourceExpr(new BadSourceExpr.IncorrectIndentation(rightOperand.getStartColumn(), getStartColumn()), rightOperand.range, rightOperand.getSourceMaps());
 			}
 			final SourceExpr newExpr = makeOp(rightOperand.getExpr());
-			final SourceMap<SourceExpr> sourceMaps = this.sourceMaps.union(rightOperand.getSourceMaps()).insert(newExpr, range);
+			final SourceMap sourceMaps = this.sourceMaps.union(rightOperand.getSourceMaps()).insert(newExpr, range);
 			return new ExtSourceExpr(newExpr, range, sourceMaps);
 		}
 

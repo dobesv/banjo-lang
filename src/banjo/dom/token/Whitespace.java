@@ -1,5 +1,7 @@
 package banjo.dom.token;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.dom.Expr;
 
 
@@ -30,6 +32,15 @@ public class Whitespace extends AbstractAtom implements Token {
 			cmp = this.text.compareTo(other.text);
 		}
 		return cmp;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if(obj == this) return true;
+		if(obj == null || !(obj instanceof Whitespace)) return false;
+		if(obj.hashCode() != this.hashCode()) return false;
+		final Whitespace x = (Whitespace) obj;
+		return x.text.equals(this.text);
 	}
 
 }

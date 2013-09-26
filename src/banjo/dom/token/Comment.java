@@ -33,6 +33,8 @@ public class Comment extends AbstractCachedHashCode implements Token {
 			return true;
 		if (obj == null)
 			return false;
+		if(obj.hashCode() != this.hashCode())
+			return false;
 		if (!(obj instanceof Comment))
 			return false;
 		final Comment other = (Comment) obj;
@@ -45,4 +47,6 @@ public class Comment extends AbstractCachedHashCode implements Token {
 	public String toSource() {
 		return this.text;
 	}
+
+
 }
