@@ -181,7 +181,7 @@ public class IncrementalUpdater {
 	public DesugarResult<CoreExpr> updateAst(DesugarResult<CoreExpr> oldAst, final int editStartOffset, final int editLength, final String replacement, final String newSourceCode, @Nullable final List<OffsetLength> damageRanges) {
 		final SourceExpr oldRootSourceExpr = oldAst.getSourceExpr();
 		final FileRange oldFileRange = oldAst.getFileRange();
-		final SourceMap<SourceExpr> oldSourceMaps = oldAst.getSourceMaps();
+		final SourceMap oldSourceMaps = oldAst.getSourceMaps();
 		final ExtSourceExpr newSourceTree = updateSourceTree(oldRootSourceExpr,
 				oldFileRange, oldSourceMaps, editStartOffset, editLength,
 				replacement, newSourceCode, damageRanges);
@@ -190,7 +190,7 @@ public class IncrementalUpdater {
 
 	public ExtSourceExpr updateSourceTree(final SourceExpr oldRootSourceExpr,
 			final FileRange oldFileRange,
-			final SourceMap<SourceExpr> oldSourceMaps,
+			final SourceMap oldSourceMaps,
 			final int editStartOffset, final int editLength,
 			final String replacement, final String newSourceCode,
 			final @Nullable List<OffsetLength> damageRanges) {
@@ -239,7 +239,7 @@ public class IncrementalUpdater {
 	private ExtSourceExpr updateSourceTree(final SourceExpr sourceExpr, final FileRange oldRange,
 			final ParserReader in, final java.util.TreeMap<Integer, FilePos> positionMemory,
 			final OffsetLength editRange, final int editLengthDelta, final String replacement,
-			final SourceMap<SourceExpr> oldSourceMap, final String newSourceCode,
+			final SourceMap oldSourceMap, final String newSourceCode,
 			@Nullable final List<OffsetLength> damageRanges) throws ReparseNeeded {
 		final RangeCheck rc = checkRange(oldRange, editRange);
 		final FileRange newRange = adjustRange(oldRange, editRange, editLengthDelta, in, positionMemory);
@@ -267,9 +267,9 @@ public class IncrementalUpdater {
 			public ExtSourceExpr binaryOp(BinaryOp binaryOp) {
 				final SourceExpr oldLeft = binaryOp.getLeft();
 				final SourceExpr oldRight = binaryOp.getRight();
-				final FileRange oldLeftRange = oldSourceMap.getWithin(oldRange, oldLeft);
+				final FileRange oldLeftRange = oldSourceMap.getFirstWithin(oldRange, oldLeft);
 				final FileRange rightBounds = new FileRange(oldLeftRange.getEnd(), oldRange.getEnd());
-				final FileRange oldRightRange = oldSourceMap.getWithin(rightBounds, oldRight);
+				final FileRange oldRightRange = oldSourceMap.getFirstWithin(rightBounds, oldRight);
 				final RangeCheck leftRc = checkRange(oldLeftRange, editRange);
 				final RangeCheck rightRc = checkRange(oldRightRange, editRange);
 				if(!leftRc.subrange() && !rightRc.subrange() && shouldReparseParent(rc)) {
@@ -280,7 +280,7 @@ public class IncrementalUpdater {
 					final ExtSourceExpr newRight = updateSourceTree(oldRight, oldRightRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
 					final boolean childChanged = newLeft.getExpr() != oldLeft || newRight.getExpr() != oldRight;
 					final BinaryOp newOp = childChanged ? new BinaryOp(binaryOp.getOperator(), newLeft.getExpr(), newRight.getExpr()) : binaryOp;
-					final SourceMap<SourceExpr> newSourceMap = newLeft.getSourceMaps().union(newRight.getSourceMaps());
+					final SourceMap newSourceMap = newLeft.getSourceMaps().union(newRight.getSourceMaps());
 					return new ExtSourceExpr(newOp, newRange, newSourceMap);
 				} catch(final ReparseNeeded e) {
 					return reparse();
@@ -312,7 +312,7 @@ public class IncrementalUpdater {
 			@Override
 			public ExtSourceExpr unaryOp(UnaryOp unaryOp) {
 				final SourceExpr oldOperand = unaryOp.getOperand();
-				final FileRange operandRange = oldSourceMap.getWithin(oldRange, oldOperand);
+				final FileRange operandRange = oldSourceMap.getFirstWithin(oldRange, oldOperand);
 				final RangeCheck operandRc = checkRange(operandRange, editRange);
 				if(!operandRc.subrange() && shouldReparseParent(rc))
 					throw REPARSE_NEEDED;

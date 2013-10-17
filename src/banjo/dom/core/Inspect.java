@@ -14,6 +14,10 @@ import banjo.dom.source.Precedence;
 public class Inspect extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr target;
 
+	public CoreExpr getTarget() {
+		return this.target;
+	}
+
 	public Inspect(CoreExpr target) {
 		super(target.hashCode());
 		this.target = target;

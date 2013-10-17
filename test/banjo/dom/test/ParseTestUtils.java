@@ -46,7 +46,7 @@ public class ParseTestUtils {
 			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
-		SourceMap<SourceExpr> sourceMaps = new SourceMap<>();
+		SourceMap sourceMaps = new SourceMap();
 		SourceExpr parseTree;
 		try {
 			final ExtSourceExpr parseResult = parser.parse(source);
@@ -80,7 +80,7 @@ public class ParseTestUtils {
 	}
 
 	public static int parseErrors(Class<? extends BadExpr> expectedClass,
-			SourceMap<SourceExpr> sourceMaps,
+			SourceMap sourceMaps,
 			ParserReader in) throws Error {
 		int count = 0;
 		BadExpr first = null;
@@ -109,7 +109,7 @@ public class ParseTestUtils {
 			ParserReader in) throws Error {
 		int count = 0;
 		BadExpr first = null;
-		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getSourceExprMap()) {
+		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getDesugarMap().getCoreExprToSourceExpr()) {
 			final CoreExpr n = p._1();
 			if(n instanceof BadExpr) {
 				final BadExpr e = (BadExpr) n;

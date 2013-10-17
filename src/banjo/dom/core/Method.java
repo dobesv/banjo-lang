@@ -50,6 +50,13 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	}
 
 
+	@SuppressWarnings("null")
+	@Override
+	public String toString() {
+		final StringBuffer sb = new StringBuffer();
+		toSource(sb);
+		return sb.toString();
+	}
 
 	public void toSource(final StringBuffer sb) {
 		if(!this.selfName.equals(NO_SELF_NAME)) {
@@ -122,7 +129,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		if(cmp == 0) cmp = this.guarantee.compareTo(other.guarantee);
 		if(cmp == 0) cmp = this.selfName.compareTo(other.selfName);
 		if(cmp == 0) cmp = this.body.compareTo(other.body);
-		return 0;
+		return cmp;
 	}
 
 	public boolean hasSelfName() {
