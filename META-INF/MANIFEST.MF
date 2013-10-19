@@ -34,8 +34,12 @@ Export-Package: banjo.analysis;uses:="banjo.dom.token,banjo.parser.util,banjo.do
    banjo.dom.token,
    banjo.dom.source,
    banjo.parser.util",
- banjo.parser.errors;uses:="banjo.dom,banjo.dom.source,banjo.parser.util",
- banjo.parser.util;uses:="banjo.dom.token,banjo.dom.source,banjo.parser"
+ banjo.parser.util;uses:="banjo.dom.token,banjo.dom.source,banjo.parser",
+ fj,
+ fj.data,
+ fj.data.fingertrees,
+ fj.data.hlist,
+ fj.function
 Bundle-ClassPath: lib/functionaljava.jar,
  .
 Require-Bundle: org.eclipse.jdt.annotation;bundle-version="1.1.0",

@@ -33,4 +33,8 @@ public interface SourceExpr extends Expr, SourceNode {
 		}
 	}));
 
+	String toFullyParenthesizedSource();
+
+	void toFullyParenthesizedSource(StringBuffer sb);
+
 }

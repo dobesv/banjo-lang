@@ -132,7 +132,7 @@ public class DefRefAnalyser {
 			// are going to look for the signature range themselves.
 			final FileRange r = dsMap.getLastBodyRangeIn(sourceMap, nonNull(parentRange), this.method);
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			System.out.println("Method "+this.method+" range is {"+r+"} in {"+parentRange+"}");
+			//System.out.println("Method "+this.method+" range is {"+r+"} in {"+parentRange+"}");
 			return nonNull(P.p(r, cache3));
 		}
 
@@ -163,7 +163,7 @@ public class DefRefAnalyser {
 			final FileRange parentRange = dsMap.getFirstSignatureRangeIn(sourceMap, parentParentRange, this.methodRef.getMethod());
 			final FileRange r = dsMap.getFirstRangeIn(sourceMap, nonNull(parentRange), this.paramDecl);
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			System.out.println("Param `"+this.paramDecl.getName()+"` in '"+this.methodRef.method+"' range {"+r+"} in {"+parentRange+"} in {"+parentParentRange+"}");
+			//System.out.println("Param `"+this.paramDecl.getName()+"` in '"+this.methodRef.method+"' range {"+r+"} in {"+parentRange+"} in {"+parentParentRange+"}");
 			return nonNull(P.p(r, cache3));
 		}
 

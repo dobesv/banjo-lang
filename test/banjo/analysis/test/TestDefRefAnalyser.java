@@ -33,6 +33,7 @@ public class TestDefRefAnalyser {
 	@Test public void unused1() { test("a = 1; b = 2; a", "0:1D,7:1U,14:1R0"); }
 	@Test public void unused2() { test("a = 1; b = 2; b", "0:1U,7:1D,14:1R7"); }
 	@Test public void shadow1() { test("a = 1; a = 2; a", "0:1U,7:1S,14:1R7"); }
+	@Test public void shadow2() { test("a = 1\na = 2\na", "0:1U,6:1S,12:1R6"); }
 
 	@Test public void let1() { test("a = 1 ; a", "0:1D,8:1R0"); }
 	@Test public void letf1() { test("f(x,y) = y+x+x ; f(10)", "0:1D,2:1D,4:1D,9:1R4,11:1R2,13:1R2,17:1R0"); }
@@ -45,10 +46,10 @@ public class TestDefRefAnalyser {
 		} catch (final IOException e) {
 			throw new UnexpectedIOExceptionError(e);
 		}
-		final DesugarResult<CoreExpr> dsResult = new BanjoDesugarer(parseResult.getSourceMaps()).desugar(parseResult.getExpr());
+		final DesugarResult<CoreExpr> dsResult = new BanjoDesugarer(parseResult.getSourceMap()).desugar(parseResult.getExpr());
 		final DefRefAnalyser analyser = new DefRefAnalyser();
 		final Analysis analysis = analyser.analyse(TEST_URI, dsResult.getValue(), parseResult.getFileRange());
-		final SourceRangeAnalysis ranges = analysis.calculateSourceRanges(dsResult.getDesugarMap(), parseResult.getSourceMaps());
+		final SourceRangeAnalysis ranges = analysis.calculateSourceRanges(dsResult.getDesugarMap(), parseResult.getSourceMap());
 		TreeMap<FileRange,String> rangeCodes = TreeMap.empty(ReverseOrd.reverseOrd(Ord.<FileRange>comparableOrd()));
 		for(final FileRange r : ranges.getFree()) {
 			System.out.println("F "+r);

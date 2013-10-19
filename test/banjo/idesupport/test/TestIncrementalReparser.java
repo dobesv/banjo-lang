@@ -22,6 +22,7 @@ import banjo.parser.BanjoParser;
 import banjo.parser.BanjoParser.ExtSourceExpr;
 import banjo.parser.util.OffsetLength;
 import banjo.parser.util.UnexpectedIOExceptionError;
+import fj.P2;
 
 public class TestIncrementalReparser {
 
@@ -57,12 +58,13 @@ public class TestIncrementalReparser {
 		} catch (final IOException e) {
 			throw new UnexpectedIOExceptionError(e);
 		}
-		final DesugarResult<CoreExpr> dsResult = new BanjoDesugarer(parseResult.getSourceMaps()).desugar(parseResult.getExpr());
+		final DesugarResult<CoreExpr> dsResult = new BanjoDesugarer(parseResult.getSourceMap()).desugar(parseResult.getExpr());
 		final String newSourceCode = nonNull(new StringBuffer(origSource).replace(editOffset, editOffset + editLength, replacement).toString());
 		System.out.println("Source code after replacing "+editLength+" chars at offset "+editOffset+" with string '"+replacement+"':");
 		System.out.println("  "+newSourceCode);
 		final List<OffsetLength> damageRegions = new ArrayList<>();
-		final DesugarResult<CoreExpr> editedAst = updater.applyEdit(dsResult, editOffset, editLength, replacement, newSourceCode, damageRegions);
+		final P2<ExtSourceExpr, DesugarResult<CoreExpr>> edited = updater.applyEdit(dsResult, parseResult, editOffset, editLength, replacement, newSourceCode, damageRegions);
+		final DesugarResult<CoreExpr> editedAst = edited._2();
 		System.out.println("Normalized source code after replacing "+editLength+" chars at offset "+editOffset+" with string '"+replacement+"':");
 		System.out.println("  "+editedAst.getValue().toSource());
 		System.out.println("Damage regions:");

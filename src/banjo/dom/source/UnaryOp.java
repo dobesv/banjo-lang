@@ -32,4 +32,21 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 		else if(!prefix) sb.append(this.operator.getOp());
 	}
 
+	@Override
+	public void toFullyParenthesizedSource(StringBuffer sb) {
+		final boolean paren = this.operator.isParen();
+		final boolean prefix = this.operator.isPrefix();
+		if(paren) sb.append(this.operator.getParenType().getStartChar());
+		else {
+			if(prefix) sb.append(this.operator.getOp());
+			if(this.operand.getPrecedence() != Precedence.ATOM) sb.append('(');
+		}
+		this.operand.toFullyParenthesizedSource(sb);
+		if(paren) sb.append(this.operator.getParenType().getEndChar());
+		else {
+			if(this.operand.getPrecedence() != Precedence.ATOM) sb.append(')');
+			if(!prefix) sb.append(this.operator.getOp());
+		}
+	}
+
 }

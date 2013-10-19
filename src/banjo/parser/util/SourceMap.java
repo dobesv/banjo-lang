@@ -49,11 +49,14 @@ public class SourceMap implements Iterable<P2<SourceExpr,Set<FileRange>>> {
 
 	@SuppressWarnings("null")
 	public SourceMap union(SourceMap otherMap) {
+		final long startTime = System.currentTimeMillis();
 		SourceMap result = otherMap;
 		for(final P2<SourceExpr, fj.data.Set<FileRange>> pair : this.map) {
 			result = result.insert(pair._1(), pair._2());
 		}
+		System.out.println("SourceMap.union took "+(System.currentTimeMillis() - startTime)+"ms");
 		return result;
+
 	}
 	/**
 	 * Get the list of ranges the given node has been seen at.  May be an empty set.  Never returns null.

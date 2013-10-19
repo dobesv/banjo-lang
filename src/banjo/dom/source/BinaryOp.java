@@ -30,4 +30,17 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		sb.append(this.operator.getOp());
 		this.right.toSource(sb, getPrecedence());
 	}
+
+	@Override
+	public void toFullyParenthesizedSource(StringBuffer sb) {
+		if(this.left.getPrecedence() != Precedence.ATOM) sb.append('(');
+		this.left.toFullyParenthesizedSource(sb);
+		if(this.left.getPrecedence() != Precedence.ATOM) sb.append(')');
+		sb.append(' ');
+		this.operator.toSource(sb);
+		sb.append(' ');
+		if(this.right.getPrecedence() != Precedence.ATOM) sb.append('(');
+		this.right.toFullyParenthesizedSource(sb);
+		if(this.right.getPrecedence() != Precedence.ATOM) sb.append(')');
+	}
 }

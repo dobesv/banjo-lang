@@ -195,4 +195,9 @@ public enum Operator {
 	public boolean isPrefix() {
 		return this.position == Position.PREFIX;
 	}
+
+	public void toSource(StringBuffer sb) {
+		sb.append(getOp());
+	}
+
 }

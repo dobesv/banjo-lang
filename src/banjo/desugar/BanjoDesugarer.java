@@ -12,8 +12,10 @@ import java.util.ListIterator;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BadCoreExpr;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
@@ -38,32 +40,33 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.util.DesugarMap;
+import banjo.parser.util.ExprOrd;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.SourceMap;
 import fj.F;
 import fj.Ord;
 import fj.P;
 import fj.P2;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 public class BanjoDesugarer {
-	final SourceMap sourceMaps;
 	final TreeMap<Expr, CoreExpr> oldCache;
 	final TreeMap<Expr, CoreExpr> newCache;
-	private final DesugarMap desugarMap;
+	protected final DesugarMap desugarMap;
 	final int counter;
 
 	public static class DesugarResult<T> extends BanjoDesugarer {
 		final SourceExpr sourceExpr;
 		final T value;
-		public DesugarResult(T expr, SourceExpr sourceExpr, SourceMap sourceMaps, TreeMap<Expr, CoreExpr> oldCache, TreeMap<Expr, CoreExpr> newCache, DesugarMap desugarMap, int counter) {
-			super(sourceMaps, oldCache, newCache, desugarMap, counter);
+		public DesugarResult(T expr, SourceExpr sourceExpr, TreeMap<Expr, CoreExpr> oldCache, TreeMap<Expr, CoreExpr> newCache, DesugarMap desugarMap, int counter) {
+			super(oldCache, newCache, desugarMap, counter);
 			this.value = expr;
 			this.sourceExpr = sourceExpr;
 		}
 
 		public DesugarResult(T result, SourceExpr sourceExpr, BanjoDesugarer ds) {
-			this(result, sourceExpr, ds.sourceMaps, ds.oldCache, ds.newCache, ds.getDesugarMap(), ds.counter + 1);
+			this(result, sourceExpr, ds.oldCache, ds.newCache, ds.getDesugarMap(), ds.counter + 1);
 		}
 
 		public T getValue() {
@@ -74,16 +77,44 @@ public class BanjoDesugarer {
 			return this.sourceExpr;
 		}
 
-		public FileRange getFileRange() {
-			final FileRange range = this.sourceMaps.getFirst(this.sourceExpr);
-			return nonNull(range);
+		public DesugarResult<CoreExpr> redesugar(SourceExpr expr, SourceMap sourceMaps) {
+			return new BanjoDesugarer(this.newCache, EMPTY_CACHE, EMPTY_DESUGAR_MAP, 1).desugar(expr);
 		}
 
-		public DesugarResult<CoreExpr> redesugar(SourceExpr expr, SourceMap sourceMaps) {
-			return new BanjoDesugarer(sourceMaps, this.newCache, EMPTY_CACHE, EMPTY_DESUGAR_MAP, 1).desugar(expr);
+		public TreeMap<FileRange, Set<BadExpr>> getProblems(SourceMap sourceMap) {
+			return getProblems(sourceMap, EMPTY_ERROR_MAP);
+		}
+
+		public TreeMap<FileRange, Set<BadExpr>> getProblems(final SourceMap sourceMap, TreeMap<FileRange, Set<BadExpr>> errors) {
+			for(final P2<CoreExpr,Set<SourceExpr>> p : this.desugarMap.getCoreExprToSourceExpr()) {
+				final TreeMap<FileRange, Set<BadExpr>> tmpErrors = errors;
+				errors = nonNull(p._1().acceptVisitor(new BaseCoreExprVisitor<TreeMap<FileRange, Set<BadExpr>>>() {
+					@Override
+					@Nullable
+					public TreeMap<FileRange, Set<BadExpr>> badExpr(BadCoreExpr n) {
+						// TODO Auto-generated method stub
+						TreeMap<FileRange, Set<BadExpr>> newErrors = tmpErrors;
+						for(final SourceExpr sourceExpr : p._2()) {
+							for(final FileRange range : sourceMap.get(sourceExpr)) {
+								newErrors = newErrors.set(range, newErrors.get(range).orSome(Set.<BadExpr>empty(ExprOrd.<BadExpr>exprOrd()).insert(n)));
+							}
+						}
+						return newErrors;
+					}
+
+					@Override
+					@Nullable
+					public TreeMap<FileRange, Set<BadExpr>> fallback(CoreExpr unsupported) {
+						return tmpErrors;
+					}
+				}));
+			}
+			return errors;
 		}
 	}
 
+	@SuppressWarnings("null")
+	public static final TreeMap<FileRange, Set<BadExpr>> EMPTY_ERROR_MAP = TreeMap.empty(Ord.<FileRange>comparableOrd());
 	@SuppressWarnings("null")
 	public static final TreeMap<Expr, CoreExpr> EMPTY_CACHE = TreeMap.empty(Ord.<Expr>comparableOrd());
 	@SuppressWarnings("null")
@@ -98,40 +129,39 @@ public class BanjoDesugarer {
 	protected DesugarResult<CoreExpr> withDesugared(SourceExpr sourceExpr, CoreExpr expr) {
 		final TreeMap<Expr, CoreExpr> newCache = this.newCache.set(sourceExpr, expr);
 		final DesugarMap newDesugarMap = this.getDesugarMap().insert(expr, sourceExpr);
-		return new DesugarResult<CoreExpr>(expr, sourceExpr, this.sourceMaps, this.oldCache, newCache, newDesugarMap, this.counter+1);
+		return new DesugarResult<CoreExpr>(expr, sourceExpr, this.oldCache, newCache, newDesugarMap, this.counter+1);
 	}
 
 	@SuppressWarnings("null")
 	protected DesugarResult<Key> withDesugared(SourceExpr sourceExpr, Key expr) {
 		final TreeMap<Expr, CoreExpr> newCache = this.newCache.set(sourceExpr, expr);
 		final DesugarMap newDesugarMap = this.getDesugarMap().insert(expr, sourceExpr);
-		return new DesugarResult<Key>(expr, sourceExpr, this.sourceMaps, this.oldCache, newCache, newDesugarMap, this.counter+1);
+		return new DesugarResult<Key>(expr, sourceExpr, this.oldCache, newCache, newDesugarMap, this.counter+1);
 	}
 
 	protected DesugarResult<Method> withDesugared(SourceExpr signatureSourceExpr, SourceExpr bodySourceExpr, Method method) {
 		final DesugarMap newDesugarMap = this.getDesugarMap().insert(method, signatureSourceExpr, bodySourceExpr);
-		return new DesugarResult<Method>(method, signatureSourceExpr, this.sourceMaps, this.oldCache, this.newCache, newDesugarMap, this.counter+1);
+		return new DesugarResult<Method>(method, signatureSourceExpr, this.oldCache, this.newCache, newDesugarMap, this.counter+1);
 	}
 
 	protected DesugarResult<MethodParamDecl> withDesugared(SourceExpr sourceExpr, MethodParamDecl methodParamDecl) {
 		final DesugarMap newDesugarMap = this.getDesugarMap().insert(methodParamDecl, sourceExpr);
-		return new DesugarResult<MethodParamDecl>(methodParamDecl, sourceExpr, this.sourceMaps, this.oldCache, this.newCache, newDesugarMap, this.counter+1);
+		return new DesugarResult<MethodParamDecl>(methodParamDecl, sourceExpr, this.oldCache, this.newCache, newDesugarMap, this.counter+1);
 	}
 
 	/**
 	 * Desugarer with a source map
 	 */
 	public BanjoDesugarer(SourceMap sourceMaps) {
-		this(sourceMaps, EMPTY_CACHE, EMPTY_CACHE, EMPTY_DESUGAR_MAP, 1);
+		this(EMPTY_CACHE, EMPTY_CACHE, EMPTY_DESUGAR_MAP, 1);
 	}
 
 
 	/**
 	 * Desugarer with sourcemaps and a starting cache value
 	 */
-	public BanjoDesugarer(SourceMap sourceMaps, TreeMap<Expr, CoreExpr> oldCache, TreeMap<Expr, CoreExpr> newCache, DesugarMap desugarMap, int counter) {
+	public BanjoDesugarer(TreeMap<Expr, CoreExpr> oldCache, TreeMap<Expr, CoreExpr> newCache, DesugarMap desugarMap, int counter) {
 		super();
-		this.sourceMaps = sourceMaps;
 		this.oldCache = oldCache;
 		this.newCache = newCache;
 		this.desugarMap = desugarMap;
@@ -151,6 +181,7 @@ public class BanjoDesugarer {
 	public DesugarResult<CoreExpr> expr(SourceExpr sourceExpr) {
 		final CoreExpr cachedResult = this.newCache.get(sourceExpr).toNull();
 		if(cachedResult != null) {
+			// TODO What about the desugar mapping for all the sub-expressions ?
 			return withDesugared(sourceExpr, cachedResult);
 		}
 		final CoreExpr oldCachedResult = this.oldCache.get(sourceExpr).toNull();
@@ -1299,10 +1330,6 @@ public class BanjoDesugarer {
 		public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
 			return withDesugared(emptyExpr, new ObjectLiteral());
 		}
-	}
-
-	public SourceMap getSourceMaps() {
-		return this.sourceMaps;
 	}
 
 	public DesugarMap getDesugarMap() {

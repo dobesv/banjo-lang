@@ -25,6 +25,7 @@ import banjo.parser.BanjoParser.ExtSourceExpr;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceMap;
+import banjo.parser.util.UnexpectedIOExceptionError;
 import fj.P2;
 import fj.data.Set;
 
@@ -51,32 +52,32 @@ public class ParseTestUtils {
 		try {
 			final ExtSourceExpr parseResult = parser.parse(source);
 			parseTree = parseResult.getExpr();
-			sourceMaps = parseResult.getSourceMaps();
-		} catch (final IOException e1) {
-			throw new Error(e1);
-		}
-		System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
-		final ParserReader in = ParserReader.fromString("<source>", source);
-		assertTrue(parser.reachedEof());
-		int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
-		if(errCount == 0) {
-			final BanjoDesugarer desugarer = new BanjoDesugarer(sourceMaps);
-			final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
-			final CoreExpr ast = desugarResult.getValue();
-			System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
+			sourceMaps = parseResult.getSourceMap();
+			System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
+			final ParserReader in = ParserReader.fromString("<source>", source);
+			assertTrue(parser.reachedEof());
+			int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
+			if(errCount == 0) {
+				final BanjoDesugarer desugarer = new BanjoDesugarer(sourceMaps);
+				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
+				final CoreExpr ast = desugarResult.getValue();
+				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
 
-			errCount = desugarErrors(expectedErrorClass, desugarResult, in);
-			if(normalizedSource != null)
-				assertEquals(normalizedSource, ast.toSource());
-			if(errCount == 0 && expectedClass != null) {
-				assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
-				assertNotNull(ast);
-				return expectedClass.cast(ast);
+				errCount = desugarErrors(expectedErrorClass, parseResult, desugarResult, in);
+				if(normalizedSource != null)
+					assertEquals(normalizedSource, ast.toSource());
+				if(errCount == 0 && expectedClass != null) {
+					assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
+					assertNotNull(ast);
+					return expectedClass.cast(ast);
+				}
+
 			}
-
+			assertEquals("Wrong number of errors found", expectedErrors, errCount);
+			return null;
+		} catch (final IOException e1) {
+			throw new UnexpectedIOExceptionError(e1);
 		}
-		assertEquals("Wrong number of errors found", expectedErrors, errCount);
-		return null;
 	}
 
 	public static int parseErrors(Class<? extends BadExpr> expectedClass,
@@ -105,6 +106,7 @@ public class ParseTestUtils {
 	}
 
 	private static int desugarErrors(Class<? extends BadExpr> expectedClass,
+			ExtSourceExpr parseResult,
 			DesugarResult<CoreExpr> ds,
 			ParserReader in) throws Error {
 		int count = 0;
@@ -118,7 +120,7 @@ public class ParseTestUtils {
 					first = e;
 				}
 				for(final SourceExpr sourceExpr : p._2()) {
-					for(final FileRange range : ds.getSourceMaps().get(nonNull(sourceExpr))) {
+					for(final FileRange range : parseResult.getSourceMap().get(nonNull(sourceExpr))) {
 						System.out.println("  "+range+": "+e.getMessage());
 						count ++;
 					}

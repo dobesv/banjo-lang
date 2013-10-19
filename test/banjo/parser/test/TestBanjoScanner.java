@@ -11,7 +11,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.Expr;
-import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.Call;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.OperatorRef;
@@ -23,15 +23,17 @@ import banjo.parser.util.TokenCollector;
 public class TestBanjoScanner {
 	@Test
 	public void test1() {
-		testTokenizer("// comment\n/* comment */\nfoo: bar", "{foo: bar}", ObjectLiteral.class,
+		testTokenizer("// comment\n/* comment */\nfoo= bar\nbaz\n", "{(foo) = baz}(bar)", Call.class,
 				new String[] {
 			"// comment\n",
 			"/* comment */", "\n",
-			"foo", ":",	" ", "bar"
+			"foo", "=",	" ", "bar", "\n",
+			"baz", "\n"
 		}, new Class<?>[] {
 			Comment.class,
 			Comment.class, Whitespace.class,
-			Identifier.class, OperatorRef.class, Whitespace.class, Identifier.class
+			Identifier.class, OperatorRef.class, Whitespace.class, Identifier.class, Whitespace.class,
+			Identifier.class, Whitespace.class
 		});
 	}
 

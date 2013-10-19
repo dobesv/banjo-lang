@@ -7,6 +7,7 @@ import java.io.StringReader;
 import java.util.List;
 import java.util.NavigableMap;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.desugar.BanjoDesugarer.DesugarResult;
@@ -26,6 +27,8 @@ import banjo.parser.util.OffsetLength;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceMap;
 import banjo.parser.util.UnexpectedIOExceptionError;
+import fj.P;
+import fj.P2;
 
 public class IncrementalUpdater {
 	final BanjoParser parser = new BanjoParser();
@@ -158,8 +161,8 @@ public class IncrementalUpdater {
 	 * @param damageRanges If non-null, ranges that were re-parsed will be added to this list
 	 * @return A new AST with the change applied.
 	 */
-	public DesugarResult<CoreExpr> applyEdit(DesugarResult<CoreExpr> oldAst, int offset, int length, String replacement, String newSourceCode, @Nullable List<OffsetLength> damageRanges) {
-		return updateAst(oldAst, offset, length, replacement, newSourceCode, damageRanges);
+	public P2<ExtSourceExpr, DesugarResult<CoreExpr>> applyEdit(DesugarResult<CoreExpr> oldDesugarResult, ExtSourceExpr oldParseResult, int offset, int length, String replacement, String newSourceCode, @Nullable List<OffsetLength> damageRanges) {
+		return updateAst(oldDesugarResult, oldParseResult, offset, length, replacement, newSourceCode, damageRanges);
 	}
 
 	/**
@@ -169,7 +172,7 @@ public class IncrementalUpdater {
 	 * The caller should ensure that the edit doesn't touch the start/end of the expression in such
 	 * a way that the parent node should have been reparsed.
 	 * 
-	 * @param oldAst Previously parsed/computed AST
+	 * @param oldDesugarResult Previously parsed/computed AST
 	 * @param editStartOffset Offset of the change
 	 * @param editLength Number of characters to remove/replace
 	 * @param replacement New text to insert
@@ -178,14 +181,19 @@ public class IncrementalUpdater {
 	 * @param newSourceCode Full new compilation unit source code
 	 * @return
 	 */
-	public DesugarResult<CoreExpr> updateAst(DesugarResult<CoreExpr> oldAst, final int editStartOffset, final int editLength, final String replacement, final String newSourceCode, @Nullable final List<OffsetLength> damageRanges) {
-		final SourceExpr oldRootSourceExpr = oldAst.getSourceExpr();
-		final FileRange oldFileRange = oldAst.getFileRange();
-		final SourceMap oldSourceMaps = oldAst.getSourceMaps();
-		final ExtSourceExpr newSourceTree = updateSourceTree(oldRootSourceExpr,
+
+	public P2<ExtSourceExpr, DesugarResult<CoreExpr>> updateAst(DesugarResult<CoreExpr> oldDesugarResult, ExtSourceExpr oldParseResult, final int editStartOffset, final int editLength, final String replacement, final String newSourceCode, @Nullable final List<OffsetLength> damageRanges) {
+		final SourceExpr oldRootSourceExpr = oldParseResult.getExpr();
+		final FileRange oldFileRange = oldParseResult.getFileRange();
+		final SourceMap oldSourceMaps = oldParseResult.getSourceMap();
+		final ExtSourceExpr newParseResult = updateSourceTree(oldRootSourceExpr,
 				oldFileRange, oldSourceMaps, editStartOffset, editLength,
 				replacement, newSourceCode, damageRanges);
-		return oldAst.redesugar(newSourceTree.getExpr(), newSourceTree.getSourceMaps());
+		final DesugarResult<CoreExpr> newDesugarResult = oldDesugarResult.redesugar(newParseResult.getExpr(), newParseResult.getSourceMap());
+
+		@SuppressWarnings("null") @NonNull
+		final P2<ExtSourceExpr, DesugarResult<CoreExpr>> result = P.p(newParseResult, newDesugarResult);
+		return result;
 	}
 
 	public ExtSourceExpr updateSourceTree(final SourceExpr oldRootSourceExpr,
@@ -280,7 +288,7 @@ public class IncrementalUpdater {
 					final ExtSourceExpr newRight = updateSourceTree(oldRight, oldRightRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
 					final boolean childChanged = newLeft.getExpr() != oldLeft || newRight.getExpr() != oldRight;
 					final BinaryOp newOp = childChanged ? new BinaryOp(binaryOp.getOperator(), newLeft.getExpr(), newRight.getExpr()) : binaryOp;
-					final SourceMap newSourceMap = newLeft.getSourceMaps().union(newRight.getSourceMaps());
+					final SourceMap newSourceMap = newLeft.getSourceMap().union(newRight.getSourceMap());
 					return new ExtSourceExpr(newOp, newRange, newSourceMap);
 				} catch(final ReparseNeeded e) {
 					return reparse();
@@ -320,7 +328,7 @@ public class IncrementalUpdater {
 					final ExtSourceExpr newOperand = updateSourceTree(oldOperand, operandRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
 					final boolean childChanged = newOperand.getExpr() != oldOperand;
 					final UnaryOp newOp = childChanged ? new UnaryOp(unaryOp.getOperator(), newOperand.getExpr()) : unaryOp;
-					return new ExtSourceExpr(newOp, newRange, newOperand.getSourceMaps());
+					return new ExtSourceExpr(newOp, newRange, newOperand.getSourceMap());
 				} catch(final ReparseNeeded e) {
 					return reparse();
 				}

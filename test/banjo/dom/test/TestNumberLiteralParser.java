@@ -37,7 +37,7 @@ public class TestNumberLiteralParser {
 			final ExtSourceExpr parseResult = parser.parse(inStr);
 			final Expr node = parseResult.getExpr();
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
-			final int errCount = ParseTestUtils.parseErrors(eClass, parseResult.getSourceMaps(), ParserReader.fromString("--", inStr));
+			final int errCount = ParseTestUtils.parseErrors(eClass, parseResult.getSourceMap(), ParserReader.fromString("--", inStr));
 			if(eClass != null && errCount == 0)
 				fail("Expecting problem of class "+eClass.getSimpleName());
 			else

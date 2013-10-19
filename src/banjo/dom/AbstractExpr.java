@@ -3,6 +3,7 @@ package banjo.dom;
 
 import static banjo.parser.util.Check.nonNull;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Precedence;
@@ -27,13 +28,28 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	public String toSource(Precedence prec) {
 		final StringBuffer buf = new StringBuffer();
 		toSource(buf, prec);
-		return nonNull(buf.toString());
+		@SuppressWarnings("null") @NonNull
+		final String result = buf.toString();
+		return result;
 	}
 
 	@Override
 	public String toSource() {
 		return toSource(Precedence.lowest());
 	}
+
+	public void toFullyParenthesizedSource(StringBuffer sb) {
+		toSource(sb);
+	}
+
+	public String toFullyParenthesizedSource() {
+		final StringBuffer buf = new StringBuffer();
+		toFullyParenthesizedSource(buf);
+		@SuppressWarnings("null") @NonNull
+		final String result = buf.toString();
+		return result;
+	}
+
 
 	@Override
 	public String toString() {
