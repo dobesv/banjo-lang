@@ -18,7 +18,6 @@ import banjo.dom.core.CoreExpr;
 import banjo.parser.BanjoParser;
 import banjo.parser.BanjoParser.ExtSourceExpr;
 import banjo.parser.util.FileRange;
-import banjo.parser.util.ReverseOrd;
 import banjo.parser.util.UnexpectedIOExceptionError;
 import fj.Ord;
 import fj.P2;
@@ -50,7 +49,7 @@ public class TestDefRefAnalyser {
 		final DefRefAnalyser analyser = new DefRefAnalyser();
 		final Analysis analysis = analyser.analyse(TEST_URI, dsResult.getValue(), parseResult.getFileRange());
 		final SourceRangeAnalysis ranges = analysis.calculateSourceRanges(dsResult.getDesugarMap(), parseResult.getSourceMap());
-		TreeMap<FileRange,String> rangeCodes = TreeMap.empty(ReverseOrd.reverseOrd(Ord.<FileRange>comparableOrd()));
+		TreeMap<FileRange,String> rangeCodes = TreeMap.empty(Ord.<FileRange>comparableOrd());
 		for(final FileRange r : ranges.getFree()) {
 			System.out.println("F "+r);
 			rangeCodes = rangeCodes.set(r, "F");

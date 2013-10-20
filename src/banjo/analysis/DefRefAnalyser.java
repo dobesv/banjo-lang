@@ -4,6 +4,7 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.net.URI;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -332,6 +333,7 @@ public class DefRefAnalyser {
 
 	}
 	public static class Analysis {
+		private static final Ord<FileRange> FILERANGE_ORD = Ord.<FileRange>comparableOrd();
 		//static final Set<Identifier> EMPTY_FREE_LIST = nonNull(Set.empty(ExprOrd.<Identifier>exprOrd()));
 		static final Ord<MethodParamRef> defNodeOrd = nonNull(Ord.<MethodParamRef>comparableOrd());
 		static final Ord<MethodNodeRef> methodNodeRefOrd = nonNull(Ord.<MethodNodeRef>comparableOrd());
@@ -349,18 +351,24 @@ public class DefRefAnalyser {
 						};
 					}
 				}));
-		static final TreeMap<String, Set<ExprRef>> EMPTY_FREE_MAP = nonNull(TreeMap.<String, Set<ExprRef>>empty(Ord.stringOrd));
-		static final Set<MethodParamRef> EMPTY_METHOD_PARAM_REF_SET = nonNull(Set.empty(defNodeOrd));
-		static final Set<ExprRef> EMPTY_EXPR_REF_SET = nonNull(Set.<ExprRef>empty(exprRefOrd));
-		static final List<NodeRef> EMPTY_NODE_REF_LIST = nonNull(List.<NodeRef>nil());
-		static final Set<NodeRef> EMPTY_NODE_REF_SET = nonNull(Set.<NodeRef>empty(nodeRefOrd));
-		static final List<CoreExpr> EMPTY_EXPR_LIST = nonNull(List.<CoreExpr>nil());
-		static final TreeMap<MethodParamRef, Set<NodeRef>> EMPTY_REFS_MAP = nonNull(TreeMap.<MethodParamRef, Set<NodeRef>>empty(defNodeOrd));
-		static final TreeMap<ExprRef, Analysis> EMPTY_EXPR_ANALYSIS_CACHE = nonNull(TreeMap.<ExprRef, Analysis>empty(exprRefOrd));
+		@SuppressWarnings("null") @NonNull
+		static final Set<MethodParamRef> EMPTY_METHOD_PARAM_REF_SET = Set.empty(defNodeOrd);
+		@SuppressWarnings("null") @NonNull
+		static final Set<ExprRef> EMPTY_EXPR_REF_SET = Set.<ExprRef>empty(exprRefOrd);
+		@SuppressWarnings("null") @NonNull
+		static final List<NodeRef> EMPTY_NODE_REF_LIST = List.<NodeRef>nil();
+		@SuppressWarnings("null") @NonNull
+		static final Set<NodeRef> EMPTY_NODE_REF_SET = Set.<NodeRef>empty(nodeRefOrd);
+		@SuppressWarnings("null") @NonNull
+		static final List<CoreExpr> EMPTY_EXPR_LIST = List.<CoreExpr>nil();
+		@SuppressWarnings("null") @NonNull
+		static final TreeMap<MethodParamRef, Set<ExprRef>> EMPTY_REFS_MAP = TreeMap.<MethodParamRef, Set<ExprRef>>empty(defNodeOrd);
+		@SuppressWarnings("null") @NonNull
+		static final TreeMap<ExprRef, Analysis> EMPTY_EXPR_ANALYSIS_CACHE = TreeMap.<ExprRef, Analysis>empty(exprRefOrd);
 
 		/** Free variables in the analysed expression; theses are variables that are referenced but not defined */
 		final Set<ExprRef> free; // name -> free reference
-		final TreeMap<MethodParamRef, Set<NodeRef>> refs; // def -> references
+		final TreeMap<MethodParamRef, Set<ExprRef>> refs; // def -> references
 		final TreeMap<ExprRef, Analysis> exprAnalysisCache; // exprRef -> analysis
 		final Set<MethodParamRef> shadowingDefs; // Variables that shadow an outer variable of the same name
 		final Set<MethodParamRef> unusedDefs; // Variables defined but not used
@@ -380,7 +388,7 @@ public class DefRefAnalyser {
 		}
 
 		public Analysis(Set<ExprRef> free,
-				TreeMap<MethodParamRef, Set<NodeRef>> refs,
+				TreeMap<MethodParamRef, Set<ExprRef>> refs,
 				TreeMap<ExprRef, Analysis> exprAnalysisCache,
 				Set<MethodParamRef> shadowingDefs,
 				Set<MethodParamRef> unusedDefs) {
@@ -404,10 +412,9 @@ public class DefRefAnalyser {
 			TreeMap<K, Set<T>> result = defs1;
 			for(final P2<K, Set<T>> pair : defs2) {
 				final Option<Set<T>> oldSet = result.get(pair._1());
-				if(oldSet.isSome())
-					result = result.set(pair._1(), oldSet.some().union(pair._2()));
-				else
-					result = result.set(pair._1(), pair._2());
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<K, Set<T>> newResult = oldSet.isSome() ? result.set(pair._1(), oldSet.some().union(pair._2())) : result.set(pair._1(), pair._2());
+				result = newResult;
 			}
 			return result;
 		}
@@ -425,17 +432,15 @@ public class DefRefAnalyser {
 		 * independent - that is, they have separate scopes.
 		 */
 		public Analysis union(Analysis other) {
+			@SuppressWarnings("null") @NonNull
 			final Set<ExprRef> newFree = this.free.union(other.free);
-			final TreeMap<MethodParamRef, Set<NodeRef>> newRefs = union(this.refs, other.refs);
+			final TreeMap<MethodParamRef, Set<ExprRef>> newRefs = union(this.refs, other.refs);
 			final TreeMap<ExprRef, Analysis> newCache = putAll(this.exprAnalysisCache, other.exprAnalysisCache);
+			@SuppressWarnings("null") @NonNull
 			final Set<MethodParamRef> newShadowingDefs = this.shadowingDefs.union(other.shadowingDefs);
+			@SuppressWarnings("null") @NonNull
 			final Set<MethodParamRef> newUnusedDefs = this.unusedDefs.union(other.unusedDefs);
-			return new Analysis(
-					nonNull(newFree),
-					newRefs,
-					newCache,
-					nonNull(newShadowingDefs),
-					nonNull(newUnusedDefs));
+			return new Analysis(newFree,newRefs,newCache,newShadowingDefs,newUnusedDefs);
 		}
 
 		private Analysis analyse(final ExprRef nodeRef) {
@@ -554,14 +559,14 @@ public class DefRefAnalyser {
 
 			// Move from free to refs as we "link" the definitions
 			Set<ExprRef> newFree = this.free;
-			TreeMap<MethodParamRef, Set<NodeRef>> newRefs = this.refs;
+			TreeMap<MethodParamRef, Set<ExprRef>> newRefs = this.refs;
 			for(final ExprRef refNodeRef : this.free) {
 				final String k = ((Key)refNodeRef.getNode()).getKeyString();
 				final MethodParamRef defNodeRef = newDefs.get(k).toNull();
 				if(defNodeRef != null) {
 					//System.out.println("Bound: "+refNodeRef.getNode());
 					newFree = nonNull(newFree.delete(refNodeRef));
-					newRefs = nonNull(newRefs.set(defNodeRef, newRefs.get(defNodeRef).orSome(EMPTY_NODE_REF_SET).insert(refNodeRef)));
+					newRefs = nonNull(newRefs.set(defNodeRef, newRefs.get(defNodeRef).orSome(EMPTY_EXPR_REF_SET).insert(refNodeRef)));
 				}
 			}
 
@@ -589,7 +594,7 @@ public class DefRefAnalyser {
 			return this.free;
 		}
 
-		public TreeMap<MethodParamRef, Set<NodeRef>> getRefs() {
+		public TreeMap<MethodParamRef, Set<ExprRef>> getRefs() {
 			return this.refs;
 		}
 
@@ -602,42 +607,83 @@ public class DefRefAnalyser {
 		}
 
 		public SourceRangeAnalysis calculateSourceRanges(DesugarMap dsMap, SourceMap sourceMap) {
-			TreeMap<NodeRef, FileRange> cache = nonNull(TreeMap.<NodeRef,FileRange>empty(nodeRefOrd));
-			Set<FileRange> free = nonNull(Set.empty(Ord.<FileRange>comparableOrd()));
+			@SuppressWarnings("null") @NonNull
+			TreeMap<NodeRef, FileRange> cache = TreeMap.<NodeRef,FileRange>empty(nodeRefOrd);
+			@SuppressWarnings("null") @NonNull
+			TreeMap<FileRange, String> identifiers = TreeMap.<FileRange,String>empty(FILERANGE_ORD);
+			@SuppressWarnings("null") @NonNull
+			Set<FileRange> free = Set.empty(FILERANGE_ORD);
 			for(final ExprRef freeVar : this.free) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = freeVar.cacheSourceFileRange(dsMap, sourceMap, cache);
-				cache = nonNull(p._2());
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<NodeRef, FileRange> newCache = p._2();
+				cache = newCache;
 				final FileRange range = p._1();
-				free = free.insert(range);
+				@SuppressWarnings("null") @NonNull
+				final Set<FileRange> newFree = free.insert(range);
+				free = newFree;
+
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<FileRange, String> newIdentifiers = identifiers.set(range, freeVar.getNode().toSource());
+				identifiers = newIdentifiers;
 			}
-			Set<FileRange> shadowingDefs = Set.empty(Ord.<FileRange>comparableOrd());
+			@SuppressWarnings("null") @NonNull
+			Set<FileRange> shadowingDefs = Set.empty(FILERANGE_ORD);
 			for(final MethodParamRef paramRef : this.shadowingDefs) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
-				cache = nonNull(p._2());
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<NodeRef, FileRange> newCache = p._2();
+				cache = newCache;
 				final FileRange range = p._1();
-				shadowingDefs = shadowingDefs.insert(range);
+				@SuppressWarnings("null") @NonNull
+				final Set<FileRange> newShadowingDefs = shadowingDefs.insert(range);
+				shadowingDefs = newShadowingDefs;
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<FileRange, String> newIdentifiers = identifiers.set(range, paramRef.getName());
+				identifiers = newIdentifiers;
 			}
-			Set<FileRange> unusedDefs = Set.empty(Ord.<FileRange>comparableOrd());
+			@SuppressWarnings("null") @NonNull
+			Set<FileRange> unusedDefs = Set.empty(FILERANGE_ORD);
 			for(final MethodParamRef paramRef : this.unusedDefs) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
-				cache = nonNull(p._2());
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<NodeRef, FileRange> newCache = p._2();
+				cache = newCache;
 				final FileRange range = p._1();
-				unusedDefs = unusedDefs.insert(range);
+				@SuppressWarnings("null") @NonNull
+				final Set<FileRange> newUnusedDefs = unusedDefs.insert(range);
+				unusedDefs = newUnusedDefs;
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<FileRange, String> newIdentifiers = identifiers.set(range, paramRef.getName());
+				identifiers = newIdentifiers;
 			}
-			TreeMap<FileRange, FileRange> refs = TreeMap.empty(Ord.<FileRange>comparableOrd());
-			for(final P2<MethodParamRef, Set<NodeRef>> pair : this.refs) {
+			@SuppressWarnings("null") @NonNull
+			TreeMap<FileRange, FileRange> refs = TreeMap.empty(FILERANGE_ORD);
+			for(final P2<MethodParamRef, Set<ExprRef>> pair : this.refs) {
 				final MethodParamRef paramRef = pair._1();
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> dp = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
-				cache = nonNull(dp._2());
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<NodeRef, FileRange> newCache = dp._2();
+				cache = newCache;
 				final FileRange defRange = dp._1();
-				for(final NodeRef ref : pair._2()) {
+				for(final ExprRef ref : pair._2()) {
 					final P2<FileRange, TreeMap<NodeRef, FileRange>> p = ref.cacheSourceFileRange(dsMap, sourceMap, cache);
-					cache = nonNull(p._2());
+					@SuppressWarnings("null") @NonNull
+					final TreeMap<NodeRef, FileRange> newCache2 = p._2();
+					cache = newCache2;
 					final FileRange refRange = p._1();
-					refs = refs.set(refRange, defRange);
+					@SuppressWarnings("null") @NonNull
+					final TreeMap<FileRange, FileRange> newRefs = refs.set(refRange, defRange);
+					refs = newRefs;
+					@SuppressWarnings("null") @NonNull
+					final TreeMap<FileRange, String> newIdentifiers = identifiers.set(refRange, ref.getNode().toSource());
+					identifiers = newIdentifiers;
 				}
+				@SuppressWarnings("null") @NonNull
+				final TreeMap<FileRange, String> newIdentifiers = identifiers.set(defRange, paramRef.getName());
+				identifiers = newIdentifiers;
 			}
-			return new SourceRangeAnalysis(nonNull(free), nonNull(refs), nonNull(shadowingDefs), nonNull(unusedDefs));
+			return new SourceRangeAnalysis(free, refs, shadowingDefs, unusedDefs, identifiers);
 		}
 
 
@@ -661,14 +707,18 @@ public class DefRefAnalyser {
 		final TreeMap<FileRange, FileRange> refs;
 		final Set<FileRange> shadowingDefs;
 		final Set<FileRange> unusedDefs;
+		private final TreeMap<FileRange, String> identifiers;
+
 		public SourceRangeAnalysis(Set<FileRange> free,
 				TreeMap<FileRange, FileRange> refs,
-				Set<FileRange> shadowingDefs, Set<FileRange> unusedDefs) {
+				Set<FileRange> shadowingDefs, Set<FileRange> unusedDefs,
+				TreeMap<FileRange, String> identifiers) {
 			super();
 			this.free = free;
 			this.refs = refs;
 			this.shadowingDefs = shadowingDefs;
 			this.unusedDefs = unusedDefs;
+			this.identifiers = identifiers;
 		}
 		public Set<FileRange> getFree() {
 			return this.free;
@@ -681,6 +731,9 @@ public class DefRefAnalyser {
 		}
 		public Set<FileRange> getUnusedDefs() {
 			return this.unusedDefs;
+		}
+		public TreeMap<FileRange, String> getIdentifiers() {
+			return this.identifiers;
 		}
 
 	}

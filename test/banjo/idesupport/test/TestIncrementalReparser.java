@@ -43,6 +43,8 @@ public class TestIncrementalReparser {
 	@Test public void test15() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 4, 7, " \"yay\"}", reg(0,11)); }
 	@Test public void test16() { testEdit("{abc = \"bla\"}", "{ac = \"bla\"}", ObjectLiteral.class, 2, 1, "", reg(1,2)); }
 	@Test public void test17() { testEdit("{abc = \"bla\"}", "{f(a) = \"bla\"}", ObjectLiteral.class, 1, 3, "f(a)", reg(1,12)); }
+	@Test public void test18() { testEdit("a = 1; a", "1", Call.class, 0, 8, "1", reg(0,1)); }
+	@Test public void test19() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 8, "", reg(0,0)); }
 
 	static OffsetLength reg(int offset, int length) { return new OffsetLength(offset, length); }
 

@@ -34,6 +34,10 @@ public class SourceMap implements Iterable<P2<SourceExpr,Set<FileRange>>> {
 		this(nonNull(TreeMap.<SourceExpr, fj.data.Set<FileRange>>empty(ExprOrd.<SourceExpr>exprOrd())));
 	}
 
+	public static SourceMap single(SourceExpr node, FileRange range) {
+		return new SourceMap().insert(node, range);
+	}
+
 	/**
 	 * Return a new SourceMap with the given node mapped to the given file range.
 	 */
@@ -49,12 +53,12 @@ public class SourceMap implements Iterable<P2<SourceExpr,Set<FileRange>>> {
 
 	@SuppressWarnings("null")
 	public SourceMap union(SourceMap otherMap) {
-		final long startTime = System.currentTimeMillis();
+		//final long startTime = System.currentTimeMillis();
 		SourceMap result = otherMap;
 		for(final P2<SourceExpr, fj.data.Set<FileRange>> pair : this.map) {
 			result = result.insert(pair._1(), pair._2());
 		}
-		System.out.println("SourceMap.union took "+(System.currentTimeMillis() - startTime)+"ms");
+		//System.out.println("SourceMap.union took "+(System.currentTimeMillis() - startTime)+"ms");
 		return result;
 
 	}
@@ -121,5 +125,10 @@ public class SourceMap implements Iterable<P2<SourceExpr,Set<FileRange>>> {
 				return true;
 		}
 		return false;
+	}
+
+	static final SourceMap EMPTY = new SourceMap();
+	public static SourceMap empty() {
+		return EMPTY;
 	}
 }

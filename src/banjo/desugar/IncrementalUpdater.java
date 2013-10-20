@@ -182,7 +182,9 @@ public class IncrementalUpdater {
 	 * @return
 	 */
 
-	public P2<ExtSourceExpr, DesugarResult<CoreExpr>> updateAst(DesugarResult<CoreExpr> oldDesugarResult, ExtSourceExpr oldParseResult, final int editStartOffset, final int editLength, final String replacement, final String newSourceCode, @Nullable final List<OffsetLength> damageRanges) {
+	public P2<ExtSourceExpr, DesugarResult<CoreExpr>> updateAst(DesugarResult<CoreExpr> oldDesugarResult, ExtSourceExpr oldParseResult,
+			final int editStartOffset, final int editLength, final String replacement,
+			final String newSourceCode, @Nullable final List<OffsetLength> damageRanges) {
 		final SourceExpr oldRootSourceExpr = oldParseResult.getExpr();
 		final FileRange oldFileRange = oldParseResult.getFileRange();
 		final SourceMap oldSourceMaps = oldParseResult.getSourceMap();
@@ -202,21 +204,6 @@ public class IncrementalUpdater {
 			final int editStartOffset, final int editLength,
 			final String replacement, final String newSourceCode,
 			final @Nullable List<OffsetLength> damageRanges) {
-		/*
-		 * Different cases while transforming:
-		 * 
-		 * 1. Expr touching the change, but with a single child expr that touches the change,
-		 *    and that child completely covers the change: transform that child, adjust range
-		 * 2. Expr containing the change, but with multiple child exprs touching the change, or
-		 *    the change extends beyond the edge of a single child: re-parse from source range
-		 * 3. String literals, numbers, and identifiers where the change can applied and the token is still
-		 *    valid: apply change
-		 */
-
-		// TODO Detect edits of comments and whitespace specially
-		// TODO If inserting a single space, we can just adjust the source maps
-		// TODO If appending alphanumerics to an identifier, or digits to a number, we don't have to reparse the parent node
-
 
 		final ParserReader in = ParserReader.fromString("", newSourceCode);
 		final java.util.TreeMap<Integer, FilePos> positionMemory = new java.util.TreeMap<Integer, FilePos>();
@@ -360,7 +347,7 @@ public class IncrementalUpdater {
 					return reparse();
 				if(shouldReparseParent(rc))
 					throw REPARSE_NEEDED;
-				return new ExtSourceExpr(expr, newRange, oldSourceMap);
+				return new ExtSourceExpr(expr, newRange, SourceMap.empty());
 			}
 		}));
 	}
@@ -409,7 +396,7 @@ public class IncrementalUpdater {
 	}
 
 	/**
-	 * True if prepending the given string to any number would leave it still a number.
+	 * True if appending the given string to any number would leave it still a number.
 	 * 
 	 * The string would be zero or more digits followed by zero or more whitespace
 	 * characters.

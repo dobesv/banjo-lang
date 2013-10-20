@@ -705,5 +705,10 @@ public class ParserReader extends Reader {
 		return getFileRange(start);
 	}
 
+	public String readString(FileRange range) throws IOException {
+		seek(range.getStart());
+		return readString(range.length());
+	}
+
 
 }

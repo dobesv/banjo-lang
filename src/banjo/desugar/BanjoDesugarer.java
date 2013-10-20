@@ -1328,7 +1328,7 @@ public class BanjoDesugarer {
 		@Override
 		@Nullable
 		public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
-			return withDesugared(emptyExpr, new ObjectLiteral());
+			return withDesugared(emptyExpr, new BadCoreExpr("Expected expression"));
 		}
 	}
 
