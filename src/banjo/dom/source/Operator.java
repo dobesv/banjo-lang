@@ -122,8 +122,8 @@ public enum Operator {
 			// Wrong position
 			if(operator.getPosition() != pos)
 				continue;
-			if(operator.isParen()) {
-				if(op.length() == 1 && operator.getParenType().getStartChar() == op.charAt(0))
+			if(operator.isParen() && op.length() == 1) {
+				if(operator.getParenType().getStartChar() == op.charAt(0))
 					return operator;
 			} else if(op.equals(operator.getOp()) || (operator.codePoint > 0 && op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
 				return operator;

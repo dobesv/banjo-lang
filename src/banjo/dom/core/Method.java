@@ -6,6 +6,7 @@ import java.util.List;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Operator;
+import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -59,31 +60,80 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	}
 
 	public void toSource(final StringBuffer sb) {
-		if(!this.selfName.equals(NO_SELF_NAME)) {
-			this.selfName.toSource(sb);
-			sb.append('.');
-		} else if(this.key.equals(this.body) && this.args.isEmpty() && this.guarantee.equals(NO_GUARANTEE)) {
-			this.key.toSource(sb);
-			return;
-		}
-		final boolean applyMethod = this.key.getKeyString().equals(APPLY_FUNCTION_METHOD_NAME.getKeyString());
-		if(!applyMethod) {
-			this.key.toSource(sb);
-		}
-		final Iterator<MethodParamDecl> it = this.args.iterator();
-		if(it.hasNext() || applyMethod) {
+		// Check for brackets, apply
+
+		final boolean hasSelfName = this.hasSelfName();
+		final Operator infixOperator = Operator.fromOp(this.key.getKeyString(), Position.INFIX);
+		final Operator prefixOperator = hasSelfName && this.args.size() == 0 ? Operator.fromOp(this.key.getKeyString(), Position.PREFIX) : null;
+		final Operator suffixOperator = hasSelfName && this.args.size() == 0 ? Operator.fromOp(this.key.getKeyString(), Position.SUFFIX) : null;
+		if(infixOperator != null && hasSelfName && (infixOperator.isParen() || this.args.size() == 1)) {
 			sb.append('(');
+			this.selfName.toSource(sb);
+			if(infixOperator.isParen()) {
+				sb.append(infixOperator.getParenType().getStartChar());
+				boolean first = true;
+				for(final MethodParamDecl arg : this.args) {
+					if(first) first = false;
+					else sb.append(", ");
+					arg.toSource(sb);
+				}
+				sb.append(infixOperator.getParenType().getEndChar());
+			} else {
+				sb.append(' ');
+				infixOperator.toSource(sb);
+				sb.append(' ');
+				this.args.get(0).toSource(sb);
+			}
+			sb.append(')');
+		} else if(infixOperator != null && (infixOperator == Operator.CALL || infixOperator == Operator.BRACKETS)) {
+			sb.append(infixOperator.getParenType().getStartChar());
 			boolean first = true;
-			while(it.hasNext()) {
-				final MethodParamDecl arg = it.next();
+			for(final MethodParamDecl arg : this.args) {
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb);
 			}
+			sb.append(infixOperator.getParenType().getEndChar());
+		} else if(prefixOperator != null) {
+			sb.append('(');
+			prefixOperator.toSource(sb);
+			this.selfName.toSource(sb);
 			sb.append(')');
+		} else if(suffixOperator != null) {
+			sb.append('(');
+			this.selfName.toSource(sb);
+			suffixOperator.toSource(sb);
+			sb.append(')');
+		} else {
+			if(hasSelfName) {
+				this.selfName.toSource(sb);
+				sb.append('.');
+			} else if(this.key.equals(this.body) && this.args.isEmpty() && this.guarantee.equals(NO_GUARANTEE)) {
+				this.key.toSource(sb);
+				return;
+			}
+			this.key.toSource(sb);
+			final Iterator<MethodParamDecl> it = this.args.iterator();
+			if(it.hasNext()) {
+				sb.append('(');
+				boolean first = true;
+				while(it.hasNext()) {
+					final MethodParamDecl arg = it.next();
+					if(first) first = false;
+					else sb.append(", ");
+					arg.toSource(sb);
+				}
+				sb.append(')');
+			}
+		}
+		if(hasGuarantee()) {
+			sb.append(' ');
+			Operator.COLON.toSource(sb);
+			sb.append(' ');
+			this.guarantee.toSource(sb, Precedence.COLON);
 		}
 		sb.append(' ');
-		sb.append(Operator.ASSIGNMENT.getOp());
+		Operator.ASSIGNMENT.toSource(sb);
 		sb.append(' ');
 		this.body.toSource(sb, Precedence.COLON);
 	}

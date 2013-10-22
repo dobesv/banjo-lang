@@ -31,18 +31,18 @@ public class TestObjectLiteralParser {
 	@Test public void method3() { parse("{self.f() = self}", "{self.f = self}"); }
 	@Test public void method4() { parse("{self.f(x) = self}", "{self.f(x) = self}"); }
 	//	@Test public void method5() { parse("test:\n f() = 1\n y() = 2", "{test = {f = 1, y = 2}}"); }
-	@Test public void applyMethod1() { parse("{self.(x) = self}", "{self.(x) = self}"); }
+	@Test public void applyMethod1() { parse("{(self(x)) = self}", "{(self(x)) = self}"); }
 	@Test public void applyMethod2() { parse("{(x) = x+1}", "{(x) = x.\\+(1)}"); }
-	@Test public void applyMethod3() { parse("{self.\"()\"(x) = self}", "{self.(x) = self}"); }
-	@Test public void bracketsMethod1() { parse("{self.[x] = self}", "{self.\\[\\](x) = self}"); }
+	@Test public void applyMethod3() { parse("{self.\"()\"(x) = self}", "{(self(x)) = self}"); }
+	@Test public void bracketsMethod1() { parse("{(self[x]) = self}", "{(self[x]) = self}"); }
 	@Test public void bracketsMethod2() { parse("{[x] = x}", "{\\[\\](x) = x}"); }
-	@Test public void plusMethod() { parse("{(x + y) = y}", "{x.\\+(y) = y}"); }
-	@Test public void timesMethod() { parse("{(x * y) = y}", "{x.\\*(y) = y}"); }
-	@Test public void logicalOrMethod() { parse("{(x || y) = y}", "{x.\\|\\|(y) = y}"); }
-	@Test public void logicalAndMethod() { parse("{(x && y) = y}", "{x.\\&\\&(y) = y}"); }
-	@Test public void notMethod() { parse("{(! x) = y}", "{x.\\! = y}"); }
-	@Test public void complementMethod() { parse("{(~ x) = y}", "{x.\\~ = y}"); }
-	@Test public void ltMethod() { parse("{(x < y) = y}", "{x.\\<(y) = y}"); }
+	@Test public void plusMethod() { parse("{(x + y) = y}", "{(x + y) = y}"); }
+	@Test public void timesMethod() { parse("{(x * y) = y}", "{(x * y) = y}"); }
+	@Test public void logicalOrMethod() { parse("{(x || y) = y}", "{(x || y) = y}"); }
+	@Test public void logicalAndMethod() { parse("{(x && y) = y}", "{(x && y) = y}"); }
+	@Test public void notMethod() { parse("{(! x) = y}", "{(!x) = y}"); }
+	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
+	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
 
 	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
