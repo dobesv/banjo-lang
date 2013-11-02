@@ -1,6 +1,6 @@
 package banjo.idesupport.test;
 
-import static banjo.dom.test.ParseTestUtils.test;
+import static banjo.parser.test.ParseTestUtils.test;
 import static banjo.parser.util.Check.nonNull;
 import static org.junit.Assert.assertEquals;
 

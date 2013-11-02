@@ -1,7 +1,7 @@
-package banjo.dom.test;
+package banjo.parser.test;
 
-import static banjo.dom.test.ParseTestUtils.assertIsNumberLiteralWithValue;
-import static banjo.dom.test.ParseTestUtils.test;
+import static banjo.parser.test.ParseTestUtils.assertIsNumberLiteralWithValue;
+import static banjo.parser.test.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -44,6 +44,9 @@ public class TestObjectLiteralParser {
 	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
+
+	@Test public void testThisOne() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
+			"{(__g_obj9) = {(character, list, __g_obj13) = {(true, false) = {empty = {empty = true}}}(__g_obj13.true, __g_obj13.false)}(__g_obj9.character, __g_obj9.list, __g_obj9.boolean)}"); }
 
 	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
 	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }

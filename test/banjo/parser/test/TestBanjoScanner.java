@@ -1,6 +1,6 @@
 package banjo.parser.test;
 
-import static banjo.dom.test.ParseTestUtils.test;
+import static banjo.parser.test.ParseTestUtils.test;
 import static banjo.parser.test.TokensToString.testScanner;
 import static org.junit.Assert.assertEquals;
 

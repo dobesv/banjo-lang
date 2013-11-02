@@ -1,4 +1,4 @@
-package banjo.dom.test;
+package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

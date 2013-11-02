@@ -1,6 +1,5 @@
-package banjo.dom.test;
+package banjo.parser.test;
 
-import static banjo.parser.util.Check.nonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -10,7 +9,6 @@ import org.junit.Test;
 
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.token.Identifier;
 
@@ -25,7 +23,7 @@ public class TestFunctionLiteralParser {
 				(selfName==null?"":selfName+".")+
 				(expectedArgNames==null?"() = ":"("+expectedArgNames+") = ")+expectedArgReturned + "}";
 		final ObjectLiteral func = ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
-		nonNull(func.getMethod(Method.APPLY_FUNCTION_METHOD_NAME.getKeyString())).iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {
+		func.getMethods().iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {
 			@Override
 			@Nullable
 			public Void fallback(@NonNull CoreExpr unsupported) {

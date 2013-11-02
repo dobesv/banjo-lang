@@ -1,4 +1,4 @@
-package banjo.dom.test;
+package banjo.parser.test;
 
 import org.junit.Test;
 

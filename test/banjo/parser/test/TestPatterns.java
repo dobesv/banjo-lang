@@ -1,6 +1,6 @@
-package banjo.dom.test;
+package banjo.parser.test;
 
-import static banjo.dom.test.ParseTestUtils.test;
+import static banjo.parser.test.ParseTestUtils.test;
 
 import org.junit.Test;
 
