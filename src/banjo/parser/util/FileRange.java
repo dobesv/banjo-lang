@@ -6,6 +6,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 
 public final class FileRange implements Comparable<FileRange> {
+	public static final FileRange EMPTY = new FileRange(FilePos.START, FilePos.START);
+
 	private final FilePos start;
 	private final FilePos end;
 	public FileRange(FilePos start, FilePos end) {
