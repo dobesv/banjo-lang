@@ -12,22 +12,18 @@ import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.ListUtil;
 import fj.Ord;
-import fj.data.List;
 import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
-
+	public static final ObjectLiteral EMPTY = new ObjectLiteral();
 	public static final TreeMap<String, fj.data.List<Method>> EMPTY_METHOD_MAP = nonNull(TreeMap.<String, fj.data.List<Method>>empty(Ord.stringOrd));
 	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
 	private final Iterable<Method> methods;
-	@Nullable
-	private TreeMap<String, fj.data.List<Method>> methodMap;
 
 	public ObjectLiteral(Iterable<Method> fields) {
 		super(fields.hashCode());
 		this.methods = nonNull(fields);
-		this.methodMap = makeMethodMap(fields);
 	}
 
 	@SafeVarargs
@@ -35,21 +31,8 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		this(nonNull(Arrays.asList(methods)));
 	}
 
-	private static TreeMap<String, fj.data.List<Method>> makeMethodMap(Iterable<Method> methods) {
-		TreeMap<String,fj.data.List<Method>> methodMap = EMPTY_METHOD_MAP;
-		for(final Method method : methods) {
-			final String k = method.getKey().getKeyString();
-			methodMap = nonNull(methodMap.set(k, methodMap.get(k).orSome(EMPTY_METHOD_LIST).snoc(method)));
-		}
-		return methodMap;
-	}
-
 	public Iterable<Method> getMethods() {
 		return this.methods;
-	}
-
-	public @Nullable Iterable<Method> getMethod(String name) {
-		return getMethodMap().get(name).orSome(EMPTY_METHOD_LIST);
 	}
 
 	@Override
@@ -113,13 +96,4 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		}
 		return cmp;
 	}
-
-	public TreeMap<String, fj.data.List<Method>> getMethodMap() {
-		final TreeMap<String, List<Method>> methodMap = this.methodMap;
-		if(methodMap == null)
-			return this.methodMap = makeMethodMap(this.methods);
-		else
-			return methodMap;
-	}
-
 }
