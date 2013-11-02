@@ -7,17 +7,22 @@ import java.net.URI;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.core.Extend;
 import banjo.dom.core.Inspect;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
 import banjo.dom.core.MethodParamDecl;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
 import banjo.parser.util.DesugarMap;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.SourceMap;
@@ -44,12 +49,22 @@ import fj.data.TreeMap;
  *
  */
 public class DefRefAnalyser {
+	@SuppressWarnings("null")
+	static final URI EMPTY_URI = URI.create("");
+	static final FileRange EMPTY_FILE_RANGE = FileRange.EMPTY;
+	static final FileRef NULL_FILE_REF = new FileRef(EMPTY_URI, EMPTY_FILE_RANGE);
 
+	/**
+	 * Analyse an AST without any source file information.
+	 */
+	public Analysis analyse(CoreExpr root) {
+		return new Analysis().analyse(new ExprRef(NULL_FILE_REF, root));
+	}
 	public Analysis analyse(URI source, CoreExpr root, FileRange wholeFileRange) {
 		return new Analysis().analyse(new ExprRef(new FileRef(source, wholeFileRange), root));
 	}
 
-	static interface NodeRef {
+	public static interface NodeRef {
 		/** Get the file range covered by this node */
 		P2<FileRange, TreeMap<NodeRef, FileRange>> cacheSourceFileRange(DesugarMap dsMap, SourceMap sourceMap, TreeMap<NodeRef, FileRange> cache);
 
@@ -71,7 +86,7 @@ public class DefRefAnalyser {
 		throw new Error("Not implemented: DefRefAnalyser.compare of "+a.getClass().getName());
 	}
 
-	static class MethodNodeRef implements Comparable<MethodNodeRef>, NodeRef {
+	public static class MethodNodeRef implements Comparable<MethodNodeRef>, NodeRef {
 		private final ExprRef objectNodeRef;
 		private final Method method;
 		public MethodNodeRef(ExprRef objectNodeRef, Method method) {
@@ -144,7 +159,7 @@ public class DefRefAnalyser {
 
 	}
 
-	static class MethodParamRef implements NodeRef, Comparable<MethodParamRef> {
+	public static class MethodParamRef implements NodeRef, Comparable<MethodParamRef> {
 		private final MethodNodeRef methodRef;
 		private final MethodParamDecl paramDecl;
 		public MethodParamRef(MethodNodeRef methodRef, MethodParamDecl paramDecl) {
@@ -219,7 +234,7 @@ public class DefRefAnalyser {
 		}
 	}
 
-	static class ExprRef implements NodeRef, Comparable<ExprRef> {
+	public static class ExprRef implements NodeRef, Comparable<ExprRef> {
 		private final NodeRef parent;
 		private final CoreExpr node;
 		public ExprRef(NodeRef parent, CoreExpr node) {
@@ -285,7 +300,7 @@ public class DefRefAnalyser {
 		}
 	}
 
-	static class FileRef implements NodeRef, Comparable<FileRef> {
+	public static class FileRef implements NodeRef, Comparable<FileRef> {
 		private final URI source;
 		private final FileRange wholeFileRange;
 
@@ -448,12 +463,7 @@ public class DefRefAnalyser {
 			if(cached != null)
 				return union(cached);
 
-			final Analysis result = nonNull(nodeRef.getNode().acceptVisitor(new BaseCoreExprVisitor<Analysis>() {
-				@Override
-				public Analysis fallback(CoreExpr unsupported) {
-					return Analysis.this;
-				}
-
+			final Analysis result = nonNull(nodeRef.getNode().acceptVisitor(new CoreExprVisitor<Analysis>() {
 				@Override
 				@Nullable
 				public Analysis inspect(Inspect n) {
@@ -501,6 +511,36 @@ public class DefRefAnalyser {
 						a = a.analyseMethod(nodeRef, nonNull(m));
 					}
 					return a;
+				}
+
+				@Override
+				@Nullable
+				public Analysis stringLiteral(StringLiteral stringLiteral) {
+					return Analysis.this;
+				}
+
+				@Override
+				@Nullable
+				public Analysis numberLiteral(NumberLiteral numberLiteral) {
+					return Analysis.this;
+				}
+
+				@Override
+				@Nullable
+				public Analysis operator(OperatorRef operatorRef) {
+					return Analysis.this;
+				}
+
+				@Override
+				@Nullable
+				public Analysis badExpr(BadCoreExpr badExpr) {
+					return Analysis.this;
+				}
+
+				@Override
+				@Nullable
+				public Analysis badIdentifier(BadIdentifier badIdentifier) {
+					return withFree(nonNull(EMPTY_EXPR_REF_SET.insert(nodeRef)));
 				}
 			}));
 
