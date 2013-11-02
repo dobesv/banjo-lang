@@ -9,7 +9,7 @@ import banjo.dom.token.StringLiteral;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
-	private final String message;
+	private final String messageTemplate;
 	private final Object[] args;
 
 	public Object[] getArgs() {
@@ -18,14 +18,14 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
 	public AbstractBadExpr(String message, Object ... args) {
 		super(message.hashCode());
-		this.message = message;
+		this.messageTemplate = message;
 		this.args = args;
 	}
 
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append("fail(");
-		StringLiteral.toSource(this.message, sb);
+		StringLiteral.toSource(this.getMessage(), sb);
 		sb.append(")");
 	}
 
@@ -34,9 +34,14 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return Precedence.SUFFIX;
 	}
 
+	public String getMessageTemplate() {
+		return this.messageTemplate;
+	}
+
+	@SuppressWarnings("null")
 	@Override
 	public String getMessage() {
-		return this.message;
+		return String.format(this.messageTemplate, this.args);
 	}
 
 	@Override
@@ -50,7 +55,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		if(obj.hashCode() != this.hashCode())
 			return false;
 		final AbstractBadExpr other = (AbstractBadExpr) obj;
-		if (!this.message.equals(other.message))
+		if (!this.messageTemplate.equals(other.messageTemplate))
 			return false;
 		if(!Arrays.equals(this.args, other.args))
 			return false;
@@ -65,7 +70,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final AbstractBadExpr other = (AbstractBadExpr) o;
-			if(cmp == 0) cmp = this.message.compareTo(other.message);
+			if(cmp == 0) cmp = this.messageTemplate.compareTo(other.messageTemplate);
 			if(cmp == 0) cmp = Integer.compare(this.args.length, other.args.length);
 			if(cmp == 0) {
 				for(int i=0; i < this.args.length; i++) {
