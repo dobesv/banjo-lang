@@ -123,7 +123,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			if(this.operator == Operator.INVALID) {
 				return new ExtSourceExpr(new BadSourceExpr.UnsupportedOperator(this.operatorExpr.expr.toSource()), range, this.sourceMap.union(rightOperand.getSourceMap()));
 			}
-			if(rightOperand.getStartColumn() < getStartColumn()) {
+			if(rightOperand.getStartColumn() < getStartColumn() && !(this.operator.isParen() || this.operator.isSuffix())) {
 				rightOperand = new ExtSourceExpr(new BadSourceExpr.IncorrectIndentation(rightOperand.getStartColumn(), getStartColumn()), rightOperand.range, rightOperand.getSourceMap());
 			}
 			final SourceExpr newExpr = makeOp(rightOperand.getExpr());
