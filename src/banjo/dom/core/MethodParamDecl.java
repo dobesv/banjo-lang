@@ -31,6 +31,17 @@ public class MethodParamDecl extends AbstractCachedHashCode implements Comparabl
 		return this.assertion;
 	}
 
+	@SuppressWarnings("null")
+	public String toSource() {
+		final StringBuffer sb = new StringBuffer();
+		toSource(sb);
+		return sb.toString();
+	}
+
+	@Override
+	public String toString() {
+		return toSource();
+	}
 	public void toSource(StringBuffer sb) {
 		sb.append(this.name);
 		if(hasAssertion()) {

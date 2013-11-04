@@ -131,4 +131,22 @@ public class SourceMap implements Iterable<P2<SourceExpr,Set<FileRange>>> {
 	public static SourceMap empty() {
 		return EMPTY;
 	}
+
+	@SuppressWarnings("null")
+	@Override
+	public String toString() {
+		final StringBuffer sb = new StringBuffer();
+		sb.append("SourceMap: {\n");
+		for(final P2<SourceExpr, Set<FileRange>> p : this.map) {
+			for(final FileRange r : p._2()) {
+				sb.append("    ");
+				sb.append(p._1().toString());
+				sb.append(" @ ");
+				sb.append(r.toString());
+				sb.append('\n');
+			}
+		}
+		sb.append("}\n");
+		return sb.toString();
+	}
 }

@@ -1,11 +1,15 @@
 package banjo.parser.util;
 
 import static banjo.parser.util.Check.nonNull;
+
+import org.eclipse.jdt.annotation.NonNull;
+
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Method;
 import banjo.dom.core.MethodParamDecl;
 import banjo.dom.source.SourceExpr;
 import fj.Ord;
+import fj.P2;
 import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
@@ -79,7 +83,9 @@ public class DesugarMap {
 	 * If there's no match, returns the same bounds as given.
 	 */
 	public FileRange getFirstRangeIn(SourceMap sourceMap, FileRange bounds, CoreExpr expr) {
-		return getFirstRangeIn(sourceMap, bounds, nonNull(this.coreExprToSourceExpr.get(expr)));
+		Option<Set<SourceExpr>> candidateSet = nonNull(this.coreExprToSourceExpr.get(expr));
+		candidateSet = orSameSourceExpr(expr, candidateSet);
+		return getFirstRangeIn(sourceMap, bounds, candidateSet);
 	}
 
 	private FileRange getFirstRangeIn(SourceMap sourceMap, FileRange bounds, final Option<Set<SourceExpr>> candidateSet) {
@@ -129,24 +135,46 @@ public class DesugarMap {
 	 * If there's no match, returns the same bounds as given.
 	 */
 	public FileRange getLastRangeIn(SourceMap sourceMap, FileRange bounds, CoreExpr expr) {
-		return getLastRangeIn(sourceMap, bounds, nonNull(this.coreExprToSourceExpr.get(expr)));
+		Option<Set<SourceExpr>> candidateSet = nonNull(this.coreExprToSourceExpr.get(expr));
+		candidateSet = orSameSourceExpr(expr, candidateSet);
+		return getLastRangeIn(sourceMap, bounds, candidateSet);
 	}
+
+	public Option<Set<SourceExpr>> orSameSourceExpr(CoreExpr expr,
+			Option<Set<SourceExpr>> candidateSet) {
+		// For nodes that are both a core and source expr (like identifiers, string/number literals) we don't
+		// put them in the map unless they actually mapped to or from something different than they
+		// started (which they typically do not).
+		if(expr instanceof SourceExpr) {
+			candidateSet = Option.some(candidateSet.orSome(EMPTY_SOURCE_EXPR_SET).insert((SourceExpr)expr));
+		}
+		return candidateSet;
+	}
+
 
 	private FileRange getLastRangeIn(SourceMap sourceMap, FileRange bounds, final Option<Set<SourceExpr>> candidateSet) {
 		FileRange result = bounds;
-		for(final SourceExpr node : candidateSet.orSome(EMPTY_SOURCE_EXPR_SET)) {
-			for(final FileRange candidate : sourceMap.get(nonNull(node))) {
-				if(!candidate.isSubrange(bounds))
-					continue;
-				if(result == bounds || !candidate.getStart().before(result.getStart())) {
-					result = candidate;
-				}
+		for(@SuppressWarnings("null") @NonNull final SourceExpr node : candidateSet.orSome(EMPTY_SOURCE_EXPR_SET)) {
+			result = getLastRangeIn(sourceMap, bounds, result, node);
+		}
+		return result;
+	}
+
+	public FileRange getLastRangeIn(SourceMap sourceMap, FileRange bounds,
+			FileRange result, final SourceExpr node) {
+		for(@SuppressWarnings("null") @NonNull final FileRange candidate : sourceMap.get(node)) {
+			if(!candidate.isSubrange(bounds))
+				continue;
+			if(result == bounds || !candidate.getStart().before(result.getStart())) {
+				result = candidate;
 			}
 		}
 		return result;
 	}
 
 	public DesugarMap insert(CoreExpr expr, SourceExpr sourceExpr) {
+		if(expr.equals(sourceExpr))
+			return this; // Don't bother
 		final TreeMap<CoreExpr, Set<SourceExpr>> newSourceExprMap = nonNull(this.coreExprToSourceExpr.set(expr, this.coreExprToSourceExpr.get(expr).orSome(EMPTY_SOURCE_EXPR_SET).insert(sourceExpr)));
 		return new DesugarMap(newSourceExprMap, this.methodSignatureToSourceExpr, this.methodBodyToSourceExpr, this.paramDeclToSourceExpr);
 	}
@@ -178,6 +206,48 @@ public class DesugarMap {
 		return this.methodBodyToSourceExpr;
 	}
 
-
+	@SuppressWarnings("null")
+	@Override
+	public String toString() {
+		final StringBuffer sb = new StringBuffer();
+		sb.append("DesugarMap:\n");
+		for(final P2<CoreExpr, Set<SourceExpr>> p : this.coreExprToSourceExpr) {
+			for(final SourceExpr sourceExpr : p._2()) {
+				sb.append("    ");
+				sb.append(sourceExpr.toString());
+				sb.append(" --> ");
+				sb.append(p._1().toSource());
+				sb.append('\n');
+			}
+		}
+		for(final P2<MethodParamDecl, Set<SourceExpr>> p : this.paramDeclToSourceExpr) {
+			for(final SourceExpr sourceExpr : p._2()) {
+				sb.append("    ");
+				sb.append(sourceExpr.toString());
+				sb.append(" --> ");
+				sb.append(p._1().toString());
+				sb.append('\n');
+			}
+		}
+		for(final P2<Method, Set<SourceExpr>> p : this.methodSignatureToSourceExpr) {
+			for(final SourceExpr sourceExpr : p._2()) {
+				sb.append("    ");
+				sb.append(sourceExpr.toString());
+				sb.append(" --> ");
+				sb.append(p._1().toString());
+				sb.append('\n');
+			}
+		}
+		for(final P2<Method, Set<SourceExpr>> p : this.methodBodyToSourceExpr) {
+			for(final SourceExpr sourceExpr : p._2()) {
+				sb.append("    ");
+				sb.append(sourceExpr.toString());
+				sb.append(" --> ");
+				sb.append(p._1().toString());
+				sb.append('\n');
+			}
+		}
+		return sb.toString();
+	}
 
 }

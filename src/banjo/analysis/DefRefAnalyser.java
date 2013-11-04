@@ -177,7 +177,10 @@ public class DefRefAnalyser {
 			final TreeMap<NodeRef, FileRange> cache2 = p._2();
 			final FileRange parentParentRange = nonNull(p._1());
 			final FileRange parentRange = dsMap.getFirstSignatureRangeIn(sourceMap, parentParentRange, this.methodRef.getMethod());
-			final FileRange r = dsMap.getFirstRangeIn(sourceMap, nonNull(parentRange), this.paramDecl);
+			final boolean selfNameRef = this.paramDecl.getName() == this.methodRef.method.getSelfName();
+			final FileRange r = (selfNameRef ?
+					dsMap.getFirstRangeIn(sourceMap, parentRange, this.paramDecl.getName()) :
+						dsMap.getFirstRangeIn(sourceMap, parentRange, this.paramDecl));
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
 			//System.out.println("Param `"+this.paramDecl.getName()+"` in '"+this.methodRef.method+"' range {"+r+"} in {"+parentRange+"} in {"+parentParentRange+"}");
 			return nonNull(P.p(r, cache3));

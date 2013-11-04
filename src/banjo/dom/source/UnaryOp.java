@@ -27,7 +27,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 		final boolean prefix = this.operator.isPrefix();
 		if(paren) sb.append(this.operator.getParenType().getStartChar());
 		else if(prefix) sb.append(this.operator.getOp());
-		this.operand.toSource(sb, getPrecedence());
+		this.operand.toSource(sb, paren?Precedence.lowest():getPrecedence());
 		if(paren) sb.append(this.operator.getParenType().getEndChar());
 		else if(!prefix) sb.append(this.operator.getOp());
 	}

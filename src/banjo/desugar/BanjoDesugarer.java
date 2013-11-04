@@ -483,12 +483,12 @@ public class BanjoDesugarer {
 		final ArrayList<SourceExpr> fieldSourceExprs = flattenCommas(methodExprs, new ArrayList<SourceExpr>());
 		return objectLiteral(sourceExpr, fieldSourceExprs);
 	}
-	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, final Collection<SourceExpr> fieldSourceExprs) {
+	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, final Collection<SourceExpr> methodSourceExprs) {
 		final ArrayList<SourceExpr> headings = new ArrayList<>();
 		DesugarResult<fj.data.List<Method>> ds = this.withValue(nonNull(fj.data.List.<Method>nil()), sourceExpr);
-		for(final SourceExpr fieldSourceExpr : fieldSourceExprs) {
-			if(fieldSourceExpr == null) throw new NullPointerException();
-			ds = addMethod(fieldSourceExpr, headings, ds.getValue());
+		for(final SourceExpr methodSourceExpr : methodSourceExprs) {
+			if(methodSourceExpr == null) throw new NullPointerException();
+			ds = ds.addMethod(methodSourceExpr, headings, ds.getValue());
 		}
 		final fj.data.List<Method> fields = nonNull(ds.getValue().reverse()); // addMethod adds to the start instead of the end
 		return ds.withDesugared(sourceExpr, new ObjectLiteral(fields));
@@ -1115,8 +1115,11 @@ public class BanjoDesugarer {
 	}
 
 	private DesugarResult<CoreExpr> exprPair(final BinaryOp pairOp) {
-		final SourceExpr next = pairOp.getRight();
-		final SourceExpr curr = pairOp.getLeft();
+		final DesugarResult<CoreExpr> bodyDs = expr(pairOp.getRight());
+		return bodyDs.exprPair(pairOp, pairOp.getLeft(), pairOp.getRight(), bodyDs.getValue());
+	}
+
+	public DesugarResult<CoreExpr> exprPair(final SourceExpr pairOp, final SourceExpr curr, final SourceExpr bodySourceExpr, final CoreExpr body) {
 		return nonNull(curr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(BinaryOp leftOp) {
@@ -1142,9 +1145,8 @@ public class BanjoDesugarer {
 
 					public DesugarResult<CoreExpr> functionDef(BinaryOp callOp) {
 						// f(x) = y ; z == (f -> z)(x -> y)
-						final DesugarResult<CoreExpr> bodyDs = expr(next); // z
-						final DesugarResult<Key> funcNameDs = bodyDs.expectIdentifier(callOp.getLeft()); // f
-						final DesugarResult<CoreExpr> contDs = funcNameDs.functionLiteral(pairOp, funcNameDs.getValue(), pairOp, bodyDs.getValue()); // (f -> z)
+						final DesugarResult<Key> funcNameDs = expectIdentifier(callOp.getLeft()); // f
+						final DesugarResult<CoreExpr> contDs = funcNameDs.functionLiteral(pairOp, funcNameDs.getValue(), bodySourceExpr, body); // (f -> z)
 						final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight()); // y
 						final DesugarResult<CoreExpr> funcDs = rhsDs.functionLiteral(pairOp, callOp.getRight(), rhsDs.getSourceExpr(), rhsDs.getValue()); // (x -> y)
 						return funcDs.withDesugared(pairOp, new Call(contDs.getValue(), Method.APPLY_FUNCTION_METHOD_NAME, funcDs.getValue())); // (f -> z)(x -> y)
@@ -1154,8 +1156,7 @@ public class BanjoDesugarer {
 					@Override
 					public DesugarResult<CoreExpr> fallback(SourceExpr argPattern) {
 						// x = y, z == (x -> z)(y) == {(x) = z}(y)
-						final DesugarResult<CoreExpr> bodyDs = expr(next); // z
-						final DesugarResult<CoreExpr> contDs = bodyDs.functionLiteral(pairOp, argPattern, pairOp, bodyDs.getValue()); // {(x) = z}
+						final DesugarResult<CoreExpr> contDs = functionLiteral(pairOp, argPattern, pairOp, body); // {(x) = z}
 						final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight()); // y
 						return rhsDs.withDesugared(pairOp, new Call(contDs.getValue(), Method.APPLY_FUNCTION_METHOD_NAME, rhsDs.getValue()));
 					}
@@ -1164,8 +1165,7 @@ public class BanjoDesugarer {
 			private DesugarResult<CoreExpr> monadExtract(BinaryOp arrowOp) {
 				// x <- y, z == (y)."<-"(x -> z)
 				final DesugarResult<CoreExpr> rhsDs = expr(arrowOp.getRight());
-				final DesugarResult<CoreExpr> bodyDs = rhsDs.expr(next);
-				final DesugarResult<CoreExpr> contDs = functionLiteral(arrowOp, arrowOp.getLeft(), bodyDs.getSourceExpr(), bodyDs.getValue());
+				final DesugarResult<CoreExpr> contDs = rhsDs.functionLiteral(arrowOp, arrowOp.getLeft(), bodySourceExpr, body);
 				return contDs.withDesugared(pairOp, new Call(rhsDs.getValue(), new Identifier(Operator.MONAD_EXTRACT.getOp()), contDs.getValue()));
 			}
 
@@ -1179,14 +1179,17 @@ public class BanjoDesugarer {
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
 				final DesugarResult<CoreExpr> rhsDs = expr(other);
-				final DesugarResult<CoreExpr> bodyDs = rhsDs.expr(next);
-				final DesugarResult<CoreExpr> contDs = bodyDs.functionLiteral(other, new EmptyExpr(), bodyDs.getSourceExpr(), bodyDs.getValue());
+				final DesugarResult<CoreExpr> contDs = rhsDs.functionLiteral(other, new EmptyExpr(), bodySourceExpr, body);
 				return contDs.withDesugared(pairOp, new Call(rhsDs.getValue(), new Identifier(Operator.SEMICOLON.getOp()), contDs.getValue()));
 			}
 
 		}));
 	}
 
+	/** When a let is not followed by an expression that uses it, it's kind of an error */
+	protected DesugarResult<CoreExpr> trailingLet(BinaryOp op) {
+		return exprPair(op, op, op, ObjectLiteral.EMPTY);
+	}
 	protected DesugarResult<CoreExpr> listLiteral(SourceExpr sourceExpr, final SourceExpr elementsExpr) {
 		final LinkedList<SourceExpr> exprs = flattenCommas(elementsExpr, new LinkedList<SourceExpr>());
 		return listLiteral(elementsExpr, exprs, null);
@@ -1209,7 +1212,7 @@ public class BanjoDesugarer {
 			}
 			case CALL: return call(op);
 			case FUNCTION: return functionLiteral(op);
-			case ASSIGNMENT: return expr(op.getRight());
+			case ASSIGNMENT: return trailingLet(op);
 			case PROJECTION: return projection(op);
 			case OPT_PROJECTION: return optionalProjection(op);
 			case MAP_PROJECTION: return mapProjection(op);
