@@ -45,9 +45,10 @@ public class TestObjectLiteralParser {
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
 
-	@Test public void testThisOne() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
-			"{(__g_obj9) = {(character, list, __g_obj13) = {(true, false) = {empty = {empty = true}}}(__g_obj13.true, __g_obj13.false)}(__g_obj9.character, __g_obj9.list, __g_obj9.boolean)}"); }
-
+	@Test public void testUnpack1() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
+			"{(__g_obj11) = {(character, list, __g_obj15) = {(true, false) = {empty = {empty = true}}}(__g_obj15.true, __g_obj15.false)}(__g_obj11.character, __g_obj11.list, __g_obj11.boolean)}"); }
+	@Test public void testUnpack2() { parse("{({boolean={true, false}; numbers={one, zero}}) = { empty = { empty = true } } }",
+			"{(__g_obj12) = {(__g_obj12, __g_obj19) = {(one, zero) = {(true, false) = {empty = {empty = true}}}(__g_obj12.true, __g_obj12.false)}(__g_obj19.one, __g_obj19.zero)}(__g_obj12.boolean, __g_obj12.numbers)}"); }
 	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
 	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }
 

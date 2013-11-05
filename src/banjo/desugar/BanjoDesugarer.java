@@ -589,6 +589,11 @@ public class BanjoDesugarer {
 					@Override
 					@Nullable
 					public DesugarResult<fj.data.List<Method>> unaryOp(UnaryOp op) {
+						switch(op.getOperator()) {
+						case OBJECT_LITERAL:
+						case BRACKETS:
+							return fallback(op);
+						}
 						final DesugarResult<Key> selfNameDs = expectIdentifier(op.getOperand());
 						final DesugarResult<Method> methodDs = selfNameDs.method(lvalueExpr, bodySourceExpr, new Identifier(op.getOperator().getOp()), nonNull(Collections.<SourceExpr>emptyList()), selfNameDs.getValue(), guarantee, body);
 						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())), methodSourceExpr);
@@ -1227,6 +1232,7 @@ public class BanjoDesugarer {
 
 
 				// Normal operators are translated into a method call
+			case EQ: // TODO Maybe use <=> if == isn't defined?
 			case POW:
 			case MUL:
 			case DIV:
