@@ -30,16 +30,18 @@ public class TestDefRefAnalyser {
 
 	@Test public void free1() { test("a", "0:1F"); }
 	@Test public void free2() { test("a + b", "0:1F,4:1F"); }
-	@Test public void unused1() { test("a = 1; b = 2; a", "0:1D,7:1U,14:1R0"); }
-	@Test public void unused2() { test("a = 1; b = 2; b", "0:1U,7:1D,14:1R7"); }
-	@Test public void shadow1() { test("a = 1; a = 2; a", "0:1U,7:1D,7:1S,14:1R7"); }
-	@Test public void shadow2() { test("a = 1\na = 2\na", "0:1U,6:1D,6:1S,12:1R6"); }
+	@Test public void unused1() { test("a = 1; b = 2; a", "0:1D a,7:1U b,14:1R a@0"); }
+	@Test public void unused2() { test("a = 1; b = 2; b", "0:1U a,7:1D b,14:1R b@7"); }
+	@Test public void shadow1() { test("a = 1; a = 2; a", "0:1U a,7:1D a,7:1S a,14:1R a@7"); }
+	@Test public void shadow2() { test("a = 1\na = 2\na", "0:1U a,6:1D a,6:1S a,12:1R a@6"); }
 
-	@Test public void let1() { test("a = 1 ; a", "0:1D,8:1R0"); }
-	@Test public void letf1() { test("f(x,y) = y+x+x ; f(10)", "0:1D,2:1D,4:1D,9:1R4,11:1R2,13:1R2,17:1R0"); }
+	@Test public void let1() { test("a = 1 ; a", "0:1D a,8:1R a@0"); }
+	@Test public void letf1() { test("f(x,y) = y+x+x ; f(10)", "0:1D f,2:1D x,4:1D y,9:1R y@4,11:1R x@2,13:1R x@2,17:1R f@0"); }
 
-	@Test public void obj1() { test("{ string.cons(_, tail) = { length = 1 + tail.length }, empty = { }}", "2:6U,14:1U,17:4D,40:4R17"); }
-	@Test public void obj2() { test("cons(_, tail) = { length = 1 + tail.length } ; empty = { }", "0:4U,5:1U,8:4D,31:4R8,47:5U"); }
+	@Test public void obj1() { test("{ string.cons(_, tail) = { length = 1 + tail.length }, empty = { }}", "2:6U string,14:1U _,17:4D tail,40:4R tail@17"); }
+	@Test public void obj2() { test("cons(_, tail) = { length = 1 + tail.length } ; empty = { }", "0:4U cons,5:1U _,8:4D tail,31:4R tail@8,47:5U empty"); }
+	@Test public void unpack1() { test("a({f,g}) = f(g); a(1)",
+			"0:1D a,0:21R __g_obj14@2,2:5D __g_obj14,3:1D f,5:1D g,11:1R f@3,13:1R g@5,17:1R a@0"); }
 
 
 	static void test(String src, String expectedCodes) {
@@ -58,22 +60,30 @@ public class TestDefRefAnalyser {
 		final Analysis analysis = analyser.analyse(TEST_URI, dsResult.getValue(), parseResult.getFileRange());
 		final SourceRangeAnalysis ranges = analysis.calculateSourceRanges(dsResult.getDesugarMap(), parseResult.getSourceMap());
 		TreeMap<FileRange,Set<String>> rangeCodes = TreeMap.empty(Ord.<FileRange>comparableOrd());
-		for(final FileRange r : ranges.getFree()) {
-			System.out.println("F "+r);
+		for(final P2<FileRange, String> p : ranges.getFree()) {
+			final FileRange r = p._1();
+			final String id = p._2();
+			System.out.println("F "+id+" "+r);
 			rangeCodes = addRangeCode(rangeCodes, r, "F");
 		}
-		for(final P2<FileRange,FileRange> rp : ranges.getRefs()) {
-			System.out.println("R "+rp._1()+" -> "+rp._2());
-			rangeCodes = addRangeCode(rangeCodes, rp._1(), "R"+rp._2().getStartOffset());
-			rangeCodes = addRangeCode(rangeCodes, rp._2(), "D");
+		for(final P2<P2<FileRange, String>, FileRange> rp : ranges.getRefs()) {
+			@NonNull @SuppressWarnings("null") final FileRange r = rp._1()._1();
+			final String id = rp._1()._2();
+			System.out.println("R "+id+" "+r+" -> "+rp._2());
+			rangeCodes = addRangeCode(rangeCodes, r, "R "+id+"@"+rp._2().getStartOffset());
+			rangeCodes = addRangeCode(rangeCodes, rp._2(), "D "+id);
 		}
-		for(final FileRange r : ranges.getUnusedDefs()) {
-			System.out.println("U "+r);
-			rangeCodes = addRangeCode(rangeCodes, r, "U");
+		for(@NonNull @SuppressWarnings("null") final P2<FileRange, String> p : ranges.getUnusedDefs()) {
+			final FileRange r = p._1();
+			final String id = p._2();
+			System.out.println("U "+id+" "+r);
+			rangeCodes = addRangeCode(rangeCodes, r, "U "+id);
 		}
-		for(final FileRange r : ranges.getShadowingDefs()) {
-			System.out.println("S "+r);
-			rangeCodes = addRangeCode(rangeCodes, r, "S");
+		for(@NonNull @SuppressWarnings("null") final P2<FileRange, String> p : ranges.getShadowingDefs()) {
+			final FileRange r = p._1();
+			final String id = p._2();
+			System.out.println("S "+id+" "+r);
+			rangeCodes = addRangeCode(rangeCodes, r, "S "+id);
 		}
 
 		final StringBuffer actualCodes = new StringBuffer();

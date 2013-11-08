@@ -111,7 +111,7 @@ public class ParseTestUtils {
 			ParserReader in) throws Error {
 		int count = 0;
 		BadExpr first = null;
-		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getDesugarMap().getCoreExprToSourceExpr()) {
+		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getDesugarMap().getExprs()) {
 			final CoreExpr n = p._1();
 			if(n instanceof BadExpr) {
 				final BadExpr e = (BadExpr) n;

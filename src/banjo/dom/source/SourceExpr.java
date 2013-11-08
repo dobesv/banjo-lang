@@ -2,6 +2,8 @@ package banjo.dom.source;
 
 import static banjo.parser.util.Check.nonNull;
 
+import java.util.Comparator;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
@@ -32,6 +34,13 @@ public interface SourceExpr extends Expr, SourceNode {
 			};
 		}
 	}));
+
+	public static final Comparator<SourceExpr> COMPARATOR = new Comparator<SourceExpr>() {
+		@Override
+		public int compare(SourceExpr o1, SourceExpr o2) {
+			return o1.compareTo(o2);
+		}
+	};
 
 	String toFullyParenthesizedSource();
 

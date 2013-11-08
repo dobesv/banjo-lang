@@ -45,7 +45,11 @@ public class TestIncrementalReparser {
 	@Test public void test17() { testEdit("{abc = \"bla\"}", "{f(a) = \"bla\"}", ObjectLiteral.class, 1, 3, "f(a)", reg(1,12)); }
 	@Test public void test18() { testEdit("a = 1; a", "1", Call.class, 0, 8, "1", reg(0,1)); }
 	@Test public void test19() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 8, "", reg(0,0)); }
+	@Test public void test20() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 0, "/*test*/", reg(0,8)); }
+	@Test public void test21() { testEdit("a = 1; a // test", "fail(\"Expected expression\")", Call.class, 8, 8, "", reg(8,0)); }
+	@Test public void test22() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 8, 0, " // test", reg(8,8)); }
 
+	/** Shorthand to create a damage region (OffsetLength) */
 	static OffsetLength reg(int offset, int length) { return new OffsetLength(offset, length); }
 
 	public static <T extends CoreExpr> void testEdit(@NonNull String origSource, @NonNull String expectedNewSource,

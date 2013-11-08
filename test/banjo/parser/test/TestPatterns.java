@@ -32,8 +32,8 @@ public class TestPatterns {
 	@Test public void testUnpackLazy1() { test("(-> z) -> z", "{(__g_lazy3) = {(z) = z}(__g_lazy3())}"); }
 	@Test public void testUnpackLazy2() { test("(-> {z}) -> z", "{(__g_lazy3) = {(__g_obj5) = {(z) = z}(__g_obj5.z)}(__g_lazy3())}"); }
 	@Test public void testUnpackLazy3() { test("(-> [z]) -> z", "{(__g_lazy3) = {(__g_lst5) = {(z) = z}(__g_lst5[0])}(__g_lazy3())}"); }
-	@Test public void testUnpackLazy4() { test("{(true && -> x) = x}", "{(true && __g_lazy4) = {(x) = x}(__g_lazy4())}"); }
-	@Test public void testUnpackLazy5() { test("{(true && (-> x)) = x}", "{(true && __g_lazy4) = {(x) = x}(__g_lazy4())}"); }
+	@Test public void testUnpackLazy4() { test("{(true && -> x) = x}", "{(true && __g_lazy5) = {(x) = x}(__g_lazy5())}"); }
+	@Test public void testUnpackLazy5() { test("{(true && (-> x)) = x}", "{(true && __g_lazy5) = {(x) = x}(__g_lazy5())}"); }
 	@Test public void testUnpackLazyUsingAssignment() { test("(-> z) = foo ; z", "{(__g_lazy3) = {(z) = z}(__g_lazy3())}(foo)"); }
 
 
