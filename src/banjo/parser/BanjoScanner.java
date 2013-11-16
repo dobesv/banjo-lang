@@ -232,6 +232,123 @@ public class BanjoScanner {
 	}
 
 	/**
+	 * Return the number of characters of an identifier starting at the given offset in the given string.
+	 * 
+	 * @param in String to look at
+	 * @param start Starting offset to scan
+	 * @return The number of contiguous whitespace characters found
+	 */
+	public static int scanIdentifierStart(String in, int start, int end) {
+		if(start < end && isIdentifierStart(in.codePointAt(start)))
+			return 1 + scanIdentifierPart(in, start+1, end);
+		return 0;
+	}
+
+	/**
+	 * Return the number of characters of an identifier continuing at the given offset in the given string.
+	 * 
+	 * @param in String to look at
+	 * @param start Starting offset to scan
+	 * @return The number of contiguous whitespace characters found
+	 */
+	public static int scanIdentifierPart(String in, int start, int end) {
+		for(int endOffset = start; endOffset < end; ) {
+			final int cp = in.codePointAt(endOffset);
+			if(!isIdentifierPart(cp))
+				return endOffset-start;
+			endOffset += Character.charCount(cp);
+		}
+		return 0;
+	}
+
+	/**
+	 * Return the number of characters of whitespace at the given offset in the given string.
+	 * 
+	 * @param in String to look at
+	 * @param start Starting offset to scan
+	 * @return The number of contiguous whitespace characters found
+	 */
+	public static int scanWhitespace(String in, int start, int end) {
+		int endOffset = start;
+		while(endOffset < end) {
+			final int cp = in.codePointAt(endOffset);
+
+			if(isWhitespaceChar(cp))
+				endOffset += Character.charCount(cp);
+			else
+				break;
+		}
+		return endOffset-start;
+	}
+
+	/**
+	 * Return the length of any comment at the given offset in the given string.
+	 * 
+	 * @param in String to look at
+	 * @param start Starting offset to scan
+	 * @return The length of the comment or zero if no comment found
+	 */
+	public static int scanComment(String in, int start, int end) {
+		for(int endOffset = start; endOffset < end; ) {
+			final int cp1 = in.codePointAt(endOffset);
+			if(cp1 == '/' && endOffset+1 < end) {
+				final int cp2 = in.codePointAt(endOffset + 1);
+				if(cp2 == '/') {
+					endOffset += 2 + scanToEndOfLine(in, endOffset+2, end);
+					return endOffset - start;
+				} else if(cp2 == '*') {
+					endOffset += 2 + scanToEndOfMultilineComment(in, endOffset+2, end);
+					return endOffset - start;
+				}
+			}
+			endOffset += Character.charCount(cp1);
+		}
+		// If we got here, it's not a comment
+		return 0;
+	}
+
+	/**
+	 * Return the number of characters of whitespace and/or comments at the given offset in the given string.
+	 * 
+	 * @param in String to look at
+	 * @param start Starting offset to scan
+	 * @return The number of contiguous whitespace characters found
+	 */
+	public static int scanWhitespaceAndComments(String in, int start, int end) {
+		int endOffset = start;
+		while(endOffset < end) {
+			final int ws = scanWhitespace(in, endOffset, end);
+			final int com = scanComment(in, endOffset + ws, end);
+			endOffset += ws + com;
+			if(ws == 0 && com == 0)
+				break;
+		}
+		return endOffset - start;
+	}
+
+	private static int scanToEndOfMultilineComment(String in, int start, int end) {
+		for(int endOffset = start; endOffset < end;) {
+			final int cp1 = in.codePointAt(endOffset);
+			if(cp1 == '*' && endOffset+1 < end) {
+				final int cp2 = in.codePointAt(endOffset + 1);
+				if(cp2 == '/') {
+					return (endOffset + 2) - start;
+				}
+			}
+			endOffset += Character.charCount(cp1);
+		}
+		return end - start;
+	}
+
+	private static int scanToEndOfLine(String in, int start, int end) {
+		for(int endOffset = start; endOffset < end; endOffset++) {
+			if(in.charAt(endOffset) == '\n')
+				return endOffset + 1 - start;
+		}
+		return end - start;
+	}
+
+	/**
 	 * Assuming we just passed a '/' and a '*', read until we find the matching
 	 * '*' and '/' sequence.
 	 */

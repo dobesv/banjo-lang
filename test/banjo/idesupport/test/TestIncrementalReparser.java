@@ -26,28 +26,28 @@ import fj.P2;
 
 public class TestIncrementalReparser {
 
-	@Test public void test1() { testEdit("a = b; a", "{(foo) = a}(b)", Call.class, 0, 1, "foo", reg(0,10)); }
-	@Test public void test2() { testEdit("a = b; a", "{(a) = a}(foo)", Call.class, 4, 1, "foo", reg(4,3)); }
-	@Test public void test3() { testEdit("a = b; a", "{(a) = foo}(b)", Call.class, 7, 1, "foo", reg(7,3)); }
+	@Test public void test1() { testEdit("a = b; a", "{(foo) = a}(b)", Call.class, 0, 1, "foo", reg(0,7)); }
+	@Test public void test2() { testEdit("a = b; a", "{(a) = a}(foo)", Call.class, 4, 1, "foo", reg(0,7)); }
+	@Test public void test3() { testEdit("a = b; a", "{(a) = foo}(b)", Call.class, 7, 1, "foo", reg(0,10)); }
 	@Test public void test4() { testEdit("a = b; a", "{(foo) = a}(bar)", Call.class, 0, 5, "foo = bar", reg(0,9)); }
 	@Test public void test5() { testEdit("a = b; a", "{(a) = a}(foo)", Call.class, 1, 4, " = foo", reg(0,7)); }
 	@Test public void test6() { testEdit("a = b; a", "{}", Call.class, 0, 8, "{}", reg(0,2)); }
-	@Test public void test7() { testEdit("a = b; a", "{(a) = a}(b.\\+(a))", Call.class, 5, 0, " + a", reg(0,12)); }
-	@Test public void test8() { testEdit("a = 1; a", "{(a) = a}(12)", Call.class, 5, 0, "2", reg(0,9)); }
-	@Test public void test9() { testEdit("a = 1; a", "{(a) = a}(1.2)", Call.class, 5, 0, ".2", reg(0,10)); }
+	@Test public void test7() { testEdit("a = b; a", "{(a) = a}(b.\\+(a))", Call.class, 5, 0, " + a", reg(0,9)); }
+	@Test public void test8() { testEdit("a = 1; a", "{(a) = a}(12)", Call.class, 5, 0, "2", reg(4,2)); }
+	@Test public void test9() { testEdit("a = 1; a", "{(a) = a}(1.2)", Call.class, 5, 0, ".2", reg(0,7)); }
 	@Test public void test10() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 6, 3, "yay", reg(5,5)); }
 	@Test public void test11() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 5, 4, "\"yay", reg(1,9)); }
-	@Test public void test12() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 6, 4, "yay\"", reg(0,11)); }
+	@Test public void test12() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 6, 4, "yay\"", reg(1,9)); }
 	@Test public void test13() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 5, 5, "\"yay\"", reg(1,9)); }
 	@Test public void test14() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 4, 6, " \"yay\"", reg(1,9)); }
-	@Test public void test15() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 4, 7, " \"yay\"}", reg(0,11)); }
+	@Test public void test15() { testEdit("{a = \"bla\"}", "{a = \"yay\"}", ObjectLiteral.class, 4, 7, " \"yay\"}", reg(1,10)); }
 	@Test public void test16() { testEdit("{abc = \"bla\"}", "{ac = \"bla\"}", ObjectLiteral.class, 2, 1, "", reg(1,2)); }
 	@Test public void test17() { testEdit("{abc = \"bla\"}", "{f(a) = \"bla\"}", ObjectLiteral.class, 1, 3, "f(a)", reg(1,12)); }
 	@Test public void test18() { testEdit("a = 1; a", "1", Call.class, 0, 8, "1", reg(0,1)); }
-	@Test public void test19() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 8, "", reg(0,0)); }
-	@Test public void test20() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 0, "/*test*/", reg(0,8)); }
-	@Test public void test21() { testEdit("a = 1; a // test", "fail(\"Expected expression\")", Call.class, 8, 8, "", reg(8,0)); }
-	@Test public void test22() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 8, 0, " // test", reg(8,8)); }
+	@Test public void testPrependComment1() { testEdit("a = 1; a", "{(a) = a}(1)", Call.class, 0, 0, "/*test*/", reg(0,8)); }
+	@Test public void testDeleteComment1() { testEdit("a = 1; a // test", "{(a) = a}(1)", Call.class, 8, 8, "", reg(7,1)); } // TODO Can be improved some day
+	@Test public void testAppendSingleLineComment1() { testEdit("a = 1; a", "{(a) = a}(1)", Call.class, 8, 0, " // test", reg(8,8)); }
+	@Test public void testDeleteAll1() { testEdit("a = 1; a", "fail(\"Expected expression\")", Call.class, 0, 8, "", reg(0,0)); }
 
 	/** Shorthand to create a damage region (OffsetLength) */
 	static OffsetLength reg(int offset, int length) { return new OffsetLength(offset, length); }

@@ -5,6 +5,7 @@ import static banjo.parser.util.Check.nonNull;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.NavigableMap;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -36,118 +37,36 @@ public class IncrementalUpdater {
 
 	static enum RangeCheck {
 		/** The first argument range ends before the start of the second */
-		ENDS_BEFORE {
-			@Override public boolean sameStart() { return false; }
-			@Override public boolean sameEnd() { return false; }
-			@Override public boolean overlapping() { return false;	}
-			@Override public boolean touching() { return false;	}
-			@Override public boolean subrange() { return false;	}
-		},
+		ENDS_BEFORE,
 		/** The first argument range starts after the end of the second */
-		STARTS_AFTER {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return false;	}
-			@Override public boolean touching() { return false;	}
-			@Override public boolean subrange() { return false;	}
-		},
+		STARTS_AFTER,
 		/** The end of the first range equals the start of the second */
-		ENDS_AT_START {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return false;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
-		/** The end of the first range is greater than the start of the second, and its start is before the start of the second */
-		CROSSES_START {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
-		/** The first range starts at the end of the second */
-		STARTS_AT_END {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return false;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
+		ENDS_AT_START,
+		/** The end of the first range is inside the second, and it starts before the start of the second */
+		CROSSES_START,
+		/** The first range starts at the end of the second and ends after */
+		STARTS_AT_END,
 		/** The first range starts inside the second range and ends outside */
-		CROSSES_END {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
+		CROSSES_END,
 		/** The first range starts before the start of the second range and ends after the end of the second range */
-		COVERS {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
-		/** The first range starts at the same place as the second, and ends first */
-		AT_HEAD_SHORTER {
-			@Override public boolean sameStart() { return true;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return true;	}
-		},
+		COVERS,
+		/** The first range starts at the same place as the second, and ends inside */
+		AT_HEAD_SHORTER,
 		/** The first range starts at the same place as the second, and ends after */
-		AT_HEAD_LONGER {
-			@Override public boolean sameStart() { return true;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		},
-		AT_TAIL_SHORTER {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return true;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return true;	}
-		}, // The first range ends at the same place as the second, and starts inside
-		AT_TAIL_LONGER {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return true;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return false;	}
-		}, // The first range ends at the same place as the second, and starts before
-		EQUAL {
-			@Override public boolean sameStart() { return true;	}
-			@Override public boolean sameEnd() { return true;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return true;	}
-		}, // The two ranges are equal
+		AT_HEAD_LONGER,
+		/** The first range ends at the same place as the second, and starts inside */
+		AT_TAIL_SHORTER, //
+		/** The first range ends at the same place as the second, and starts before */
+		AT_TAIL_LONGER, //
+		EQUAL, // The two ranges are equal
 		/** The first range starts after the second range and ends before; the reverse of COVERS */
-		INSIDE {
-			@Override public boolean sameStart() { return false;	}
-			@Override public boolean sameEnd() { return false;	}
-			@Override public boolean overlapping() { return true;	}
-			@Override public boolean touching() { return true;	}
-			@Override public boolean subrange() { return true;	}
-		}; //
+		INSIDE,
 
-		public abstract boolean sameStart();
-		public abstract boolean sameEnd();
-		/** True if the two ranges share at least one full character */
-		public abstract boolean overlapping();
-		/** True if the two ranges overlap OR if the start of one range equals the end of the other */
-		public abstract boolean touching();
-		/**
-		 * True if the start of the first >= the start of the second and the end of the first <= the end of the second.  This differs from
-		 * the INSIDE value in that the start and end may be equal.
-		 */
-		public abstract boolean subrange();
+		/** The second range is an empty range at the end of the first range */
+		AT_TAIL_EMPTY,
+
+		/** The second range is an empty range at the start of the first range */
+		AT_HEAD_EMPTY; //
 	}
 	/**
 	 * Update the AST, applying the given edit.  This does its best to re-use as much of the existing
@@ -198,6 +117,42 @@ public class IncrementalUpdater {
 		return result;
 	}
 
+	static void addDamageRange(final @Nullable List<OffsetLength> damageRanges, int offset, int length) {
+		if(damageRanges == null)
+			return;
+
+		int endOffset = offset + length;
+		for(final ListIterator<OffsetLength> it = damageRanges.listIterator() ; it.hasNext() ; ) {
+			final OffsetLength range = it.next();
+			// If the existing range covers the new range, don't add it
+			if(range.getOffset() <= offset && range.getEndOffset() >= endOffset) {
+				// Don't need to add this, it's contained inside the existing damage region
+				return;
+			}
+
+			// If we're only partly covered, extend our range and remove the old one
+			if((range.getOffset() <= offset && range.getEndOffset() >= offset) ||
+					(range.getOffset() <= endOffset && range.getEndOffset() >= offset)) {
+				offset = Math.min(offset, range.getOffset());
+				endOffset = Math.max(endOffset, range.getEndOffset());
+				length = endOffset - offset;
+				it.remove();
+			}
+
+			// Insert in sorted order from lowest to highest
+			if(range.getOffset() > offset) {
+				final OffsetLength newRange = new OffsetLength(offset, length);
+				if(it.hasPrevious())
+					damageRanges.add(it.previousIndex(), newRange);
+				else
+					damageRanges.add(0, newRange);
+				return;
+			}
+		}
+		final OffsetLength newRange = new OffsetLength(offset, length);
+		damageRanges.add(newRange);
+
+	}
 	public ExtSourceExpr updateSourceTree(final SourceExpr oldRootSourceExpr,
 			final FileRange oldFileRange,
 			final SourceMap oldSourceMaps,
@@ -211,14 +166,15 @@ public class IncrementalUpdater {
 		final OffsetLength editRange = new OffsetLength(editStartOffset, editLength);
 		final int editLengthChange = replacement.length() - editLength;
 
+		addDamageRange(damageRanges, editStartOffset, replacement.length());
+
 		// Now we know which node to reparse, we can walk down the SourceExpr tree and update the parents and reparse the innermost damaged node
 		try {
 			return updateSourceTree(oldRootSourceExpr, oldFileRange, in, positionMemory, editRange, editLengthChange, replacement, oldSourceMaps, newSourceCode, damageRanges);
 		} catch (final ReparseNeeded e) {
 			try {
 				in.seek(0);
-				if(damageRanges != null)
-					damageRanges.add(new OffsetLength(0, newSourceCode.length()));
+				addDamageRange(damageRanges, 0, newSourceCode.length());
 				return this.parser.parse(in);
 			} catch (final IOException e1) {
 				throw new UnexpectedIOExceptionError(e1);
@@ -250,14 +206,15 @@ public class IncrementalUpdater {
 				try {
 					final ParserReader temp = new ParserReader(new StringReader(newSourceCode), "", newRange.getEndOffset());
 					temp.seek(newRange.getStart());
-					if(damageRanges != null)
-						damageRanges.add(newRange.toOffsetLength());
+					addDamageRange(damageRanges, newRange.getStartOffset(), newRange.length());
 					final ExtSourceExpr reparsedNode = IncrementalUpdater.this.parser.parse(temp);
 					return reparsedNode;
 				} catch (final IOException e) {
 					throw new UnexpectedIOExceptionError(e);
 				}
 			}
+
+
 			@Override
 			public ExtSourceExpr binaryOp(BinaryOp binaryOp) {
 				final SourceExpr oldLeft = binaryOp.getLeft();
@@ -265,11 +222,11 @@ public class IncrementalUpdater {
 				final FileRange oldLeftRange = oldSourceMap.getFirstWithin(oldRange, oldLeft);
 				final FileRange rightBounds = new FileRange(oldLeftRange.getEnd(), oldRange.getEnd());
 				final FileRange oldRightRange = oldSourceMap.getFirstWithin(rightBounds, oldRight);
-				final RangeCheck leftRc = checkRange(oldLeftRange, editRange);
-				final RangeCheck rightRc = checkRange(oldRightRange, editRange);
-				if(!leftRc.subrange() && !rightRc.subrange() && shouldReparseParent(rc)) {
-					throw REPARSE_NEEDED;
-				}
+				final RangeCheck leftRc = checkNodeRange(oldLeftRange);
+				final RangeCheck rightRc = checkNodeRange(oldRightRange);
+				//				if(!containsEdit(leftRc) && !containsEdit(rightRc) && shouldReparseParent(rc)) {
+				//					throw REPARSE_NEEDED;
+				//				}
 				try {
 					final ExtSourceExpr newLeft = updateSourceTree(oldLeft, oldLeftRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
 					final ExtSourceExpr newRight = updateSourceTree(oldRight, oldRightRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
@@ -282,19 +239,60 @@ public class IncrementalUpdater {
 				}
 			}
 
+
+			public RangeCheck checkNodeRange(final FileRange nodeRange) {
+				return checkRange(nodeRange, editRange);
+			}
+
+			/**
+			 * True if the edit replaces an area contained entirely in the node we checked
+			 * to generate the given RangeCheck.  This basically includes everything except
+			 * STARTS_BEFORE and ENDS_AFTER.
+			 */
+			public boolean containsEdit(RangeCheck rc) {
+				switch(rc) {
+				case AT_HEAD_LONGER: // Edit is at the start of the node
+				case AT_HEAD_EMPTY: // Edit is at the start of the node
+				case AT_TAIL_EMPTY: // Edit is at the end of the node
+				case AT_TAIL_LONGER: // Edit is at the end of the node
+				case COVERS: // Node covers edit completely
+				case EQUAL: // Node covers edit
+					return true;
+
+				case STARTS_AFTER: // No connection
+				case ENDS_BEFORE: // No connection
+				case INSIDE: // Edit obliterates node
+				case AT_HEAD_SHORTER: // Edit deletes characters past the end of the node
+				case CROSSES_END: // Edit deletes characters before the start of the node
+				case CROSSES_START: // Edit deletes characters at the end of the node
+				case STARTS_AT_END: // Edit deletes characters before the start of the node
+				case ENDS_AT_START: // Edit deletes characters at the end of the node
+				default:
+					return false;
+
+				}
+			}
+
 			private boolean shouldReparseParent(RangeCheck rc) {
 				switch(rc) {
+				case AT_HEAD_EMPTY:
+				case AT_TAIL_EMPTY:
+					return !(replacement.isEmpty() || isWhitespaceComments(replacement));
 				case AT_HEAD_LONGER:
 				case AT_HEAD_SHORTER:
 				case AT_TAIL_LONGER:
 				case AT_TAIL_SHORTER:
 				case CROSSES_END:
 				case CROSSES_START:
-				case ENDS_AT_START:
 				case EQUAL:
 				case INSIDE:
-				case STARTS_AT_END:
 					return true;
+
+					// Deleting whitespace/comments before or after a node doesn't change that node's contents
+				case ENDS_AT_START:
+				case STARTS_AT_END:
+					// TODO What if it affects indentation, though ?
+					return !isWhitespaceComments(replacement);
 
 				case COVERS:
 				case ENDS_BEFORE:
@@ -308,9 +306,9 @@ public class IncrementalUpdater {
 			public ExtSourceExpr unaryOp(UnaryOp unaryOp) {
 				final SourceExpr oldOperand = unaryOp.getOperand();
 				final FileRange operandRange = oldSourceMap.getFirstWithin(oldRange, oldOperand);
-				final RangeCheck operandRc = checkRange(operandRange, editRange);
-				if(!operandRc.subrange() && shouldReparseParent(rc))
-					throw REPARSE_NEEDED;
+				final RangeCheck operandRc = checkNodeRange(operandRange);
+				//				if(!containsEdit(operandRc) && shouldReparseParent(rc))
+				//					throw REPARSE_NEEDED;
 				try {
 					final ExtSourceExpr newOperand = updateSourceTree(oldOperand, operandRange, in, positionMemory, editRange, editLengthDelta, replacement, oldSourceMap, newSourceCode, damageRanges);
 					final boolean childChanged = newOperand.getExpr() != oldOperand;
@@ -324,18 +322,46 @@ public class IncrementalUpdater {
 			@Override
 			@Nullable
 			public ExtSourceExpr identifier(Identifier identifier) {
-				if((rc == RangeCheck.STARTS_AT_END && isIdentifierSuffix(replacement))
-						|| (rc.sameStart() && isIdentifierPrefix(replacement)))
+				if(editReplacesEnd() && (replacement.isEmpty() || isIdentifierSuffix(replacement)) // If the old range covers the start of the edit range, and the replacement is a viable suffix
+						|| editReplacesStart() && isIdentifierPrefix(replacement) // If the old range covers the end of the edit range, and the replacement is a viable prefix
+						|| editInMiddle() && isIdentifierPart(replacement)) // If the old range covers the entire edit, and the replacement is is a viable identifier part
 					return reparse();
 
 				return fallback(identifier);
+			}
+			/** The edit is in the middle of the node, and doesn't touch the start or end */
+			public boolean editInMiddle() {
+				return rc == RangeCheck.COVERS;
+			}
+			/** The edit replaces or extends the start of the node but leaves the end alone*/
+			public boolean editReplacesStart() {
+				switch(rc) {
+				case AT_HEAD_EMPTY: // Edit is at the head, deleting zero characters (but might insert some)
+				case CROSSES_END: // Node crosses the end of the edit
+				case STARTS_AT_END: // Node starts at the end of the edit
+					return true;
+				default:
+					return false;
+				}
+
+			}
+			/** The edit replaces or extends the end of the node */
+			public boolean editReplacesEnd() {
+				switch(rc) {
+				case AT_TAIL_EMPTY: // Edit area is zero characters at the end of the node
+				case CROSSES_START: // Node crosses the start of the replaced area
+				case ENDS_AT_START: // Node ends at the start of the replaced area
+					return true;
+				default:
+					return false;
+				}
 			}
 
 			@Override
 			@Nullable
 			public ExtSourceExpr numberLiteral(NumberLiteral numberLiteral) {
-				if((rc == RangeCheck.STARTS_AT_END && isNumberSuffix(replacement))
-						|| (rc.sameStart() && isNumberPrefix(replacement)))
+				if((editReplacesEnd() && (replacement.isEmpty() || isNumberSuffix(replacement)))
+						|| (editReplacesStart() && isNumberPrefix(replacement)))
 					return reparse();
 				return super.numberLiteral(numberLiteral);
 			}
@@ -343,13 +369,19 @@ public class IncrementalUpdater {
 			@Override
 			@Nullable
 			public ExtSourceExpr fallback(SourceExpr expr) {
-				if(rc == RangeCheck.COVERS)
+				if(editInMiddle())
 					return reparse();
 				if(shouldReparseParent(rc))
 					throw REPARSE_NEEDED;
 				return new ExtSourceExpr(expr, newRange, SourceMap.empty());
 			}
 		}));
+	}
+
+	/** True if the string is all whitespace and/or comments */
+	protected static boolean isWhitespaceComments(String replacement) {
+		final int len = replacement.length();
+		return BanjoScanner.scanWhitespaceAndComments(replacement, 0, len) == len;
 	}
 
 	/**
@@ -360,16 +392,11 @@ public class IncrementalUpdater {
 	 */
 	protected boolean isIdentifierSuffix(String replacement) {
 		final int len = replacement.length();
-		for(int i=0; i < len; i++) {
-			if(!BanjoScanner.isIdentifierPart(replacement.codePointAt(i))) {
-				for( ; i < len; i++) {
-					if(!BanjoScanner.isWhitespaceChar(replacement.codePointAt(i)))
-						return false;
-				}
-				return true;
-			}
-		}
-		return true;
+		final int idChars = BanjoScanner.scanIdentifierPart(replacement, 0, len);
+		if(idChars == 0)
+			return false; // No identifier character
+		final int ws = BanjoScanner.scanWhitespaceAndComments(replacement, idChars, len);
+		return ws == len;
 	}
 
 	/**
@@ -380,19 +407,30 @@ public class IncrementalUpdater {
 	 */
 	protected boolean isIdentifierPrefix(String replacement) {
 		final int len = replacement.length();
-		for(int i=0; i < len; i++) {
-			if(!BanjoScanner.isWhitespaceChar(replacement.codePointAt(i))) {
-				if(!BanjoScanner.isIdentifierStart(replacement.codePointAt(i)))
-					return false;
-				i++;
-				for( ; i < len; i++) {
-					if(!BanjoScanner.isIdentifierPart(replacement.codePointAt(i)))
-						return false;
-				}
-				return true;
-			}
-		}
-		return true;
+		final int ws = BanjoScanner.scanWhitespaceAndComments(replacement, 0, len);
+		if(ws == len)
+			return false; // All whitespace
+		return BanjoScanner.scanIdentifierStart(replacement, ws, len) == len;
+	}
+
+	/**
+	 * True if inserting the given string in the middle of any identifier would leave it still an identifier.
+	 * 
+	 * The string must be made entirely of identifier part characters.
+	 */
+	protected boolean isIdentifierPart(String replacement) {
+		final int len = replacement.length();
+		return BanjoScanner.scanIdentifierPart(replacement, 0, len) == len;
+	}
+
+	/**
+	 * True if inserting the given string in the middle of any identifier would leave it still an identifier.
+	 * 
+	 * The string must be made entirely of identifier part characters.
+	 */
+	protected boolean isIdentifierStart(String replacement) {
+		final int len = replacement.length();
+		return BanjoScanner.scanIdentifierStart(replacement, 0, len) == len;
 	}
 
 	/**
@@ -439,7 +477,7 @@ public class IncrementalUpdater {
 		final int startOffset = exprRange.getStartOffset();
 		final int newStartOffset = editRange.getOffset() < startOffset ? startOffset + editLengthDelta : startOffset;
 		final int endOffset = exprRange.getEndOffset();
-		final int newEndOffset = editRange.getOffset() <= endOffset ? Math.max(newStartOffset, endOffset + editLengthDelta) : endOffset;
+		final int newEndOffset = editRange.getOffset() < endOffset || (editRange.getOffset() == endOffset && editLengthDelta > 0)? Math.max(newStartOffset, endOffset + editLengthDelta) : endOffset;
 		return calcRange(in, positionMemory, newStartOffset, newEndOffset);
 	}
 
@@ -474,8 +512,14 @@ public class IncrementalUpdater {
 
 		if(firstEnd < secondStart) return RangeCheck.ENDS_BEFORE;
 		if(firstStart > secondEnd) return RangeCheck.STARTS_AFTER;
-		if(firstEnd == secondStart) return RangeCheck.ENDS_AT_START;
-		if(firstStart == secondEnd) return RangeCheck.STARTS_AT_END;
+		if(firstEnd == secondStart) {
+			if(firstEnd == secondEnd) return RangeCheck.AT_TAIL_EMPTY;
+			return RangeCheck.ENDS_AT_START;
+		}
+		if(firstStart == secondEnd) {
+			if(firstStart == secondStart) return RangeCheck.AT_HEAD_EMPTY;
+			return RangeCheck.STARTS_AT_END;
+		}
 		if(firstStart == secondStart) {
 			if(firstEnd == secondEnd) return RangeCheck.EQUAL;
 			if(firstEnd < secondEnd) return RangeCheck.AT_HEAD_SHORTER;
