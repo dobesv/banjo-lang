@@ -54,6 +54,7 @@ public class ParseTestUtils {
 			parseTree = parseResult.getExpr();
 			sourceMaps = parseResult.getSourceMap();
 			System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
+			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
 			final ParserReader in = ParserReader.fromString("<source>", source);
 			assertTrue(parser.reachedEof());
 			int errCount = parseErrors(expectedErrorClass, sourceMaps, in);

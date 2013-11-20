@@ -267,7 +267,6 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			// If we de-dented back to an exact match on the column of an enclosing
 			// expression, insert a newline operator
 			if(operand.getStartColumn() == column) {
-				operand = applyOperatorPrecedenceToStack(operand, Operator.NEWLINE);
 				pushPartialOp(new PartialBinaryOp(Operator.NEWLINE, operand, FileRange.between(operand.getFileRange(), range)));
 			}
 			//		} else if(operand == null &&
@@ -357,12 +356,12 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 
 	public ExtSourceExpr applyOperatorPrecedenceToStack(ExtSourceExpr operand,
 			Operator operator) {
-		final Precedence prec = operator.getPrecedence();
+		final Precedence prec = operator.getLeftPrecedence();
 		final boolean rightAssoc = operator.isRightAssociative();
 		while(!this.opStack.isEmpty()
 				&& this.opStack.getFirst().getOperator().isParen() == false
-				&& (rightAssoc ? this.opStack.getFirst().getPrecedence().isHigherThan(prec)
-						: this.opStack.getFirst().getPrecedence().isHigherOrEqual(prec))) {
+				&& !(rightAssoc && this.opStack.getFirst().getOperator() == operator)
+				&& (this.opStack.getFirst().getPrecedence().isHigherOrEqual(prec))) {
 			final PartialOp op = this.opStack.pop();
 			operand = op.rhs(operand);
 		}

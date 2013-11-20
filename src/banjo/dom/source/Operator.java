@@ -58,7 +58,7 @@ public enum Operator {
 	ASSIGNMENT("=", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	MONAD_EXTRACT("<-", Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	COLON(":", Position.INFIX, Precedence.COLON, Associativity.RIGHT),
-	COND("=>", 0x21D2, Position.INFIX, Precedence.COND, Associativity.RIGHT),
+	COND("=>", 0x21D2, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.RIGHT),
 	COMMA(",", Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	SEMICOLON(";", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
@@ -71,20 +71,25 @@ public enum Operator {
 	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
 	private final String op;
 	private final int codePoint; // -1 if no special unicode character
+	private final Precedence leftPrecedence; // For binary operators only
 	private final Precedence precedence;
 	private final @Nullable ParenType parenType; // nullable
 	private final Associativity associativity;
 	private final Position position;
 
-	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
+	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
 		this.op = op;
 		this.codePoint = codePoint;
+		this.leftPrecedence = leftPrecedence;
 		this.precedence = precedence;
 		this.parenType = parenType;
 		this.associativity = associativity;
 		this.position = position;
 	}
 
+	Operator(String op, int codePoint, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
+		this(op, codePoint, parenType, position, associativity, precedence, precedence);
+	}
 	Operator(String op, int codePoint, ParenType parenType, Position position, Precedence p) {
 		this(op, codePoint, parenType, position, Associativity.NA, p);
 	}
@@ -109,6 +114,12 @@ public enum Operator {
 	}
 	Operator(String op, Position position, Precedence p, Associativity associativity) {
 		this(op, CODEPOINT_NONE, position, p, associativity);
+	}
+	Operator(String op, int cp, Position position, Precedence left, Precedence p, Associativity associativity) {
+		this(op, cp, null, position, associativity, left, p);
+	}
+	Operator(String op, Position position, Precedence left, Precedence p, Associativity associativity) {
+		this(op, CODEPOINT_NONE, position, left, p, associativity);
 	}
 	Operator(String op, int codePoint, Precedence p, Associativity associativity) {
 		this(op, codePoint, null, Position.INFIX, associativity, p);
@@ -178,6 +189,10 @@ public enum Operator {
 
 	public String getOp() {
 		return this.op;
+	}
+
+	public Precedence getLeftPrecedence() {
+		return this.leftPrecedence;
 	}
 
 	public Precedence getPrecedence() {

@@ -14,6 +14,7 @@ public class TestCondParser {
 	@Test public void testCond5() { testParseCond("   a=>b\n   c=>d\n   e=>f\n   h", "a.\\=\\>({() = b}).\\;({() = c.\\=\\>({() = d}).\\;({() = e.\\=\\>({() = f}).\\;({() = h})})})"); }
 	@Test public void testCond6() { testParseCond("a < 0 => -a\na", "a.\\<\\=\\>(0).\\<.\\=\\>({() = a.\\-}).\\;({() = a})"); }
 	@Test public void testCond7() { testParseCond("a=>b\nc", "a.\\=\\>({() = b}).\\;({() = c})"); }
+	@Test public void testCond8() { testParseCond("{(a + e) =\n  a => b.c(d)\n  e\n}", "{(a + e) = a.\\=\\>({() = b.c(d)}).\\;({() = e})}"); }
 
 	@Test public void testLazyOr() { testParseCond("a || b", "a.\\|\\|({() = b})"); }
 	@Test public void testLazyAnd() { testParseCond("a && b", "a.\\&\\&({() = b})"); }
