@@ -1239,6 +1239,7 @@ public class BanjoDesugarer {
 
 				// Normal operators are translated into a method call
 			case EQ: // TODO Maybe use <=> if == isn't defined?
+			case CMP: // TODO Maybe use <=> if == isn't defined?
 			case POW:
 			case MUL:
 			case DIV:
@@ -1344,6 +1345,12 @@ public class BanjoDesugarer {
 		@Nullable
 		public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
 			return withDesugared(emptyExpr, new BadCoreExpr("Expected expression"));
+		}
+
+		@Override
+		@Nullable
+		public DesugarResult<CoreExpr> badIdentifier(BadIdentifier badIdentifier) {
+			return withDesugared(badIdentifier, new BadCoreExpr(badIdentifier.getMessage()));
 		}
 	}
 

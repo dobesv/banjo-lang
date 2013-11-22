@@ -53,13 +53,17 @@ public class DefRefAnalyser {
 	@SuppressWarnings("null")
 	static final URI EMPTY_URI = URI.create("");
 	static final FileRange EMPTY_FILE_RANGE = FileRange.EMPTY;
-	static final FileRef NULL_FILE_REF = new FileRef(EMPTY_URI, EMPTY_FILE_RANGE);
+	static final FileRef EMPTY_FILE_REF = new FileRef(EMPTY_URI, EMPTY_FILE_RANGE);
+	private static final ExprRef EMPTY_EXPR_REF = new ExprRef(EMPTY_FILE_REF, ObjectLiteral.EMPTY);
 
 	/**
 	 * Analyse an AST without any source file information.
 	 */
 	public Analysis analyse(CoreExpr root) {
-		return new Analysis().analyse(new ExprRef(NULL_FILE_REF, root));
+		return new Analysis().analyse(new ExprRef(EMPTY_FILE_REF, root));
+	}
+	public Analysis analyseMethod(Method method) {
+		return new Analysis().analyseMethod(EMPTY_EXPR_REF, method);
 	}
 	public Analysis analyse(URI source, CoreExpr root, FileRange wholeFileRange) {
 		return new Analysis().analyse(new ExprRef(new FileRef(source, wholeFileRange), root));
@@ -185,7 +189,7 @@ public class DefRefAnalyser {
 			final FileRange methodRange = p._1();
 			final FileRange r = dsMap.getLastMethodBodyRangeIn(sourceMap, methodRange, this.methodRef.getMethod());
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			System.out.println("Method "+this.methodRef.method+" at "+methodRange+" body is at "+r);
+			//System.out.println("Method "+this.methodRef.method+" at "+methodRange+" body is at "+r);
 			@NonNull @SuppressWarnings("null")
 			final P2<FileRange, TreeMap<NodeRef, FileRange>> result = P.p(r, cache3);
 			return result;
@@ -575,19 +579,16 @@ public class DefRefAnalyser {
 
 			final Analysis result = nonNull(nodeRef.getNode().acceptVisitor(new CoreExprVisitor<Analysis>() {
 				@Override
-				@Nullable
 				public Analysis inspect(Inspect n) {
 					return analyse(new ExprRef(nodeRef, n.getTarget()));
 				}
 
 				@Override
-				@Nullable
 				public Analysis extend(Extend n) {
 					return analyse(new ExprRef(nodeRef, n.getBase())).analyse(new ExprRef(nodeRef, n.getExtension()));
 				}
 
 				@Override
-				@Nullable
 				public Analysis call(Call n) {
 					Analysis a = analyse(new ExprRef(nodeRef, n.getObject()));
 					for(final CoreExpr arg : n.getArguments()) {
@@ -597,9 +598,8 @@ public class DefRefAnalyser {
 				}
 
 				@Override
-				@Nullable
 				public Analysis listLiteral(ListLiteral n) {
-					Analysis a = Analysis.this;
+					Analysis a = identifier(Identifier.EMPTY_LIST);
 					for(final CoreExpr elt : n.getElements()) {
 						a = a.analyse(new ExprRef(nodeRef, nonNull(elt)));
 					}
@@ -607,14 +607,14 @@ public class DefRefAnalyser {
 				}
 
 				@Override
-				@Nullable
 				public Analysis identifier(Identifier n) {
 					//System.out.println("Ref: "+n);
-					return withFree(nonNull(EMPTY_EXPR_REF_SET.insert(nodeRef)));
+					@NonNull @SuppressWarnings("null")
+					final Set<ExprRef> newFree = EMPTY_EXPR_REF_SET.insert(nodeRef);
+					return withFree(newFree);
 				}
 
 				@Override
-				@Nullable
 				public Analysis objectLiteral(ObjectLiteral n) {
 					Analysis a = Analysis.this;
 					for(final Method m : n.getMethods()) {
@@ -624,19 +624,22 @@ public class DefRefAnalyser {
 				}
 
 				@Override
-				@Nullable
 				public Analysis stringLiteral(StringLiteral stringLiteral) {
-					return Analysis.this;
+					// Strings are made from the empty string plus numbers (which are made from zero)
+					@NonNull @SuppressWarnings("null")
+					final Set<ExprRef> newFree = EMPTY_EXPR_REF_SET.insert(new ExprRef(nodeRef, Identifier.EMPTY_STRING)).insert(new ExprRef(nodeRef, Identifier.ZERO));
+					return withFree(newFree);
 				}
 
 				@Override
-				@Nullable
 				public Analysis numberLiteral(NumberLiteral numberLiteral) {
-					return Analysis.this;
+					// Strings are made from the empty string plus numbers
+					@NonNull @SuppressWarnings("null")
+					final Set<ExprRef> newFree = EMPTY_EXPR_REF_SET.insert(new ExprRef(nodeRef, Identifier.ZERO));
+					return withFree(newFree);
 				}
 
 				@Override
-				@Nullable
 				public Analysis operator(OperatorRef operatorRef) {
 					return Analysis.this;
 				}
@@ -650,7 +653,9 @@ public class DefRefAnalyser {
 				@Override
 				@Nullable
 				public Analysis badIdentifier(BadIdentifier badIdentifier) {
-					return withFree(nonNull(EMPTY_EXPR_REF_SET.insert(nodeRef)));
+					@NonNull @SuppressWarnings("null")
+					final Set<ExprRef> newFree = EMPTY_EXPR_REF_SET.insert(nodeRef);
+					return withFree(newFree);
 				}
 			}));
 

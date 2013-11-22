@@ -3,6 +3,7 @@ package banjo.dom.source;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.token.Atom;
+import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -75,6 +76,12 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 	@Nullable
 	public T badSourceExpr(BadSourceExpr badSourceExpr) {
 		return fallback(badSourceExpr);
+	}
+
+	@Override
+	@Nullable
+	public T badIdentifier(BadIdentifier badIdentifier) {
+		return fallback(badIdentifier);
 	}
 
 	@Override

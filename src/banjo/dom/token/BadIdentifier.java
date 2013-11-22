@@ -65,7 +65,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	@Override
 	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		throw new Error("Not a source expression, really.");
+		return visitor.badIdentifier(this);
 	}
 
 	@Override

@@ -10,6 +10,10 @@ import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.BanjoScanner;
 
 public class Identifier extends AbstractAtom implements Atom, Key, Token {
+	public static final Identifier ZERO = new Identifier("0");
+	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
+	public static final Identifier EMPTY_LIST = new Identifier("[]");
+
 	final String id;
 
 	public Identifier(String id) {
