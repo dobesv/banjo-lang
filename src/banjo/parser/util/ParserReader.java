@@ -97,6 +97,10 @@ public class ParserReader extends Reader {
 		public boolean isStartOfLine() {
 			return this.startOfLine;
 		}
+		public void moveToStartOfLine() {
+			this.offset -= this.col-1;
+			this.col = 1;
+		}
 
 	}
 
@@ -473,7 +477,7 @@ public class ParserReader extends Reader {
 	 * Returns null if the regular expression doesn't match.
 	 */
 	public String consume(Pattern re) throws IOException {
-		final FilePos start = getFilePos();
+		final Pos start = new Pos(this.current);
 		final Matcher m = matcher(re);
 		if(m.lookingAt() && m.end() > m.start()) {
 			// Position just at the end of the token that was matched
@@ -572,11 +576,15 @@ public class ParserReader extends Reader {
 	}
 
 	public @Nullable String positionInLineAsString() throws IOException {
-		final FilePos start = getFilePos();
+		final Pos start = new Pos(this.current);
+		final int colToMark = this.current.col;
+		start.moveToStartOfLine();
+		seek(start);
 		final StringBuffer sb = new StringBuffer();
-		sb.append(readLineContaining(start)).append("\n");
-		for(int i=0; i <= readLineContaining(start).length(); i++) {
-			sb.append((i+1)==start.column?'^':' ');
+		final String line = readToEndOfLine();
+		sb.append(line).append("\n");
+		for(int i=0; i <= line.length(); i++) {
+			sb.append((i+1)==colToMark?'^':' ');
 		}
 		sb.append('\n');
 		seek(start);

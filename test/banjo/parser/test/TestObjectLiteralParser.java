@@ -9,7 +9,6 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 
@@ -32,7 +31,7 @@ public class TestObjectLiteralParser {
 	@Test public void method4() { parse("{self.f(x) = self}", "{self.f(x) = self}"); }
 	//	@Test public void method5() { parse("test:\n f() = 1\n y() = 2", "{test = {f = 1, y = 2}}"); }
 	@Test public void applyMethod1() { parse("{(self(x)) = self}", "{(self(x)) = self}"); }
-	@Test public void applyMethod2() { parse("{(x) = x+1}", "{(x) = x.\\+(1)}"); }
+	@Test public void applyMethod2() { parse("{(x) = x+1}", "(x) -> x + 1"); }
 	@Test public void applyMethod3() { parse("{self.\"()\"(x) = self}", "{(self(x)) = self}"); }
 	@Test public void bracketsMethod1() { parse("{(self[x]) = self}", "{(self[x]) = self}"); }
 	@Test public void bracketsMethod2() { parse("{[x] = x}", "{\\[\\](x) = x}"); }
@@ -44,11 +43,14 @@ public class TestObjectLiteralParser {
 	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
+	@Test public void numericSelfName1() { parse("{(0 + x) = x}", "{(0 + x) = x}"); }
+	@Test public void numericSelfName2() { parse("{0.plus(x) = x}", "{0.plus(x) = x}"); }
+	//@Test public void numericSelfName3() { parse("{(0).plus(x) = x}", "{(0).plus(x) = x}"); }
 
 	@Test public void testUnpack1() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
-			"{(__g_obj11) = {(character, list, __g_obj15) = {(true, false) = {empty = {empty = true}}}(__g_obj15.true, __g_obj15.false)}(__g_obj11.character, __g_obj11.list, __g_obj11.boolean)}"); }
+			"(_obj) -> ((character, list, _obj3) -> ((true, false) -> {empty = {empty = true}})(_obj3.true, _obj3.false))(_obj.character, _obj.list, _obj.boolean)"); }
 	@Test public void testUnpack2() { parse("{({boolean={true, false}; numbers={one, zero}}) = { empty = { empty = true } } }",
-			"{(__g_obj12) = {(__g_obj12, __g_obj19) = {(one, zero) = {(true, false) = {empty = {empty = true}}}(__g_obj12.true, __g_obj12.false)}(__g_obj19.one, __g_obj19.zero)}(__g_obj12.boolean, __g_obj12.numbers)}"); }
+			"(_obj) -> ((_obj, _obj2) -> ((true, false) -> ((one, zero) -> {empty = {empty = true}})(_obj2.one, _obj2.zero))(_obj.true, _obj.false))(_obj.boolean, _obj.numbers)"); }
 	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
 	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }
 
@@ -61,7 +63,7 @@ public class TestObjectLiteralParser {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
 			final Method actualValue = eltIt.next();
-			assertEquals(0, actualValue.getArgs().size());
+			assertEquals(0, actualValue.getArgs().length());
 			assertEquals(expectedNames[i], actualValue.getKey().toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue.getBody());
 		}
@@ -70,10 +72,6 @@ public class TestObjectLiteralParser {
 
 	public ObjectLiteral parse(String source, String expectedSource) {
 		return test(source, 0, null, ObjectLiteral.class, expectedSource);
-	}
-
-	private void parseError(String source, Class<? extends BadExpr> expectedError) {
-		test(source, 1, expectedError, null, null);
 	}
 
 }

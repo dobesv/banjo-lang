@@ -59,7 +59,7 @@ public class ParseTestUtils {
 			assertTrue(parser.reachedEof());
 			int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
 			if(errCount == 0) {
-				final BanjoDesugarer desugarer = new BanjoDesugarer(sourceMaps);
+				final BanjoDesugarer desugarer = new BanjoDesugarer();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));

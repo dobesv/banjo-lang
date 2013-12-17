@@ -21,9 +21,9 @@ public class TestProjectionParser {
 	@Test public void specialCharField1q() { ParseTestUtils.test("a.\"--\"", Call.class); }
 	@Test public void specialCharField2q() { ParseTestUtils.test("a.\"..\"", Call.class); }
 	@Test public void specialCharField3q() { ParseTestUtils.test("a.\".\"", Call.class); }
-	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map({(__g_arg1) = __g_arg1.b})", Call.class); }
+	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map((_arg) -> _arg.b)", Call.class); }
 
-	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a#[\"b\"].\\&\\&({() = a.b})", Call.class); }
-	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map({(__g_arg1) = __g_arg1#[\"b\"].\\&\\&({() = __g_arg1.b})})", Call.class); }
+	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a#[\"b\"] && a.b", Call.class); }
+	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map((_arg) -> _arg#[\"b\"] && _arg.b)", Call.class); }
 
 }

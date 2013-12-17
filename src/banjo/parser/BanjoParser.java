@@ -150,6 +150,14 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		public boolean isParen() {
 			return getOperator().isParen();
 		}
+
+		public int getStartLine() {
+			return this.range.getStartLine();
+		}
+
+		public int getEndLine() {
+			return this.range.getEndLine();
+		}
 	}
 	class PartialBinaryOp extends PartialOp {
 		private final SourceExpr leftOperand;
@@ -195,12 +203,12 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 
 		@Override
 		SourceExpr makeOp(SourceExpr rightOperand) {
-			if(this.operator == Operator.NEGATE && rightOperand instanceof NumberLiteral) {
-				return ((NumberLiteral)rightOperand).negate();
-			}
-			if(this.operator == Operator.PLUS && rightOperand instanceof NumberLiteral) {
-				return rightOperand;
-			}
+			//			if(this.operator == Operator.NEGATE && rightOperand instanceof NumberLiteral) {
+			//				return ((NumberLiteral)rightOperand).negate();
+			//			}
+			//			if(this.operator == Operator.PLUS && rightOperand instanceof NumberLiteral) {
+			//				return rightOperand;
+			//			}
 			return new UnaryOp(this.operator, rightOperand);
 		}
 
@@ -243,6 +251,29 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	}
 
 	/**
+	 * Helper for checkIndentDedent to decide whether an expression is closed
+	 * off by a de-dent.
+	 */
+	boolean shouldPopBasedOnDedent(int column) {
+		if(this.opStack.isEmpty()) return false;
+		final PartialOp first = this.opStack.getFirst();
+		int startColumn = first.getStartColumn();
+		if(first.getOperator() == Operator.NEWLINE) {
+			return column < startColumn;
+		}
+		if(first.isParen()) {
+			// Paren allows de-dent, but not past the parent expressions on the same line as the open paren
+			for(final PartialOp pop : this.opStack) {
+				if(pop.getEndLine() != first.getStartLine()) {
+					break;
+				}
+				startColumn = pop.getStartColumn();
+			}
+			return column < startColumn;
+		}
+		return column <= startColumn;
+	}
+	/**
 	 * Check for indent/dedent prior to the given token.  May consume the contents of nodes with the assumption it is
 	 * whitespace/comments only.
 	 * 
@@ -256,10 +287,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		ExtSourceExpr operand = this.operand;
 		if(operand != null && line > operand.getEndLine()) {
 			// Now if we get a de-dent we have to move up the operator stack
-			while(!this.opStack.isEmpty()
-					&& (this.opStack.getFirst().getStartColumn() > column
-							|| (this.opStack.getFirst().getStartColumn() == column && this.opStack.getFirst().getOperator() != Operator.NEWLINE))
-							&& this.opStack.getFirst().isParen() == false) {
+			while(shouldPopBasedOnDedent(column)) {
 				final PartialOp op = this.opStack.pop();
 				this.operand = operand = op.rhs(operand);
 			}
@@ -269,14 +297,6 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			if(operand.getStartColumn() == column) {
 				pushPartialOp(new PartialBinaryOp(Operator.NEWLINE, operand, FileRange.between(operand.getFileRange(), range)));
 			}
-			//		} else if(operand == null &&
-			//				!this.opStack.isEmpty() &&
-			//				this.opStack.getFirst().getEndLine() < line &&
-			//				this.opStack.getFirst().getStartColumn() < column) {
-			//			final int prevColumn = this.opStack.getFirst().getStartColumn();
-			//			final FilePos lineStart = new FilePos(offset-(column-prevColumn), line, prevColumn);
-			//			final FileRange indentRange = new FileRange(lineStart, range.getStart());
-			//			pushPartialOp(new PartialUnaryOp(indentRange, consumeNodes(), Operator.UNARY_NEWLINE_INDENT));
 		}
 	}
 

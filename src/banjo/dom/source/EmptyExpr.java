@@ -9,6 +9,8 @@ import org.eclipse.jdt.annotation.Nullable;
  */
 public class EmptyExpr extends AbstractOp implements SourceExpr {
 
+	public static final EmptyExpr INSTANCE = new EmptyExpr();
+
 	public EmptyExpr() {
 		super(Operator.EMPTY);
 	}

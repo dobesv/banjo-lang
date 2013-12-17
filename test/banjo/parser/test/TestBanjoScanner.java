@@ -23,7 +23,7 @@ import banjo.parser.util.TokenCollector;
 public class TestBanjoScanner {
 	@Test
 	public void test1() {
-		testTokenizer("// comment\n/* comment */\nfoo= bar\nbaz\n", "{(foo) = baz}(bar)", Call.class,
+		testTokenizer("// comment\n/* comment */\nfoo= bar\nbaz\n", "((foo) -> baz)(bar)", Call.class,
 				new String[] {
 			"// comment\n",
 			"/* comment */", "\n",

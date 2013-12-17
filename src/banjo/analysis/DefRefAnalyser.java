@@ -50,6 +50,7 @@ import fj.data.TreeMap;
  *
  */
 public class DefRefAnalyser {
+	static final boolean debug = true;
 	@SuppressWarnings("null")
 	static final URI EMPTY_URI = URI.create("");
 	static final FileRange EMPTY_FILE_RANGE = FileRange.EMPTY;
@@ -157,7 +158,7 @@ public class DefRefAnalyser {
 			// are going to look for the signature range themselves.
 			final FileRange r = dsMap.getFirstMethodRangeIn(sourceMap, nonNull(parentRange), this.method);
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			//System.out.println("Method "+this.method+" range is {"+r+"} in {"+parentRange+"}");
+			if(debug) System.out.println("Method "+this.method+" range is {"+r+"} in {"+parentRange+"}");
 			@NonNull @SuppressWarnings("null")
 			final P2<FileRange, TreeMap<NodeRef, FileRange>> result = P.p(r, cache3);
 			return result;
@@ -189,7 +190,7 @@ public class DefRefAnalyser {
 			final FileRange methodRange = p._1();
 			final FileRange r = dsMap.getLastMethodBodyRangeIn(sourceMap, methodRange, this.methodRef.getMethod());
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			//System.out.println("Method "+this.methodRef.method+" at "+methodRange+" body is at "+r);
+			if(debug) System.out.println("Method "+this.methodRef.method+" at "+methodRange+" body is at "+r);
 			@NonNull @SuppressWarnings("null")
 			final P2<FileRange, TreeMap<NodeRef, FileRange>> result = P.p(r, cache3);
 			return result;
@@ -242,7 +243,7 @@ public class DefRefAnalyser {
 			@NonNull @SuppressWarnings("null")
 			final FileRange methodRange = p._1();
 			final FileRange r = dsMap.getFirstMethodSignatureRangeIn(sourceMap, methodRange, this.methodRef.getMethod());
-			System.out.println("Method "+this.methodRef.method+" at "+methodRange+" signature is at "+r);
+			if(debug) System.out.println("Method "+this.methodRef.method+" at "+methodRange+" signature is at "+r);
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
 			@NonNull @SuppressWarnings("null")
 			final P2<FileRange, TreeMap<NodeRef, FileRange>> result = P.p(r, cache3);
@@ -282,10 +283,12 @@ public class DefRefAnalyser {
 	public static class MethodParamRef implements NodeRef, Comparable<MethodParamRef> {
 		private final MethodSignatureNodeRef methodSignatureRef;
 		private final MethodParamDecl paramDecl;
-		public MethodParamRef(MethodSignatureNodeRef methodSignatureRef, MethodParamDecl paramDecl) {
+		private final boolean selfName;
+		public MethodParamRef(MethodSignatureNodeRef methodSignatureRef, MethodParamDecl paramDecl, boolean selfName) {
 			super();
 			this.methodSignatureRef = methodSignatureRef;
 			this.paramDecl = paramDecl;
+			this.selfName = selfName;
 		}
 
 		@Override
@@ -301,8 +304,13 @@ public class DefRefAnalyser {
 					dsMap.getRangeIn(sourceMap, parentRange, this.paramDecl.getName(), true) :
 						dsMap.getFirstRangeIn(sourceMap, parentRange, this.paramDecl));
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			//System.out.println("Param `"+this.paramDecl.getName()+"` in '"+this.methodRef.method+"' range {"+r+"} in {"+parentRange+"} in {"+parentParentRange+"}");
+			if(debug) System.out.println("Param `"+this.paramDecl.getName()+"` in '"+this.methodSignatureRef.methodRef.method+"' range {"+r+"} in {"+parentRange+"}");
 			return nonNull(P.p(r, cache3));
+		}
+
+		@Override
+		public String toString() {
+			return "Param `"+this.paramDecl.getName()+"` in "+this.methodSignatureRef.methodRef.method;
 		}
 
 		public MethodParamDecl getParamDecl() {
@@ -346,6 +354,10 @@ public class DefRefAnalyser {
 		public boolean isInFile(URI fileUri) {
 			return this.methodSignatureRef.isInFile(fileUri);
 		}
+
+		public boolean isSelfName() {
+			return this.selfName;
+		}
 	}
 
 	public static class ExprRef implements NodeRef, Comparable<ExprRef> {
@@ -374,7 +386,7 @@ public class DefRefAnalyser {
 			final FileRange parentRange = p._1();
 			final FileRange r = dsMap.getRangeIn(sourceMap, nonNull(parentRange), this.node, false);
 			final TreeMap<NodeRef, FileRange> cache3 = cache2.set(this, r);
-			//System.out.println("Expr "+this.node.getClass().getSimpleName()+"(\""+this.node+"\") range {"+r+"} in {"+parentRange+"}");
+			if(debug) System.out.println("Expr "+this.node.getClass().getSimpleName()+"(\""+this.node+"\") range {"+r+"} in {"+parentRange+"}");
 			return nonNull(P.p(r, cache3));
 		}
 
@@ -506,6 +518,13 @@ public class DefRefAnalyser {
 		// Types for methods are not checked / calculated until a method is in the call graph of the application
 		// How do we know what's in the call graph of the application, though ?  How do we identify the "application" versus
 		// modules?  Also how could we identify test cases, which could also be considered roots?
+
+		// Perhaps types can be calculated in a bottom-up fashion much like defs/refs.  Each expression can be
+		// transformed into an expression that manipulates types from the "type environment" - a version of
+		// the environment that maps names to types.  When a variable is bound to a type we can substitute the type
+		// for the variable in the current type environment.  This way objects that are defined and used locally will
+		// be internally resolved.  References to external modules are substituted with their AST so this analysis can
+		// be done over the root file of the project (build.banjo) to fully type the whole application.
 
 		// TODO: Caching - if the analysis of subexpressions can be cached it might be a win.  This means the subexpressions
 		// should be analysed without a parent environment and then linked/merged as we move back up the tree.  So variable
@@ -676,18 +695,18 @@ public class DefRefAnalyser {
 			TreeMap<String, MethodParamRef> newDefs = nonNull(TreeMap.<String, MethodParamRef>empty(Ord.stringOrd));
 			for(final MethodParamDecl param : m.getArgs()) {
 				final String k = param.getName().getKeyString();
-				final MethodParamRef defNode = new MethodParamRef(signatureRef, param);
+				final MethodParamRef defNode = new MethodParamRef(signatureRef, param, false);
 				newDefs = nonNull(newDefs.set(k, defNode));
 			}
 			if(m.hasSelfName()) {
 				final String k = m.getSelfName().getKeyString();
-				final MethodParamRef defNode = new MethodParamRef(signatureRef, new MethodParamDecl(m.getSelfName()));
+				final MethodParamRef defNode = new MethodParamRef(signatureRef, new MethodParamDecl(m.getSelfName()), true);
 				newDefs = nonNull(newDefs.set(k, defNode));
 			}
 			Analysis a = subAnalysis();
 			for(final MethodParamDecl param : m.getArgs()) {
 				if(param.hasAssertion()) {
-					a = a.analyse(new MethodParamRef(signatureRef, param), param.getAssertion());
+					a = a.analyse(new MethodParamRef(signatureRef, param, false), param.getAssertion());
 				}
 			}
 			if(m.hasGuarantee()) {
@@ -766,7 +785,7 @@ public class DefRefAnalyser {
 			@SuppressWarnings("null") @NonNull
 			TreeMap<NodeRef, FileRange> cache = TreeMap.<NodeRef,FileRange>empty(nodeRefOrd);
 			@SuppressWarnings("null") @NonNull
-			Set<P2<FileRange,String>> free = Set.empty(Ord.p2Ord(FILERANGE_ORD,Ord.stringOrd));
+			Set<VarRefWithRange> free = Set.empty(Ord.<VarRefWithRange>comparableOrd());
 			for(final ExprRef freeVar : this.free) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = freeVar.cacheSourceFileRange(dsMap, sourceMap, cache);
 				@SuppressWarnings("null") @NonNull
@@ -774,11 +793,11 @@ public class DefRefAnalyser {
 				cache = newCache;
 				final FileRange range = p._1();
 				@SuppressWarnings("null") @NonNull
-				final Set<P2<FileRange, String>> newFree = free.insert(P.p(range, freeVar.getNode().toSource()));
+				final Set<VarRefWithRange> newFree = free.insert(new VarRefWithRange(range, freeVar.getNode().toSource()));
 				free = newFree;
 			}
 			@SuppressWarnings("null") @NonNull
-			Set<P2<FileRange,String>> shadowingDefs = Set.empty(Ord.p2Ord(FILERANGE_ORD,Ord.stringOrd));
+			Set<VarDefWithRange> shadowingDefs = Set.empty(Ord.<VarDefWithRange>comparableOrd());
 			for(final MethodParamRef paramRef : this.shadowingDefs) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
 				@SuppressWarnings("null") @NonNull
@@ -786,11 +805,11 @@ public class DefRefAnalyser {
 				cache = newCache;
 				final FileRange range = p._1();
 				@SuppressWarnings("null") @NonNull
-				final Set<P2<FileRange, String>> newShadowingDefs = shadowingDefs.insert(P.p(range, paramRef.getName()));
+				final Set<VarDefWithRange> newShadowingDefs = shadowingDefs.insert(new VarDefWithRange(range, paramRef));
 				shadowingDefs = newShadowingDefs;
 			}
 			@SuppressWarnings("null") @NonNull
-			Set<P2<FileRange,String>> unusedDefs = Set.empty(Ord.p2Ord(FILERANGE_ORD,Ord.stringOrd));
+			Set<VarDefWithRange> unusedDefs = Set.empty(Ord.<VarDefWithRange>comparableOrd());
 			for(final MethodParamRef paramRef : this.unusedDefs) {
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> p = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
 				@SuppressWarnings("null") @NonNull
@@ -798,11 +817,11 @@ public class DefRefAnalyser {
 				cache = newCache;
 				final FileRange range = p._1();
 				@SuppressWarnings("null") @NonNull
-				final Set<P2<FileRange, String>> newUnusedDefs = unusedDefs.insert(P.p(range, paramRef.getName()));
+				final Set<VarDefWithRange> newUnusedDefs = unusedDefs.insert(new VarDefWithRange(range, paramRef));
 				unusedDefs = newUnusedDefs;
 			}
 			@SuppressWarnings("null") @NonNull
-			TreeMap<P2<FileRange, String>, FileRange> refs = TreeMap.empty(Ord.p2Ord(FILERANGE_ORD,Ord.stringOrd));
+			TreeMap<VarRefWithRange, FileRange> refs = TreeMap.empty(Ord.<VarRefWithRange>comparableOrd());
 			for(final P2<MethodParamRef, Set<ExprRef>> pair : this.refs) {
 				final MethodParamRef paramRef = pair._1();
 				final P2<FileRange, TreeMap<NodeRef, FileRange>> dp = paramRef.cacheSourceFileRange(dsMap, sourceMap, cache);
@@ -817,7 +836,7 @@ public class DefRefAnalyser {
 					cache = newCache2;
 					final FileRange refRange = p._1();
 					@SuppressWarnings("null") @NonNull
-					final TreeMap<P2<FileRange, String>, FileRange> newRefs = refs.set(P.p(refRange, ref.getNode().toSource()), defRange);
+					final TreeMap<VarRefWithRange, FileRange> newRefs = refs.set(new VarRefWithRange(refRange, ref.getNode().toSource()), defRange);
 					refs = newRefs;
 				}
 			}
@@ -840,31 +859,85 @@ public class DefRefAnalyser {
 
 	}
 
-	public static class SourceRangeAnalysis {
-		final Set<P2<FileRange,String>> free;
-		final TreeMap<P2<FileRange,String>, FileRange> refs;
-		final Set<P2<FileRange,String>> shadowingDefs;
-		final Set<P2<FileRange,String>> unusedDefs;
+	public static class VarRefWithRange implements Comparable<VarRefWithRange> {
+		private final FileRange range;
+		private final String name;
+		public VarRefWithRange(FileRange range, String name) {
+			super();
+			this.range = range;
+			this.name = name;
+		}
+		public FileRange getRange() {
+			return this.range;
+		}
+		public String getName() {
+			return this.name;
+		}
+		@Override
+		public int compareTo(VarRefWithRange o) {
+			int cmp = this.range.compareTo(o.range);
+			if(cmp == 0) cmp = this.name.compareTo(o.name);
+			return 0;
+		}
+	}
+	public static class VarDefWithRange implements Comparable<VarDefWithRange>{
+		private final FileRange range;
+		private final String name;
+		private final boolean selfName;
+		public VarDefWithRange(FileRange range, String name, boolean selfName) {
+			super();
+			this.range = range;
+			this.name = name;
+			this.selfName = selfName;
+		}
+		public VarDefWithRange(FileRange range, MethodParamRef paramRef) {
+			this(range, paramRef.getName(), paramRef.isSelfName());
+		}
+		public FileRange getRange() {
+			return this.range;
+		}
+		public String getName() {
+			return this.name;
+		}
+		public boolean isSelfName() {
+			return this.selfName;
+		}
+		@Override
+		public int compareTo(VarDefWithRange o) {
+			int cmp = this.range.compareTo(o.range);
+			if(cmp == 0) cmp = this.name.compareTo(o.name);
+			if(cmp == 0) cmp = Boolean.compare(this.selfName, o.selfName);
+			return 0;
+		}
 
-		public SourceRangeAnalysis(Set<P2<FileRange, String>> free,
-				TreeMap<P2<FileRange, String>, FileRange> refs,
-				Set<P2<FileRange, String>> shadowingDefs, Set<P2<FileRange, String>> unusedDefs) {
+
+	}
+
+	public static class SourceRangeAnalysis {
+		final Set<VarRefWithRange> free;
+		final TreeMap<VarRefWithRange, FileRange> refs;
+		final Set<VarDefWithRange> shadowingDefs;
+		final Set<VarDefWithRange> unusedDefs;
+
+		public SourceRangeAnalysis(Set<VarRefWithRange> free,
+				TreeMap<VarRefWithRange, FileRange> refs,
+				Set<VarDefWithRange> shadowingDefs, Set<VarDefWithRange> unusedDefs) {
 			super();
 			this.free = free;
 			this.refs = refs;
 			this.shadowingDefs = shadowingDefs;
 			this.unusedDefs = unusedDefs;
 		}
-		public Set<P2<FileRange, String>> getFree() {
+		public Set<VarRefWithRange> getFree() {
 			return this.free;
 		}
-		public TreeMap<P2<FileRange, String>, FileRange> getRefs() {
+		public TreeMap<VarRefWithRange, FileRange> getRefs() {
 			return this.refs;
 		}
-		public Set<P2<FileRange, String>> getShadowingDefs() {
+		public Set<VarDefWithRange> getShadowingDefs() {
 			return this.shadowingDefs;
 		}
-		public Set<P2<FileRange, String>> getUnusedDefs() {
+		public Set<VarDefWithRange> getUnusedDefs() {
 			return this.unusedDefs;
 		}
 	}

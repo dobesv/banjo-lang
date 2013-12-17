@@ -15,7 +15,7 @@ import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 
 
-public class NumberLiteral extends AbstractAtom implements Atom {
+public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	final String text;
 	final Number number;
 
@@ -90,5 +90,10 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	}
 	public NumberLiteral negate() {
 		return new NumberLiteral("-"+this.text, negateNumber(this.number));
+	}
+
+	@Override
+	public String getKeyString() {
+		return this.text;
 	}
 }

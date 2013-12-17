@@ -34,7 +34,7 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 	@Override
 	@Nullable
 	public T numberLiteral(NumberLiteral numberLiteral) {
-		return atom(numberLiteral);
+		return key(numberLiteral);
 	}
 
 	@Override

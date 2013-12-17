@@ -2,11 +2,10 @@ package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
 
-import java.util.Arrays;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
+import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
@@ -19,37 +18,53 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final ObjectLiteral EMPTY = new ObjectLiteral();
 	public static final TreeMap<String, fj.data.List<Method>> EMPTY_METHOD_MAP = nonNull(TreeMap.<String, fj.data.List<Method>>empty(Ord.stringOrd));
 	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
-	private final Iterable<Method> methods;
+	private final fj.data.List<Method> methods;
 
-	public ObjectLiteral(Iterable<Method> fields) {
+	public ObjectLiteral(fj.data.List<Method> fields) {
 		super(fields.hashCode());
 		this.methods = nonNull(fields);
 	}
 
 	@SafeVarargs
 	public ObjectLiteral(Method ... methods) {
-		this(nonNull(Arrays.asList(methods)));
+		this(fj.data.List.list(methods));
 	}
 
-	public Iterable<Method> getMethods() {
+	public fj.data.List<Method> getMethods() {
 		return this.methods;
 	}
 
 	@Override
 	public Precedence getPrecedence() {
-		return Precedence.ATOM;
+		return isLambda() ? Precedence.FUNCTION : Precedence.ATOM;
 	}
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append('{');
-		boolean first = true;
-		for(final Method f : this.methods) {
-			if(first) first = false;
-			else sb.append(", ");
-			f.toSource(sb);
+		if(isLambda()) {
+			final Method method = this.methods.head();
+			if(!method.getArgs().isEmpty()) {
+				method.formalArgListToSource(sb);
+				sb.append(' ');
+			}
+			Operator.FUNCTION.toSource(sb);
+			sb.append(' ');
+			method.getBody().toSource(sb, Operator.FUNCTION.getPrecedence());
+		} else {
+			sb.append('{');
+			boolean first = true;
+			for(final Method f : this.methods) {
+				if(first) first = false;
+				else sb.append(", ");
+				f.toSource(sb);
+			}
+			sb.append('}');
 		}
-		sb.append('}');
+	}
+
+	public boolean isLambda() {
+		return this.methods.length() == 1 &&
+				this.methods.head().isSimpleApplyMethod();
 	}
 
 	public static StringBuffer maybeQuoteKey(String identifier, StringBuffer sb) {
@@ -95,5 +110,9 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 			cmp = ListUtil.compare(this.methods, other.methods);
 		}
 		return cmp;
+	}
+
+	public boolean isLazyValue() {
+		return isLambda() && (this.methods.head().getArgs().isEmpty());
 	}
 }

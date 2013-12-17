@@ -24,7 +24,7 @@ public class TestListLiteralParser {
 	private void list(String source, int expectedErrorCount) {
 		final ListLiteral node = ParseTestUtils.test(source, expectedErrorCount, null, ListLiteral.class, "[1, 2, 3]");
 		if(expectedErrorCount == 0) {
-			final CoreExpr[] eltsArray = node.getElements().toArray(new CoreExpr[0]);
+			final CoreExpr[] eltsArray = node.getElements().array(CoreExpr[].class);
 			final long[] expectedLongValues = {1,2,3};
 			for(int i=0; i < expectedLongValues.length; i++) {
 				ParseTestUtils.assertIsNumberLiteralWithValue(expectedLongValues[i], eltsArray[i]);

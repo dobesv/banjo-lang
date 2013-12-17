@@ -1,13 +1,10 @@
 package banjo.dom.core;
 
-import static banjo.parser.util.Check.nonNull;
-
-import java.util.Arrays;
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
+import banjo.dom.source.Operator;
+import banjo.dom.source.OperatorType;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
@@ -16,11 +13,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	private final CoreExpr object;
 	private final Key methodName;
-	private final List<CoreExpr> arguments;
+	private final fj.data.List<CoreExpr> arguments;
 
 	public static final Key APPLY_FUNCTION_METHOD_NAME = Method.APPLY_FUNCTION_METHOD_NAME;
 
-	public Call(CoreExpr object, Key methodName, List<CoreExpr> arguments) {
+	public Call(CoreExpr object, Key methodName, fj.data.List<CoreExpr> arguments) {
 		super(object.hashCode() + arguments.hashCode());
 		this.object = object;
 		this.arguments = arguments;
@@ -28,45 +25,111 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public Call(CoreExpr object, Key methodName, CoreExpr ... arguments) {
-		this(object, methodName, nonNull(Arrays.asList(arguments)));
+		this(object, methodName, fj.data.List.list(arguments));
 	}
 
 	public CoreExpr getObject() {
 		return this.object;
 	}
 
-	public List<CoreExpr> getArguments() {
+	public fj.data.List<CoreExpr> getArguments() {
 		return this.arguments;
 	}
 
 	@Override
 	public Precedence getPrecedence() {
+		final Operator operator = Operator.fromMethodName(this.methodName.getKeyString());
+		if(operator != null && operator.isPrefix() && this.arguments.isEmpty()) {
+			return operator.getPrecedence();
+		} else if(operator != null && operator.isSuffix() && this.arguments.isEmpty()) {
+			return operator.getPrecedence();
+		} else if(operator != null && operator.isInfix() && (operator.isParen() || (this.arguments.isNotEmpty() && this.arguments.tail().isEmpty()))) {
+			return operator.getPrecedence();
+		}
 		return Precedence.SUFFIX;
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
-		this.object.toSource(sb, Precedence.SUFFIX);
-		final boolean applyCall = this.methodName.getKeyString().equals(Method.APPLY_FUNCTION_METHOD_NAME.getKeyString());
-		final boolean lookupCall = !applyCall && this.methodName.getKeyString().equals(Method.LOOKUP_METHOD_NAME.getKeyString());
-		if(!(applyCall || lookupCall)) {
+	public void toSource(final StringBuffer sb) {
+
+		final Operator operator = Operator.fromMethodName(this.methodName.getKeyString());
+		if(operator != null && operator.isPrefix() && this.arguments.isEmpty()) {
+			operator.toSource(sb);
+			this.object.toSource(sb, operator.getPrecedence());
+		} else if(operator != null && operator.isSuffix() && this.arguments.isEmpty()) {
+			this.object.toSource(sb, operator.getLeftPrecedence());
+			operator.toSource(sb);
+		} else if(operator != null && operator.isInfix() && (operator.isParen() || (
+				this.arguments.isNotEmpty() && this.arguments.tail().isEmpty() &&
+				(operator.getOperatorType() == OperatorType.METHOD || (operator.getOperatorType() == OperatorType.LAZY_RHS && isLazyValue(this.arguments.head())))))) {
+			// TODO This isn't handling the lazy operators like ||, &&, ;, => properly
+			this.object.toSource(sb, operator.getLeftPrecedence());
+			if(operator.isParen()) {
+				sb.append(operator.getParenType().getStartChar());
+				boolean first = true;
+				for(final CoreExpr arg : this.arguments) {
+					if(first) first = false;
+					else sb.append(", ");
+					arg.toSource(sb, Precedence.COMMA.nextHighest());
+				}
+				sb.append(operator.getParenType().getEndChar());
+			} else {
+				sb.append(' ');
+				operator.toSource(sb);
+				sb.append(' ');
+				if(operator.getOperatorType() == OperatorType.LAZY_RHS) {
+					this.arguments.head().acceptVisitor(new BaseCoreExprVisitor<Void>() {
+						@Override
+						@Nullable
+						public Void fallback(CoreExpr unsupported) {
+							throw new Error("Should be an object literal! (Internal error)");
+						}
+
+						@Override
+						@Nullable
+						public Void objectLiteral(ObjectLiteral n) {
+							n.getMethods().head().getBody().toSource(sb, operator.getPrecedence());
+							return null;
+						}
+					});
+				} else {
+					this.arguments.head().toSource(sb, operator.getPrecedence());
+				}
+			}
+		} else {
+
+			this.object.toSource(sb, Precedence.SUFFIX);
 			sb.append('.');
 			this.methodName.toSource(sb);
-		}
-		if(!this.arguments.isEmpty() || applyCall) {
-			if(lookupCall) sb.append('[');
-			else sb.append('(');
-			boolean first = true;
-			for(final CoreExpr arg : this.arguments) {
-				if(first) first = false;
-				else sb.append(", ");
-				arg.toSource(sb, Precedence.COMMA.nextHighest());
+			if(!this.arguments.isEmpty()) {
+				sb.append('(');
+				boolean first = true;
+				for(final CoreExpr arg : this.arguments) {
+					if(first) first = false;
+					else sb.append(", ");
+					arg.toSource(sb, Precedence.COMMA.nextHighest());
+				}
+				sb.append(')');
 			}
-			if(lookupCall) sb.append(']');
-			else sb.append(')');
 		}
 	}
 
+
+	private static boolean isLazyValue(@Nullable CoreExpr head) {
+		return head != null && head.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
+			@Override
+			@SuppressWarnings("null")
+			public Boolean fallback(CoreExpr unsupported) {
+				return Boolean.FALSE;
+			}
+
+			@SuppressWarnings("null")
+			@Override
+			public Boolean objectLiteral(ObjectLiteral n) {
+				return n.isLazyValue();
+			}
+		}) == Boolean.TRUE;
+	}
 
 	@Override
 	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {

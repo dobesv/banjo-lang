@@ -1,15 +1,11 @@
 package banjo.dom.core;
 
-import static banjo.parser.util.Check.nonNull;
-
-import java.util.Collections;
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.ListUtil;
+import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
@@ -17,7 +13,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	public ListLiteral(List<CoreExpr> elements) {
 		super(elements.hashCode());
-		this.elements = nonNull(Collections.unmodifiableList(elements));
+		this.elements = elements;
 	}
 
 	public List<CoreExpr> getElements() {

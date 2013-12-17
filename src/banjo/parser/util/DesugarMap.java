@@ -277,7 +277,7 @@ public class DesugarMap {
 		}
 		for(final P2<MethodParamDecl, Set<SourceExpr>> p : this.params) {
 			for(final SourceExpr sourceExpr : p._2()) {
-				sb.append("    ");
+				sb.append("    param: ");
 				sb.append(sourceExpr.toString());
 				sb.append(" --> ");
 				sb.append(p._1().toString());

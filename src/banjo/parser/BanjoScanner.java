@@ -180,8 +180,21 @@ public class BanjoScanner {
 			return null;
 		}
 
+		in.getPreviousPosition(this.tokenStartPos);
+
+		final int second = in.read();
+		if(!isOperatorChar(second)) {
+			//			if((first == '+' || first == '-') && Character.isDigit(second)) {
+			//				in.seek(this.tokenStartPos);
+			//				return null;
+			//			}
+			in.unread(); // unread the second character
+			return String.copyValueOf(Character.toChars(first));
+		}
+
 		this.buf.setLength(0);
 		this.buf.appendCodePoint(first);
+		this.buf.appendCodePoint(second);
 		for(;;) {
 			final int cp = in.read();
 			if(!isOperatorChar(cp)) {
@@ -189,6 +202,10 @@ public class BanjoScanner {
 				break;
 			}
 			this.buf.appendCodePoint(cp);
+		}
+		if(this.buf.length() == 1 && (first == '+' || first == '-') && Character.isDigit(in.peek())) {
+			in.unread();
+			return null;
 		}
 		return this.buf.toString();
 	}
@@ -481,18 +498,19 @@ public class BanjoScanner {
 		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), new StringLiteral(str)));
 	}
 
+	private final Pos afterDigits = new Pos();
 	private void hexEscape(ParserReader in, StringBuffer buf, final int digitCount, TokenVisitor<?> visitor) throws IOException {
 		int result = 0;
-		FilePos afterDigits = in.getFilePos();
+		in.getCurrentPosition(this.afterDigits);
 		for(int digits = 0; digits < digitCount; digits++) {
 			final int digitValue = Character.digit(in.read(), 16);
 			if(digitValue == -1) {
-				visitor.badToken(in.getFileRange(afterDigits), new BadToken(in.readStringFrom(afterDigits), "Invalid hex digit in \\x escape"));
-				in.seek(afterDigits);
+				visitor.badToken(in.getFileRange(this.afterDigits), new BadToken(in.readStringFrom(this.afterDigits), "Invalid hex digit in \\x escape"));
+				in.seek(this.afterDigits);
 				return;
 			} else {
 				result = (result << 4) | digitValue;
-				afterDigits = in.getFilePos();
+				in.getCurrentPosition(this.afterDigits);
 			}
 		}
 		buf.appendCodePoint(result);
@@ -500,15 +518,15 @@ public class BanjoScanner {
 
 	private void octalEscape(ParserReader in, int cp, StringBuffer buf) throws IOException {
 		int result = Character.digit(cp, 8);
-		FilePos afterDigits = in.getFilePos();
+		in.getCurrentPosition(this.afterDigits);
 		for(int digits = 1; digits < 3; digits++) {
 			final int digitValue = Character.digit(in.read(), 8);
 			if(digitValue == -1) {
-				in.seek(afterDigits);
+				in.seek(this.afterDigits);
 				return;
 			} else {
 				result = (result << 3) + digitValue;
-				afterDigits = in.getFilePos();
+				in.getCurrentPosition(this.afterDigits);
 			}
 		}
 		buf.appendCodePoint(result);
@@ -518,6 +536,7 @@ public class BanjoScanner {
 		int cp = in.read();
 		boolean negative = false;
 		boolean isNumber = false;
+		boolean isInteger = true;
 		if(cp == '-') {
 			// Leading '-' for a negative number of any kind
 			negative = true;
@@ -530,6 +549,7 @@ public class BanjoScanner {
 		int radix = 10;
 		String formatName = "decimal";
 		int maxLongDigits = 18; // the most decimal digits that can SAFELY be kept in a 62-bit integer (we leave one for the sign bit)
+		int digits = 0;
 		if(cp == '0') {
 			isNumber = true;
 			cp = in.read();
@@ -537,11 +557,14 @@ public class BanjoScanner {
 			case 'x': case 'X': radix = 16; maxLongDigits=15; formatName="hexadecimal"; cp = in.read(); break;
 			case 'b': case 'B': radix = 2; maxLongDigits=62; formatName="binary"; cp = in.read(); break;
 			case 'o': case 'O': radix = 8; maxLongDigits=20; formatName="octal"; cp = in.read(); break;
+			default:
+				digits = 1;
+				in.unread();
+				in.getCurrentPosition(this.afterDigits);
+				break;
 			}
 		}
-		final Pos afterDigits = new Pos();
-		int digits = 0;
-		int digitsLeftOfDecimalPoint = -1;
+		int digitsLeftOfDecimalPoint = digits;
 		int exp = 0;
 		long intValLong = 0;
 		BigInteger intValBig=null;
@@ -549,20 +572,20 @@ public class BanjoScanner {
 		for(;;) {
 			if(cp == '.') {
 				if(radix != 10) {
-					visitor.badToken(in.getFileRange(afterDigits), new BadToken(in.readStringFrom(afterDigits), "Decimal point found in "+formatName+" number"));
+					visitor.badToken(in.getFileRange(this.afterDigits), new BadToken(in.readStringFrom(this.afterDigits), "Decimal point found in "+formatName+" number"));
 					radix = 10;
 				}
-				if(digitsLeftOfDecimalPoint != -1) {
+				if(!isInteger) {
 					if(!isNumber) {
 						in.seek(this.tokenStartPos);
 						return null;
 					} else {
-						visitor.badToken(in.getFileRange(afterDigits), new BadToken(in.readStringFrom(afterDigits), "Second decimal point in number"));
-						in.seek(afterDigits);
+						in.seek(this.afterDigits);
 						break;
 					}
 				} else {
 					digitsLeftOfDecimalPoint = digits;
+					isInteger = false;
 					cp = in.read();
 				}
 			} else if(digits > 0 && cp == '_') {
@@ -584,11 +607,11 @@ public class BanjoScanner {
 					}
 					final int digitValue = Character.digit(cp, 10); // Always base 10
 					if(digitValue == -1) {
-						in.seek(afterDigits);
+						in.seek(this.afterDigits);
 						break;
 					}
 					exp = exp * 10 + digitValue;
-					in.getCurrentPosition(afterDigits);
+					in.getCurrentPosition(this.afterDigits);
 					cp = in.read();
 				}
 				if(negexp) exp = -exp;
@@ -615,22 +638,22 @@ public class BanjoScanner {
 					}
 					digits ++;
 					isNumber = true;
-					in.getCurrentPosition(afterDigits);
+					in.getCurrentPosition(this.afterDigits);
 					cp = in.read();
 				}
 			}
 		}
-		final boolean isInteger = digitsLeftOfDecimalPoint == -1;
 		final int digitsRightOfDecimalPoint = digits - digitsLeftOfDecimalPoint;
-		if(!isInteger && digitsRightOfDecimalPoint == 0) {
+		if(!isInteger && digits == digitsLeftOfDecimalPoint) {
 			if(!isNumber) {
 				in.seek(this.tokenStartPos);
 				return null;
 			} else {
-				in.seek(afterDigits);
+				in.seek(this.afterDigits);
+				isInteger = true;
 			}
 		}
-		final int scale = (isInteger ? 0 : digitsRightOfDecimalPoint) - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
+		final int scale = digitsRightOfDecimalPoint - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
 		Number number;
 		if(intValBig == null) {
 			if(negative) {

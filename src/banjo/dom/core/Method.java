@@ -1,12 +1,8 @@
 package banjo.dom.core;
 
-import java.util.Iterator;
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Operator;
-import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -16,16 +12,17 @@ import banjo.parser.util.ListUtil;
 public class Method extends AbstractCachedHashCode implements Comparable<Method> {
 	private final Key selfName;
 	private final Key key;
-	private final List<MethodParamDecl> args;
+	private final fj.data.List<MethodParamDecl> args;
 	private final CoreExpr guarantee;
 	private final CoreExpr body;
 
 	public static final CoreExpr NO_GUARANTEE = MethodParamDecl.NO_ASSERTION;
 	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(Operator.CALL.getOp());
 	public static final Key LOOKUP_METHOD_NAME = new Identifier(Operator.LOOKUP.getOp());
-	public static final Key NO_SELF_NAME = new Identifier("");
+	public static final Key NO_SELF_NAME = new Identifier("__no_self_name__");
+	public static final fj.data.List<MethodParamDecl> NO_ARGS = fj.data.List.<MethodParamDecl>nil();
 
-	public Method(Key selfName, Key key, List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
+	public Method(Key selfName, Key key, fj.data.List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
 		super(calcHash(selfName, key, args, guarantee, body));
 		this.selfName = selfName;
 		this.key = key;
@@ -34,7 +31,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.body = body;
 	}
 
-	private static int calcHash(Key selfName, Key key, List<MethodParamDecl> args,
+	private static int calcHash(Key selfName, Key key, fj.data.List<MethodParamDecl> args,
 			CoreExpr guarantee, CoreExpr body) {
 		final int prime = 31;
 		int result = 1;
@@ -63,46 +60,44 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		// Check for brackets, apply
 
 		final boolean hasSelfName = this.hasSelfName();
-		final Operator infixOperator = Operator.fromOp(this.key.getKeyString(), Position.INFIX);
-		final Operator prefixOperator = hasSelfName && this.args.size() == 0 ? Operator.fromOp(this.key.getKeyString(), Position.PREFIX) : null;
-		final Operator suffixOperator = hasSelfName && this.args.size() == 0 ? Operator.fromOp(this.key.getKeyString(), Position.SUFFIX) : null;
-		if(infixOperator != null && hasSelfName && (infixOperator.isParen() || this.args.size() == 1)) {
+		final Operator operator = Operator.fromMethodName(this.key.getKeyString());
+		if(operator != null && hasSelfName && operator.isInfix() && (operator.isParen() || (!this.args.isEmpty() && this.args.tail().isEmpty()))) {
 			sb.append('(');
 			this.selfName.toSource(sb);
-			if(infixOperator.isParen()) {
-				sb.append(infixOperator.getParenType().getStartChar());
+			if(operator.isParen()) {
+				sb.append(operator.getParenType().getStartChar());
 				boolean first = true;
 				for(final MethodParamDecl arg : this.args) {
 					if(first) first = false;
 					else sb.append(", ");
 					arg.toSource(sb);
 				}
-				sb.append(infixOperator.getParenType().getEndChar());
+				sb.append(operator.getParenType().getEndChar());
 			} else {
 				sb.append(' ');
-				infixOperator.toSource(sb);
+				operator.toSource(sb);
 				sb.append(' ');
-				this.args.get(0).toSource(sb);
+				this.args.head().toSource(sb);
 			}
 			sb.append(')');
-		} else if(infixOperator != null && (infixOperator == Operator.CALL || infixOperator == Operator.BRACKETS)) {
-			sb.append(infixOperator.getParenType().getStartChar());
+		} else if(operator != null && (operator == Operator.CALL || operator == Operator.BRACKETS)) {
+			sb.append(operator.getParenType().getStartChar());
 			boolean first = true;
 			for(final MethodParamDecl arg : this.args) {
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb);
 			}
-			sb.append(infixOperator.getParenType().getEndChar());
-		} else if(prefixOperator != null) {
+			sb.append(operator.getParenType().getEndChar());
+		} else if(operator != null && operator.isPrefix()) {
 			sb.append('(');
-			prefixOperator.toSource(sb);
+			operator.toSource(sb);
 			this.selfName.toSource(sb);
 			sb.append(')');
-		} else if(suffixOperator != null) {
+		} else if(operator != null && operator.isSuffix()) {
 			sb.append('(');
 			this.selfName.toSource(sb);
-			suffixOperator.toSource(sb);
+			operator.toSource(sb);
 			sb.append(')');
 		} else {
 			if(hasSelfName) {
@@ -113,17 +108,8 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 				return;
 			}
 			this.key.toSource(sb);
-			final Iterator<MethodParamDecl> it = this.args.iterator();
-			if(it.hasNext()) {
-				sb.append('(');
-				boolean first = true;
-				while(it.hasNext()) {
-					final MethodParamDecl arg = it.next();
-					if(first) first = false;
-					else sb.append(", ");
-					arg.toSource(sb);
-				}
-				sb.append(')');
+			if(!this.args.isEmpty()) {
+				formalArgListToSource(sb);
 			}
 		}
 		if(hasGuarantee()) {
@@ -138,7 +124,18 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.body.toSource(sb, Precedence.COLON);
 	}
 
-	public List<MethodParamDecl> getArgs() {
+	public void formalArgListToSource(final StringBuffer sb) {
+		sb.append('(');
+		boolean first = true;
+		for(final MethodParamDecl arg : this.args) {
+			if(first) first = false;
+			else sb.append(", ");
+			arg.toSource(sb);
+		}
+		sb.append(')');
+	}
+
+	public fj.data.List<MethodParamDecl> getArgs() {
 		return this.args;
 	}
 
@@ -192,6 +189,13 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 
 	public boolean hasGuarantee() {
 		return !this.guarantee.equals(NO_GUARANTEE);
+	}
+
+	/**
+	 * True if this method could have been created using the lambda syntax (x,...) -> y
+	 */
+	public boolean isSimpleApplyMethod() {
+		return !hasGuarantee() && !hasSelfName() && this.key.equals(APPLY_FUNCTION_METHOD_NAME);
 	}
 
 

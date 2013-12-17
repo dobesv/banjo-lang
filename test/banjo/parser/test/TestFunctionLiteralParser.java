@@ -19,10 +19,17 @@ public class TestFunctionLiteralParser {
 		return testParse(source, expectedErrors, expectedArgCount, null, expectedArgNames, expectedArgReturned);
 	}
 	public ObjectLiteral testParse(String source, int expectedErrors, int expectedArgCount, String selfName, String expectedArgNames, final String expectedArgReturned) {
-		final String normalizedSource = "{"+
+		final String normalizedSource =
 				(selfName==null?"":selfName+".")+
-				(expectedArgNames==null?"() = ":"("+expectedArgNames+") = ")+expectedArgReturned + "}";
+				(expectedArgNames==null?"-> ":"("+expectedArgNames+") -> ")+expectedArgReturned;
 		final ObjectLiteral func = ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
+		assert func.isLambda();
+		if(expectedArgNames == null) assert func.isLazyValue();
+		else {
+			final StringBuffer sb = new StringBuffer();
+			func.getMethods().head().formalArgListToSource(sb);
+			assertEquals(sb.toString(), "("+expectedArgNames+")");
+		}
 		func.getMethods().iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {
 			@Override
 			@Nullable
