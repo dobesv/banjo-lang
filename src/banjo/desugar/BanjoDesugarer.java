@@ -1379,9 +1379,10 @@ public class BanjoDesugarer {
 			final CoreExpr body, final BinaryOp letOp, BinaryOp callOp) {
 		// f(x) = y ; z == (f -> z)(x -> y)
 		final DesugarResult<Key> funcNameDs = expectIdentifier(callOp.getLeft()); // f
-		final DesugarResult<CoreExpr> contDs = funcNameDs.functionLiteral(pairOp, funcNameDs.getValue(), bodySourceExpr, body); // (f -> z)
+		final Key name = funcNameDs.getValue();
+		final DesugarResult<CoreExpr> contDs = funcNameDs.functionLiteral(pairOp, name, bodySourceExpr, body); // (f -> z)
 		final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight()); // y
-		final DesugarResult<CoreExpr> funcDs = rhsDs.functionLiteral(pairOp, callOp.getRight(), rhsDs.getSourceExpr(), rhsDs.getValue()); // (x -> y)
+		final DesugarResult<CoreExpr> funcDs = rhsDs.functionLiteral(pairOp, callOp.getRight(), rhsDs.getSourceExpr(), funcNameDs.getValue(), rhsDs.getValue()); // (x -> y)
 		return funcDs.withDesugared(pairOp, new Call(contDs.getValue(), Method.APPLY_FUNCTION_METHOD_NAME, funcDs.getValue())); // (f -> z)(x -> y)
 	}
 
