@@ -1120,7 +1120,10 @@ public class BanjoDesugarer {
 	}
 
 	protected Call binaryOpToMethodCall(final CoreExpr leftCoreExpr, final Operator operator,	final CoreExpr rightCoreExpr) {
-		return new Call(leftCoreExpr, opMethodName(operator), rightCoreExpr);
+		final boolean rightAssoc = operator.isRightAssociative();
+		final CoreExpr target = rightAssoc?rightCoreExpr:leftCoreExpr;
+		final CoreExpr parameter = rightAssoc?leftCoreExpr:rightCoreExpr;
+		return new Call(target, opMethodName(operator), parameter);
 	}
 
 
@@ -1224,7 +1227,9 @@ public class BanjoDesugarer {
 			case INTERSECT:
 			case XOR:
 			case UNION:
-			case LOOKUP: return binaryOpToMethodCall(op, false);
+			case LOOKUP:
+			case CONS:
+				return binaryOpToMethodCall(op, false);
 
 			case EXTEND: return extend(op);
 

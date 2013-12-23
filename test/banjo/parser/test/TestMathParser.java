@@ -54,6 +54,7 @@ public class TestMathParser {
 
 	@Test public void abs1() { test("|x|", "|x|"); }
 
+	@Test public void cons1() { test("x :: y", "y.\\:\\:(x)"); }
 
 	public void unaries(String src) {
 		test(src, "+-~1");
