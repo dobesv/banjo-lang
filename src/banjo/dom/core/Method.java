@@ -63,8 +63,8 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		final Operator operator = Operator.fromMethodName(this.key.getKeyString());
 		if(operator != null && hasSelfName && operator.isInfix() && (operator.isParen() || (!this.args.isEmpty() && this.args.tail().isEmpty()))) {
 			sb.append('(');
-			this.selfName.toSource(sb);
 			if(operator.isParen()) {
+				this.selfName.toSource(sb);
 				sb.append(operator.getParenType().getStartChar());
 				boolean first = true;
 				for(final MethodParamDecl arg : this.args) {
@@ -73,7 +73,14 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 					arg.toSource(sb);
 				}
 				sb.append(operator.getParenType().getEndChar());
+			} else if(operator.isRightAssociative()) {
+				this.args.head().toSource(sb);
+				sb.append(' ');
+				operator.toSource(sb);
+				sb.append(' ');
+				this.selfName.toSource(sb);
 			} else {
+				this.selfName.toSource(sb);
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');

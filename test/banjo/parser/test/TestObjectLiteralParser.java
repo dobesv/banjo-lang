@@ -42,6 +42,8 @@ public class TestObjectLiteralParser {
 	@Test public void notMethod() { parse("{(! x) = y}", "{(!x) = y}"); }
 	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
+	@Test public void consMethod() { parse("{(x :: y) = xy}", "{(x :: y) = xy}"); }
+
 	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
 	@Test public void numericSelfName1() { parse("{(0 + x) = x}", "{(0 + x) = x}"); }
 	@Test public void numericSelfName2() { parse("{0.plus(x) = x}", "{0.plus(x) = x}"); }

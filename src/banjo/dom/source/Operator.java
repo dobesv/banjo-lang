@@ -19,7 +19,7 @@ public enum Operator {
 	LIST_ELEMENT("*", 0x2022, OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	LAZY("->", 0x21a6, OperatorType.BUILTIN, Position.PREFIX, Precedence.FUNCTION),
 	TABLE_HEADER("#::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
-	TABLE_ROW("::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
+	TABLE_ROW(":::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
 	BRACKETS(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
