@@ -189,7 +189,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 
 		@Override
 		public boolean badIndentation(ExtSourceExpr rightOperand) {
-			return super.badIndentation(rightOperand) && !nonNull(rightOperand.getExpr().acceptVisitor(new BaseSourceExprVisitor<Boolean>() {
+			return super.badIndentation(rightOperand) && Boolean.FALSE == this.leftOperand.acceptVisitor(new BaseSourceExprVisitor<Boolean>() {
 				@SuppressWarnings("null")
 				@Override
 				public Boolean binaryOp(BinaryOp op) {
@@ -206,7 +206,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 				public Boolean fallback(SourceExpr other) {
 					return false;
 				}
-			}));
+			});
 		}
 		@Override
 		public String toString() {

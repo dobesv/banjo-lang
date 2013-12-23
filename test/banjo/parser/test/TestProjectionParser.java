@@ -3,6 +3,7 @@ package banjo.parser.test;
 import org.junit.Test;
 
 import banjo.dom.core.Call;
+import banjo.dom.core.ObjectLiteral;
 
 public class TestProjectionParser {
 
@@ -26,5 +27,6 @@ public class TestProjectionParser {
 	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a#[\"b\"] && a.b", Call.class); }
 	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map((_arg) -> _arg#[\"b\"] && _arg.b)", Call.class); }
 
-	@Test public void parenNewlineLhs() { ParseTestUtils.test("{t = [x, y].map((z) -> (\n  x\n )).min\n}", "", Call.class); }
+	@Test public void parenNewlineLhs1() { ParseTestUtils.test("{t = [x, y].map((z) -> (\n  x\n )).min\n}", "{t = [x, y].map((z) -> x).min}", ObjectLiteral.class); }
+	@Test public void parenNewlineLhs2() { ParseTestUtils.test("{t = [\nx, \ny].length\n}", "{t = [x, y].length}", ObjectLiteral.class); }
 }
