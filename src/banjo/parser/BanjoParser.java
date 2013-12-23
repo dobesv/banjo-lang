@@ -9,6 +9,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.ParenType;
 import banjo.dom.source.BadSourceExpr;
+import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.BinaryOp;
 import banjo.dom.source.EmptyExpr;
 import banjo.dom.source.Operator;
@@ -123,12 +124,16 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			if(this.operator == Operator.INVALID) {
 				return new ExtSourceExpr(new BadSourceExpr.UnsupportedOperator(this.operatorExpr.expr.toSource()), range, this.sourceMap.union(rightOperand.getSourceMap()));
 			}
-			if(rightOperand.getStartColumn() < getStartColumn() && !(this.operator.isParen() || this.operator.isSuffix())) {
+			if(badIndentation(rightOperand)) {
 				rightOperand = new ExtSourceExpr(new BadSourceExpr.IncorrectIndentation(rightOperand.getStartColumn(), getStartColumn()), rightOperand.range, rightOperand.getSourceMap());
 			}
 			final SourceExpr newExpr = makeOp(rightOperand.getExpr());
 			final SourceMap sourceMap = this.sourceMap.union(rightOperand.getSourceMap()).insert(newExpr, range);
 			return new ExtSourceExpr(newExpr, range, sourceMap);
+		}
+
+		public boolean badIndentation(ExtSourceExpr rightOperand) {
+			return rightOperand.getStartColumn() < getStartColumn() && !(this.operator.isParen() || this.operator.isSuffix());
 		}
 
 		/**
@@ -182,6 +187,27 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			return new BinaryOp(this.operator, this.leftOperand, rightOperand);
 		}
 
+		@Override
+		public boolean badIndentation(ExtSourceExpr rightOperand) {
+			return super.badIndentation(rightOperand) && !nonNull(rightOperand.getExpr().acceptVisitor(new BaseSourceExprVisitor<Boolean>() {
+				@SuppressWarnings("null")
+				@Override
+				public Boolean binaryOp(BinaryOp op) {
+					return op.getOperator().isParen();
+				}
+
+				@SuppressWarnings("null")
+				@Override
+				public Boolean unaryOp(UnaryOp op) {
+					return op.getOperator().isParen();
+				}
+
+				@Override
+				public Boolean fallback(SourceExpr other) {
+					return false;
+				}
+			}));
+		}
 		@Override
 		public String toString() {
 			return "(" + getOperand().toSource()+" "+this.operator.getOp() +" _)";
@@ -337,6 +363,9 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 	@Override @Nullable
 	public ExtSourceExpr operator(FileRange range, OperatorRef token) {
 		checkIndentDedent(range, token);
+		if(tryCloseParen(range, token)) {
+			return null;
+		}
 		ExtSourceExpr operand = this.operand;
 		if(operand != null) {
 			// Infix or suffix position
@@ -351,9 +380,6 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			@Nullable Operator operator = Operator.fromOp(token.getOp(), Position.INFIX);
 
 			if(operator == null) {
-				if(tryCloseParen(range, token)) {
-					return null;
-				}
 				operator = Operator.INVALID;
 			}
 			// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
@@ -364,9 +390,6 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 			// Prefix position
 			@Nullable Operator operator = Operator.fromOp(token.getOp(), Position.PREFIX);
 			if(operator == null) {
-				if(tryCloseParen(range, token)) {
-					return null;
-				}
 				operator = Operator.INVALID;
 			}
 			pushPartialOp(new PartialUnaryOp(range, nonNull(operator)));
@@ -392,9 +415,24 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		if(opRef.getOp().length() == 1) {
 			@Nullable
 			final ParenType closeParenTypeMaybe = ParenType.forCloseChar(opRef.getOp().charAt(0));
+
 			if(closeParenTypeMaybe != null) {
 				// If there is a trailing comma, semicolon, or newline we can pop it off the stack
 				final ParenType closeParenType = nonNull(closeParenTypeMaybe);
+
+				// When the open and close paren are the same, we can't match, so only check for
+				// a close paren if we're previously encountered an open paren.
+				if(closeParenType.getStartChar() == closeParenType.getEndChar()) {
+					boolean found = false;
+					for(final PartialOp po : this.opStack) {
+						if(po.isOpenParen(closeParenType)) {
+							found = true;
+							break;
+						}
+					}
+					if(!found)
+						return false;
+				}
 
 				while(!this.opStack.isEmpty()) {
 					final PartialOp po = this.opStack.pop();

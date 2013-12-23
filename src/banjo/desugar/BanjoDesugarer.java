@@ -1258,6 +1258,7 @@ public class BanjoDesugarer {
 			case COMPLEMENT:
 			case PLUS:
 			case NEGATE:
+			case ABSVALUE:
 				final DesugarResult<CoreExpr> operandCoreExpr = expr(operandSourceExpr);
 				return operandCoreExpr.withDesugared(op, new Call(operandCoreExpr.getValue(), opMethodName(op.getOperator())));
 

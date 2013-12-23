@@ -52,6 +52,8 @@ public class TestMathParser {
 	@Test public void minusOne1() { test("x-1", "x - 1"); }
 	@Test public void minusOne2() { test("-1-x", "-1 - x"); }
 
+	@Test public void abs1() { test("|x|", "|x|"); }
+
 
 	public void unaries(String src) {
 		test(src, "+-~1");

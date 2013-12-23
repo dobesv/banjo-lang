@@ -9,6 +9,7 @@ public class TestListLiteralParser {
 
 	//	@Test public void bullets() { list("\u2022 1\n\u2022 2\n\u2022 3", 0); }
 	//	@Test public void stars() { list("* 1\n* 2\n* 3", 0); }
+	@Test public void singletonList() { ParseTestUtils.test("[a]", "[a]", ListLiteral.class); }
 	@Test public void bracketsNewlines() { list("[1\n 2\n 3]", 0); }
 	@Test public void bracketsCommas() { list("[1,2,3]", 0); }
 	@Test public void bracketsMixedNewlinesCommas() { list("[1\n 2,\n 3]", 0); }

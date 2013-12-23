@@ -7,7 +7,9 @@ public enum ParenType {
 	/** Braces, aka curly brackets, are used to denote object literals */
 	BRACES('{', '}'),
 	/** Brackets, aka square brackets, are used to denote list literals */
-	BRACKETS('[', ']');
+	BRACKETS('[', ']'),
+	/** |x| means the absolute value of a number, or the size of a collection */
+	ABSVALUE('|', '|');
 
 	private final char startChar;
 	private final char endChar;

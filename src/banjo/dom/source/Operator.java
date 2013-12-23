@@ -22,6 +22,7 @@ public enum Operator {
 	TABLE_ROW("::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
 	BRACKETS(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
+	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("#", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),

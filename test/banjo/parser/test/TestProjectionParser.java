@@ -26,4 +26,5 @@ public class TestProjectionParser {
 	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a#[\"b\"] && a.b", Call.class); }
 	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map((_arg) -> _arg#[\"b\"] && _arg.b)", Call.class); }
 
+	@Test public void parenNewlineLhs() { ParseTestUtils.test("{t = [x, y].map((z) -> (\n  x\n )).min\n}", "", Call.class); }
 }

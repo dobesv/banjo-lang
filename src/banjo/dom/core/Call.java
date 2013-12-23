@@ -54,8 +54,15 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 		final Operator operator = Operator.fromMethodName(this.methodName.getKeyString());
 		if(operator != null && operator.isPrefix() && this.arguments.isEmpty()) {
-			operator.toSource(sb);
-			this.object.toSource(sb, operator.getPrecedence());
+			if(operator.isParen()) {
+				// Like |x|
+				sb.append(operator.getParenType().getStartChar());
+				this.object.toSource(sb, operator.getPrecedence());
+				sb.append(operator.getParenType().getEndChar());
+			} else {
+				operator.toSource(sb);
+				this.object.toSource(sb, operator.getPrecedence());
+			}
 		} else if(operator != null && operator.isSuffix() && this.arguments.isEmpty()) {
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			operator.toSource(sb);
