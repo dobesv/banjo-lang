@@ -60,9 +60,9 @@ public enum Operator {
 	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	CONS("::", OperatorType.BUILTIN, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COLON(":", OperatorType.BUILTIN, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
-	COND("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.RIGHT),
+	COND("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
-	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
+	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.NA),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
 	// Special case operators
