@@ -47,24 +47,21 @@ public class ParseTestUtils {
 			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
-		SourceMap sourceMaps = new SourceMap();
-		SourceExpr parseTree;
 		try {
 			final ExtSourceExpr parseResult = parser.parse(source);
-			parseTree = parseResult.getExpr();
-			sourceMaps = parseResult.getSourceMap();
+			final SourceExpr parseTree = parseResult.getExpr();
+			final SourceMap sourceMaps = parseResult.getSourceMap();
 			System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
 			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
-			final ParserReader in = ParserReader.fromString("<source>", source);
 			assertTrue(parser.reachedEof());
-			int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
+			int errCount = parseErrors(expectedErrorClass, sourceMaps, source);
 			if(errCount == 0) {
 				final BanjoDesugarer desugarer = new BanjoDesugarer();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
 
-				errCount = desugarErrors(expectedErrorClass, parseResult, desugarResult, in);
+				errCount = desugarErrors(expectedErrorClass, parseResult, desugarResult, source);
 				if(normalizedSource != null)
 					assertEquals(normalizedSource, ast.toSource());
 				if(errCount == 0 && expectedClass != null) {
@@ -80,7 +77,13 @@ public class ParseTestUtils {
 			throw new UnexpectedIOExceptionError(e1);
 		}
 	}
-
+	public static int parseErrors(Class<? extends BadExpr> expectedErrorClass,
+			SourceMap sourceMaps,
+			@NonNull String source) throws Error {
+		final ParserReader in = ParserReader.fromString("<source>", source);
+		final int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
+		return errCount;
+	}
 	public static int parseErrors(Class<? extends BadExpr> expectedClass,
 			SourceMap sourceMaps,
 			ParserReader in) throws Error {
@@ -106,6 +109,14 @@ public class ParseTestUtils {
 		return count;
 	}
 
+	private static int desugarErrors(Class<? extends BadExpr> expectedErrorClass,
+			ExtSourceExpr parseResult,
+			DesugarResult<CoreExpr> ds,
+			String source) throws Error {
+		final ParserReader in = ParserReader.fromString("<source>", source);
+		final int errCount = desugarErrors(expectedErrorClass, parseResult, ds, in);
+		return errCount;
+	}
 	private static int desugarErrors(Class<? extends BadExpr> expectedClass,
 			ExtSourceExpr parseResult,
 			DesugarResult<CoreExpr> ds,
