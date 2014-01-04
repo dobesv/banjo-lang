@@ -17,7 +17,6 @@ public class TestCallParser {
 	@Test public void cnl2() { call("a(b\n  c)", "a(b, c)", 2, 0); }
 	@Test public void cnl3() { call("a(b\n  c\n  d)", "a(b, c, d)", 3, 0); }
 	@Test public void cnl4() { call("a(b\n  c\n  d\n  e)", "a(b, c, d, e)", 4, 0); }
-	@Test public void mixed1() { call("a(b\n  c;d)", "a(b, c, d)", 3, 0); }
 	@Test public void mixed2() { call("a(b,c\n  d,e)", "a(b, c, d, e)", 4, 0); }
 	// TODO Warning/error on mixed comma and semicolon usage
 	@Ignore @Test public void mixed3() { call("a(b,c\n  d;e)", "a(b, c, d, e)", 4, 1); }

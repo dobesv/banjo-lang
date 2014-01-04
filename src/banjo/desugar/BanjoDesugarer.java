@@ -255,7 +255,6 @@ public class BanjoDesugarer {
 			@Override
 			@Nullable
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				// TODO: Implement list / object projections
 				return withDesugared(sourceExpr, new BadCoreExpr("Expected identifier"));
 			}
 
@@ -589,7 +588,6 @@ public class BanjoDesugarer {
 						public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp op) {
 							switch(op.getOperator()) {
 							case COMMA:
-							case SEMICOLON:
 							case NEWLINE:
 								return fallback(op);
 							default:
@@ -988,8 +986,7 @@ public class BanjoDesugarer {
 							return field(op.getLeft(), op.getRight());
 						}
 						case COMMA:
-						case NEWLINE:
-						case SEMICOLON: {
+						case NEWLINE: {
 							final DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> rightDs = collectFields(ds, op.getRight(), objectName, currFields);
 							final DesugarResult<fj.data.List<P2<CoreExpr, SourceExpr>>> leftDs = collectFields(rightDs, op.getLeft(), objectName, rightDs.getValue());
 							return leftDs;
@@ -1068,7 +1065,7 @@ public class BanjoDesugarer {
 		}));
 	}
 
-	private fj.data.List<SourceExpr> flattenCommas(final SourceExpr arg) {
+	private fj.data.List<SourceExpr> flattenList(final SourceExpr arg, final Operator sep) {
 		@NonNull
 		final fj.data.List<SourceExpr> result = nonNull(arg.acceptVisitor(new BaseSourceExprVisitor<fj.data.List<SourceExpr>>() {
 			@Override
@@ -1079,20 +1076,16 @@ public class BanjoDesugarer {
 
 			@Override
 			public fj.data.List<SourceExpr> binaryOp(BinaryOp op) {
-				switch (op.getOperator()) {
-				case COMMA:
-				case SEMICOLON:
-				case NEWLINE:
+				if(op.getOperator() == sep || op.getOperator() == Operator.NEWLINE) {
 					@NonNull
-					final fj.data.List<SourceExpr> left = flattenCommas(op.getLeft());
+					final fj.data.List<SourceExpr> left = flattenList(op.getLeft(), sep);
 					@NonNull
-					final fj.data.List<SourceExpr> right = flattenCommas(op.getRight());
+					final fj.data.List<SourceExpr> right = flattenList(op.getRight(), sep);
 					return left.isEmpty() ? right :
 						right.isEmpty() ? left :
 							left.tail().isEmpty() ? fj.data.List.cons(left.head(), right) :
 								left.append(right);
-
-				default:
+				} else {
 					return fallback(op);
 				}
 			}
@@ -1104,6 +1097,14 @@ public class BanjoDesugarer {
 		}));
 		return result;
 	}
+
+	private fj.data.List<SourceExpr> flattenCommas(final SourceExpr arg) {
+		return flattenList(arg, Operator.COMMA);
+	}
+	private fj.data.List<SourceExpr> flattenSemicolons(final SourceExpr arg) {
+		return flattenList(arg, Operator.COMMA);
+	}
+
 
 	protected DesugarResult<CoreExpr> binaryOpToMethodCall(final BinaryOp op, boolean lazyRightOperand) {
 		final SourceExpr leftSourceExpr = op.getLeft();
@@ -1198,7 +1199,6 @@ public class BanjoDesugarer {
 		public DesugarResult<CoreExpr> binaryOp(final BinaryOp op) {
 			// Comma outside of a parentheses should be a list or map without the braces/brackets
 			switch(op.getOperator()) {
-			case COMMA:
 			case SEMICOLON:
 			case NEWLINE: {
 				return exprPair(op);
