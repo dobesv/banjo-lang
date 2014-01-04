@@ -337,7 +337,7 @@ public class BanjoParser implements TokenVisitor<ExtSourceExpr> {
 		final ExtSourceExpr operand = this.operand;
 		if(operand != null) {
 			final BadSourceExpr expr = new BadSourceExpr.ExpectedOperator();
-			this.operand = new ExtSourceExpr(expr, operand.range.extend(range), EMPTY_SOURCE_MAP);
+			this.operand = new ExtSourceExpr(expr, FileRange.between(operand.range, range), EMPTY_SOURCE_MAP);
 		} else {
 			this.operand = new ExtSourceExpr(token, range, EMPTY_SOURCE_MAP);
 		}
