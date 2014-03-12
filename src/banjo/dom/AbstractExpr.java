@@ -8,12 +8,21 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Precedence;
 import banjo.parser.util.AbstractCachedHashCode;
+import banjo.parser.util.SourceFileRange;
 
 public abstract class AbstractExpr extends AbstractCachedHashCode implements Expr {
+	final SourceFileRange sourceFileRange;
 
-	public AbstractExpr(int hashCode) {
+	public AbstractExpr(int hashCode, SourceFileRange sourceFileRange) {
 		super(hashCode);
+		this.sourceFileRange = sourceFileRange;
 	}
+
+	@Override
+	public SourceFileRange getSourceFileRange() {
+		return this.sourceFileRange;
+	}
+
 
 	@Override
 	public void toSource(StringBuffer sb, Precedence outerPrec) {
@@ -67,4 +76,17 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return newValue;
 	}
 
+	@Override
+	public int compareTo(Expr o) {
+		return this.sourceFileRange.compareTo(o.getSourceFileRange());
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		return obj == this || (
+				super.equals(obj) &&
+				(obj instanceof Expr) &&
+				this.sourceFileRange.equals(((Expr)obj).getSourceFileRange())
+				);
+	}
 }

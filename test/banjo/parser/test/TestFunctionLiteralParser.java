@@ -20,7 +20,7 @@ public class TestFunctionLiteralParser {
 	}
 	public ObjectLiteral testParse(String source, int expectedErrors, int expectedArgCount, String selfName, String expectedArgNames, final String expectedArgReturned) {
 		final String normalizedSource =
-				(selfName==null?"":selfName+".")+
+				(selfName==null?"":selfName)+
 				(expectedArgNames==null?"-> ":"("+expectedArgNames+") -> ")+expectedArgReturned;
 		final ObjectLiteral func = ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
 		assert func.isLambda();
@@ -54,4 +54,6 @@ public class TestFunctionLiteralParser {
 	@Test public void testSnd()       { testParse("(a,b)↦b", 0, 2, "a, b", "b"); } // Second argument
 	@Test public void testThird()     { testParse("(a,b,c)↦c", 0, 3, "a, b, c", "c"); } // Second argument
 	@Test public void testLazyParens() { testParse("()↦z", 0, 0, null, "z"); } // Lazy value, with parens
+	@Test public void testSelfName1() { testParse("s(a)↦a", 0, 0, "s", "a", "a"); } // Lazy value, with parens
+	@Test public void testSelfName2() { testParse("s()↦s", 0, 0, "s", "", "s"); } // Lazy value, with parens
 }

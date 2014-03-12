@@ -6,13 +6,14 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
+import banjo.parser.util.SourceFileRange;
 
 public abstract class AbstractOp extends AbstractExpr {
 	protected final Operator operator;
 	protected final SourceExpr[] operands;
 
-	public AbstractOp(Operator operator, SourceExpr ... operands) {
-		super(operator.hashCode() ^ Arrays.hashCode(operands));
+	public AbstractOp(SourceFileRange sfr, Operator operator, SourceExpr ... operands) {
+		super(operator.hashCode() ^ Arrays.hashCode(operands) + sfr.hashCode(), sfr);
 		this.operator = operator;
 		this.operands = operands;
 	}
@@ -38,6 +39,7 @@ public abstract class AbstractOp extends AbstractExpr {
 				cmp = this.operands[i].compareTo(other.operands[i]);
 			}
 			if(cmp == 0) cmp = Integer.compare(this.operands.length, other.operands.length);
+			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
 	}

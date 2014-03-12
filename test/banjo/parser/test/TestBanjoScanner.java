@@ -43,7 +43,7 @@ public class TestBanjoScanner {
 			Class<?>[] expectedTokenClasses) throws Error {
 		final BanjoScanner scanner = new BanjoScanner();
 		final ArrayList<Token> tokens = new ArrayList<>();
-		scanner.scan(src, new TokenCollector(new BanjoParser(), tokens));
+		scanner.scan(src, new TokenCollector(tokens));
 		final BanjoParser parser = new BanjoParser();
 		test(src, 0, null, expectedClass, normalizedSource, parser);
 		final int expectedTokenCount = expectedTokenNormalizedSource.length;

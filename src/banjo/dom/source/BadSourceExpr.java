@@ -5,27 +5,40 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.AbstractBadExpr;
 import banjo.dom.BadExpr;
 import banjo.dom.ParenType;
+import banjo.parser.util.SourceFileRange;
 
 public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExpr {
 	public static class ExpectedOperator extends BadSourceExpr {
 
-		public ExpectedOperator() {
-			super("Expected an operator here");
+		public ExpectedOperator(SourceFileRange sfr) {
+			super(sfr, "Expected an operator here");
 		}
 
 	}
 	public static class IncorrectIndentation extends BadSourceExpr {
 
-		public IncorrectIndentation(int actualIndent, int expectedMinIndent) {
-			super("Incorrect indentation; expected at least %d columns, got only %d", expectedMinIndent, actualIndent);
+		public IncorrectIndentation(SourceFileRange sfr, int actualIndent, int expectedMinIndent) {
+			super(sfr, "Incorrect indentation; expected at least %d columns, got only %d", expectedMinIndent, actualIndent);
 		}
 
 	}
 	public static class MismatchedCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MismatchedCloseParen(ParenType closeParenType) {
-			super("Mismatched closed paren %s", closeParenType.getEndChar());
+		public MismatchedCloseParen(SourceFileRange sfr, ParenType closeParenType) {
+			super(sfr, "Mismatched close paren %s", closeParenType.getEndChar());
+			this.closeParenType = closeParenType;
+		}
+
+		public ParenType getCloseParenType() {
+			return this.closeParenType;
+		}
+	}
+	public static class MissingCloseParen extends BadSourceExpr {
+		private final ParenType closeParenType;
+
+		public MissingCloseParen(SourceFileRange sfr, ParenType closeParenType) {
+			super(sfr, "Missing close paren %s", closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
 
@@ -36,8 +49,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class UnsupportedOperator extends BadSourceExpr {
 		private final String op;
 
-		public UnsupportedOperator(String op) {
-			super("Unsupported operator '"+op+"'");
+		public UnsupportedOperator(SourceFileRange sfr, String op) {
+			super(sfr, "Unsupported operator '"+op+"'");
 			this.op = op;
 		}
 
@@ -46,8 +59,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 		}
 	}
 
-	protected BadSourceExpr(String message, Object ... args) {
-		super(message, args);
+	protected BadSourceExpr(SourceFileRange sfr, String message, Object ... args) {
+		super(sfr, message, args);
 	}
 
 	@Override

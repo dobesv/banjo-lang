@@ -1,6 +1,7 @@
 package banjo.dom;
 
 import banjo.dom.source.Precedence;
+import banjo.parser.util.SourceFileRange;
 
 
 
@@ -16,5 +17,5 @@ public interface Expr extends Comparable<Expr> {
 
 	public Precedence getPrecedence();
 
-
+	public SourceFileRange getSourceFileRange();
 }

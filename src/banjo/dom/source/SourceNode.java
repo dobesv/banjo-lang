@@ -2,6 +2,7 @@ package banjo.dom.source;
 
 
 
+
 public interface SourceNode {
 
 	/**

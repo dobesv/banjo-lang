@@ -6,6 +6,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
+import banjo.parser.util.SourceFileRange;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
@@ -16,8 +17,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return this.args;
 	}
 
-	public AbstractBadExpr(String message, Object ... args) {
-		super(message.hashCode());
+	public AbstractBadExpr(SourceFileRange sourceFileRange, String message, Object ... args) {
+		super(message.hashCode(), sourceFileRange);
 		this.messageTemplate = message;
 		this.args = args;
 	}

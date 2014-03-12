@@ -10,12 +10,10 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
+import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.ExtSourceExpr;
-import banjo.parser.util.ParserReader;
 
 public class TestNumberLiteralParser {
 
@@ -34,10 +32,9 @@ public class TestNumberLiteralParser {
 	private void testNonNumber(@NonNull String inStr, Class<? extends BadExpr> eClass) {
 		try {
 			final BanjoParser parser = new BanjoParser();
-			final ExtSourceExpr parseResult = parser.parse(inStr);
-			final Expr node = parseResult.getExpr();
+			final SourceExpr node = parser.parse(inStr);
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
-			final int errCount = ParseTestUtils.parseErrors(eClass, parseResult.getSourceMap(), ParserReader.fromString("--", inStr));
+			final int errCount = ParseTestUtils.parseErrors(eClass, node);
 			if(eClass != null && errCount == 0)
 				fail("Expecting problem of class "+eClass.getSimpleName());
 			else

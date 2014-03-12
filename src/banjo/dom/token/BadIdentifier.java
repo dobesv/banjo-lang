@@ -9,19 +9,20 @@ import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.parser.util.SourceFileRange;
 
 public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	private final String message;
 	final String originalSource;
 
-	public BadIdentifier(String message, String originalSource) {
-		super(message.hashCode() + originalSource.hashCode());
+	public BadIdentifier(SourceFileRange sfr, String message, String originalSource) {
+		super(message.hashCode() + originalSource.hashCode(), sfr);
 		this.message = message;
 		this.originalSource = originalSource;
 	}
 
 	public BadIdentifier(SourceExpr source) {
-		this("Expected identifier; got "+source.toSource(), source.toSource());
+		this(source.getSourceFileRange(), "Expected identifier; got "+source.toSource(), source.toSource());
 	}
 
 	@Override
@@ -49,6 +50,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 			final BadIdentifier other = (BadIdentifier) o;
 			if(cmp == 0) cmp = this.getMessage().compareTo(other.getMessage());
 			if(cmp == 0) cmp = this.originalSource.compareTo(other.originalSource);
+			if(cmp == 0) cmp = super.compareTo(o);
 		}
 		return cmp;
 	}
@@ -57,7 +59,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	public boolean equals(@Nullable Object obj) {
 		if(obj == this) return true;
 		if(obj == null || !(obj instanceof BadIdentifier)) return false;
-		if(obj.hashCode() != this.hashCode()) return false;
+		if(!super.equals(obj)) return false;
 		final BadIdentifier x = (BadIdentifier) obj;
 		return x.message.equals(this.message) && x.originalSource.equals(this.originalSource);
 	}

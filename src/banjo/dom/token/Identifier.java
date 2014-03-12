@@ -8,16 +8,17 @@ import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.BanjoScanner;
+import banjo.parser.util.SourceFileRange;
 
 public class Identifier extends AbstractAtom implements Atom, Key, Token {
-	public static final Identifier ZERO = new Identifier("0");
-	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
-	public static final Identifier EMPTY_LIST = new Identifier("[]");
+	public static final Identifier ZERO = new Identifier(SourceFileRange.SYNTHETIC, "0");
+	public static final Identifier EMPTY_STRING = new Identifier(SourceFileRange.SYNTHETIC, "\"\"");
+	public static final Identifier EMPTY_LIST = new Identifier(SourceFileRange.SYNTHETIC, "[]");
 
 	final String id;
 
-	public Identifier(String id) {
-		super(id.hashCode());
+	public Identifier(SourceFileRange sfr, String id) {
+		super(id.hashCode() + sfr.hashCode(), sfr);
 		this.id = id;
 	}
 

@@ -3,5 +3,6 @@ package banjo.dom.source;
 public enum OperatorType {
 	METHOD,
 	LAZY_RHS,
-	BUILTIN;
+	BUILTIN,
+	METHOD_SWITCHED;
 }

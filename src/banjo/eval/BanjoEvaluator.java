@@ -7,7 +7,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.analysis.DefRefAnalyser;
 import banjo.analysis.DefRefAnalyser.Analysis;
-import banjo.analysis.DefRefAnalyser.ExprRef;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
@@ -53,8 +52,8 @@ public class BanjoEvaluator {
 					final DefRefAnalyser defRefAnalyser = new DefRefAnalyser();
 					final Analysis analysis = defRefAnalyser.analyseMethod(methodDef);
 					final TreeMap<String,BanjoObject> closure = BanjoObject.EMPTY_ENVIRONMENT;
-					for(final ExprRef freeRef : analysis.getFree()) {
-						final String id = ((Key)freeRef.getNode()).getKeyString();
+					for(final Key freeRef : analysis.getFree()) {
+						final String id = freeRef.getKeyString();
 						closure.set(id, environment.get(id).orSome(BanjoEvaluator.this.emptyObject));
 					}
 					methodMap.set(methodDef.getKey().getKeyString(), new MethodClosure(methodDef, closure));

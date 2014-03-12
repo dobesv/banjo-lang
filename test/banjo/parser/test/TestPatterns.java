@@ -34,7 +34,8 @@ public class TestPatterns {
 	@Test public void testUnpackLazy3() { test("(-> [z]) -> z", "(_lazy) -> ((_lst) -> ((z) -> z)(_lst[0]))(_lazy())"); }
 	@Test public void testUnpackLazy4() { test("{(true && -> x) = x}", "{(true && _lazy) = ((x) -> x)(_lazy())}"); }
 	@Test public void testUnpackLazy5() { test("{(true && (-> x)) = x}", "{(true && _lazy) = ((x) -> x)(_lazy())}"); }
+	@Test public void testUnpackLazy6() { test("{(false ; -> x) = x}", "{(false ; _lazy) = ((x) -> x)(_lazy())}"); }
 	@Test public void testUnpackLazyUsingAssignment() { test("(-> z) = foo ; z", "((_lazy) -> ((z) -> z)(_lazy()))(foo)"); }
 
-
+	// TODO Contract checking has to be deferred until after unpacking, so that unpacked variables can be used in contract expressions.  Hrm.
 }

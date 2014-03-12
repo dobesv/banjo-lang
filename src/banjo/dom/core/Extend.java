@@ -5,20 +5,21 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.parser.util.SourceFileRange;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr base;
 	private final CoreExpr extension;
 
-	public Extend(CoreExpr base, CoreExpr extension) {
-		super(base.hashCode() ^ extension.hashCode());
+	public Extend(SourceFileRange sfr, CoreExpr base, CoreExpr extension) {
+		super(base.hashCode() ^ extension.hashCode(), sfr);
 		this.base = base;
 		this.extension = extension;
 	}
 
 
-	public Extend(int hashCode, CoreExpr base, CoreExpr extension) {
-		super(hashCode);
+	public Extend(int hashCode, SourceFileRange sfr, CoreExpr base, CoreExpr extension) {
+		super(hashCode+sfr.hashCode(), sfr);
 		this.base = base;
 		this.extension = extension;
 	}
@@ -45,6 +46,7 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 			final Extend other = (Extend) o;
 			if(cmp == 0) cmp = this.base.compareTo(other.base);
 			if(cmp == 0) cmp = this.extension.compareTo(other.extension);
+			if(cmp == 0) cmp = super.compareTo(o);
 		}
 		return cmp;
 	}

@@ -1,6 +1,5 @@
 package banjo.parser.test;
 
-import static banjo.parser.util.Check.nonNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -18,16 +17,11 @@ import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.ExtSourceExpr;
-import banjo.parser.util.FileRange;
-import banjo.parser.util.ParserReader;
-import banjo.parser.util.SourceMap;
 import banjo.parser.util.UnexpectedIOExceptionError;
-import fj.P2;
-import fj.data.Set;
 
 @NonNullByDefault(false)
 public class ParseTestUtils {
@@ -37,7 +31,7 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		final BanjoParser parser = new BanjoParser();
+		final BanjoParser parser = new BanjoParser("<test>");
 		return test(source, expectedErrors, expectedErrorClass, expectedClass,
 				normalizedSource, parser);
 	}
@@ -48,20 +42,18 @@ public class ParseTestUtils {
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		try {
-			final ExtSourceExpr parseResult = parser.parse(source);
-			final SourceExpr parseTree = parseResult.getExpr();
-			final SourceMap sourceMaps = parseResult.getSourceMap();
+			final SourceExpr parseTree = parser.parse(source);
 			System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
 			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
 			assertTrue(parser.reachedEof());
-			int errCount = parseErrors(expectedErrorClass, sourceMaps, source);
+			int errCount = parseErrors(expectedErrorClass, parseTree);
 			if(errCount == 0) {
 				final BanjoDesugarer desugarer = new BanjoDesugarer();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));
 
-				errCount = desugarErrors(expectedErrorClass, parseResult, desugarResult, source);
+				errCount = desugarErrors(expectedErrorClass, desugarResult);
 				if(normalizedSource != null)
 					assertEquals(normalizedSource, ast.toSource());
 				if(errCount == 0 && expectedClass != null) {
@@ -77,67 +69,33 @@ public class ParseTestUtils {
 			throw new UnexpectedIOExceptionError(e1);
 		}
 	}
-	public static int parseErrors(Class<? extends BadExpr> expectedErrorClass,
-			SourceMap sourceMaps,
-			@NonNull String source) throws Error {
-		final ParserReader in = ParserReader.fromString("<source>", source);
-		final int errCount = parseErrors(expectedErrorClass, sourceMaps, in);
-		return errCount;
-	}
-	public static int parseErrors(Class<? extends BadExpr> expectedClass,
-			SourceMap sourceMaps,
-			ParserReader in) throws Error {
+
+	public static int parseErrors(Class<? extends BadExpr> expectedClass, @NonNull SourceExpr parseTree) throws Error {
 		int count = 0;
 		BadExpr first = null;
-		for(final P2<SourceExpr, Set<FileRange>> p : sourceMaps) {
-			final SourceExpr n = p._1();
-			if(n instanceof BadExpr) {
-				final BadExpr e = (BadExpr) n;
-				if(count == 0) {
-					System.out.println("Parse Errors:");
-					first = e;
-				}
-				final Set<FileRange> locs = p._2();
-				for(final FileRange range : locs) {
-					System.out.println("  "+range+": "+e.getMessage());
-					count ++;
-				}
+		for(final BadExpr e : SourceErrorGatherer.getProblems(parseTree)) {
+			if(count == 0) {
+				System.out.println("Parse Errors:");
+				first = e;
 			}
+			System.out.println("  "+e.getSourceFileRange().getFileRange()+": "+e.getMessage());
+			count ++;
 		}
 		if(expectedClass != null && first != null)
 			assertEquals(expectedClass, first.getClass());
 		return count;
 	}
 
-	private static int desugarErrors(Class<? extends BadExpr> expectedErrorClass,
-			ExtSourceExpr parseResult,
-			DesugarResult<CoreExpr> ds,
-			String source) throws Error {
-		final ParserReader in = ParserReader.fromString("<source>", source);
-		final int errCount = desugarErrors(expectedErrorClass, parseResult, ds, in);
-		return errCount;
-	}
-	private static int desugarErrors(Class<? extends BadExpr> expectedClass,
-			ExtSourceExpr parseResult,
-			DesugarResult<CoreExpr> ds,
-			ParserReader in) throws Error {
+	private static int desugarErrors(Class<? extends BadExpr> expectedClass, DesugarResult<CoreExpr> ds) throws Error {
 		int count = 0;
 		BadExpr first = null;
-		for(final P2<CoreExpr, Set<SourceExpr>> p : ds.getDesugarMap().getExprs()) {
-			final CoreExpr n = p._1();
-			if(n instanceof BadExpr) {
-				final BadExpr e = (BadExpr) n;
-				if(count == 0) {
-					System.out.println("Desugar Errors:");
-					first = e;
-				}
-				for(final SourceExpr sourceExpr : p._2()) {
-					for(final FileRange range : parseResult.getSourceMap().get(nonNull(sourceExpr))) {
-						System.out.println("  "+range+": "+e.getMessage());
-						count ++;
-					}
-				}
+		for(final BadExpr e : ds.getProblems()) {
+			if(count == 0) {
+				System.out.println("Desugar Errors:");
+				first = e;
 			}
+			System.out.println("  "+e.getSourceFileRange().getFileRange()+": "+e.getMessage());
+			count ++;
 		}
 		if(expectedClass != null && first != null)
 			assertEquals(expectedClass, first.getClass());

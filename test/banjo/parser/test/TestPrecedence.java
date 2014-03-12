@@ -7,8 +7,8 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import banjo.dom.source.SourceExpr;
 import banjo.parser.BanjoParser;
-import banjo.parser.BanjoParser.ExtSourceExpr;
 import banjo.parser.util.UnexpectedIOExceptionError;
 
 public class TestPrecedence {
@@ -18,8 +18,8 @@ public class TestPrecedence {
 
 	private void test(String source, String expectedFullyParenthesized) {
 		try {
-			final ExtSourceExpr parseResult = new BanjoParser().parse(source);
-			final String actualFullyParenthesizedSource = parseResult.getExpr().toFullyParenthesizedSource();
+			final SourceExpr parseResult = new BanjoParser().parse(source);
+			final String actualFullyParenthesizedSource = parseResult.toFullyParenthesizedSource();
 			assertEquals(expectedFullyParenthesized, actualFullyParenthesizedSource);
 		} catch (final IOException e) {
 			throw new UnexpectedIOExceptionError(e);

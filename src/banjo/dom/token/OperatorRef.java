@@ -6,6 +6,7 @@ import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.parser.util.SourceFileRange;
 
 public class OperatorRef extends AbstractAtom implements Atom {
 
@@ -13,8 +14,8 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	private final String op;
 
-	public OperatorRef(String op) {
-		super(op.hashCode());
+	public OperatorRef(SourceFileRange sfr, String op) {
+		super(op.hashCode(), sfr);
 		this.op = op;
 	}
 

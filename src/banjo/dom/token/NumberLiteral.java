@@ -13,14 +13,15 @@ import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.parser.util.SourceFileRange;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	final String text;
 	final Number number;
 
-	public NumberLiteral(String text, Number number) {
-		super(number.hashCode());
+	public NumberLiteral(SourceFileRange sfr, String text, Number number) {
+		super(number.hashCode(), sfr);
 		this.text = text;
 		this.number = number;
 	}
@@ -87,9 +88,6 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		if(num instanceof Long) return new Long(-((Long)num).longValue());
 		if(num instanceof Integer) return new Integer(-((Integer)num).intValue());
 		throw new Error("Unexpected number subclass: "+num.getClass());
-	}
-	public NumberLiteral negate() {
-		return new NumberLiteral("-"+this.text, negateNumber(this.number));
 	}
 
 	@Override

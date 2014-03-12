@@ -5,6 +5,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.parser.util.SourceFileRange;
 
 /**
  * A primitive operation for reading the metadata of an object.
@@ -18,8 +19,8 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		return this.target;
 	}
 
-	public Inspect(CoreExpr target) {
-		super(target.hashCode());
+	public Inspect(SourceFileRange sfr, CoreExpr target) {
+		super(target.hashCode()+sfr.hashCode(), sfr);
 		this.target = target;
 	}
 
@@ -42,6 +43,7 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		if(cmp == 0) {
 			final Inspect other = (Inspect) o;
 			if(cmp == 0) cmp = this.target.compareTo(other.target);
+			if(cmp == 0) cmp = super.compareTo(o);
 		}
 		return cmp;
 	}

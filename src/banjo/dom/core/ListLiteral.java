@@ -5,14 +5,15 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.ListUtil;
+import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	private final List<CoreExpr> elements;
 
-	public ListLiteral(List<CoreExpr> elements) {
-		super(elements.hashCode());
+	public ListLiteral(SourceFileRange sfr, List<CoreExpr> elements) {
+		super(elements.hashCode()+sfr.hashCode(), sfr);
 		this.elements = elements;
 	}
 
@@ -64,6 +65,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 		if(cmp == 0) {
 			final ListLiteral other = (ListLiteral) o;
 			if(cmp == 0) cmp = ListUtil.<Expr>compare(this.elements, other.elements);
+			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
 	}

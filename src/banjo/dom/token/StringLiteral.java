@@ -9,12 +9,13 @@ import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.parser.util.SourceFileRange;
 
 public class StringLiteral extends AbstractAtom implements Atom, Key {
 	private final String string;
 
-	public StringLiteral(String string) {
-		super(string.hashCode());
+	public StringLiteral(SourceFileRange sfr, String string) {
+		super(string.hashCode(), sfr);
 		this.string = string;
 	}
 

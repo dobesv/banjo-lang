@@ -27,7 +27,7 @@ public class TestMathParser {
 	@Test public void ge() { test("3 >= 2", "3 >= 2"); }
 	@Test public void le() { test("3 <= 2", "3 <= 2"); }
 
-	@Test public void extend() { test("a {+} b", "a{+}b"); }
+	@Test public void extend() { test("a @ b", "a@b"); }
 
 	// TODO Support right-aligned operands
 	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).\\+(11).\\+(111)"); }

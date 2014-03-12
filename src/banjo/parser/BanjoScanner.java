@@ -8,17 +8,10 @@ import java.math.BigInteger;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.token.BadToken;
-import banjo.dom.token.Comment;
-import banjo.dom.token.Ellipsis;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OperatorRef;
-import banjo.dom.token.StringLiteral;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.Whitespace;
 import banjo.parser.util.Container;
 import banjo.parser.util.FilePos;
+import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.ParserReader.Pos;
 import banjo.parser.util.UnexpectedIOExceptionError;
@@ -44,7 +37,6 @@ public class BanjoScanner {
 			@Nullable Container<T> result = null;
 			if( (result = whitespace(in, visitor)) != null ||
 					(result = comment(in, visitor)) != null ||
-					(result = ellipsis(in, visitor)) != null ||
 					(result = identifier(in, visitor)) != null ||
 					(result = operator(in, visitor)) != null ||
 					(result = numberLiteral(in, visitor)) != null ||
@@ -57,7 +49,7 @@ public class BanjoScanner {
 					this.eof = true;
 					return visitor.eof(in.getFileRange(FilePos.START));
 				} else {
-					return visitor.badToken(in.getFileRange(this.tokenStartPos), new BadToken(codePointToString(badCp), "Unsupported code point "+badCp));
+					return visitor.badToken(in.getFileRange(this.tokenStartPos), codePointToString(badCp), "Unsupported code point "+badCp);
 				}
 			}
 		}
@@ -169,8 +161,8 @@ public class BanjoScanner {
 		case ']': return "]";
 		case '{': {
 			// Special case for "{+}"
-			if(in.startsWith("+}"))
-				return "{+}";
+			//			if(in.startsWith("+}"))
+			//				return "{+}";
 			return "{";
 		}
 		case '}': return "}";
@@ -227,8 +219,7 @@ public class BanjoScanner {
 					return null;
 				}
 
-				final Comment comment = new Comment(in.readStringFrom(this.tokenStartPos));
-				return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), comment));
+				return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos)));
 			} else {
 				in.unread(); // Push back the non-whitespace character we found
 				return null;
@@ -245,7 +236,8 @@ public class BanjoScanner {
 		in.unread(); // Push back the non-whitespace character we found
 		if(!foundWhitespace)
 			return null; // No whitespace found
-		return new Container<T>(visitor.whitespace(in.getFileRange(this.tokenStartPos), new Whitespace(in.readStringFrom(this.tokenStartPos))));
+		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
+		return new Container<T>(visitor.whitespace(fileRange, in.readStringFrom(this.tokenStartPos)));
 	}
 
 	/**
@@ -442,7 +434,7 @@ public class BanjoScanner {
 			final FilePos afterBackslash = in.getFilePos();
 			cp = in.read();
 			if(cp == -1) {
-				visitor.badToken(in.getFileRange(this.tokenStartPos), new BadToken("", "Backslash at end of file."));
+				visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Backslash at end of file.");
 				break;
 			}
 			switch (cp) {
@@ -478,24 +470,23 @@ public class BanjoScanner {
 
 			default:  {
 				final String escSeq = in.readStringFrom(afterBackslash);
-				visitor.badToken(in.getFileRange(afterBackslash), new BadToken(escSeq, "Unknown escape sequence "+escSeq));
+				visitor.badToken(in.getFileRange(afterBackslash), escSeq, "Unknown escape sequence "+escSeq);
 				break;
 			}
 			}
 		}
-		if(cp == -1) visitor.badToken(in.getFileRange(this.tokenStartPos), new BadToken("", "End of file in string literal"));
-		final StringLiteral stringLiteral = new StringLiteral(nonNull(this.buf.toString()));
-		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), stringLiteral));
+		if(cp == -1) visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal");
+		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));
 	}
 
 	private @Nullable <T> Container<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		String str = matchOperator(in);
 		if(str == null) str = matchID(in);
 		if(str == null) {
-			visitor.badToken(in.getFileRange(this.tokenStartPos), new BadToken(in.readStringFrom(this.tokenStartPos), "Empty backtick"));
+			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), "Empty backtick");
 			str = "";
 		}
-		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), new StringLiteral(str)));
+		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), str));
 	}
 
 	private final Pos afterDigits = new Pos();
@@ -505,7 +496,7 @@ public class BanjoScanner {
 		for(int digits = 0; digits < digitCount; digits++) {
 			final int digitValue = Character.digit(in.read(), 16);
 			if(digitValue == -1) {
-				visitor.badToken(in.getFileRange(this.afterDigits), new BadToken(in.readStringFrom(this.afterDigits), "Invalid hex digit in \\x escape"));
+				visitor.badToken(in.getFileRange(this.afterDigits), in.readStringFrom(this.afterDigits), "Invalid hex digit in \\x escape");
 				in.seek(this.afterDigits);
 				return;
 			} else {
@@ -572,7 +563,7 @@ public class BanjoScanner {
 		for(;;) {
 			if(cp == '.') {
 				if(radix != 10) {
-					visitor.badToken(in.getFileRange(this.afterDigits), new BadToken(in.readStringFrom(this.afterDigits), "Decimal point found in "+formatName+" number"));
+					visitor.badToken(in.getFileRange(this.afterDigits), in.readStringFrom(this.afterDigits), "Decimal point found in "+formatName+" number");
 					radix = 10;
 				}
 				if(!isInteger) {
@@ -675,8 +666,8 @@ public class BanjoScanner {
 			}
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
-		final NumberLiteral result = new NumberLiteral(text, nonNull(number));
-		return new Container<T>(visitor.numberLiteral(in.getFileRange(this.tokenStartPos), result));
+		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
+		return new Container<T>(visitor.numberLiteral(fileRange, text, nonNull(number)));
 	}
 
 	/**
@@ -690,7 +681,7 @@ public class BanjoScanner {
 		final String identifier = matchID(in);
 		if(identifier == null)
 			return null;
-		return new Container<T>(visitor.identifier(in.getFileRange(this.tokenStartPos), new Identifier(identifier)));
+		return new Container<T>(visitor.identifier(in.getFileRange(this.tokenStartPos), identifier));
 	}
 
 	/**
@@ -704,24 +695,7 @@ public class BanjoScanner {
 		final String operator = matchOperator(in);
 		if(operator == null)
 			return null;
-		return new Container<T>(visitor.operator(in.getFileRange(this.tokenStartPos), new OperatorRef(operator)));
-	}
-
-	/**
-	 * Check for an Ellipsis at the current parse position.
-	 * 
-	 * Assumes tokenStartPos is already set to the current parse position.
-	 */
-	private @Nullable <T> Container<T> ellipsis(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		if(in.checkNextChar('.')) {
-			if(in.read() == '.' && in.read() == '.') {
-				return new Container<T>(visitor.ellipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(3)));
-			}
-			in.seek(this.tokenStartPos);
-		} else if(in.checkNextChar(ELLIPSIS)) {
-			return new Container<T>(visitor.ellipsis(in.getFileRange(this.tokenStartPos), new Ellipsis(1)));
-		}
-		return null;
+		return new Container<T>(visitor.operator(in.getFileRange(this.tokenStartPos), operator));
 	}
 
 	public static String codePointToString(int cp) {

@@ -9,15 +9,7 @@ import java.util.Arrays;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.token.BadToken;
-import banjo.dom.token.Comment;
-import banjo.dom.token.Ellipsis;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OperatorRef;
-import banjo.dom.token.StringLiteral;
 import banjo.dom.token.TokenVisitor;
-import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
@@ -35,7 +27,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String whitespace(@NonNull FileRange range, @NonNull Whitespace tok) {
+	public String whitespace(@NonNull FileRange range, @NonNull String tok) {
 		return token("ws", range);
 	}
 
@@ -46,7 +38,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String comment(@NonNull FileRange range, @NonNull Comment tok) {
+	public String comment(@NonNull FileRange range, @NonNull String tok) {
 		return token("com", range);
 	}
 
@@ -62,29 +54,23 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String operator(@NonNull FileRange range, @NonNull OperatorRef tok) {
+	public String operator(@NonNull FileRange range, @NonNull String tok) {
 		return token("op", range);
 	}
 
 	@Override
-	public String stringLiteral(@NonNull FileRange range, @NonNull StringLiteral tok) {
+	public String stringLiteral(@NonNull FileRange range, @NonNull String tok) {
 		return token("str", range);
 	}
 
 	@Override
-	public String numberLiteral(@NonNull FileRange range, @NonNull NumberLiteral tok) {
+	public String numberLiteral(@NonNull FileRange range, @NonNull String tok, @NonNull Number value) {
 		return token("num", range);
 	}
 
 	@Override
-	public String identifier(@NonNull FileRange range, @NonNull Identifier tok) {
+	public String identifier(@NonNull FileRange range, @NonNull String tok) {
 		return token("id", range);
-	}
-
-	@Override
-	@Nullable
-	public String ellipsis(@NonNull FileRange range, @NonNull Ellipsis ellipsis) {
-		return token("...", range);
 	}
 
 	public static void testScanner(@NonNull String src, final int rangeStart, final int rangeEnd, String ... expectedTokens) {
@@ -110,7 +96,7 @@ public class TokensToString implements TokenVisitor<String> {
 
 	@Override
 	@Nullable
-	public String badToken(@NonNull FileRange fileRange, @NonNull BadToken badToken) {
+	public String badToken(@NonNull FileRange fileRange, @NonNull String badToken, @NonNull String message) {
 		return token("bad", fileRange);
 	}
 

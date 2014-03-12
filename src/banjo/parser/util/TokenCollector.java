@@ -1,7 +1,5 @@
 package banjo.parser.util;
 
-import static banjo.parser.util.Check.nonNull;
-
 import java.io.IOException;
 import java.util.Collection;
 
@@ -10,7 +8,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
-import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
@@ -20,77 +17,69 @@ import banjo.dom.token.TokenVisitor;
 import banjo.dom.token.Whitespace;
 import banjo.parser.BanjoParser;
 
-public class TokenCollector implements TokenVisitor<SourceExpr> {
-	final BanjoParser parser;
+public class TokenCollector implements TokenVisitor<Token> {
+	final BanjoParser parser = new BanjoParser();
 	final Collection<Token> tokens;
 
-	public TokenCollector(BanjoParser parser, Collection<Token> tokens) {
-		this.parser = parser;
+	public TokenCollector(Collection<Token> tokens) {
 		this.tokens = tokens;
 	}
 
 	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
-		return this.parser.parse(in).getExpr();
+		return this.parser.parse(in);
 	}
 	public @Nullable SourceExpr parse(String source) throws IOException {
-		return this.parser.parse(source).getExpr();
+		return this.parser.parse(source);
 	}
 	public boolean reachedEof() {
 		return this.parser.reachedEof();
 	}
-	@Override
-	public @Nullable SourceExpr stringLiteral(FileRange range, StringLiteral token) {
+
+	public SourceFileRange sfr(FileRange range) {
+		return new SourceFileRange("", range);
+	}
+
+	public <T extends Token> T token(T token) {
 		this.tokens.add(token);
-		this.parser.stringLiteral(range, token);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr numberLiteral(FileRange range, NumberLiteral numberLiteral) {
-		this.tokens.add(numberLiteral);
-		this.parser.numberLiteral(range, numberLiteral);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr identifier(FileRange range, Identifier simpleName) {
-		this.tokens.add(simpleName);
-		this.parser.identifier(range, simpleName);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr ellipsis(FileRange range, Ellipsis ellipsis) {
-		this.tokens.add(ellipsis);
-		this.parser.ellipsis(range, ellipsis);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr operator(FileRange range, OperatorRef opRef) {
-		this.tokens.add(opRef);
-		this.parser.operator(range, opRef);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr whitespace(FileRange range, Whitespace ws) {
-		this.tokens.add(ws);
-		this.parser.whitespace(range, ws);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr comment(FileRange range, Comment c) {
-		this.tokens.add(c);
-		this.parser.comment(range, c);
-		return null;
-	}
-	@Override
-	public @Nullable SourceExpr eof(FileRange entireFileRange) {
-		return nonNull(this.parser.eof(entireFileRange)).getExpr();
+		return token;
 	}
 
 	@Override
-	@Nullable
-	public SourceExpr badToken(FileRange fileRange, BadToken badToken) {
-		this.tokens.add(badToken);
-		this.parser.badToken(fileRange, badToken);
+	public StringLiteral stringLiteral(FileRange range, String token) {
+		return token(this.parser.stringLiteral(range, token));
+	}
+	@Override
+	public NumberLiteral numberLiteral(FileRange range, String text, Number number) {
+		return token(this.parser.numberLiteral(range, text, number));
+	}
+	@Override
+	public Identifier identifier(FileRange range, String id) {
+		return token(this.parser.identifier(range, id));
+	}
+	@Override
+	public OperatorRef operator(FileRange range, String op) {
+		this.parser.operator(range, op);
+		return token(new OperatorRef(sfr(range), op));
+	}
+	@Override
+	public Whitespace whitespace(FileRange range, String ws) {
+		this.parser.whitespace(range, ws);
+		return token(new Whitespace(sfr(range), ws));
+	}
+	@Override
+	public Comment comment(FileRange range, String text) {
+		this.parser.comment(range, text);
+		return token(new Comment(text));
+	}
+	@Override
+	public @Nullable Token eof(FileRange entireFileRange) {
 		return null;
+	}
+
+	@Override
+	public Token badToken(FileRange fileRange, String badToken, String message) {
+		this.parser.badToken(fileRange, badToken, message);
+		return token(new BadToken(badToken, message));
 	}
 
 }

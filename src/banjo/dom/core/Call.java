@@ -8,6 +8,7 @@ import banjo.dom.source.OperatorType;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
+import banjo.parser.util.SourceFileRange;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 
@@ -17,15 +18,15 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	public static final Key APPLY_FUNCTION_METHOD_NAME = Method.APPLY_FUNCTION_METHOD_NAME;
 
-	public Call(CoreExpr object, Key methodName, fj.data.List<CoreExpr> arguments) {
-		super(object.hashCode() + arguments.hashCode());
+	public Call(SourceFileRange sfr, CoreExpr object, Key methodName, fj.data.List<CoreExpr> arguments) {
+		super(object.hashCode() + arguments.hashCode(), sfr);
 		this.object = object;
 		this.arguments = arguments;
 		this.methodName = methodName;
 	}
 
-	public Call(CoreExpr object, Key methodName, CoreExpr ... arguments) {
-		this(object, methodName, fj.data.List.list(arguments));
+	public Call(SourceFileRange sfr, CoreExpr object, Key methodName, CoreExpr ... arguments) {
+		this(sfr, object, methodName, fj.data.List.list(arguments));
 	}
 
 	public CoreExpr getObject() {

@@ -3,13 +3,14 @@ package banjo.dom.token;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
+import banjo.parser.util.SourceFileRange;
 
 
 public class Whitespace extends AbstractAtom implements Token {
 	private final String text;
 
-	public Whitespace(String text) {
-		super(text.hashCode());
+	public Whitespace(SourceFileRange sfr, String text) {
+		super(text.hashCode(), sfr);
 		this.text = text;
 	}
 

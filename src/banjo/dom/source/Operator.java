@@ -25,7 +25,7 @@ public enum Operator {
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
-	INSPECT("#", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
+	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	OPTIONAL("?", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
 	EXISTS("??", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
 	UNARY_NEWLINE_INDENT("(nl+indent)", OperatorType.BUILTIN, Position.PREFIX, Precedence.SEMICOLON),
@@ -33,7 +33,7 @@ public enum Operator {
 	// Binary operators
 	LOOKUP(ParenType.BRACKETS, OperatorType.METHOD, Position.INFIX),
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
-	EXTEND("{+}", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
+	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	OPT_PROJECTION(".?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
@@ -58,11 +58,11 @@ public enum Operator {
 	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
-	CONS("::", OperatorType.BUILTIN, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
+	CONS("::", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COLON(":", OperatorType.BUILTIN, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
 	COND("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
-	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.NA),
+	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
 	// Special case operators
@@ -236,5 +236,9 @@ public enum Operator {
 
 	public OperatorType getOperatorType() {
 		return this.operatorType;
+	}
+
+	public boolean isSelfOnRightMethodOperator() {
+		return isPrefix() || (isInfix() && getOperatorType() == OperatorType.METHOD_SWITCHED);
 	}
 }

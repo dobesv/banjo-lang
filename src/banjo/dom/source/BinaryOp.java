@@ -2,12 +2,14 @@ package banjo.dom.source;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.parser.util.SourceFileRange;
+
 public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(Operator operator, SourceExpr left, SourceExpr right) {
-		super(operator, left, right);
+	public BinaryOp(SourceFileRange sfr, Operator operator, SourceExpr left, SourceExpr right) {
+		super(sfr, operator, left, right);
 		this.left = left;
 		this.right = right;
 	}

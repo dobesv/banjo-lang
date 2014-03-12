@@ -8,6 +8,7 @@ import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.ListUtil;
+import banjo.parser.util.SourceFileRange;
 
 public class Method extends AbstractCachedHashCode implements Comparable<Method> {
 	private final Key selfName;
@@ -15,24 +16,26 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	private final fj.data.List<MethodParamDecl> args;
 	private final CoreExpr guarantee;
 	private final CoreExpr body;
+	private final SourceFileRange sourceFileRange;
 
 	public static final CoreExpr NO_GUARANTEE = MethodParamDecl.NO_ASSERTION;
-	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(Operator.CALL.getOp());
-	public static final Key LOOKUP_METHOD_NAME = new Identifier(Operator.LOOKUP.getOp());
-	public static final Key NO_SELF_NAME = new Identifier("__no_self_name__");
+	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(SourceFileRange.SYNTHETIC, Operator.CALL.getOp());
+	public static final Key LOOKUP_METHOD_NAME = new Identifier(SourceFileRange.SYNTHETIC, Operator.LOOKUP.getOp());
+	public static final Key NO_SELF_NAME = new Identifier(SourceFileRange.SYNTHETIC, "__no_self_name__");
 	public static final fj.data.List<MethodParamDecl> NO_ARGS = fj.data.List.<MethodParamDecl>nil();
 
-	public Method(Key selfName, Key key, fj.data.List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
-		super(calcHash(selfName, key, args, guarantee, body));
+	public Method(SourceFileRange sfr, Key selfName, Key key, fj.data.List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
+		super(calcHash(selfName, key, args, guarantee, body, sfr));
 		this.selfName = selfName;
 		this.key = key;
 		this.args = args;
 		this.guarantee = guarantee;
 		this.body = body;
+		this.sourceFileRange = sfr;
 	}
 
 	private static int calcHash(Key selfName, Key key, fj.data.List<MethodParamDecl> args,
-			CoreExpr guarantee, CoreExpr body) {
+			CoreExpr guarantee, CoreExpr body, SourceFileRange sfr) {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + selfName.hashCode();
@@ -40,6 +43,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		result = prime * result + args.hashCode();
 		result = prime * result + guarantee.hashCode();
 		result = prime * result + body.hashCode();
+		result = prime * result + sfr.hashCode();
 		return result;
 	}
 
@@ -73,7 +77,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 					arg.toSource(sb);
 				}
 				sb.append(operator.getParenType().getEndChar());
-			} else if(operator.isRightAssociative()) {
+			} else if(operator.isSelfOnRightMethodOperator()) {
 				this.args.head().toSource(sb);
 				sb.append(' ');
 				operator.toSource(sb);
@@ -173,6 +177,8 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 			return false;
 		if (!this.selfName.equals(other.selfName))
 			return false;
+		if (!this.sourceFileRange.equals(other.sourceFileRange))
+			return false;
 		return true;
 	}
 
@@ -183,6 +189,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		if(cmp == 0) cmp = this.guarantee.compareTo(other.guarantee);
 		if(cmp == 0) cmp = this.selfName.compareTo(other.selfName);
 		if(cmp == 0) cmp = this.body.compareTo(other.body);
+		if(cmp == 0) cmp = this.sourceFileRange.compareTo(other.sourceFileRange);
 		return cmp;
 	}
 
@@ -202,7 +209,11 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	 * True if this method could have been created using the lambda syntax (x,...) -> y
 	 */
 	public boolean isSimpleApplyMethod() {
-		return !hasGuarantee() && !hasSelfName() && this.key.equals(APPLY_FUNCTION_METHOD_NAME);
+		return !hasGuarantee() && this.key.equals(APPLY_FUNCTION_METHOD_NAME);
+	}
+
+	public SourceFileRange getSourceFileRange() {
+		return this.sourceFileRange;
 	}
 
 

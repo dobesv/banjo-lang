@@ -4,7 +4,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.token.Atom;
 import banjo.dom.token.BadIdentifier;
-import banjo.dom.token.Ellipsis;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
@@ -35,12 +34,6 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 	@Nullable
 	public T numberLiteral(NumberLiteral numberLiteral) {
 		return key(numberLiteral);
-	}
-
-	@Override
-	@Nullable
-	public T ellipsis(Ellipsis ellipsis) {
-		return token(ellipsis);
 	}
 
 	@Nullable

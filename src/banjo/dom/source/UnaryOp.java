@@ -2,11 +2,13 @@ package banjo.dom.source;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.parser.util.SourceFileRange;
+
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
-	public UnaryOp(Operator operator, SourceExpr operand) {
-		super(operator, operand);
+	public UnaryOp(SourceFileRange sfr, Operator operator, SourceExpr operand) {
+		super(sfr, operator, operand);
 		this.operand = operand;
 	}
 	public SourceExpr getOperand() {
