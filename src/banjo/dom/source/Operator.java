@@ -50,6 +50,7 @@ public enum Operator {
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	NEQ("!=", 0x2260, OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
+	MEMBER_OF("in", 0x2208, OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
 	INTERSECT("&", 0x2229, OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
 	XOR("><", 0x22BB, OperatorType.METHOD, Position.INFIX, Precedence.XOR),
 	UNION("|", 0x222A, OperatorType.METHOD, Position.INFIX, Precedence.UNION),
@@ -81,7 +82,7 @@ public enum Operator {
 	private final String methodName;
 	private final OperatorType operatorType;
 
-	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
+	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.operatorType = operatorType;
@@ -90,7 +91,12 @@ public enum Operator {
 		this.parenType = parenType;
 		this.associativity = associativity;
 		this.position = position;
-		this.methodName = (position==Position.PREFIX || associativity==Associativity.RIGHT) && !op.endsWith(":") ? op+":" : op;
+		this.methodName = methodName;
+	}
+
+	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
+		this(op, codePoint, operatorType, parenType, position, associativity, leftPrecedence, precedence,
+				(position==Position.PREFIX || associativity==Associativity.RIGHT) && !op.endsWith(":") ? op+":" : op);
 	}
 
 	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence precedence) {

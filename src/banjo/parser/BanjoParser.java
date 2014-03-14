@@ -18,6 +18,7 @@ import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
+import banjo.dom.token.Atom;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
@@ -307,13 +308,15 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	public NumberLiteral numberLiteral(FileRange range, String text, Number number) {
 		return visitAtom(range, new NumberLiteral(sfr(range), text, number));
 	}
-	@Override
-	public Identifier identifier(FileRange range, String text) {
+	@Override @Nullable
+	public Atom identifier(FileRange range, String text) {
+		if("in".equals(text)) // Special case for "in", for now
+			return operator(range, text);
 		return visitAtom(range, new Identifier(sfr(range), text));
 	}
 
 	@Override @Nullable
-	public SourceExpr operator(FileRange range, String op) {
+	public Atom operator(FileRange range, String op) {
 		checkIndentDedent(range);
 		if(tryCloseParen(range, op)) {
 			return null;

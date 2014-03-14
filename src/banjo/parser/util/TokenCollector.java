@@ -6,6 +6,7 @@ import java.util.Collection;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.source.SourceExpr;
+import banjo.dom.token.Atom;
 import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Identifier;
@@ -52,12 +53,13 @@ public class TokenCollector implements TokenVisitor<Token> {
 	public NumberLiteral numberLiteral(FileRange range, String text, Number number) {
 		return token(this.parser.numberLiteral(range, text, number));
 	}
-	@Override
-	public Identifier identifier(FileRange range, String id) {
-		return token(this.parser.identifier(range, id));
+	@Override @Nullable
+	public Atom identifier(FileRange range, String id) {
+		this.parser.identifier(range, id);
+		return token(new Identifier(sfr(range), id));
 	}
 	@Override
-	public OperatorRef operator(FileRange range, String op) {
+	public Atom operator(FileRange range, String op) {
 		this.parser.operator(range, op);
 		return token(new OperatorRef(sfr(range), op));
 	}

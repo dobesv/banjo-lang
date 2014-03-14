@@ -56,6 +56,9 @@ public class TestMathParser {
 
 	@Test public void cons1() { test("x :: y", "y.\\:\\:(x)"); }
 
+	@Test public void memberOf1() { test("x in y", "x in y"); }
+	@Test public void memberOf2() { test("x\u2208y", "x in y"); }
+
 	public void unaries(String src) {
 		test(src, "+-~1");
 	}

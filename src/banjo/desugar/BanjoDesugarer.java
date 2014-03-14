@@ -1163,6 +1163,7 @@ public class BanjoDesugarer {
 			case UNION:
 			case LOOKUP:
 			case CONS:
+			case MEMBER_OF:
 				return binaryOpToMethodCall(op, false);
 
 			case EXTEND: return extend(op);

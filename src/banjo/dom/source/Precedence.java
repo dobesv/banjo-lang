@@ -11,6 +11,7 @@ public enum Precedence {
 	BITSHIFT, // <<, >>, >>>
 	ORDERING, // <, <=, >, >=
 	EQUALITY, // ==, !=
+	MEMBER_OF, // in
 	INTERSECT, // &
 	XOR, // ^
 	UNION, // |
