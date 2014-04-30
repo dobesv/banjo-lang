@@ -37,8 +37,8 @@ public class BanjoEvaluator {
 			public BanjoObject call(final Call call) {
 				final List<BanjoObject> actualArgs = call.getArguments().map(new F<CoreExpr,BanjoObject>() {
 					@Override
-					public BanjoObject f(CoreExpr arg) {
-						return eval(arg, environment);
+					public BanjoObject f(@Nullable CoreExpr arg) {
+						return eval(nonNull(arg), environment);
 					}
 				});
 				final BanjoObject actualTargetObject = eval(call.getObject(), environment);

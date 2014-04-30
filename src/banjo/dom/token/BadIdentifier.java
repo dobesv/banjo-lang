@@ -10,6 +10,7 @@ import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	private final String message;
@@ -42,7 +43,8 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
+		if(o == null) return -1;
 		if(this == o)
 			return 0;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
@@ -80,4 +82,8 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 		return this.message;
 	}
 
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.<BadExpr>single(this);
+	}
 }

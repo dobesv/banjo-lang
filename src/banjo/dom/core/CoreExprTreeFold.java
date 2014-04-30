@@ -28,8 +28,8 @@ public class CoreExprTreeFold<T extends CoreExprTreeFold<T>> extends BaseCoreExp
 	public T fold(final List<CoreExpr> args) {
 		final T v1 = nonNull(args.foldRight(new F2<CoreExpr,T,T>() {
 			@Override
-			public T f(CoreExpr a, T b) {
-				return nonNull(a.acceptVisitor(b));
+			public @Nullable T f(@Nullable CoreExpr a, @Nullable T b) {
+				return nonNull(a).acceptVisitor(nonNull(b));
 			}
 		}, this.self));
 		return v1;
@@ -63,8 +63,8 @@ public class CoreExprTreeFold<T extends CoreExprTreeFold<T>> extends BaseCoreExp
 		final T v2 = nonNull(m.getGuarantee().acceptVisitor(v1));
 		final T v3 = nonNull(m.getArgs().foldRight(new F2<MethodParamDecl,T,T>() {
 			@Override
-			public T f(MethodParamDecl a, T b) {
-				return b.methodParamDecl(a);
+			public T f(@Nullable MethodParamDecl a, @Nullable T b) {
+				return nonNull(b).methodParamDecl(nonNull(a));
 			}
 		}, v2));
 		return v3;
@@ -75,8 +75,8 @@ public class CoreExprTreeFold<T extends CoreExprTreeFold<T>> extends BaseCoreExp
 	public T objectLiteral(ObjectLiteral n) {
 		return n.getMethods().foldRight(new F2<Method,T,T>() {
 			@Override
-			public T f(Method a, T b) {
-				return b.method(a);
+			public T f(@Nullable Method a, @Nullable T b) {
+				return nonNull(b).method(nonNull(a));
 			}
 		}, this.self);
 	}

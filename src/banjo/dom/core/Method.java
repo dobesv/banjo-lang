@@ -125,7 +125,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		}
 		if(hasGuarantee()) {
 			sb.append(' ');
-			Operator.COLON.toSource(sb);
+			Operator.MEMBER_OF.toSource(sb);
 			sb.append(' ');
 			this.guarantee.toSource(sb, Precedence.COLON);
 		}
@@ -183,7 +183,8 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	}
 
 	@Override
-	public int compareTo(Method other) {
+	public int compareTo(@Nullable Method other) {
+		if(other == null) return -1;
 		int cmp = this.key.compareTo(other.key);
 		if(cmp == 0) cmp = ListUtil.compare(this.args, other.args);
 		if(cmp == 0) cmp = this.guarantee.compareTo(other.guarantee);

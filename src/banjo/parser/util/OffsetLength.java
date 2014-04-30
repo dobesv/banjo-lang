@@ -41,7 +41,8 @@ public class OffsetLength implements Comparable<OffsetLength> {
 	}
 
 	@Override
-	public int compareTo(OffsetLength o) {
+	public int compareTo(@Nullable OffsetLength o) {
+		if(o == null) return -1;
 		final int cmp = Integer.compare(this.offset, o.offset);
 		if(cmp != 0) return cmp;
 		return Integer.compare(this.length, o.length);

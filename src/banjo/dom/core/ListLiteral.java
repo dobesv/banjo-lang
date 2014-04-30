@@ -58,9 +58,10 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
 		if(this == o)
 			return 0;
+		if(o == null) return -1;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ListLiteral other = (ListLiteral) o;

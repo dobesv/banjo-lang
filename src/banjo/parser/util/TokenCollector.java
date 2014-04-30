@@ -26,7 +26,8 @@ public class TokenCollector implements TokenVisitor<Token> {
 		this.tokens = tokens;
 	}
 
-	public @Nullable SourceExpr parse(ParserReader in) throws IOException {
+	@Nullable
+	public SourceExpr parse(ParserReader in) throws IOException {
 		return this.parser.parse(in);
 	}
 	public @Nullable SourceExpr parse(String source) throws IOException {

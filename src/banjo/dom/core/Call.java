@@ -167,7 +167,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
+		if(o == null) throw new NullPointerException();
 		if(this == o)
 			return 0;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());

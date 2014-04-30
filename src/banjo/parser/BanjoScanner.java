@@ -300,9 +300,9 @@ public class BanjoScanner {
 	public static int scanComment(String in, int start, int end) {
 		for(int endOffset = start; endOffset < end; ) {
 			final int cp1 = in.codePointAt(endOffset);
-			if(cp1 == '/' && endOffset+1 < end) {
+			if(cp1 == '#' && endOffset+1 < end) {
 				final int cp2 = in.codePointAt(endOffset + 1);
-				if(cp2 == '/') {
+				if(cp2 == '#') {
 					endOffset += 2 + scanToEndOfLine(in, endOffset+2, end);
 					return endOffset - start;
 				} else if(cp2 == '*') {

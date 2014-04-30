@@ -39,7 +39,8 @@ public class SourceFileRange implements Comparable<SourceFileRange> {
 	}
 
 	@Override
-	public int compareTo(SourceFileRange o) {
+	public int compareTo(@Nullable SourceFileRange o) {
+		if(o == null) return -1;
 		int cmp = this.sourceFile.compareTo(o.sourceFile);
 		if(cmp == 0) cmp = this.fileRange.compareTo(o.fileRange);
 		return cmp;

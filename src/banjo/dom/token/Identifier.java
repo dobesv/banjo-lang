@@ -3,12 +3,14 @@ package banjo.dom.token;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	public static final Identifier ZERO = new Identifier(SourceFileRange.SYNTHETIC, "0");
@@ -73,7 +75,8 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
+		if(o == null) return -1;
 		if(this == o)
 			return 0;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
@@ -84,5 +87,9 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 		return cmp;
 	}
 
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.nil();
+	}
 }
 

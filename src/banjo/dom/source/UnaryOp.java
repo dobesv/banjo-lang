@@ -2,7 +2,9 @@ package banjo.dom.source;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
@@ -51,4 +53,8 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 		}
 	}
 
+	@Override
+	public List<BadExpr> getProblems() {
+		return this.operand.getProblems();
+	}
 }

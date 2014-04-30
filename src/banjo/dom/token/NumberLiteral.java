@@ -7,6 +7,7 @@ import java.math.BigInteger;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
@@ -14,6 +15,7 @@ import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom, Key {
@@ -71,9 +73,10 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
 		if(this == o)
 			return 0;
+		if(o == null) return -1;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final NumberLiteral other = (NumberLiteral) o;
@@ -94,4 +97,10 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	public String getKeyString() {
 		return this.text;
 	}
+
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.nil();
+	}
+
 }

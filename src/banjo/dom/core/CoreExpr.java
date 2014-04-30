@@ -22,11 +22,12 @@ public interface CoreExpr extends Expr {
 
 	public static final Ord<CoreExpr> ORD = nonNull(Ord.ord(new F<CoreExpr, F<CoreExpr, Ordering>>() {
 		@Override
-		public F<CoreExpr, Ordering> f(final CoreExpr a1) {
+		public F<CoreExpr, Ordering> f(final @Nullable CoreExpr a1) {
 			return new F<CoreExpr, Ordering>() {
 				@SuppressWarnings("null")
 				@Override
-				public Ordering f(final CoreExpr a2) {
+				public Ordering f(final @Nullable CoreExpr a2) {
+					if(a1 == null || a2 == null) throw new NullPointerException();
 					final int x = a1.compareTo(a2);
 					return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
 				}

@@ -143,7 +143,8 @@ public final class FileRange implements Comparable<FileRange> {
 	}
 
 	@Override
-	public int compareTo(FileRange o) {
+	public int compareTo(@Nullable FileRange o) {
+		if(o == null) throw new NullPointerException();
 		int cmp = Integer.compare(getStartOffset(), o.getStartOffset());
 		if(cmp == 0) cmp = Integer.compare(getEndOffset(), o.getEndOffset());
 		return cmp;

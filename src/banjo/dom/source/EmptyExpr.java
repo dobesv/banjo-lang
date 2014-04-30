@@ -2,7 +2,9 @@ package banjo.dom.source;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 /**
  * Empty expressions help with the special case of empty parentheses: (), [], and {}.  These
@@ -25,6 +27,11 @@ public class EmptyExpr extends AbstractOp implements SourceExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		// Empty ... do nothing
+	}
+
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.nil();
 	}
 
 }

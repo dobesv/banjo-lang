@@ -6,6 +6,7 @@ import banjo.dom.AbstractBadExpr;
 import banjo.dom.BadExpr;
 import banjo.dom.ParenType;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExpr {
 	public static class ExpectedOperator extends BadSourceExpr {
@@ -69,5 +70,9 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 		return visitor.badSourceExpr(this);
 	}
 
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.<BadExpr>single(this);
+	}
 
 }

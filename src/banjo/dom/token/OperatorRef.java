@@ -2,11 +2,13 @@ package banjo.dom.token;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class OperatorRef extends AbstractAtom implements Atom {
 
@@ -60,15 +62,21 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
-	public int compareTo(Expr o) {
+	public int compareTo(@Nullable Expr o) {
 		if(this == o)
 			return 0;
+		if(o == null) return -1;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final OperatorRef other = (OperatorRef) o;
 			if(cmp == 0) cmp = this.op.compareTo(other.op);
 		}
 		return cmp;
+	}
+
+	@Override
+	public List<BadExpr> getProblems() {
+		return List.nil();
 	}
 
 }

@@ -296,9 +296,9 @@ public class BanjoDesugarer {
 	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, CoreExpr object, Key methodName, fj.data.List<SourceExpr> argSourceExprs) {
 		final DesugarResult<fj.data.List<CoreExpr>> ds = argSourceExprs.foldRight(new F2<SourceExpr, DesugarResult<fj.data.List<CoreExpr>>, DesugarResult<fj.data.List<CoreExpr>>>() {
 			@Override
-			public DesugarResult<fj.data.List<CoreExpr>> f(SourceExpr argSourceExpr, DesugarResult<fj.data.List<CoreExpr>> a) {
-				final DesugarResult<CoreExpr> argDs = a.expr(argSourceExpr);
-				return argDs.withValue(fj.data.List.cons(argDs.getValue(), a.getValue()));
+			public DesugarResult<fj.data.List<CoreExpr>> f(@Nullable SourceExpr argSourceExpr, @Nullable DesugarResult<fj.data.List<CoreExpr>> a) {
+				final DesugarResult<CoreExpr> argDs = nonNull(a).expr(nonNull(argSourceExpr));
+				return argDs.withValue(fj.data.List.cons(argDs.getValue(), nonNull(a).getValue()));
 			}
 		}, this.withValue(fj.data.List.<CoreExpr>nil()));
 		return ds.withDesugared(sourceExpr, new Call(sourceExpr.getSourceFileRange(), object, methodName, ds.getValue()));
@@ -307,8 +307,8 @@ public class BanjoDesugarer {
 	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, fj.data.List<SourceExpr> list, @Nullable Operator requireBullet) {
 		return elements(sourceExpr, list, requireBullet, new F<DesugarResult<fj.data.List<CoreExpr>>,DesugarResult<CoreExpr>>() {
 			@Override
-			public DesugarResult<CoreExpr> f(DesugarResult<fj.data.List<CoreExpr>> ds) {
-				return ds.withDesugared(sourceExpr, new ListLiteral(sourceExpr.getSourceFileRange(), ds.getValue()));
+			public DesugarResult<CoreExpr> f(@Nullable DesugarResult<fj.data.List<CoreExpr>> ds) {
+				return nonNull(ds).withDesugared(sourceExpr, new ListLiteral(sourceExpr.getSourceFileRange(), nonNull(ds).getValue()));
 			}
 		});
 	}
@@ -329,11 +329,12 @@ public class BanjoDesugarer {
 
 			@Override
 			public DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>> f(
-					SourceExpr e,
-					final DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>> ds) {
+					@Nullable SourceExpr e,
+					final @Nullable DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>> ds) {
+				if(ds == null) throw new NullPointerException();
 				final fj.data.List<SourceExpr> unprocessedRows = ds.getValue()._1();
 				final fj.data.List<CoreExpr> processedRows = ds.getValue()._2();
-				return nonNull(e.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>>>() {
+				return nonNull(nonNull(e).acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>>>() {
 					@Override
 					public DesugarResult<P2<fj.data.List<SourceExpr>, fj.data.List<CoreExpr>>> unaryOp(UnaryOp op) {
 						if(op.getOperator() == Operator.TABLE_HEADER) {
@@ -341,7 +342,9 @@ public class BanjoDesugarer {
 							final DesugarResult<fj.data.List<CoreExpr>> rowsDs = unprocessedRows.foldRight(new F2<SourceExpr,DesugarResult<fj.data.List<CoreExpr>>, DesugarResult<fj.data.List<CoreExpr>>>() {
 
 								@Override
-								public DesugarResult<fj.data.List<CoreExpr>> f(SourceExpr a, DesugarResult<fj.data.List<CoreExpr>> ds) {
+								public DesugarResult<fj.data.List<CoreExpr>> f(@Nullable SourceExpr a, @Nullable DesugarResult<fj.data.List<CoreExpr>> ds) {
+									if(ds == null) throw new NullPointerException();
+									if(a == null) throw new NullPointerException();
 									final DesugarResult<CoreExpr> rowDs = ds.makeRow(a, headings);
 									return rowDs.withValue(ds.getValue().cons(rowDs.getValue()));
 								}
@@ -367,9 +370,10 @@ public class BanjoDesugarer {
 		final DesugarResult<fj.data.List<CoreExpr>> eltsDs = unprocessedElts.foldRight(new F2<SourceExpr,DesugarResult<fj.data.List<CoreExpr>>, DesugarResult<fj.data.List<CoreExpr>>>() {
 
 			@Override
-			public DesugarResult<fj.data.List<CoreExpr>> f(SourceExpr e,
-					final DesugarResult<fj.data.List<CoreExpr>> ds) {
-				return nonNull(e.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<CoreExpr>>>() {
+			public DesugarResult<fj.data.List<CoreExpr>> f(@Nullable SourceExpr e,
+					final @Nullable DesugarResult<fj.data.List<CoreExpr>> ds) {
+				if(ds == null) throw new NullPointerException();
+				return nonNull(nonNull(e).acceptVisitor(new BaseSourceExprVisitor<DesugarResult<fj.data.List<CoreExpr>>>() {
 					@Override
 					public DesugarResult<fj.data.List<CoreExpr>> unaryOp(UnaryOp op) {
 						if(requireBullet != null) {
@@ -411,8 +415,9 @@ public class BanjoDesugarer {
 	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, final fj.data.List<SourceExpr> methodSourceExprs) {
 		final DesugarResult<fj.data.List<Method>> methodsDs = methodSourceExprs.foldRight(new F2<SourceExpr,DesugarResult<fj.data.List<Method>>,DesugarResult<fj.data.List<Method>>>() {
 			@Override
-			public DesugarResult<fj.data.List<Method>> f(SourceExpr methodSourceExpr, DesugarResult<fj.data.List<Method>> ds) {
-				return ds.addMethod(methodSourceExpr, fj.data.List.<SourceExpr>nil(), ds.getValue());
+			public DesugarResult<fj.data.List<Method>> f(@Nullable SourceExpr methodSourceExpr, @Nullable DesugarResult<fj.data.List<Method>> ds) {
+				if(ds == null) throw new NullPointerException();
+				return ds.addMethod(nonNull(methodSourceExpr), fj.data.List.<SourceExpr>nil(), ds.getValue());
 			}
 		}, this.withValue(fj.data.List.<Method>nil()));
 		return methodsDs.withDesugared(sourceExpr, new ObjectLiteral(sourceExpr.getSourceFileRange(), methodsDs.getValue()));
@@ -489,7 +494,7 @@ public class BanjoDesugarer {
 			@Override
 			public DesugarResult<fj.data.List<Method>> binaryOp(BinaryOp targetBOp) {
 				switch(targetBOp.getOperator()) {
-				case COLON: return methodWithGuarantee(targetBOp);
+				case MEMBER_OF: return methodWithGuarantee(targetBOp);
 				case CALL: return methodWithArgs(targetBOp);
 				case PROJECTION: return methodWithSelfNameAndNoArgsOrNoName(targetBOp); // self.(x) = ... or self.x = ...
 				default: return fallback(targetBOp);
@@ -702,8 +707,9 @@ public class BanjoDesugarer {
 		final DesugarResult<fj.data.List<Method>> methodsDs = headings.zip(values).foldRight(new F2<P2<SourceExpr,SourceExpr>, DesugarResult<fj.data.List<Method>>, DesugarResult<fj.data.List<Method>>>() {
 			@Override
 			public DesugarResult<fj.data.List<Method>> f(
-					P2<SourceExpr, SourceExpr> p,
-					DesugarResult<fj.data.List<Method>> ds) {
+					@Nullable P2<SourceExpr, SourceExpr> p,
+					@Nullable DesugarResult<fj.data.List<Method>> ds) {
+				if(p == null || ds == null) throw new NullPointerException();
 				final SourceExpr headingExpr = nonNull(p._1());
 				final SourceExpr cellSourceExpr = nonNull(p._2());
 				final fj.data.List<Method> tailMethods = ds.getValue();
@@ -798,7 +804,7 @@ public class BanjoDesugarer {
 			@Override
 			public DesugarResult<Method> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
-				case COLON:
+				case MEMBER_OF:
 					// (x,y):Guarantee = ...
 					return applyGuarantee(op);
 				default:
@@ -826,8 +832,10 @@ public class BanjoDesugarer {
 	protected DesugarResult<Method> method(@Nullable final SourceExpr methodSourceExpr, @Nullable SourceExpr signatureSourceExpr, @Nullable SourceExpr bodySourceExpr, final Key methodName, fj.data.List<SourceExpr> argSourceExprs, Key selfName, CoreExpr guarantee, CoreExpr currBody) {
 		final DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>> argsDs = argSourceExprs.zipIndex().foldRight(new F2<P2<SourceExpr,Integer>, DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>>, DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>>>() {
 			@Override
-			public DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>> f(P2<SourceExpr,Integer> argExprWithIndex,
-					DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>> ds) {
+			public DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>> f(@Nullable P2<SourceExpr,Integer> argExprWithIndex,
+					@Nullable DesugarResult<P2<CoreExpr,fj.data.List<MethodParamDecl>>> ds) {
+				if(ds == null) throw new NullPointerException();
+				if(argExprWithIndex == null) throw new NullPointerException();
 				final SourceExpr argExpr = argExprWithIndex._1();
 				final int index = argExprWithIndex._2();
 				@SuppressWarnings("null")
@@ -976,7 +984,7 @@ public class BanjoDesugarer {
 
 			@Override
 			public DesugarResult<P2<CoreExpr, fj.data.List<MethodParamDecl>>> binaryOp(final BinaryOp argOp) {
-				if(argOp.getOperator() == Operator.COLON) {
+				if(argOp.getOperator() == Operator.MEMBER_OF) {
 					final DesugarResult<Key> nameDs = expectIdentifier(argOp.getLeft());
 					final DesugarResult<CoreExpr> assertionDs = nameDs.expr(argOp.getRight());
 					final MethodParamDecl paramDecl = new MethodParamDecl(argExpr.getSourceFileRange(), nameDs.getValue(), assertionDs.getValue());

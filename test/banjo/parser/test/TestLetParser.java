@@ -21,10 +21,10 @@ public class TestLetParser {
 	@Test public void foo4() { test("a = b\nc", "((a) -> c)(b)"); }
 	@Test public void foo5() { test("a = foo\nb = bar\na\n", "((a) -> ((b) -> a)(bar))(foo)"); }
 
-	@Test public void noCont() { test("main(x) = x", "((main) -> {})({(main(x)) = x})"); }
+	@Test public void noCont() { test("main(x) = x", "((main) -> {})(main(x) -> x)"); }
 
-	@Test public void f1() { test("f(x) = x ; f(0)", "((f) -> f(0))({(f(x)) = x})"); }
-	@Test public void f2() { test("f(x,y) = x ; f(1,2)", "((f) -> f(1, 2))({(f(x, y)) = x})"); }
-	@Test public void f3() { test("f() = x ; f()", "((f) -> f())({(f()) = x})"); }
+	@Test public void f1() { test("f(x) = x ; f(0)", "((f) -> f(0))(f(x) -> x)"); }
+	@Test public void f2() { test("f(x,y) = x ; f(1,2)", "((f) -> f(1, 2))(f(x, y) -> x)"); }
+	@Test public void f3() { test("f() = x ; f()", "((f) -> f())(f() -> x)"); }
 
 }
