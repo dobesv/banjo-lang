@@ -39,12 +39,15 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	@Override
 	public void toSource(StringBuffer sb) {
+		int spaces=0;
 		for(int i=0; i < this.id.length(); i++) {
 			final int cp = this.id.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++;
+			if(cp == ' ') spaces++;
+			else spaces=0;
 			final boolean ok = i==0?
 					BanjoScanner.isIdentifierStart(cp):
-						BanjoScanner.isIdentifierPart(cp);
+						BanjoScanner.isIdentifierPart(cp) || (cp == ' ' && spaces == 1);
 					if(!ok) {
 						sb.append('\\');
 					}

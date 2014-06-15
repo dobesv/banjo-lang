@@ -114,6 +114,15 @@ public class BanjoScanner {
 			final int cp = in.read();
 			if(!escape && cp == '\\') {
 				escape = true;
+			} else if(!escape && cp == ' ') {
+				in.getPreviousPosition(afterDigits);
+				final int cp2 = in.read();
+				if(!isIdentifierStart(cp2)) {
+					in.seek(afterDigits);
+					return this.buf.toString();
+				}
+				this.buf.appendCodePoint(cp);
+				this.buf.appendCodePoint(cp2);
 			} else {
 				if(cp == -1 || !(escape || isIdentifierPart(cp))) {
 					in.unread();
@@ -205,27 +214,16 @@ public class BanjoScanner {
 		return Character.isWhitespace(codePoint);
 	}
 	public @Nullable <T> Container<T> comment(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		for(;;) {
-			int cp = in.read();
-			if(cp == '/') {
-				cp = in.read();
-				if(cp == '/') {
-					skipToEndOfLine(in);
-				} else if(cp == '*') {
-					skipToEndOfMultilineComment(in);
-				} else {
-					// Not a comment, and thus also not whitespace any more
-					in.seek(this.tokenStartPos);
-					return null;
-				}
-
-				return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos)));
-			} else {
-				in.unread(); // Push back the non-whitespace character we found
-				return null;
-			}
-			// continue
+		int cp = in.read();
+		if(cp == ';') {
+			skipToEndOfLine(in);
+		} else {
+			// Not a comment, and thus also not whitespace any more
+			in.seek(this.tokenStartPos);
+			return null;
 		}
+
+		return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos)));
 	}
 
 	public @Nullable <T> Container<T> whitespace(ParserReader in, TokenVisitor<T> visitor) throws IOException {

@@ -23,15 +23,13 @@ import banjo.parser.util.TokenCollector;
 public class TestBanjoScanner {
 	@Test
 	public void test1() {
-		testTokenizer("// comment\n/* comment */\nfoo= bar\nbaz\n", "((foo) -> baz)(bar)", Call.class,
+		testTokenizer("; comment\nfoo= bar bar\nbaz\n", "((foo) -> baz)(bar bar)", Call.class,
 				new String[] {
-			"// comment\n",
-			"/* comment */", "\n",
-			"foo", "=",	" ", "bar", "\n",
+			"; comment\n",
+			"foo", "=",	" ", "bar bar", "\n",
 			"baz", "\n"
 		}, new Class<?>[] {
 			Comment.class,
-			Comment.class, Whitespace.class,
 			Identifier.class, OperatorRef.class, Whitespace.class, Identifier.class, Whitespace.class,
 			Identifier.class, Whitespace.class
 		});
@@ -60,10 +58,10 @@ public class TestBanjoScanner {
 	@Test public void testTokenStream2() { testScanner("a + b + c + d", 0, 1, "id", "eof"); }
 	@Test public void testTokenStream3() { testScanner("a + b + c + d", 1, 2, "ws", "eof"); }
 	@Test public void testTokenStream4() { testScanner("a + b + c + d", 2, 3, "op", "eof"); }
-	@Test public void testTokenStream5() { testScanner("/* foo */", 0, 9, "com", "eof"); }
+	@Test public void testTokenStream5() { testScanner("; foo", 0, 5, "com", "eof"); }
 	@Ignore // TODO: Do we need to support scanning partial lines?
 	@Test public void testTokenStream6() { testScanner("/* foo */", 1, 5, "com", "eof"); }
-	@Test public void testTokenStream7() { testScanner("/* foo */   a", 0, 13, "com", "ws", "id", "eof"); }
+	@Test public void testTokenStream7() { testScanner(";  foo  \n   a", 0, 13, "com", "ws", "id", "eof"); }
 	@Test public void testTokenStream8() { testScanner("a?,b?", 0, 5, "id", "op", "op", "id", "op", "eof"); }
 
 }
