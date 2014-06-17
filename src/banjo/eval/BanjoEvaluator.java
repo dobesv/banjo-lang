@@ -16,12 +16,14 @@ import banjo.dom.core.Inspect;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.Method.SignaturePart;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
+import banjo.eval.BanjoMessage.MessagePart;
 import fj.F;
 import fj.data.List;
 import fj.data.TreeMap;
@@ -35,19 +37,27 @@ public class BanjoEvaluator {
 
 			@Override
 			public BanjoObject call(final Call call) {
-				final List<BanjoObject> actualArgs = call.getArguments().map(new F<CoreExpr,BanjoObject>() {
+				final List<BanjoMessage.MessagePart> messageParts = call.getParts().map(new F<Call.MessagePart, BanjoMessage.MessagePart>() {
 					@Override
-					public BanjoObject f(@Nullable CoreExpr arg) {
-						return eval(nonNull(arg), environment);
+					public MessagePart f(@Nullable Call.MessagePart a) {
+						if(a == null) throw new NullPointerException();
+						final List<BanjoObject> actualArgs = a.getArguments().map(new F<CoreExpr,BanjoObject>() {
+							@Override
+							public BanjoObject f(@Nullable CoreExpr arg) {
+								return eval(nonNull(arg), environment);
+							}
+						});
+						return new BanjoMessage.MessagePart(a.getKey().getKeyString(), actualArgs);
 					}
 				});
+				BanjoMessage message = new BanjoMessage(messageParts);
 				final BanjoObject actualTargetObject = eval(call.getObject(), environment);
-				return actualTargetObject.call(call.getMethodName().getKeyString(), actualArgs);
+				return actualTargetObject.call(message);
 			}
 
 			@Override
 			public BanjoObject objectLiteral(ObjectLiteral objectLiteral) {
-				final TreeMap<String, MethodClosure> methodMap = BanjoObject.NO_METHODS;
+				final TreeMap<List<String>, MethodClosure> methodMap = BanjoObject.NO_METHODS;
 				for(@NonNull @SuppressWarnings("null") final Method methodDef : objectLiteral.getMethods()) {
 					final DefRefAnalyser defRefAnalyser = new DefRefAnalyser();
 					final Analysis analysis = defRefAnalyser.analyseMethod(methodDef);
@@ -56,7 +66,13 @@ public class BanjoEvaluator {
 						final String id = freeRef.getKeyString();
 						closure.set(id, environment.get(id).orSome(BanjoEvaluator.this.emptyObject));
 					}
-					methodMap.set(methodDef.getKey().getKeyString(), new MethodClosure(methodDef, closure));
+					List<String> key = methodDef.getParts().map(new F<SignaturePart,String>() { 
+						public String f(@Nullable SignaturePart a) {
+							if(a == null) throw new NullPointerException();
+							return a.getKey().getKeyString(); 
+						}
+					});
+					methodMap.set(key, new MethodClosure(methodDef, closure));
 				}
 				return new BanjoObject(methodMap, BanjoEvaluator.this);
 			}
