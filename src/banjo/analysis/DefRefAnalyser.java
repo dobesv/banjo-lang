@@ -182,8 +182,10 @@ public class DefRefAnalyser {
 				@Override
 				public Analysis call(Call n) {
 					Analysis a = analyse(n.getObject());
-					for(final CoreExpr arg : n.getArguments()) {
-						a = a.union(a.subAnalysis().analyse(nonNull(arg)));
+					for(final Call.MessagePart p : n.getParts()) {
+						for(final CoreExpr arg : p.getArguments()) {
+							a = a.union(a.subAnalysis().analyse(nonNull(arg)));
+						}
 					}
 					return a;
 				}
@@ -275,20 +277,23 @@ public class DefRefAnalyser {
 		 * doesn't depend on the environment.
 		 */
 		protected Analysis analyseMethod(Method m) {
-			System.out.println("Analyse method: "+m);
 			TreeMap<String, MethodFormalArgument> newDefs = nonNull(TreeMap.<String, MethodFormalArgument>empty(Ord.stringOrd));
-			for(final MethodFormalArgument param : m.getArguments()) {
-				final String k = param.getName().getKeyString();
-				newDefs = newDefs.set(k, param);
+			for(final Method.SignaturePart part : m.getParts()) {
+				for(final MethodFormalArgument param : part.getArguments()) {
+					final String k = param.getName().getKeyString();
+					newDefs = newDefs.set(k, param);
+				}
 			}
 			if(m.hasSelfName()) {
 				final String k = m.getSelfName().getKeyString();
 				newDefs = nonNull(newDefs.set(k, new MethodFormalArgument(m.getSelfName())));
 			}
 			Analysis a = subAnalysis();
-			for(final MethodFormalArgument param : m.getArguments()) {
-				if(param.hasAssertion()) {
-					a = a.analyse(param.getAssertion());
+			for(final Method.SignaturePart part : m.getParts()) {
+				for(final MethodFormalArgument param : part.getArguments()) {
+					if(param.hasAssertion()) {
+						a = a.analyse(param.getAssertion());
+					}
 				}
 			}
 			if(m.hasGuarantee()) {
