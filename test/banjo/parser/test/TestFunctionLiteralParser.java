@@ -27,7 +27,7 @@ public class TestFunctionLiteralParser {
 		if(expectedArgNames == null) assert func.isLazyValue();
 		else {
 			final StringBuffer sb = new StringBuffer();
-			func.getMethods().head().formalArgListToSource(sb);
+			func.getMethods().head().getParts().head().formalArgListToSource(sb);
 			assertEquals(sb.toString(), "("+expectedArgNames+")");
 		}
 		func.getMethods().iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {

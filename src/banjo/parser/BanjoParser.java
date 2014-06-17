@@ -294,10 +294,9 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 		checkIndentDedent(range);
 		final SourceExpr operand = this.operand;
 		if(operand != null) {
-			this.operand = new BadSourceExpr.ExpectedOperator(sfr(FileRange.between(operand.getSourceFileRange().getFileRange(), range)));
-		} else {
-			this.operand = token;
+			pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, sfr(FileRange.between(operand.getSourceFileRange().getFileRange(), range))));
 		}
+		this.operand = token;
 		return token;
 	}
 	@Override

@@ -10,14 +10,14 @@ import banjo.dom.token.Key;
 import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.SourceFileRange;
 
-public class MethodParamDecl extends AbstractCachedHashCode implements Comparable<MethodParamDecl> {
+public class MethodFormalArgument extends AbstractCachedHashCode implements Comparable<MethodFormalArgument> {
 	private final Key name;
 	private final CoreExpr assertion;
 	private final SourceFileRange sourceFileRange;
 
 	public static final CoreExpr NO_ASSERTION = new Identifier(SourceFileRange.SYNTHETIC, "Object");
 
-	public MethodParamDecl(SourceFileRange sourceFileRange, Key name, CoreExpr assertion) {
+	public MethodFormalArgument(SourceFileRange sourceFileRange, Key name, CoreExpr assertion) {
 		super(name.hashCode() + assertion.hashCode() + sourceFileRange.hashCode());
 		this.name = name;
 		this.assertion = assertion;
@@ -30,7 +30,7 @@ public class MethodParamDecl extends AbstractCachedHashCode implements Comparabl
 	 * 
 	 * @param name  Name of the parameter.
 	 */
-	public MethodParamDecl(Key name) {
+	public MethodFormalArgument(Key name) {
 		this(name.getSourceFileRange(), name, NO_ASSERTION);
 	}
 
@@ -43,7 +43,7 @@ public class MethodParamDecl extends AbstractCachedHashCode implements Comparabl
 	 * @param sourceFileRange
 	 * @param name
 	 */
-	public MethodParamDecl(SourceFileRange sourceFileRange, Key name) {
+	public MethodFormalArgument(SourceFileRange sourceFileRange, Key name) {
 		this(sourceFileRange, name, NO_ASSERTION);
 	}
 
@@ -82,9 +82,9 @@ public class MethodParamDecl extends AbstractCachedHashCode implements Comparabl
 			return true;
 		if (!super.equals(obj))
 			return false;
-		if (!(obj instanceof MethodParamDecl))
+		if (!(obj instanceof MethodFormalArgument))
 			return false;
-		final MethodParamDecl other = (MethodParamDecl) obj;
+		final MethodFormalArgument other = (MethodFormalArgument) obj;
 		if (!this.assertion.equals(other.assertion))
 			return false;
 		if (!this.name.equals(other.name))
@@ -95,14 +95,14 @@ public class MethodParamDecl extends AbstractCachedHashCode implements Comparabl
 	}
 
 	@Override
-	public int compareTo(@Nullable MethodParamDecl o) {
+	public int compareTo(@Nullable MethodFormalArgument o) {
 		if(this == o)
 			return 0;
 		if(o == null)
 			return -1;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
-			final MethodParamDecl other = o;
+			final MethodFormalArgument other = o;
 			if(cmp == 0) cmp = this.name.compareTo(other.name);
 			if(cmp == 0) cmp = this.assertion.compareTo(other.assertion);
 			if(cmp == 0) cmp = this.sourceFileRange.compareTo(other.sourceFileRange);

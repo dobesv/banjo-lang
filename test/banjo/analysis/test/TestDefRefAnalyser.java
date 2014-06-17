@@ -14,7 +14,7 @@ import banjo.analysis.DefRefAnalyser.Analysis;
 import banjo.desugar.BanjoDesugarer;
 import banjo.desugar.BanjoDesugarer.DesugarResult;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.MethodParamDecl;
+import banjo.dom.core.MethodFormalArgument;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Key;
 import banjo.parser.BanjoParser;
@@ -83,7 +83,7 @@ public class TestDefRefAnalyser {
 			System.out.println("F "+id+" "+r);
 			rangeCodes = addRangeCode(rangeCodes, r, "F "+id);
 		}
-		for(final P2<MethodParamDecl, Set<Key>> rp : analysis.getRefs()) {
+		for(final P2<MethodFormalArgument, Set<Key>> rp : analysis.getRefs()) {
 			final FileRange r = rp._1().getSourceFileRange().getFileRange();
 			if(rp._1().getSourceFileRange() == SourceFileRange.SYNTHETIC) continue;
 			String id = rp._1().getName().getKeyString();
@@ -97,7 +97,7 @@ public class TestDefRefAnalyser {
 				rangeCodes = addRangeCode(rangeCodes, r, "D "+id);
 			}
 		}
-		for(@NonNull @SuppressWarnings("null") final MethodParamDecl p : analysis.getUnusedDefs()) {
+		for(@NonNull @SuppressWarnings("null") final MethodFormalArgument p : analysis.getUnusedDefs()) {
 			final FileRange r = p.getSourceFileRange().getFileRange();
 			if(p.getSourceFileRange() == SourceFileRange.SYNTHETIC) continue;
 			final String id = p.getName().getKeyString();
@@ -105,7 +105,7 @@ public class TestDefRefAnalyser {
 			System.out.println("U "+id+" "+r);
 			rangeCodes = addRangeCode(rangeCodes, r, (isSelfName?"SU ":"U ")+id);
 		}
-		for(@NonNull @SuppressWarnings("null") final MethodParamDecl p : analysis.getShadowingDefs()) {
+		for(@NonNull @SuppressWarnings("null") final MethodFormalArgument p : analysis.getShadowingDefs()) {
 			final FileRange r = p.getSourceFileRange().getFileRange();
 			if(p.getSourceFileRange() == SourceFileRange.SYNTHETIC) continue;
 			final String id = p.getName().getKeyString();

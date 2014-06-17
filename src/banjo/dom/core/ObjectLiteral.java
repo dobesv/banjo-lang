@@ -44,9 +44,9 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public void toSource(StringBuffer sb) {
 		if(isLambda()) {
 			final Method method = this.methods.head();
-			if(method.hasSelfName() || !method.getArgs().isEmpty()) {
+			if(method.hasSelfName() || !method.getParts().head().getArguments().isEmpty()) {
 				if(method.hasSelfName()) method.getSelfName().toSource(sb);
-				method.formalArgListToSource(sb);
+				method.getParts().head().formalArgListToSource(sb);
 				sb.append(' ');
 			}
 			Operator.FUNCTION.toSource(sb);
@@ -118,6 +118,6 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public boolean isLazyValue() {
-		return isLambda() && (this.methods.head().getArgs().isEmpty());
+		return isLambda() && (this.methods.head().getParts().head().getArguments().isEmpty());
 	}
 }

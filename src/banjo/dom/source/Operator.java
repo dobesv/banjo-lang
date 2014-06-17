@@ -63,11 +63,13 @@ public enum Operator {
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	CONS("::", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
-	COND("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
+	LET("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
+	JUXTAPOSITION("~~~JUXTAPOSITION~~~", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX, Associativity.LEFT),
+	
 	// Special case operators
 	INVALID("~~~INVALID~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM); // Newline and indent
@@ -157,9 +159,9 @@ public enum Operator {
 		return null;
 	}
 
-	public static @Nullable Operator fromMethodName(String methodName) {
+	public static @Nullable Operator fromMethodName(String methodName, boolean infix) {
 		for(final Operator operator : values()) {
-			if(methodName.equals(operator.methodName)) {
+			if(infix == operator.isInfix() && methodName.equals(operator.methodName)) {
 				return operator;
 			}
 		}

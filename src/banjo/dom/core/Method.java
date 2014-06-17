@@ -2,7 +2,9 @@ package banjo.dom.core;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.source.Operator;
+import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -11,46 +13,102 @@ import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 
 public class Method extends AbstractCachedHashCode implements Comparable<Method> {
+	public static class SignaturePart implements Comparable<SignaturePart> {
+		private final Key key;
+		private final fj.data.List<MethodFormalArgument> arguments;
+		
+		public SignaturePart(Key key, List<MethodFormalArgument> arguments) {
+			super();
+			this.key = key;
+			this.arguments = arguments;
+		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + arguments.hashCode();
+			result = prime * result + key.hashCode();
+			return result;
+		}
+
+		@Override
+		public boolean equals(@Nullable Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			SignaturePart other = (SignaturePart) obj;
+			if (!arguments.equals(other.arguments))
+				return false;
+			if (!key.equals(other.key))
+				return false;
+			return true;
+		}
+
+		public Key getKey() {
+			return key;
+		}
+
+		public fj.data.List<MethodFormalArgument> getArguments() {
+			return arguments;
+		}
+		
+		public void formalArgListToSource(final StringBuffer sb) {
+			sb.append('(');
+			boolean first = true;
+			for(final MethodFormalArgument arg : this.arguments) {
+				if(first) first = false;
+				else sb.append(", ");
+				arg.toSource(sb);
+			}
+			sb.append(')');
+		}
+
+		@Override
+		public int compareTo(@Nullable SignaturePart o) {
+			if(o == null) return -1;
+			int cmp = key.compareTo(o.key);
+			if(cmp == 0) cmp = ListUtil.compare(arguments, o.arguments);
+			return cmp;
+		}
+		
+	}
+	
 	private final Key selfName;
-	private final Key key;
-	private final fj.data.List<MethodParamDecl> args;
+	private final fj.data.List<SignaturePart> parts;
 	private final CoreExpr guarantee;
 	private final CoreExpr body;
 	private final SourceFileRange sourceFileRange;
 
-	public static final CoreExpr NO_GUARANTEE = MethodParamDecl.NO_ASSERTION;
+	public static final CoreExpr NO_GUARANTEE = MethodFormalArgument.NO_ASSERTION;
 	public static final Key APPLY_FUNCTION_METHOD_NAME = new Identifier(SourceFileRange.SYNTHETIC, Operator.CALL.getOp());
 	public static final Key LOOKUP_METHOD_NAME = new Identifier(SourceFileRange.SYNTHETIC, Operator.LOOKUP.getOp());
 	public static final Key NO_SELF_NAME = new Identifier(SourceFileRange.SYNTHETIC, "__no_self_name__");
-	public static final fj.data.List<MethodParamDecl> NO_ARGS = fj.data.List.<MethodParamDecl>nil();
+	public static final fj.data.List<MethodFormalArgument> NO_ARGS = fj.data.List.<MethodFormalArgument>nil();
 
-	public Method(SourceFileRange sfr, Key selfName, Key key, fj.data.List<MethodParamDecl> args, CoreExpr guarantee, CoreExpr body) {
-		super(calcHash(selfName, key, args, guarantee, body, sfr));
+	public Method(SourceFileRange sfr, Key selfName, fj.data.List<SignaturePart> parts, CoreExpr guarantee, CoreExpr body) {
+		super(calcHash(selfName, parts, guarantee, body, sfr));
 		this.selfName = selfName;
-		this.key = key;
-		this.args = args;
+		this.parts = parts;
 		this.guarantee = guarantee;
 		this.body = body;
 		this.sourceFileRange = sfr;
 	}
 
-	private static int calcHash(Key selfName, Key key, fj.data.List<MethodParamDecl> args,
+	private static int calcHash(Key selfName, fj.data.List<SignaturePart> parts,
 			CoreExpr guarantee, CoreExpr body, SourceFileRange sfr) {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + selfName.hashCode();
-		result = prime * result + key.hashCode();
-		result = prime * result + args.hashCode();
+		result = prime * result + parts.hashCode();
 		result = prime * result + guarantee.hashCode();
 		result = prime * result + body.hashCode();
 		result = prime * result + sfr.hashCode();
 		return result;
 	}
-
-	public Key getKey() {
-		return this.key;
-	}
-
 
 	@SuppressWarnings("null")
 	@Override
@@ -64,21 +122,29 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		// Check for brackets, apply
 
 		final boolean hasSelfName = this.hasSelfName();
-		final Operator operator = Operator.fromMethodName(this.key.getKeyString());
-		if(operator != null && hasSelfName && operator.isInfix() && (operator.isParen() || (!this.args.isEmpty() && this.args.tail().isEmpty()))) {
+		final Operator operator = !hasSelfName ? null 
+				: this.parts.length() == 1
+					? this.parts.head().getKey().equals(APPLY_FUNCTION_METHOD_NAME) ? Operator.CALL
+					: this.parts.head().getKey().equals(LOOKUP_METHOD_NAME) ? Operator.LOOKUP
+					: this.parts.head().getArguments().length() == 1  ? Operator.fromMethodName(this.parts.head().getKey().getKeyString(), true) 
+					: this.parts.head().getArguments().length() == 0  ? Operator.fromMethodName(this.parts.head().getKey().getKeyString(), false) 
+					: null 
+				: null;
+		if(operator != null && operator.isInfix()) {
 			sb.append('(');
+			List<MethodFormalArgument> args = this.parts.head().getArguments();
 			if(operator.isParen()) {
 				this.selfName.toSource(sb);
 				sb.append(operator.getParenType().getStartChar());
 				boolean first = true;
-				for(final MethodParamDecl arg : this.args) {
+				for(final MethodFormalArgument arg : args) {
 					if(first) first = false;
 					else sb.append(", ");
 					arg.toSource(sb);
 				}
 				sb.append(operator.getParenType().getEndChar());
 			} else if(operator.isSelfOnRightMethodOperator()) {
-				this.args.head().toSource(sb);
+				args.head().toSource(sb);
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
@@ -88,13 +154,13 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				this.args.head().toSource(sb);
+				args.head().toSource(sb);
 			}
 			sb.append(')');
 		} else if(operator != null && (operator == Operator.CALL || operator == Operator.BRACKETS)) {
 			sb.append(operator.getParenType().getStartChar());
 			boolean first = true;
-			for(final MethodParamDecl arg : this.args) {
+			for(final MethodFormalArgument arg : this.parts.head().getArguments()) {
 				if(first) first = false;
 				else sb.append(", ");
 				arg.toSource(sb);
@@ -114,13 +180,24 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 			if(hasSelfName) {
 				this.selfName.toSource(sb);
 				sb.append('.');
-			} else if(this.key.equals(this.body) && this.args.isEmpty() && this.guarantee.equals(NO_GUARANTEE)) {
-				this.key.toSource(sb);
+			} else if(this.parts.length() == 1 && this.parts.head().getKey().equals(this.body) && this.parts.head().getArguments().isEmpty() && this.guarantee.equals(NO_GUARANTEE)) {
+				this.body.toSource(sb);
 				return;
 			}
-			this.key.toSource(sb);
-			if(!this.args.isEmpty()) {
-				formalArgListToSource(sb);
+			
+			boolean prevPartNoArgs = false;
+			boolean firstPart = true;
+			for(SignaturePart part : parts) {
+				if(firstPart) firstPart = false;
+				else if(prevPartNoArgs) sb.append("() ");
+				else sb.append(" ");
+				part.key.toSource(sb);
+				if(!part.arguments.isEmpty()) {
+					part.formalArgListToSource(sb);
+					prevPartNoArgs = false;
+				} else {
+					prevPartNoArgs = true;
+				}
 			}
 		}
 		if(hasGuarantee()) {
@@ -135,19 +212,8 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.body.toSource(sb, Precedence.COLON);
 	}
 
-	public void formalArgListToSource(final StringBuffer sb) {
-		sb.append('(');
-		boolean first = true;
-		for(final MethodParamDecl arg : this.args) {
-			if(first) first = false;
-			else sb.append(", ");
-			arg.toSource(sb);
-		}
-		sb.append(')');
-	}
-
-	public fj.data.List<MethodParamDecl> getArgs() {
-		return this.args;
+	public fj.data.List<SignaturePart> getParts() {
+		return parts;
 	}
 
 	public CoreExpr getGuarantee() {
@@ -167,13 +233,11 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		if (!(obj instanceof Method))
 			return false;
 		final Method other = (Method) obj;
-		if (!this.args.equals(other.args))
+		if (!this.parts.equals(other.parts))
 			return false;
 		if (!this.body.equals(other.body))
 			return false;
 		if (!this.guarantee.equals(other.guarantee))
-			return false;
-		if (!this.key.equals(other.key))
 			return false;
 		if (!this.selfName.equals(other.selfName))
 			return false;
@@ -185,8 +249,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	@Override
 	public int compareTo(@Nullable Method other) {
 		if(other == null) return -1;
-		int cmp = this.key.compareTo(other.key);
-		if(cmp == 0) cmp = ListUtil.compare(this.args, other.args);
+		int cmp = ListUtil.compare(this.parts, other.parts);
 		if(cmp == 0) cmp = this.guarantee.compareTo(other.guarantee);
 		if(cmp == 0) cmp = this.selfName.compareTo(other.selfName);
 		if(cmp == 0) cmp = this.body.compareTo(other.body);
@@ -210,7 +273,7 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 	 * True if this method could have been created using the lambda syntax (x,...) -> y
 	 */
 	public boolean isSimpleApplyMethod() {
-		return !hasGuarantee() && this.key.equals(APPLY_FUNCTION_METHOD_NAME);
+		return !hasGuarantee() && this.parts.length() == 1 && this.parts.head().getKey().equals(APPLY_FUNCTION_METHOD_NAME);
 	}
 
 	public SourceFileRange getSourceFileRange() {

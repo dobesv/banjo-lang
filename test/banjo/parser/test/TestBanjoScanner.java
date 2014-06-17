@@ -23,14 +23,14 @@ import banjo.parser.util.TokenCollector;
 public class TestBanjoScanner {
 	@Test
 	public void test1() {
-		testTokenizer("; comment\nfoo= bar bar\nbaz\n", "((foo) -> baz)(bar bar)", Call.class,
+		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "((foo) -> baz)(bar bar)", Call.class,
 				new String[] {
 			"; comment\n",
-			"foo", "=",	" ", "bar bar", "\n",
+			"(", "foo", "=",	" ", "bar bar", ")", " ", "=>", "\n",
 			"baz", "\n"
 		}, new Class<?>[] {
 			Comment.class,
-			Identifier.class, OperatorRef.class, Whitespace.class, Identifier.class, Whitespace.class,
+			OperatorRef.class, Identifier.class, OperatorRef.class, Whitespace.class, Identifier.class, OperatorRef.class, Whitespace.class, OperatorRef.class, Whitespace.class,
 			Identifier.class, Whitespace.class
 		});
 	}

@@ -6,7 +6,7 @@ import java.util.Iterator;
 import org.eclipse.jdt.annotation.NonNull;
 
 import banjo.dom.core.Method;
-import banjo.dom.core.MethodParamDecl;
+import banjo.dom.core.MethodFormalArgument;
 import fj.Ord;
 import fj.P2;
 import fj.data.TreeMap;
@@ -58,7 +58,7 @@ public final class BanjoObject {
 		final Iterator<BanjoObject> argsIt = arguments.iterator();
 		if(methodDef.hasSelfName())
 			newEnvironment = newEnvironment.set(methodDef.getSelfName().getKeyString(), this);
-		for(final MethodParamDecl paramDecl : methodDef.getArgs()) {
+		for(final MethodFormalArgument paramDecl : methodDef.getArguments()) {
 			newEnvironment = newEnvironment.set(paramDecl.getName().getKeyString(), argsIt.next());
 			if(paramDecl.hasAssertion())
 				throw new Error("TODO: Assertions not implemented");

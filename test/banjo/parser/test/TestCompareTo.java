@@ -8,7 +8,7 @@ import banjo.dom.core.CoreExpr;
 
 public class TestCompareTo {
 
-	@Test public void testInequalObjectLit1() { testInequalCoreExpr("a=1;a=1;a", "a=1;a"); }
+	@Test public void testInequalObjectLit1() { testInequalCoreExpr("(a=1,a=1)=>a", "(a=1)=>a"); }
 
 	private void testInequalCoreExpr(String srcA, String srcB) {
 		final CoreExpr dsA = ParseTestUtils.test(srcA, null, CoreExpr.class);

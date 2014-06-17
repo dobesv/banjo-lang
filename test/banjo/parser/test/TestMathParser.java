@@ -42,11 +42,6 @@ public class TestMathParser {
 	@Test public void questionMark() { test("s?", "s?"); }
 	@Test public void existential() { test("s??", "s??"); }
 
-	@Test public void semicolon1() { test("a ; b", "a ; b"); }
-	@Test public void semicolon2() { test("a = 1 ; b", "((a) -> b)(1)"); }
-	@Ignore @Test public void semicolon3() { test("{ foo = bar = 1; bar+1 }", ""); }
-	@Test public void semicolon3b() { test("{ foo = (bar = 1; bar+1) }", "{foo = ((bar) -> bar + 1)(1)}"); }
-
 	@Test public void plusOne1() { test("x+1", "x + 1"); }
 	@Test public void plusOne2() { test("+1+x", "+1 + x"); }
 	@Test public void minusOne1() { test("x-1", "x - 1"); }

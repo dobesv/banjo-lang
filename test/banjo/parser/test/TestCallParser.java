@@ -30,6 +30,6 @@ public class TestCallParser {
 
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
 		final Call call = ParseTestUtils.test(source, expectedErrors, null, Call.class, expectedSource);
-		assertEquals(numArgs, call.getArguments().length());
+		assertEquals(numArgs, call.getParts().head().getArguments().length());
 	}
 }

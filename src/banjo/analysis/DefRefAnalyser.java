@@ -15,7 +15,7 @@ import banjo.dom.core.Extend;
 import banjo.dom.core.Inspect;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.Method;
-import banjo.dom.core.MethodParamDecl;
+import banjo.dom.core.MethodFormalArgument;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
@@ -63,27 +63,27 @@ public class DefRefAnalyser {
 	public static class Analysis {
 		private static final Ord<FileRange> FILERANGE_ORD = Ord.<FileRange>comparableOrd();
 		//static final Set<Identifier> EMPTY_FREE_LIST = nonNull(Set.empty(ExprOrd.<Identifier>exprOrd()));
-		static final Ord<MethodParamDecl> methodParamOrd = nonNull(Ord.<MethodParamDecl>comparableOrd());
+		static final Ord<MethodFormalArgument> methodParamOrd = nonNull(Ord.<MethodFormalArgument>comparableOrd());
 		static final Ord<Method> methodNodeRefOrd = nonNull(Ord.<Method>comparableOrd());
 		static final Ord<Key> exprRefOrd = nonNull(Key.ORD);
 
 		@SuppressWarnings("null") @NonNull
-		static final Set<MethodParamDecl> EMPTY_METHOD_PARAM_REF_SET = Set.empty(methodParamOrd);
+		static final Set<MethodFormalArgument> EMPTY_METHOD_PARAM_REF_SET = Set.empty(methodParamOrd);
 		@SuppressWarnings("null") @NonNull
 		static final Set<Key> EMPTY_KEY_SET = Set.<Key>empty(exprRefOrd);
 		@SuppressWarnings("null") @NonNull
 		static final List<CoreExpr> EMPTY_EXPR_LIST = List.<CoreExpr>nil();
 		@SuppressWarnings("null") @NonNull
-		static final TreeMap<MethodParamDecl, Set<Key>> EMPTY_REFS_MAP = TreeMap.<MethodParamDecl, Set<Key>>empty(methodParamOrd);
+		static final TreeMap<MethodFormalArgument, Set<Key>> EMPTY_REFS_MAP = TreeMap.<MethodFormalArgument, Set<Key>>empty(methodParamOrd);
 		@SuppressWarnings("null") @NonNull
 		static final TreeMap<CoreExpr, Analysis> EMPTY_EXPR_ANALYSIS_CACHE = TreeMap.<CoreExpr, Analysis>empty(CoreExpr.ORD);
 
 		/** Free variables in the analysed expression; theses are variables that are referenced but not defined */
 		final Set<Key> free; // expressions that are a free variable
-		final TreeMap<MethodParamDecl, Set<Key>> refs; // def -> references
+		final TreeMap<MethodFormalArgument, Set<Key>> refs; // def -> references
 		final TreeMap<CoreExpr, Analysis> exprAnalysisCache; // exprRef -> analysis
-		final Set<MethodParamDecl> shadowingDefs; // Variables that shadow an outer variable of the same name
-		final Set<MethodParamDecl> unusedDefs; // Variables defined but not used
+		final Set<MethodFormalArgument> shadowingDefs; // Variables that shadow an outer variable of the same name
+		final Set<MethodFormalArgument> unusedDefs; // Variables defined but not used
 		final Set<Key> selfNames; // Method "self" parameter names
 
 		// TODO: Types!
@@ -108,10 +108,10 @@ public class DefRefAnalyser {
 		}
 
 		public Analysis(Set<Key> free,
-				TreeMap<MethodParamDecl, Set<Key>> refs,
+				TreeMap<MethodFormalArgument, Set<Key>> refs,
 				TreeMap<CoreExpr, Analysis> exprAnalysisCache,
-				Set<MethodParamDecl> shadowingDefs,
-				Set<MethodParamDecl> unusedDefs,
+				Set<MethodFormalArgument> shadowingDefs,
+				Set<MethodFormalArgument> unusedDefs,
 				Set<Key> selfNames) {
 			super();
 			this.free = free;
@@ -155,10 +155,10 @@ public class DefRefAnalyser {
 		 */
 		public Analysis union(Analysis other) {
 			final Set<Key> newFree = this.free.union(other.free);
-			final TreeMap<MethodParamDecl, Set<Key>> newRefs = union(this.refs, other.refs);
+			final TreeMap<MethodFormalArgument, Set<Key>> newRefs = union(this.refs, other.refs);
 			final TreeMap<CoreExpr, Analysis> newCache = putAll(this.exprAnalysisCache, other.exprAnalysisCache);
-			final Set<MethodParamDecl> newShadowingDefs = this.shadowingDefs.union(other.shadowingDefs);
-			final Set<MethodParamDecl> newUnusedDefs = this.unusedDefs.union(other.unusedDefs);
+			final Set<MethodFormalArgument> newShadowingDefs = this.shadowingDefs.union(other.shadowingDefs);
+			final Set<MethodFormalArgument> newUnusedDefs = this.unusedDefs.union(other.unusedDefs);
 			final Set<Key> newSelfNames = this.selfNames.union(other.selfNames);
 			return new Analysis(newFree,newRefs,newCache,newShadowingDefs,newUnusedDefs,newSelfNames);
 		}
@@ -276,17 +276,17 @@ public class DefRefAnalyser {
 		 */
 		protected Analysis analyseMethod(Method m) {
 			System.out.println("Analyse method: "+m);
-			TreeMap<String, MethodParamDecl> newDefs = nonNull(TreeMap.<String, MethodParamDecl>empty(Ord.stringOrd));
-			for(final MethodParamDecl param : m.getArgs()) {
+			TreeMap<String, MethodFormalArgument> newDefs = nonNull(TreeMap.<String, MethodFormalArgument>empty(Ord.stringOrd));
+			for(final MethodFormalArgument param : m.getArguments()) {
 				final String k = param.getName().getKeyString();
 				newDefs = newDefs.set(k, param);
 			}
 			if(m.hasSelfName()) {
 				final String k = m.getSelfName().getKeyString();
-				newDefs = nonNull(newDefs.set(k, new MethodParamDecl(m.getSelfName())));
+				newDefs = nonNull(newDefs.set(k, new MethodFormalArgument(m.getSelfName())));
 			}
 			Analysis a = subAnalysis();
-			for(final MethodParamDecl param : m.getArgs()) {
+			for(final MethodFormalArgument param : m.getArguments()) {
 				if(param.hasAssertion()) {
 					a = a.analyse(param.getAssertion());
 				}
@@ -304,22 +304,22 @@ public class DefRefAnalyser {
 		 * Apply new definitions to this analysis such that all matching free references are changed into
 		 * bound references.
 		 */
-		private Analysis link(TreeMap<String, MethodParamDecl> newDefs) {
+		private Analysis link(TreeMap<String, MethodFormalArgument> newDefs) {
 			// Check for defs in this.refs which are being bound again in an outer context - this means
 			// the inner def "shadows" this outer def we just found
-			Set<MethodParamDecl> newShadowingDefs = this.shadowingDefs;
-			for(final P2<MethodParamDecl, ?> p : this.refs) {
-				final MethodParamDecl def = p._1();
+			Set<MethodFormalArgument> newShadowingDefs = this.shadowingDefs;
+			for(final P2<MethodFormalArgument, ?> p : this.refs) {
+				final MethodFormalArgument def = p._1();
 				if(newDefs.contains(def.getName().getKeyString()))
 					newShadowingDefs = nonNull(newShadowingDefs.insert(def));
 			}
 
 			// Move from free to refs as we "link" the definitions
 			Set<Key> newFree = this.free;
-			TreeMap<MethodParamDecl, Set<Key>> newRefs = this.refs;
+			TreeMap<MethodFormalArgument, Set<Key>> newRefs = this.refs;
 			for(final Key refExpr : this.free) {
 				final String k = refExpr.toSource();
-				final MethodParamDecl defNodeRef = newDefs.get(k).toNull();
+				final MethodFormalArgument defNodeRef = newDefs.get(k).toNull();
 				if(defNodeRef != null) {
 					System.out.println("Bound: "+refExpr);
 					newFree = nonNull(newFree.delete(refExpr));
@@ -330,9 +330,9 @@ public class DefRefAnalyser {
 			}
 
 			// Check for defs in newDefs that were never bound to anything
-			Set<MethodParamDecl> newUnusedDefs = this.unusedDefs;
-			for(final P2<String, MethodParamDecl> p : newDefs) {
-				final MethodParamDecl def = p._2();
+			Set<MethodFormalArgument> newUnusedDefs = this.unusedDefs;
+			for(final P2<String, MethodFormalArgument> p : newDefs) {
+				final MethodFormalArgument def = p._2();
 				if(!newRefs.contains(def)) {
 					System.out.println("Unused: "+def.getName());
 					newUnusedDefs = nonNull(newUnusedDefs.insert(def));
@@ -349,15 +349,15 @@ public class DefRefAnalyser {
 			return this.free;
 		}
 
-		public TreeMap<MethodParamDecl, Set<Key>> getRefs() {
+		public TreeMap<MethodFormalArgument, Set<Key>> getRefs() {
 			return this.refs;
 		}
 
-		public Set<MethodParamDecl> getShadowingDefs() {
+		public Set<MethodFormalArgument> getShadowingDefs() {
 			return this.shadowingDefs;
 		}
 
-		public Set<MethodParamDecl> getUnusedDefs() {
+		public Set<MethodFormalArgument> getUnusedDefs() {
 			return this.unusedDefs;
 		}
 

@@ -64,8 +64,8 @@ public class TestObjectLiteralParser {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
 			final Method actualValue = eltIt.next();
-			assertEquals(0, actualValue.getArgs().length());
-			assertEquals(expectedNames[i], actualValue.getKey().toSource());
+			assertEquals(0, actualValue.getParts().head().getArguments().length());
+			assertEquals(expectedNames[i], actualValue.getParts().head().getKey().toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue.getBody());
 		}
 		assertEquals("Too many methods", false, eltIt.hasNext());
