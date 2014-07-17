@@ -14,6 +14,7 @@ import banjo.parser.util.SourceFileRange;
 
 public class Method extends AbstractCachedHashCode implements Comparable<Method> {
 	public static class SignaturePart implements Comparable<SignaturePart> {
+		private static final List<MethodFormalArgument> NO_ARGUMENTS = List.nil();
 		private final Key key;
 		private final fj.data.List<MethodFormalArgument> arguments;
 		
@@ -21,6 +22,10 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 			super();
 			this.key = key;
 			this.arguments = arguments;
+		}
+
+		public static SignaturePart nullary(Key key) {
+			return new SignaturePart(key, NO_ARGUMENTS);
 		}
 
 		@Override
@@ -98,6 +103,9 @@ public class Method extends AbstractCachedHashCode implements Comparable<Method>
 		this.sourceFileRange = sfr;
 	}
 
+	public static Method nullary(Key name, CoreExpr body) {
+		return new Method(SourceFileRange.SYNTHETIC, NO_SELF_NAME, List.list(SignaturePart.nullary(name)), NO_GUARANTEE, body);
+	}
 	private static int calcHash(Key selfName, fj.data.List<SignaturePart> parts,
 			CoreExpr guarantee, CoreExpr body, SourceFileRange sfr) {
 		final int prime = 31;

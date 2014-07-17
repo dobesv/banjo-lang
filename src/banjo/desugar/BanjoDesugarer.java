@@ -253,9 +253,10 @@ public class BanjoDesugarer {
 	}
 
 	protected DesugarResult<CoreExpr> call(final BinaryOp op) {
-		return call(op, List.<P2<Key, List<SourceExpr>>>nil());
+		return call(op, List.<P2<Key, List<SourceExpr>>>nil(), false);
 	}
-	protected DesugarResult<CoreExpr> call(final BinaryOp op, final List<P2<Key, List<SourceExpr>>> moreParts) {
+	
+	protected DesugarResult<CoreExpr> call(final BinaryOp op, final List<P2<Key, List<SourceExpr>>> moreParts, final boolean callNext) {
 		final List<SourceExpr> argSourceExprs = flattenCommas(op.getRight());
 		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
@@ -268,7 +269,7 @@ public class BanjoDesugarer {
 						@Override
 						@Nullable
 						public DesugarResult<CoreExpr> key(Key key) {
-							return call(op, calleeOp.getLeft(), List.cons(P.p(key, argSourceExprs), moreParts));
+							return call(op, calleeOp.getLeft(), List.cons(P.p(key, argSourceExprs), moreParts), callNext);
 						}
 
 						@Override
@@ -283,7 +284,7 @@ public class BanjoDesugarer {
 							return nonNull(calleeOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 								public BanjoDesugarer.DesugarResult<CoreExpr> binaryOp(BinaryOp calleeLeftOp) {
 									if(calleeLeftOp.getOperator() == Operator.CALL || calleeLeftOp.getOperator() == Operator.CALL_NEXT_METHOD) {
-										return BanjoDesugarer.this.call(calleeLeftOp, List.cons(P.p(key, argSourceExprs), moreParts));
+										return BanjoDesugarer.this.call(calleeLeftOp, List.cons(P.p(key, argSourceExprs), moreParts), calleeLeftOp.getOperator() == Operator.CALL_NEXT_METHOD);
 									} else {
 										return callFunction();
 									}
@@ -311,12 +312,12 @@ public class BanjoDesugarer {
 			}
 
 			public DesugarResult<CoreExpr> callFunction() {
-				return call(op, op.getLeft(), List.cons(P.p(Method.APPLY_FUNCTION_METHOD_NAME, argSourceExprs), moreParts));
+				return call(op, op.getLeft(), List.cons(P.p(Method.APPLY_FUNCTION_METHOD_NAME, argSourceExprs), moreParts), callNext);
 			}
 		}));
 	}
 
-	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, SourceExpr object, List<P2<Key, List<SourceExpr>>> parts) {
+	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, SourceExpr object, List<P2<Key, List<SourceExpr>>> parts, boolean callNext) {
 		final DesugarResult<CoreExpr> objectDs = expr(object);
 		return objectDs.call(sourceExpr, objectDs.getValue(), parts);
 	}
@@ -1439,7 +1440,7 @@ public class BanjoDesugarer {
 						}
 						
 						public BanjoDesugarer.DesugarResult<CoreExpr> key(Key keyOnRight) {
-							return call(opLeft, single(P.p(keyOnRight, List.<SourceExpr>nil())));
+							return call(opLeft, single(P.p(keyOnRight, List.<SourceExpr>nil())), opLeft.getOperator() == Operator.CALL_NEXT_METHOD);
 						}
 					});
 				} else {
