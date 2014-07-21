@@ -9,8 +9,8 @@ import fj.data.List;
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
-	public UnaryOp(SourceFileRange sfr, Operator operator, SourceExpr operand) {
-		super(sfr, operator, operand);
+	public UnaryOp(List<SourceFileRange> ranges, Operator operator, SourceExpr operand) {
+		super(ranges, operator, operand);
 		this.operand = operand;
 	}
 	public SourceExpr getOperand() {

@@ -2,6 +2,7 @@ package banjo.dom.core;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
@@ -19,8 +20,8 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		return this.target;
 	}
 
-	public Inspect(SourceFileRange sfr, CoreExpr target) {
-		super(target.hashCode()+sfr.hashCode(), sfr);
+	public Inspect(List<SourceFileRange> ranges, CoreExpr target) {
+		super(target.hashCode()+ranges.hashCode(), ranges);
 		this.target = target;
 	}
 
@@ -50,7 +51,6 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.inspect(this);
 	}
@@ -67,6 +67,11 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		if (!this.target.equals(other.target))
 			return false;
 		return true;
+	}
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.inspect(getSourceFileRanges(), target.acceptVisitor(visitor));
 	}
 
 

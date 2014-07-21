@@ -12,10 +12,10 @@ import fj.data.List;
  * a list with consecutive or trailing separators.
  */
 public class EmptyExpr extends AbstractOp implements SourceExpr {
-	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.SYNTHETIC);
+	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(List.<SourceFileRange>nil());
 
-	public EmptyExpr(SourceFileRange sfr) {
-		super(sfr, Operator.EMPTY);
+	public EmptyExpr(List<SourceFileRange> ranges) {
+		super(ranges, Operator.EMPTY);
 	}
 
 	@Override

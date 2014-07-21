@@ -10,8 +10,8 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(SourceFileRange sfr, Operator operator, SourceExpr left, SourceExpr right) {
-		super(sfr, operator, left, right);
+	public BinaryOp(List<SourceFileRange> ranges, Operator operator, SourceExpr left, SourceExpr right) {
+		super(ranges, operator, left, right);
 		this.left = left;
 		this.right = right;
 	}

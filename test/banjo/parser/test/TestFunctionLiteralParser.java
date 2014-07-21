@@ -8,7 +8,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
 import banjo.dom.core.BaseCoreExprVisitor;
-import banjo.dom.core.CoreExpr;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.token.Identifier;
 
@@ -33,7 +32,7 @@ public class TestFunctionLiteralParser {
 		func.getMethods().iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {
 			@Override
 			@Nullable
-			public Void fallback(@NonNull CoreExpr unsupported) {
+			public Void fallback() {
 				fail("Expected identifier: "+unsupported);
 				return null;
 			}

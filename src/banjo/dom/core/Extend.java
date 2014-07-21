@@ -2,6 +2,7 @@ package banjo.dom.core;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
@@ -11,15 +12,15 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr base;
 	private final CoreExpr extension;
 
-	public Extend(SourceFileRange sfr, CoreExpr base, CoreExpr extension) {
-		super(base.hashCode() ^ extension.hashCode(), sfr);
+	public Extend(List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
+		super(base.hashCode() ^ extension.hashCode(), ranges);
 		this.base = base;
 		this.extension = extension;
 	}
 
 
-	public Extend(int hashCode, SourceFileRange sfr, CoreExpr base, CoreExpr extension) {
-		super(hashCode+sfr.hashCode(), sfr);
+	public Extend(int hashCode, List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
+		super(hashCode+ranges.hashCode(), ranges);
 		this.base = base;
 		this.extension = extension;
 	}
@@ -53,7 +54,6 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.extend(this);
 	}
@@ -82,6 +82,12 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 		if (!this.extension.equals(other.extension))
 			return false;
 		return true;
+	}
+
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.extend(getSourceFileRanges(), base.acceptVisitor(visitor), extension.acceptVisitor(visitor));
 	}
 
 

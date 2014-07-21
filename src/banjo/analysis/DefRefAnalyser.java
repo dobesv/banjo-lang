@@ -7,7 +7,6 @@ import java.net.URI;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
@@ -241,7 +240,7 @@ public class DefRefAnalyser {
 
 				@Override
 				@Nullable
-				public Analysis badExpr(BadCoreExpr badExpr) {
+				public Analysis badExpr(SourceFileRange range, String messageTemplate, Object... args) {
 					return Analysis.this;
 				}
 
@@ -284,7 +283,7 @@ public class DefRefAnalyser {
 					newDefs = newDefs.set(k, param);
 				}
 			}
-			if(m.hasSelfName()) {
+			if(m.hasSelfArg()) {
 				final String k = m.getSelfName().getKeyString();
 				newDefs = nonNull(newDefs.set(k, new MethodFormalArgument(m.getSelfName())));
 			}

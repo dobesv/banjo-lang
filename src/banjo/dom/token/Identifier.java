@@ -19,8 +19,8 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	final String id;
 
-	public Identifier(SourceFileRange sfr, String id) {
-		super(id.hashCode() + sfr.hashCode(), sfr);
+	public Identifier(List<SourceFileRange> ranges, String id) {
+		super(id.hashCode() + ranges.hashCode(), ranges);
 		this.id = id;
 	}
 

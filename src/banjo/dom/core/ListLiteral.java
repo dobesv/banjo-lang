@@ -6,14 +6,15 @@ import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.F;
 import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	private final List<CoreExpr> elements;
 
-	public ListLiteral(SourceFileRange sfr, List<CoreExpr> elements) {
-		super(elements.hashCode()+sfr.hashCode(), sfr);
+	public ListLiteral(List<SourceFileRange> ranges, List<CoreExpr> elements) {
+		super(elements.hashCode()+ranges.hashCode(), ranges);
 		this.elements = elements;
 	}
 
@@ -39,7 +40,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.listLiteral(this);
 	}
 
@@ -65,10 +66,21 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ListLiteral other = (ListLiteral) o;
-			if(cmp == 0) cmp = ListUtil.<Expr>compare(this.elements, other.elements);
+			if(cmp == 0) cmp = ListUtil.compare(this.elements, other.elements, CoreExpr.ORD);
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
+	}
+
+	@Override
+	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
+		return visitor.listLiteral(getSourceFileRanges(), elements.map(new F<CoreExpr, T>() {
+			@Override
+			public T f(@Nullable CoreExpr a) {
+				if(a == null) throw new NullPointerException();
+				return a.acceptVisitor(visitor);
+			}
+		}));
 	}
 
 }

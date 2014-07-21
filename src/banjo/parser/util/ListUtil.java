@@ -69,7 +69,7 @@ public class ListUtil {
 		return Boolean.compare(it1.hasNext(), it2.hasNext());
 	}
 
-	public static <T extends Comparable<T>> int compare(@Nullable Iterable<? extends T> list1, @Nullable Iterable<? extends T> list2, Ord<T> ord) {
+	public static <T> int compare(@Nullable Iterable<T> list1, @Nullable Iterable<T> list2, Ord<T> ord) {
 		if(list1 == null) return (list2 == null ? 0 : 1);
 		if(list2 == null) return -1;
 		final Iterator<? extends T> it1 = list1.iterator(), it2 = list2.iterator();

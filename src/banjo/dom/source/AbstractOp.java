@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
 import banjo.parser.util.SourceFileRange;
@@ -12,8 +13,8 @@ public abstract class AbstractOp extends AbstractExpr {
 	protected final Operator operator;
 	protected final SourceExpr[] operands;
 
-	public AbstractOp(SourceFileRange sfr, Operator operator, SourceExpr ... operands) {
-		super(operator.hashCode() ^ Arrays.hashCode(operands) + sfr.hashCode(), sfr);
+	public AbstractOp(List<SourceFileRange> ranges, Operator operator, SourceExpr ... operands) {
+		super(operator.hashCode() ^ Arrays.hashCode(operands) + ranges.hashCode(), ranges);
 		this.operator = operator;
 		this.operands = operands;
 	}

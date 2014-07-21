@@ -235,7 +235,7 @@ public class BanjoDesugarer {
 	 * Create a function object - an object with a single method with a special name and the given body.
 	 */
 	protected DesugarResult<CoreExpr> function(SourceExpr op, MethodFormalArgument funArg, CoreExpr body) {
-		final Method applyMethod = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(Method.APPLY_FUNCTION_METHOD_NAME, single(funArg))), Method.NO_GUARANTEE, body);
+		final Method applyMethod = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(Method.APPLY_FUNCTION_METHOD_NAME, single(funArg))), body);
 		return this.<CoreExpr>withValue(new ObjectLiteral(SourceFileRange.SYNTHETIC, applyMethod));
 	}
 
@@ -243,7 +243,7 @@ public class BanjoDesugarer {
 	 * Create a function object - an object with a single method with a special name and the given body.
 	 */
 	protected DesugarResult<CoreExpr> function(SourceExpr op, CoreExpr body) {
-		final Method applyMethod = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(Method.APPLY_FUNCTION_METHOD_NAME, List.<MethodFormalArgument>nil())), Method.NO_GUARANTEE, body);
+		final Method applyMethod = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(Method.APPLY_FUNCTION_METHOD_NAME, List.<MethodFormalArgument>nil())), body);
 		return this.<CoreExpr>withValue(new ObjectLiteral(SourceFileRange.SYNTHETIC, applyMethod));
 	}
 
@@ -680,7 +680,7 @@ public class BanjoDesugarer {
 			@Override
 			public DesugarResult<List<Method>> fallback(SourceExpr other) {
 				final DesugarResult<Key> keyDs = expectIdentifier(signatureSourceExpr);
-				final Method method = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(keyDs.getValue(), Method.NO_ARGS)), guarantee, body);
+				final Method method = new Method(SourceFileRange.SYNTHETIC, Method.NO_SELF_NAME, single(new Method.SignaturePart(keyDs.getValue(), Method.NO_ARGS)), body);
 				return keyDs.withValue(nonNull(methods.cons(method)));
 			}
 		});
@@ -883,7 +883,7 @@ public class BanjoDesugarer {
 		final CoreExpr newBody = nonNull(argsDs.getValue()._1());
 		SourceFileRange methodSourceFileRange = methodSourceExpr!=null ? methodSourceExpr.getSourceFileRange() : SourceFileRange.SYNTHETIC;
 		List<SignaturePart> methodParts = single(new Method.SignaturePart(methodName, processedArgs));
-		final Method method = new Method(methodSourceFileRange, selfName, methodParts, guarantee, newBody);
+		final Method method = new Method(methodSourceFileRange, selfName, methodParts, newBody);
 		if(methodSourceExpr != null)
 			return argsDs.withDesugared(methodSourceExpr, signatureSourceExpr, argsDs.getSourceExpr(), method);
 		else

@@ -87,7 +87,7 @@ public final class BanjoObject {
 		TreeMap<String, BanjoObject> newEnvironment = impl.getEnvironment();
 
 		// Add arguments to the environment
-		if(methodDef.hasSelfName())
+		if(methodDef.hasSelfArg())
 			newEnvironment = newEnvironment.set(methodDef.getSelfName().getKeyString(), this);
 		
 		newEnvironment = nonNull(message.getParts().zip(methodDef.getParts()).foldRight(new F2<P2<BanjoMessage.MessagePart, Method.SignaturePart>, TreeMap<String, BanjoObject>, TreeMap<String, BanjoObject>>() {

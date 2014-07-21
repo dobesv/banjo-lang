@@ -11,23 +11,23 @@ import fj.data.List;
 public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExpr {
 	public static class ExpectedOperator extends BadSourceExpr {
 
-		public ExpectedOperator(SourceFileRange sfr) {
-			super(sfr, "Expected an operator here");
+		public ExpectedOperator(List<SourceFileRange> ranges) {
+			super(ranges, "Expected an operator here");
 		}
 
 	}
 	public static class IncorrectIndentation extends BadSourceExpr {
 
-		public IncorrectIndentation(SourceFileRange sfr, int actualIndent, int expectedMinIndent) {
-			super(sfr, "Incorrect indentation; expected at least %d columns, got only %d", expectedMinIndent, actualIndent);
+		public IncorrectIndentation(List<SourceFileRange> ranges, int actualIndent, int expectedMinIndent) {
+			super(ranges, "Incorrect indentation; expected at least %d columns, got only %d", expectedMinIndent, actualIndent);
 		}
 
 	}
 	public static class MismatchedCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MismatchedCloseParen(SourceFileRange sfr, ParenType closeParenType) {
-			super(sfr, "Mismatched close paren %s", closeParenType.getEndChar());
+		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
+			super(ranges, "Mismatched close paren %s", closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
 
@@ -38,8 +38,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class MissingCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MissingCloseParen(SourceFileRange sfr, ParenType closeParenType) {
-			super(sfr, "Missing close paren %s", closeParenType.getEndChar());
+		public MissingCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
+			super(ranges, "Missing close paren %s", closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
 
@@ -50,8 +50,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class UnsupportedOperator extends BadSourceExpr {
 		private final String op;
 
-		public UnsupportedOperator(SourceFileRange sfr, String op) {
-			super(sfr, "Unsupported operator '"+op+"'");
+		public UnsupportedOperator(List<SourceFileRange> ranges, String op) {
+			super(ranges, "Unsupported operator '"+op+"'");
 			this.op = op;
 		}
 
@@ -60,8 +60,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 		}
 	}
 
-	protected BadSourceExpr(SourceFileRange sfr, String message, Object ... args) {
-		super(sfr, message, args);
+	protected BadSourceExpr(List<SourceFileRange> ranges, String message, Object ... args) {
+		super(ranges, message, args);
 	}
 
 	@Override

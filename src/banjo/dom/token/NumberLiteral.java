@@ -66,7 +66,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 			}
 			@Override
 			@Nullable
-			public Boolean fallback(CoreExpr unsupported) {
+			public Boolean fallback() {
 				return false;
 			}
 		})).booleanValue();

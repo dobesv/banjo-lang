@@ -7,30 +7,39 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.dom.token.Key;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.BanjoScanner;
+import banjo.parser.util.ExprOrd;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.F;
 import fj.Ord;
+import fj.data.List;
 import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
-	public static final ObjectLiteral EMPTY = new ObjectLiteral(SourceFileRange.SYNTHETIC);
-	public static final TreeMap<String, fj.data.List<Method>> EMPTY_METHOD_MAP = nonNull(TreeMap.<String, fj.data.List<Method>>empty(Ord.stringOrd));
+	public static final ObjectLiteral EMPTY = new ObjectLiteral(List.<SourceFileRange>nil());
 	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
 	private final fj.data.List<Method> methods;
-
-	public ObjectLiteral(SourceFileRange sfr, fj.data.List<Method> fields) {
-		super(fields.hashCode()+sfr.hashCode(), sfr);
+	
+	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
+	
+	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> fields) {
+		super(fields.hashCode()+ranges.hashCode(), ranges);
 		this.methods = nonNull(fields);
 	}
 
 	@SafeVarargs
-	public ObjectLiteral(SourceFileRange sfr, Method ... methods) {
-		this(sfr, fj.data.List.list(methods));
+	public ObjectLiteral(List<SourceFileRange> ranges, Method ... methods) {
+		this(ranges, fj.data.List.list(methods));
 	}
 
+	public ObjectLiteral(Method ... methods) {
+		this(List.<SourceFileRange>nil(), fj.data.List.list(methods));
+	}
+	
 	public fj.data.List<Method> getMethods() {
 		return this.methods;
 	}
@@ -44,9 +53,38 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public void toSource(StringBuffer sb) {
 		if(isLambda()) {
 			final Method method = this.methods.head();
-			if(method.hasSelfName() || !method.getParts().head().getArguments().isEmpty()) {
-				if(method.hasSelfName()) method.getSelfName().toSource(sb);
-				method.getParts().head().formalArgListToSource(sb);
+			if(method.hasSelfArg() || !method.getArgumentLists().head().isEmpty()) {
+				List<List<List<Key>>> al = method.getArgumentLists();
+				if(method.hasSelfArg()) {
+					List<Key> nl = method.getSelfArg();
+					while(nl.isNotEmpty()) {
+						nl.head().toSource(sb);
+						nl = nl.tail();
+						if(al.isNotEmpty()) {
+							sb.append('(');
+							boolean first = true;
+							for(List<Key> arg : al.head()) {
+								if(first) first = false;
+								else sb.append(", ");
+								Method.argToSource(arg, sb);
+							}
+							sb.append(')');
+							al = al.tail();
+						} else if(nl.isNotEmpty()) {
+							sb.append("()");
+						}
+					}
+				} else {
+					// Note: Only one argument list is supported in this case, if there are others they are ignored as invalid
+					sb.append('(');
+					boolean first = true;
+					for(List<Key> arg : al.head()) {
+						if(first) first = false;
+						else sb.append(", ");
+						Method.argToSource(arg, sb);
+					}
+					sb.append(')');
+				}
 				sb.append(' ');
 			}
 			Operator.FUNCTION.toSource(sb);
@@ -84,7 +122,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 
 	@Override
-	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.objectLiteral(this);
 	}
 
@@ -111,13 +149,24 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ObjectLiteral other = (ObjectLiteral) o;
-			cmp = ListUtil.compare(this.methods, other.methods);
+			cmp = this.methods.compare(Method.ORD, other.methods).toPlusOrMinusOne();
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
 	}
 
 	public boolean isLazyValue() {
-		return isLambda() && (this.methods.head().getParts().head().getArguments().isEmpty());
+		return isLambda() && (this.methods.head().getArgumentLists().head().isEmpty());
+	}
+
+	@Override
+	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
+		return visitor.objectLiteral(getSourceFileRanges(), methods.map(new F<Method, T>() {
+			@Override
+			public T f(@Nullable Method a) {
+				if(a == null) throw new NullPointerException();
+				return a.acceptVisitor(visitor);
+			}
+		}));
 	}
 }

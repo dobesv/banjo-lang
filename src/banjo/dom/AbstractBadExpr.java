@@ -4,6 +4,9 @@ import java.util.Arrays;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
+import banjo.dom.core.CoreExprAlgebra;
+import banjo.dom.core.ExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.util.SourceFileRange;
@@ -17,8 +20,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return this.args;
 	}
 
-	public AbstractBadExpr(SourceFileRange sourceFileRange, String message, Object ... args) {
-		super(message.hashCode(), sourceFileRange);
+	public AbstractBadExpr(List<SourceFileRange> ranges, String message, Object ... args) {
+		super(message.hashCode(), ranges);
 		this.messageTemplate = message;
 		this.args = args;
 	}
@@ -45,6 +48,14 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return String.format(this.messageTemplate, this.args);
 	}
 
+	public <T> T acceptVisitor(ExprAlgebra<T> visitor) {
+		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
+	}
+		
+	public <T> T acceptVisitor(ExprVisitor<T> visitor) {
+		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
+	}
+	
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)

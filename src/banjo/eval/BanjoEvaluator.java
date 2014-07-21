@@ -7,7 +7,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.analysis.DefRefAnalyser;
 import banjo.analysis.DefRefAnalyser.Analysis;
-import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
@@ -24,6 +23,7 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.eval.BanjoMessage.MessagePart;
+import banjo.parser.util.SourceFileRange;
 import fj.F;
 import fj.data.List;
 import fj.data.TreeMap;
@@ -32,7 +32,7 @@ public class BanjoEvaluator {
 	BanjoObject emptyObject = new BanjoObject(this);
 	public BanjoObject eval(CoreExpr expr, final TreeMap<String,BanjoObject> environment) {
 		final BanjoObject evalResult = nonNull(expr.acceptVisitor(new CoreExprVisitor<BanjoObject>() {
-			@Override public BanjoObject badExpr(BadCoreExpr badExpr) { return BanjoEvaluator.this.emptyObject; }
+			@Override public BanjoObject badExpr(SourceFileRange range, String messageTemplate, Object... args) { return BanjoEvaluator.this.emptyObject; }
 			@Override public BanjoObject badIdentifier(BadIdentifier badIdentifier) { return BanjoEvaluator.this.emptyObject; }
 
 			@Override

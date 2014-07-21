@@ -123,7 +123,7 @@ public class ParseTestUtils {
 				return null;
 			}
 			@Override
-			public Void fallback(@NonNull CoreExpr unsupported) {
+			public Void fallback() {
 				fail("Not a number literal: "+unsupported);
 				return null;
 			}

@@ -6,21 +6,23 @@ import static banjo.parser.util.Check.nonNull;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.AbstractCachedHashCode;
+import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 
 public abstract class AbstractExpr extends AbstractCachedHashCode implements Expr {
-	final SourceFileRange sourceFileRange;
+	final List<SourceFileRange> sourceFileRanges;
 
-	public AbstractExpr(int hashCode, SourceFileRange sourceFileRange) {
+	public AbstractExpr(int hashCode, List<SourceFileRange> sourceFileRanges) {
 		super(hashCode);
-		this.sourceFileRange = sourceFileRange;
+		this.sourceFileRanges = sourceFileRanges;
 	}
 
 	@Override
-	public SourceFileRange getSourceFileRange() {
-		return this.sourceFileRange;
+	public List<SourceFileRange> getSourceFileRanges() {
+		return this.sourceFileRanges;
 	}
 
 
@@ -78,7 +80,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 
 	@Override
 	public int compareTo(@Nullable Expr o) {
-		return this.sourceFileRange.compareTo(nonNull(o).getSourceFileRange());
+		return ListUtil.compare(sourceFileRanges, nonNull(o).getSourceFileRanges());
 	}
 
 	@Override
@@ -86,7 +88,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return obj == this || (
 				super.equals(obj) &&
 				(obj instanceof Expr) &&
-				this.sourceFileRange.equals(((Expr)obj).getSourceFileRange())
+				this.sourceFileRanges.equals(((Expr)obj).getSourceFileRanges())
 				);
 	}
 }

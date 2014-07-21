@@ -2,6 +2,7 @@ package banjo.dom.core;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.token.Atom;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
@@ -9,6 +10,7 @@ import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
+import banjo.parser.util.SourceFileRange;
 
 /**
  * Provide a default base implementation of CoreExprVisitor that passes unhandled
@@ -16,11 +18,9 @@ import banjo.dom.token.StringLiteral;
  * be intercepted by overriding visitKey() and visitAtom().
  */
 public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
-	@Nullable
-	public abstract T fallback(CoreExpr unsupported);
+	public abstract T fallback();
 
 	@Override
-	@Nullable
 	public T stringLiteral(StringLiteral n) {
 		return key(n);
 	}
@@ -29,7 +29,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	 * Called when visiting a subclass of Key and that subclass visit method has
 	 * not been overridden.
 	 */
-	public @Nullable T key(Key key) {
+	public T key(Key key) {
 		return atom(key);
 	}
 
@@ -37,67 +37,64 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	 * Called when visiting a subclass of Atom and that subclass visit method has
 	 * not been overridden.
 	 */
-	public @Nullable T atom(Atom atom) {
-		return fallback(atom);
+	public T atom(Atom atom) {
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T numberLiteral(NumberLiteral n) {
 		return atom(n);
 	}
 
 	@Override
-	@Nullable
 	public T identifier(Identifier n) {
 		return key(n);
 	}
 
 	@Override
-	@Nullable
 	public T call(Call n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T objectLiteral(ObjectLiteral n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T listLiteral(ListLiteral n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
-	public T badExpr(BadCoreExpr n) {
-		return fallback(n);
+	public T badExpr(List<SourceFileRange> ranges, String messageTemplate, Object... args) {
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T badIdentifier(BadIdentifier n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T operator(OperatorRef n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T inspect(Inspect n) {
-		return fallback(n);
+		return fallback();
 	}
 
 	@Override
-	@Nullable
 	public T extend(Extend n) {
-		return fallback(n);
+		return fallback();
+	}
+	
+	@Override
+	public T method(List<SourceFileRange> sourceFileRanges, List<Key> selfArg,
+			List<Key> nameParts, List<List<List<Key>>> argumentLists,
+			CoreExpr body) {
+		return fallback();
 	}
 }

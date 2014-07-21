@@ -3,8 +3,6 @@ package banjo.parser.util;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class SourceFileRange implements Comparable<SourceFileRange> {
-	public static final SourceFileRange SYNTHETIC = new SourceFileRange("", FileRange.EMPTY);
-
 	final String sourceFile;
 	final FileRange fileRange;
 	public SourceFileRange(String sourceFile, FileRange fileRange) {
