@@ -5,6 +5,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.BadExpr;
 import banjo.dom.token.BadIdentifier;
 import banjo.parser.util.SourceFileRange;
+import banjo.util.SourceNumber;
 import fj.data.List;
 
 public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
@@ -32,9 +33,9 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> call(List<SourceFileRange> ranges,
-			List<BadExpr> object, List<List<BadExpr>> nameParts,
+			List<BadExpr> object, List<BadExpr> name,
 			List<List<List<BadExpr>>> argumentLists) {
-		return object.append(List.join(nameParts)).append(List.join(List.join(argumentLists)));
+		return object.append(name).append(List.join(List.join(argumentLists)));
 	}
 
 	@Override
@@ -50,9 +51,35 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> method(List<SourceFileRange> sourceFileRanges,
-			List<List<BadExpr>> selfArg, List<List<BadExpr>> nameParts,
-			List<List<List<List<BadExpr>>>> argumentLists, List<BadExpr> body) {
-		return List.join(selfArg).append(List.join(nameParts)).append(List.join(List.join(List.join(argumentLists)))).append(body);
+			List<BadExpr> selfArg, List<BadExpr> name,
+			List<List<List<BadExpr>>> argumentLists, List<BadExpr> body) {
+		return selfArg.append(name).append(List.join(List.join(argumentLists))).append(body);
+	}
+
+	@Override
+	public List<BadExpr> numberLiteral(List<SourceFileRange> ranges, Number value) {
+		return List.nil();
+	}
+
+	@Override
+	public List<BadExpr> identifier(List<SourceFileRange> ranges, String op) {
+		return List.nil();
+	}
+
+	@Override
+	public List<BadExpr> mixfixFunctionIdentifier(
+			List<SourceFileRange> sourceFileRanges, List<String> parts) {
+		return List.nil();
+	}
+
+	@Override
+	public List<BadExpr> anonymous() {
+		return List.nil();
+	}
+
+	@Override
+	public List<BadExpr> alternativeDefinition(List<SourceFileRange> sourceFileRanges, List<BadExpr> base, List<BadExpr> alternative) {
+		return base.append(alternative);
 	}
 
 }

@@ -4,17 +4,20 @@ import fj.data.List;
 import banjo.dom.ExprAlgebra;
 import banjo.dom.token.Key;
 import banjo.parser.util.SourceFileRange;
+import banjo.util.SourceNumber;
 
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T objectLiteral(List<SourceFileRange> ranges, List<T> methods);
+	T numberLiteral(List<SourceFileRange> ranges, Number value);
 	T stringLiteral(List<SourceFileRange> ranges, String text);
 	T listLiteral(List<SourceFileRange> ranges, List<T> elements);
-	T call(List<SourceFileRange> ranges, T object, List<T> nameParts, List<List<T>> argumentLists);
+	T call(List<SourceFileRange> ranges, T object, T name, List<List<T>> argumentLists);
 	T extend(List<SourceFileRange> ranges, T base, T extension);
 	T inspect(List<SourceFileRange> ranges, T target);
-	T method(List<SourceFileRange> sourceFileRanges, List<T> selfArg,
-			List<T> nameParts, List<List<List<T>>> argumentLists,
-			T body);
-	
+	T method(List<SourceFileRange> ranges, T selfArg, T name, List<List<T>> argumentLists, T body);
+	T identifier(List<SourceFileRange> ranges, String id);
+	T mixfixFunctionIdentifier(List<SourceFileRange> sourceFileRanges, List<String> parts);
+	T anonymous();
+	T alternativeDefinition(List<SourceFileRange> sourceFileRanges, T base, T alternative);
 }

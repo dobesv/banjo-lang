@@ -53,29 +53,28 @@ public enum Operator {
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	NEQ("!=", 0x2260, OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
-	MEMBER_OF("in", 0x2208, OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
+	MEMBER_OF("<::", 0x2208, OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
 	INTERSECT("&", 0x2229, OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
 	XOR("><", 0x22BB, OperatorType.METHOD, Position.INFIX, Precedence.XOR),
 	UNION("|", 0x222A, OperatorType.METHOD, Position.INFIX, Precedence.UNION),
-	LAZY_AND("&&", 0x2227, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_AND),
-	LAZY_OR("||", 0x2228, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR),
+	LOGICAL_AND("&&", 0x2227, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
+	LOGICAL_OR("||", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 	IF_UNDEFINED_THEN("|||", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 	IF_DEFINED_THEN("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	OVERLOAD_METHOD("|||=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	
+
 	// CONSTRAIN("&&&=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NONE),
 	EXTEND_RESULT("@=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	CONS("::", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.COLON, Associativity.RIGHT),
-	LET("=>", 0x21D2, OperatorType.LAZY_RHS, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
+	LET("=>", 0x21D2, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
-	SEMICOLON(";", OperatorType.LAZY_RHS, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
 	JUXTAPOSITION("~~~JUXTAPOSITION~~~", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX, Associativity.LEFT),
-	
+
 	// Special case operators
 	INVALID("~~~INVALID~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM); // Newline and indent

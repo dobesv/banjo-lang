@@ -3,6 +3,7 @@ package banjo.dom.core;
 import org.eclipse.jdt.annotation.Nullable;
 
 import fj.data.List;
+import banjo.dom.BadExpr;
 import banjo.dom.token.Atom;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
@@ -30,20 +31,12 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	 * not been overridden.
 	 */
 	public T key(Key key) {
-		return atom(key);
-	}
-
-	/**
-	 * Called when visiting a subclass of Atom and that subclass visit method has
-	 * not been overridden.
-	 */
-	public T atom(Atom atom) {
 		return fallback();
 	}
 
 	@Override
 	public T numberLiteral(NumberLiteral n) {
-		return atom(n);
+		return fallback();
 	}
 
 	@Override
@@ -67,7 +60,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T badExpr(List<SourceFileRange> ranges, String messageTemplate, Object... args) {
+	public T badExpr(BadExpr badExpr) {
 		return fallback();
 	}
 
@@ -90,11 +83,24 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	public T extend(Extend n) {
 		return fallback();
 	}
-	
+
 	@Override
-	public T method(List<SourceFileRange> sourceFileRanges, List<Key> selfArg,
-			List<Key> nameParts, List<List<List<Key>>> argumentLists,
-			CoreExpr body) {
+	public T method(Method method) {
+		return fallback();
+	}
+
+	@Override
+	public T anonymous() {
+		return fallback();
+	}
+
+	@Override
+	public T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
+		return fallback();
+	}
+
+	@Override
+	public T alternativeDefinition(AlternativeDefinition alternativeDefinition) {
 		return fallback();
 	}
 }

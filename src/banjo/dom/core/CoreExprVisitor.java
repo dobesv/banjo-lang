@@ -20,8 +20,9 @@ public interface CoreExprVisitor<T> extends ExprVisitor<T> {
 	T badIdentifier(BadIdentifier badIdentifier);
 	T inspect(Inspect inspect);
 	T extend(Extend extend);
-	T method(List<SourceFileRange> sourceFileRanges, List<Key> selfArg,
-			List<Key> nameParts, List<List<List<Key>>> argumentLists,
-			CoreExpr body);
+	T method(Method method);
+	T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier);
+	T anonymous();
+	T alternativeDefinition(AlternativeDefinition alternativeDefinition);
 
 }

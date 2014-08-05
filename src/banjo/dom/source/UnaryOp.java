@@ -1,7 +1,5 @@
 package banjo.dom.source;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -9,8 +7,8 @@ import fj.data.List;
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
-	public UnaryOp(List<SourceFileRange> ranges, Operator operator, SourceExpr operand) {
-		super(ranges, operator, operand);
+	public UnaryOp(List<SourceFileRange> ranges, Operator operator, SourceFileRange operatorRange, SourceExpr operand) {
+		super(ranges, operator, operatorRange, operand);
 		this.operand = operand;
 	}
 	public SourceExpr getOperand() {
@@ -22,8 +20,12 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.unaryOp(this);
+	}
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.unaryOp(getSourceFileRanges(), getOperator(), getOperatorRange(), getOperand().acceptVisitor(visitor));
 	}
 	@Override
 	public void toSource(StringBuffer sb) {

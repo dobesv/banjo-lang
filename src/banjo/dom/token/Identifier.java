@@ -5,17 +5,20 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
+import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.BanjoScanner;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
 public class Identifier extends AbstractAtom implements Atom, Key, Token {
-	public static final Identifier ZERO = new Identifier(SourceFileRange.SYNTHETIC, "0");
-	public static final Identifier EMPTY_STRING = new Identifier(SourceFileRange.SYNTHETIC, "\"\"");
-	public static final Identifier EMPTY_LIST = new Identifier(SourceFileRange.SYNTHETIC, "[]");
+	public static final Identifier ZERO = new Identifier("0");
+	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
+	public static final Identifier EMPTY_LIST = new Identifier("[]");
+	public static final Identifier ENVIRONMENT = new Identifier("ε");
 
 	final String id;
 
@@ -24,11 +27,15 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 		this.id = id;
 	}
 
-	public String getId() {
-		return this.id;
+	public Identifier(SourceFileRange range, String id) {
+		this(List.single(range), id);
 	}
-	@Override
-	public String getKeyString() {
+
+	public Identifier(String id) {
+		this(List.<SourceFileRange>nil(), id);
+	}
+
+	public String getId() {
 		return this.id;
 	}
 
@@ -39,9 +46,13 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	@Override
 	public void toSource(StringBuffer sb) {
+		toSource(id, sb);
+	}
+
+	public static void toSource(String id, StringBuffer sb) {
 		int spaces=0;
-		for(int i=0; i < this.id.length(); i++) {
-			final int cp = this.id.codePointAt(i);
+		for(int i=0; i < id.length(); i++) {
+			final int cp = id.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++;
 			if(cp == ' ') spaces++;
 			else spaces=0;
@@ -56,12 +67,12 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.identifier(this);
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.identifier(this);
 	}
 
@@ -94,5 +105,22 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	public List<BadExpr> getProblems() {
 		return List.nil();
 	}
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.identifier(getSourceFileRanges(), id);
+	}
+
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.identifier(getSourceFileRanges(), id);
+	}
+
+	@Override
+	public List<String> getParts() {
+		return List.single(id);
+	}
+
+
 }
 

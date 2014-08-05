@@ -10,8 +10,8 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(List<SourceFileRange> ranges, Operator operator, SourceExpr left, SourceExpr right) {
-		super(ranges, operator, left, right);
+	public BinaryOp(List<SourceFileRange> ranges, Operator operator, SourceFileRange operatorRange, SourceExpr left, SourceExpr right) {
+		super(ranges, operator, operatorRange, left, right);
 		this.left = left;
 		this.right = right;
 	}
@@ -23,10 +23,15 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		return this.right;
 	}
 
-	@Override @Nullable
+	@Override
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.binaryOp(this);
 	}
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.binaryOp(getSourceFileRanges(), getOperator(), getOperatorRange(), getLeft().acceptVisitor(visitor), getRight().acceptVisitor(visitor));
+	}
+
 
 	@Override
 	public void toSource(StringBuffer sb) {

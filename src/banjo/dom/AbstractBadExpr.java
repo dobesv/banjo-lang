@@ -51,11 +51,11 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	public <T> T acceptVisitor(ExprAlgebra<T> visitor) {
 		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
 	}
-		
+
 	public <T> T acceptVisitor(ExprVisitor<T> visitor) {
-		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
+		return visitor.badExpr(this);
 	}
-	
+
 	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)

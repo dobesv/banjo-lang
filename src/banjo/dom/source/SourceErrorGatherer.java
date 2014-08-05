@@ -1,50 +1,53 @@
 package banjo.dom.source;
 
-import static banjo.parser.util.Check.nonNull;
-
-import org.eclipse.jdt.annotation.Nullable;
-
+import static fj.data.List.single;
 import banjo.dom.BadExpr;
-import banjo.dom.token.BadIdentifier;
+import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class SourceErrorGatherer extends
-SourceExprTreeFold<SourceErrorGatherer> {
+public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 
-	private final List<BadExpr> problems;
-
-	/**
-	 * Walk the given parse tree and gather all the error nodes into a list.
-	 */
-	public static List<BadExpr> getProblems(SourceExpr root) {
-		return nonNull(root.acceptVisitor(new SourceErrorGatherer())).getProblems();
-	}
-
-	public SourceErrorGatherer() {
-		this.problems = List.<BadExpr>nil();
-	}
-
-	public SourceErrorGatherer(fj.data.List<BadExpr> problems) {
-		this.problems = problems;
-	}
-
-	public SourceErrorGatherer insert(BadExpr problem) {
-		return new SourceErrorGatherer(this.getProblems().cons(problem));
-	}
-
-	public List<BadExpr> getProblems() {
-		return this.problems;
+	public static List<BadExpr> getProblems(SourceExpr sourceExpr) {
+		return sourceExpr.acceptVisitor(new SourceErrorGatherer());
 	}
 
 	@Override
-	@Nullable
-	public SourceErrorGatherer badIdentifier(BadIdentifier n) {
-		return insert(n);
+	public List<BadExpr> badExpr(List<SourceFileRange> sourceFileRanges,
+			String messageTemplate, Object... args) {
+		return single((BadExpr)new BadSourceExpr(sourceFileRanges, messageTemplate, args));
 	}
 
 	@Override
-	@Nullable
-	public SourceErrorGatherer badSourceExpr(BadSourceExpr badSourceExpr) {
-		return insert(badSourceExpr);
+	public List<BadExpr> binaryOp(List<SourceFileRange> sourceFileRanges,
+			Operator operator, SourceFileRange operatorRange, List<BadExpr> left,
+			List<BadExpr> right) {
+		return left.append(right);
 	}
+
+	@Override
+	public List<BadExpr> unaryOp(List<SourceFileRange> sourceFileRanges,
+			Operator operator, SourceFileRange operatorRange, List<BadExpr> operand) {
+		return operand;
+	}
+
+	@Override
+	public List<BadExpr> emptyExpr(List<SourceFileRange> sourceFileRanges) {
+		return List.<BadExpr>nil();
+	}
+
+	@Override
+	public List<BadExpr> identifier(List<SourceFileRange> sourceFileRanges, String id) {
+		return List.<BadExpr>nil();
+	}
+
+	@Override
+	public List<BadExpr> numberLiteral(List<SourceFileRange> sourceFileRanges, Number number) {
+		return List.<BadExpr>nil();
+	}
+
+	@Override
+	public List<BadExpr> stringLiteral(List<SourceFileRange> sourceFileRanges, String string) {
+		return List.<BadExpr>nil();
+	}
+
 }

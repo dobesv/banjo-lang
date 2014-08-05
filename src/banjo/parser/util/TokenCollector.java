@@ -51,8 +51,8 @@ public class TokenCollector implements TokenVisitor<Token> {
 		return token(this.parser.stringLiteral(range, token));
 	}
 	@Override
-	public NumberLiteral numberLiteral(FileRange range, String text, Number number) {
-		return token(this.parser.numberLiteral(range, text, number));
+	public NumberLiteral numberLiteral(FileRange range, Number number) {
+		return token(this.parser.numberLiteral(range, number));
 	}
 	@Override @Nullable
 	public Atom identifier(FileRange range, String id) {

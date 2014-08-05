@@ -13,6 +13,9 @@ public abstract class AbstractAtom extends AbstractExpr {
 	public AbstractAtom(int hashCode, List<SourceFileRange> ranges) {
 		super(hashCode, ranges);
 	}
+	public AbstractAtom(int hashCode, SourceFileRange range) {
+		this(hashCode, List.single(range));
+	}
 
 	@Override
 	public Precedence getPrecedence() {

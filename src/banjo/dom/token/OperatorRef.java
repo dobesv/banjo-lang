@@ -4,8 +4,10 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
+import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -16,9 +18,13 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	private final String op;
 
-	public OperatorRef(SourceFileRange sfr, String op) {
-		super(op.hashCode(), sfr);
+	public OperatorRef(List<SourceFileRange> ranges, String op) {
+		super(op.hashCode(), ranges);
 		this.op = op;
+	}
+
+	public OperatorRef(SourceFileRange operatorRange, String op) {
+		this(List.single(operatorRange), op);
 	}
 
 	@Override
@@ -36,13 +42,11 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.operator(this);
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.operator(this);
 	}
@@ -77,6 +81,16 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	@Override
 	public List<BadExpr> getProblems() {
 		return List.nil();
+	}
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.identifier(getSourceFileRanges(), op);
+	}
+
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.identifier(getSourceFileRanges(), op);
 	}
 
 }

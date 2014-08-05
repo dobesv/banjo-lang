@@ -2,7 +2,11 @@ package banjo.parser.util;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
+
 public class SourceFileRange implements Comparable<SourceFileRange> {
+	public static final List<SourceFileRange> EMPTY_LIST = List.nil();
+
 	final String sourceFile;
 	final FileRange fileRange;
 	public SourceFileRange(String sourceFile, FileRange fileRange) {

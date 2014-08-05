@@ -2,6 +2,7 @@ package banjo.dom.source;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.dom.AbstractExpr;
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -11,18 +12,29 @@ import fj.data.List;
  * are parsed as a parenthese with the "empty" expression inside.  This may also show up in
  * a list with consecutive or trailing separators.
  */
-public class EmptyExpr extends AbstractOp implements SourceExpr {
+public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(List.<SourceFileRange>nil());
 
 	public EmptyExpr(List<SourceFileRange> ranges) {
-		super(ranges, Operator.EMPTY);
+		super(733512, ranges);
+	}
+	public EmptyExpr(SourceFileRange range) {
+		this(List.single(range));
+	}
+
+	public EmptyExpr() {
+		this(List.<SourceFileRange>nil());
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.emptyExpr(this);
 	}
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.emptyExpr(getSourceFileRanges());
+	}
+
 
 	@Override
 	public void toSource(StringBuffer sb) {
@@ -32,6 +44,10 @@ public class EmptyExpr extends AbstractOp implements SourceExpr {
 	@Override
 	public List<BadExpr> getProblems() {
 		return List.nil();
+	}
+	@Override
+	public Precedence getPrecedence() {
+		return Precedence.ATOM;
 	}
 
 }

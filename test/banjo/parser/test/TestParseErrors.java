@@ -28,7 +28,7 @@ public class TestParseErrors {
 		}
 		int count = 0;
 		for(final BadExpr e : SourceErrorGatherer.getProblems(parsed)) {
-			final FileRange range = e.getSourceFileRange().getFileRange();
+			final FileRange range = e.getSourceFileRanges().head().getFileRange();
 			System.out.println("  "+range+": "+e.getMessage());
 			assertEquals(errorStart, range.getStartOffset());
 			assertEquals(errorEnd, range.getEndOffset());

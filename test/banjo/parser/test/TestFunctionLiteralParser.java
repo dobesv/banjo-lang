@@ -7,9 +7,12 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
+import fj.Unit;
 import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.token.Identifier;
+import banjo.dom.token.Key;
 
 
 public class TestFunctionLiteralParser {
@@ -26,22 +29,26 @@ public class TestFunctionLiteralParser {
 		if(expectedArgNames == null) assert func.isLazyValue();
 		else {
 			final StringBuffer sb = new StringBuffer();
-			func.getMethods().head().getParts().head().formalArgListToSource(sb);
+			sb.append("(");
+			for(Key arg : func.getMethods().head().getArgumentLists().head()) {
+				if(sb.length() > 1) sb.append(", ");
+				arg.toSource(sb);
+			}
+			sb.append(")");
 			assertEquals(sb.toString(), "("+expectedArgNames+")");
 		}
-		func.getMethods().iterator().next().getBody().acceptVisitor(new BaseCoreExprVisitor<Void>() {
+		final CoreExpr body = func.getMethods().iterator().next().getBody();
+		body.acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 			@Override
-			@Nullable
-			public Void fallback() {
-				fail("Expected identifier: "+unsupported);
-				return null;
+			public @NonNull Unit fallback() {
+				fail("Expected identifier: "+body);
+				return Unit.unit();
 			}
 
 			@Override
-			@Nullable
-			public Void identifier(@NonNull Identifier n) {
+			public @NonNull Unit identifier(@NonNull Identifier n) {
 				assertEquals(expectedArgReturned, n.getId());
-				return null;
+				return Unit.unit();
 			}
 		});
 		return func;

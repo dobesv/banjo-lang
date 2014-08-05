@@ -1,9 +1,12 @@
 package banjo.dom.core;
 
+import static banjo.parser.util.Check.nonNull;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import fj.F;
 import fj.Ord;
+import fj.Unit;
 import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
@@ -11,39 +14,38 @@ import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.dom.token.OperatorRef;
 import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.ExprOrd;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 
 public class Method extends AbstractCoreExpr implements CoreExpr {
-	
-	private final List<Key> selfArg;
-	private final List<Key> nameParts;
-	private final List<List<List<Key>>> argumentLists;
+
+	private final Key selfArg;
+	private final Key name;
+	private final List<List<Key>> argumentLists;
 	private final CoreExpr body;
 
-	public static final Ord ORD = ExprOrd.<Method>exprOrd();
-	
-	public static final Key LOOKUP_METHOD_NAME = new Identifier(List.<SourceFileRange>nil(), Operator.LOOKUP.getOp());
+	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
 
-	public Method(List<SourceFileRange> ranges, List<Key> selfArg, fj.data.List<Key> nameParts, List<List<List<Key>>> argumentLists, CoreExpr body) {
-		super(calcHash(ranges, selfArg, nameParts, argumentLists, body), ranges);
+	public Method(List<SourceFileRange> ranges, Key selfArg, Key name, List<List<Key>> argumentLists, CoreExpr body) {
+		super(calcHash(ranges, selfArg, name, argumentLists, body), ranges);
 		this.selfArg = selfArg;
-		this.nameParts = nameParts;
+		this.name = name;
 		this.argumentLists = argumentLists;
 		this.body = body;
 	}
 
 	public static Method nullary(Key name, CoreExpr body) {
-		return new Method(List.<SourceFileRange>nil(), List.<Key>nil(), List.<Key>nil(), List.<List<List<Key>>>nil(), body);
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.<List<Key>>nil(), body);
 	}
-	private static int calcHash(List<SourceFileRange> ranges, List<Key> selfArg, List<Key> nameParts,
-			List<List<List<Key>>> argumentLists, CoreExpr body) {
+	private static int calcHash(List<SourceFileRange> ranges, Key selfArg, Key name,
+			List<List<Key>> argumentLists, CoreExpr body) {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + selfArg.hashCode();
-		result = prime * result + nameParts.hashCode();
+		result = prime * result + name.hashCode();
 		result = prime * result + argumentLists.hashCode();
 		result = prime * result + body.hashCode();
 		result = prime * result + ranges.hashCode();
@@ -58,31 +60,41 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		return sb.toString();
 	}
 
-	static void argToSource(List<Key> arg, StringBuffer sb) {
-		while(arg.isNotEmpty()) {
-			arg.head().toSource(sb);
-			arg = arg.tail();
-			if(arg.isNotEmpty())
-				sb.append("()");
+	/**
+	 * If this method is an operator definition, return which operator it defines.  Otherwise, returns null.
+	 */
+	@Nullable
+	Operator getOperator() {
+		// Operators always define a simply named "self" part
+		if(selfArg instanceof MixfixFunctionIdentifier || selfArg instanceof AnonymousKey)
+			return null;
+		// Operator has zero (unary operator) or one (binary operator) arguments
+		boolean unary = argumentLists.isEmpty() || (argumentLists.isSingle() && argumentLists.head().isEmpty());
+		boolean binary = argumentLists.isSingle() && argumentLists.head().isSingle();
+		if(!(unary || binary))
+			return null;
+		if(name instanceof AnonymousKey && binary)
+			return Operator.CALL;
+		if(!(name instanceof Identifier))
+			return null;
+		String methodName = ((Identifier)name).getId();
+		if(binary && methodName.equals(Operator.LOOKUP.getMethodName())) {
+			return Operator.LOOKUP;
 		}
-		
+		return Operator.fromMethodName(methodName, binary);
+
 	}
+
 	public void toSource(final StringBuffer sb) {
 		// Check for brackets, apply
 
 		final boolean hasSelfName = this.hasSelfArg();
-		final Operator operator = this.selfArg.length() != 1 || this.argumentLists.length() != 1 || this.argumentLists.head().length() != 1 || this.argumentLists.head().head().length() != 1 ? null 
-				: this.nameParts.length() == 1
-					? this.nameParts.head().equals(LOOKUP_METHOD_NAME) ? Operator.LOOKUP
-					: this.argumentLists.head().length() == 1  ? Operator.fromMethodName(this.nameParts.head().getKeyString(), true) 
-					: this.argumentLists.head().isEmpty() ? Operator.fromMethodName(this.nameParts.head().getKeyString(), false) 
-					: null 
-				: null;
+		final Operator operator = getOperator();
 		if(operator != null && operator.isInfix()) {
 			sb.append('(');
-			Key arg = argumentLists.head().head().head();
+			Key arg = argumentLists.head().head();
 			if(operator.isParen()) {
-				selfArg.head().toSource(sb);
+				selfArg.toSource(sb);
 				sb.append(operator.getParenType().getStartChar());
 				arg.toSource(sb);
 				sb.append(operator.getParenType().getEndChar());
@@ -91,9 +103,9 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				this.selfArg.head().toSource(sb);
+				this.selfArg.toSource(sb);
 			} else {
-				this.selfArg.head().toSource(sb);
+				this.selfArg.toSource(sb);
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
@@ -103,35 +115,37 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		} else if(operator != null && operator.isPrefix()) {
 			sb.append('(');
 			operator.toSource(sb);
-			this.selfArg.head().toSource(sb);
+			this.selfArg.toSource(sb);
 			sb.append(')');
 		} else if(operator != null && operator.isSuffix()) {
 			sb.append('(');
-			this.selfArg.head().toSource(sb);
+			this.selfArg.toSource(sb);
 			operator.toSource(sb);
 			sb.append(')');
 		} else {
-			
+
 			if(hasSelfName) {
-				argToSource(selfArg, sb);
+				this.selfArg.toSource(sb);
 				sb.append('.');
-			} else if(this.nameParts.length() == 1 && this.nameParts.head().equals(this.body) && this.argumentLists.isEmpty()) {
+			} else if(this.name.equals(this.body) && this.argumentLists.isEmpty()) {
 				this.body.toSource(sb);
 				return;
 			}
-			
-			List<Key> np = nameParts;
-			List<List<List<Key>>> al = argumentLists;
+
+			List<String> np = name.getParts();
+			List<List<Key>> al = argumentLists;
 			while(np.isNotEmpty()) {
-				np.head().toSource(sb);
+				Identifier.toSource(nonNull(np.head()), sb);
 				np = np.tail();
 				if(al.isNotEmpty()) {
-					sb.append('(');
-					for(List<Key> arg : al.head()) {
-						if(arg == null) throw new NullPointerException();
-						argToSource(arg, sb);
+					if(!(al.head().isEmpty() && np.isEmpty())) {
+						sb.append('(');
+						for(Key arg : al.head()) {
+							if(arg == null) throw new NullPointerException();
+							arg.toSource(sb);
+						}
+						sb.append(')');
 					}
-					sb.append(')');
 					al = al.tail();
 				} else if(np.isNotEmpty()) {
 					sb.append("()");
@@ -157,7 +171,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		if (!(obj instanceof Method))
 			return false;
 		final Method other = (Method) obj;
-		if (!this.nameParts.equals(other.nameParts))
+		if (!this.name.equals(other.name))
 			return false;
 		if (!this.body.equals(other.body))
 			return false;
@@ -174,9 +188,9 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			Method other = (Method) o;
-			cmp = nameParts.compare(Key.ORD, other.nameParts).toPlusOrMinusOne();
-			if(cmp == 0) cmp = argumentLists.compare(Ord.listOrd(Ord.listOrd(Key.ORD)), other.argumentLists).toPlusOrMinusOne();
-			if(cmp == 0) cmp = selfArg.compare(Key.ORD, other.selfArg).toPlusOrMinusOne();
+			cmp = name.compareTo(other.name);
+			if(cmp == 0) cmp = argumentLists.compare(Ord.listOrd(Key.ORD), other.argumentLists).toInt();
+			if(cmp == 0) cmp = selfArg.compareTo(other.selfArg);
 			if(cmp == 0) cmp = this.body.compareTo(other.body);
 			if(cmp == 0) cmp = ListUtil.compare(this.getSourceFileRanges(), other.getSourceFileRanges());
 		}
@@ -184,14 +198,14 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public boolean hasSelfArg() {
-		return !this.selfArg.isEmpty();
+		return !(this.selfArg instanceof AnonymousKey);
 	}
 
 	/**
 	 * True if this method could have been created using the lambda syntax (x,...) -> y
 	 */
 	public boolean isSimpleApplyMethod() {
-		return this.nameParts.isEmpty();
+		return (this.name instanceof AnonymousKey);
 	}
 
 	@Override
@@ -201,41 +215,23 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.method(getSourceFileRanges(), selfArg, nameParts, argumentLists, body);
+		return visitor.method(this);
 	}
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
 		return visitor.method(getSourceFileRanges(),
-				selfArg.map(new F<Key, T>() {
+				selfArg.acceptVisitor(visitor),
+				name.acceptVisitor(visitor),
+				argumentLists.map(new F<List<Key>, List<T>>() {
 					@Override
-					public T f(@Nullable Key a) {
+					public List<T> f(@Nullable List<Key> a) {
 						if(a == null) throw new NullPointerException();
-						return a.acceptVisitor(visitor);
-					}
-				}),
-				nameParts.map(new F<Key, T>() {
-					@Override
-					public T f(@Nullable Key a) {
-						if(a == null) throw new NullPointerException();
-						return a.acceptVisitor(visitor);
-					}
-				}),
-				argumentLists.map(new F<List<List<Key>>, List<List<T>>>() {
-					@Override
-					public List<List<T>> f(@Nullable List<List<Key>> a) {
-						if(a == null) throw new NullPointerException();
-						return a.map(new F<List<Key>, List<T>>() {
+						return a.map(new F<Key, T>() {
 							@Override
-							public List<T> f(@Nullable List<Key> a) {
+							public T f(@Nullable Key a) {
 								if(a == null) throw new NullPointerException();
-								return a.map(new F<Key, T>() {
-									@Override
-									public T f(@Nullable Key a) {
-										if(a == null) throw new NullPointerException();
-										return a.acceptVisitor(visitor);
-									}
-								});
+								return a.acceptVisitor(visitor);
 							}
 						});
 					}
@@ -243,18 +239,28 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 				body.acceptVisitor(visitor));
 	}
 
-	public List<Key> getSelfArg() {
+	public Key getSelfArg() {
 		return selfArg;
 	}
 
-	public List<Key> getNameParts() {
-		return nameParts;
+	public Key getName() {
+		return name;
 	}
 
-	public List<List<List<Key>>> getArgumentLists() {
+	public List<List<Key>> getArgumentLists() {
 		return argumentLists;
 	}
 
-	
+	public int countArgumentLists() {
+		return argumentLists.length();
+	}
+
+	public int totalDeclaredArguments() {
+		int i=0;
+		for(List<Key> argList : argumentLists) {
+			i += argList.length();
+		}
+		return i;
+	}
 
 }

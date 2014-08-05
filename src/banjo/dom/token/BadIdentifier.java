@@ -5,9 +5,11 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.AbstractCoreExpr;
+import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
+import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -16,14 +18,14 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	private final String message;
 	final String originalSource;
 
-	public BadIdentifier(SourceFileRange sfr, String message, String originalSource) {
-		super(message.hashCode() + originalSource.hashCode(), sfr);
+	public BadIdentifier(List<SourceFileRange> ranges, String message, String originalSource) {
+		super(message.hashCode() + originalSource.hashCode(), ranges);
 		this.message = message;
 		this.originalSource = originalSource;
 	}
 
 	public BadIdentifier(SourceExpr source) {
-		this(source.getSourceFileRange(), "Expected identifier; got "+source.toSource(), source.toSource());
+		this(source.getSourceFileRanges(), "Expected identifier; got "+source.toSource(), source.toSource());
 	}
 
 	@Override
@@ -32,7 +34,6 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.badIdentifier(this);
 	}
@@ -67,14 +68,8 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
-	@Nullable
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.badIdentifier(this);
-	}
-
-	@Override
-	public String getKeyString() {
-		return this.originalSource;
 	}
 
 	@Override
@@ -85,5 +80,20 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	@Override
 	public List<BadExpr> getProblems() {
 		return List.<BadExpr>single(this);
+	}
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.badExpr(getSourceFileRanges(), message);
+	}
+
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.badExpr(getSourceFileRanges(), message);
+	}
+
+	@Override
+	public List<String> getParts() {
+		return List.single(originalSource);
 	}
 }

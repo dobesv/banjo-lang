@@ -21,7 +21,8 @@ public interface SourceExpr extends Expr, SourceNode {
 
 	public static final Option<Integer> NOT_A_CHILD = nonNull(Option.<Integer>none());
 
-	@Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor);
+	<T> T acceptVisitor(SourceExprVisitor<T> visitor);
+	<T> T acceptVisitor(SourceExprAlgebra<T> visitor);
 
 	public static final Ord<SourceExpr> ORD = nonNull(Ord.ord(new F<SourceExpr, F<SourceExpr, Ordering>>() {
 		@Override
@@ -49,4 +50,5 @@ public interface SourceExpr extends Expr, SourceNode {
 	void toFullyParenthesizedSource(StringBuffer sb);
 
 	List<BadExpr> getProblems();
+
 }

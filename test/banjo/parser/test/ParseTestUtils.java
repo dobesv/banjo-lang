@@ -11,6 +11,8 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.Unit;
+import fj.data.List;
 import banjo.desugar.BanjoDesugarer;
 import banjo.desugar.BanjoDesugarer.DesugarResult;
 import banjo.dom.BadExpr;
@@ -21,6 +23,7 @@ import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.BanjoParser;
+import banjo.parser.util.SourceFileRange;
 import banjo.parser.util.UnexpectedIOExceptionError;
 
 @NonNullByDefault(false)
@@ -71,30 +74,26 @@ public class ParseTestUtils {
 	}
 
 	public static int parseErrors(Class<? extends BadExpr> expectedClass, @NonNull SourceExpr parseTree) throws Error {
-		int count = 0;
-		BadExpr first = null;
-		for(final BadExpr e : SourceErrorGatherer.getProblems(parseTree)) {
-			if(count == 0) {
-				System.out.println("Parse Errors:");
-				first = e;
-			}
-			System.out.println("  "+e.getSourceFileRange().getFileRange()+": "+e.getMessage());
-			count ++;
-		}
-		if(expectedClass != null && first != null)
-			assertEquals(expectedClass, first.getClass());
-		return count;
+		return errors(expectedClass, SourceErrorGatherer.getProblems(parseTree));
 	}
 
 	private static int desugarErrors(Class<? extends BadExpr> expectedClass, DesugarResult<CoreExpr> ds) throws Error {
+		List<BadExpr> problems = ds.getProblems();
+		return errors(expectedClass, problems);
+	}
+
+	private static int errors(Class<? extends BadExpr> expectedClass,
+			List<BadExpr> problems) {
 		int count = 0;
 		BadExpr first = null;
-		for(final BadExpr e : ds.getProblems()) {
+		for(final BadExpr e : problems) {
 			if(count == 0) {
 				System.out.println("Desugar Errors:");
 				first = e;
 			}
-			System.out.println("  "+e.getSourceFileRange().getFileRange()+": "+e.getMessage());
+			for(SourceFileRange sfr : e.getSourceFileRanges()) {
+				System.out.println(""+(count+1)+".  "+sfr.getFileRange()+": "+e.getMessage());
+			}
 			count ++;
 		}
 		if(expectedClass != null && first != null)
@@ -114,18 +113,17 @@ public class ParseTestUtils {
 		return test(source, 0, null, expectedClass, expectedSource);
 	}
 
-	public static void assertIsNumberLiteralWithValue(final long value, CoreExpr e) {
-		e.acceptVisitor(new BaseCoreExprVisitor<Void>() {
+	public static void assertIsNumberLiteralWithValue(final long value, final CoreExpr e) {
+		e.acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 			@Override
-			@Nullable
-			public Void numberLiteral(@NonNull NumberLiteral n) {
+			public @NonNull Unit numberLiteral(@NonNull NumberLiteral n) {
 				assertEquals(n.getNumber().longValue(), value);
-				return null;
+				return Unit.unit();
 			}
 			@Override
-			public Void fallback() {
-				fail("Not a number literal: "+unsupported);
-				return null;
+			public @NonNull Unit fallback() {
+				fail("Not a number literal: "+e);
+				return Unit.unit();
 			}
 		});
 	}

@@ -4,6 +4,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
+import banjo.dom.source.BadSourceExpr;
 import banjo.dom.source.BadSourceExpr.UnsupportedOperator;
 
 public class TestMathParser {
@@ -32,8 +33,8 @@ public class TestMathParser {
 	// TODO Support right-aligned operands
 	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).\\+(11).\\+(111)"); }
 
-	@Test public void badDedent1() { test("3\n> 2", 1, UnsupportedOperator.class); }
-	@Test public void badDedent2() { test("3\n@@ 2", 1, UnsupportedOperator.class); }
+	@Test public void badDedent1() { test("3\n> 2", 1, BadSourceExpr.class); }
+	@Test public void badDedent2() { test("3\n@@ 2", 1, BadSourceExpr.class); }
 
 	@Test public void unaries1() { unaries("+ - ~1"); }
 	@Test public void unaries2() { unaries("+\n -\n  ~\n   1"); }
@@ -52,7 +53,7 @@ public class TestMathParser {
 	@Test public void cons1() { test("x :: y", "y.\\:\\:(x)"); }
 
 	@Test public void memberOf1() { test("x in y", "x in y"); }
-	@Test public void memberOf2() { test("x\u2208y", "x in y"); }
+	@Test public void memberOf2() { test("x\u2208y", "x <:: y"); }
 
 	public void unaries(String src) {
 		test(src, "+-~1");

@@ -15,6 +15,7 @@ import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.F;
 import fj.Ord;
+import fj.Unit;
 import fj.data.List;
 import fj.data.TreeMap;
 
@@ -23,9 +24,9 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final ObjectLiteral EMPTY = new ObjectLiteral(List.<SourceFileRange>nil());
 	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
 	private final fj.data.List<Method> methods;
-	
+
 	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
-	
+
 	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> fields) {
 		super(fields.hashCode()+ranges.hashCode(), ranges);
 		this.methods = nonNull(fields);
@@ -39,7 +40,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public ObjectLiteral(Method ... methods) {
 		this(List.<SourceFileRange>nil(), fj.data.List.list(methods));
 	}
-	
+
 	public fj.data.List<Method> getMethods() {
 		return this.methods;
 	}
@@ -50,40 +51,33 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(final StringBuffer sb) {
 		if(isLambda()) {
 			final Method method = this.methods.head();
 			if(method.hasSelfArg() || !method.getArgumentLists().head().isEmpty()) {
-				List<List<List<Key>>> al = method.getArgumentLists();
 				if(method.hasSelfArg()) {
-					List<Key> nl = method.getSelfArg();
-					while(nl.isNotEmpty()) {
-						nl.head().toSource(sb);
-						nl = nl.tail();
-						if(al.isNotEmpty()) {
-							sb.append('(');
-							boolean first = true;
-							for(List<Key> arg : al.head()) {
-								if(first) first = false;
-								else sb.append(", ");
-								Method.argToSource(arg, sb);
-							}
-							sb.append(')');
-							al = al.tail();
-						} else if(nl.isNotEmpty()) {
-							sb.append("()");
+					method.getSelfArg().acceptVisitor(new BaseCoreExprVisitor<Unit>() {
+						@Override
+						public Unit mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
+							mixfixFunctionIdentifier.toSource(sb, method.getArgumentLists());
+							return Unit.unit();
 						}
-					}
+
+						@Override
+						public Unit key(Key key) {
+							key.toSource(sb);
+							argListToSource(sb, method);
+							return Unit.unit();
+						}
+
+						@Override
+						public Unit fallback() {
+							throw new IllegalStateException();
+						}
+					});
 				} else {
-					// Note: Only one argument list is supported in this case, if there are others they are ignored as invalid
-					sb.append('(');
-					boolean first = true;
-					for(List<Key> arg : al.head()) {
-						if(first) first = false;
-						else sb.append(", ");
-						Method.argToSource(arg, sb);
-					}
-					sb.append(')');
+					// Note: Only one argument list is supported in this case, if there are others they are ignored as they would be invalid
+					argListToSource(sb, method);
 				}
 				sb.append(' ');
 			}
@@ -93,18 +87,28 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		} else {
 			sb.append('{');
 			boolean first = true;
-			for(final Method f : this.methods) {
+			for(final Method method : this.methods) {
 				if(first) first = false;
 				else sb.append(", ");
-				f.toSource(sb);
+				method.toSource(sb);
 			}
 			sb.append('}');
 		}
 	}
 
+	private void argListToSource(final StringBuffer sb, final Method method) {
+		sb.append('(');
+		boolean first = true;
+		for(Key arg : method.getArgumentLists().head()) {
+			if(first) first = false;
+			else sb.append(", ");
+			arg.toSource(sb);
+		}
+		sb.append(')');
+	}
+
 	public boolean isLambda() {
-		return this.methods.length() == 1 &&
-				this.methods.head().isSimpleApplyMethod();
+		return this.methods.isSingle() && this.methods.head().isSimpleApplyMethod();
 	}
 
 	public static StringBuffer maybeQuoteKey(String identifier, StringBuffer sb) {
@@ -149,7 +153,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ObjectLiteral other = (ObjectLiteral) o;
-			cmp = this.methods.compare(Method.ORD, other.methods).toPlusOrMinusOne();
+			cmp = this.methods.compare(Method.ORD, other.methods).toInt();
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;

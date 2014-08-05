@@ -1,5 +1,7 @@
 package banjo.dom.core;
 
+import static banjo.parser.util.Check.nonNull;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import fj.F;
@@ -11,25 +13,27 @@ import banjo.dom.ExprAlgebra;
 import banjo.dom.source.Operator;
 import banjo.dom.source.OperatorType;
 import banjo.dom.source.Precedence;
+import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.dom.token.OperatorRef;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	private final CoreExpr object;
-	private final List<Key> nameParts;
+	private final Key name;
 	private final List<List<CoreExpr>> argumentLists;
 
-	public Call(List<SourceFileRange> ranges, CoreExpr object, List<Key> nameParts, List<List<CoreExpr>> argumentLists) {
-		super(object.hashCode() + nameParts.hashCode() + argumentLists.hashCode(), ranges);
+	public Call(List<SourceFileRange> ranges, CoreExpr object, Key name, List<List<CoreExpr>> argumentLists) {
+		super(object.hashCode() + name.hashCode() + argumentLists.hashCode(), ranges);
 		this.object = object;
-		this.nameParts = nameParts;
+		this.name = name;
 		this.argumentLists = argumentLists;
 	}
 
 	public Call(List<SourceFileRange> ranges, CoreExpr object, Key methodName, CoreExpr ... arguments) {
-		this(ranges, object, List.single(methodName), List.single(List.list(arguments)));
+		this(ranges, object, methodName, List.single(List.list(arguments)));
 	}
 
 	public CoreExpr getObject() {
@@ -39,7 +43,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public Precedence getPrecedence() {
 		final Operator operator = getOperator();
-		
+
 		if(operator != null) {
 			return operator.getPrecedence();
 		}
@@ -47,21 +51,26 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	private @Nullable Operator getOperator() {
-		if(nameParts.isEmpty() && argumentLists.length() == 1) {
+		List<String> nameParts = name.getParts();
+		if(nameParts.isEmpty())
 			return Operator.CALL;
-		}
-		if(nameParts.length() == 1 && argumentLists.length() == 1) {
-			Key methodName = nameParts.head();
-			List<CoreExpr> arguments = argumentLists.head();
-			final Operator operator = 
-					methodName.equals(Method.LOOKUP_METHOD_NAME) ? Operator.LOOKUP
-					: arguments.isEmpty() ? Operator.fromMethodName(methodName.getKeyString(), false)
-					: arguments.length() == 1 ? Operator.fromMethodName(methodName.getKeyString(), true)
-					: null;
-			return operator;
-		} else {
+		if(!nameParts.isSingle())
 			return null;
-		}
+
+		boolean binary = argumentLists.isSingle() && argumentLists.head().isSingle();
+		boolean unary = argumentLists.isEmpty() || (argumentLists.head().isEmpty() && argumentLists.isSingle());
+		if(!(binary || unary))
+			return null;
+
+		String methodName = nameParts.head();
+		if(binary && methodName.equals(Operator.LOOKUP.getMethodName()))
+			return Operator.LOOKUP;
+
+		return Operator.fromMethodName(methodName, binary);
+	}
+
+	public List<List<CoreExpr>> getArgumentLists() {
+		return argumentLists;
 	}
 
 	@Override
@@ -81,14 +90,13 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		} else if(operator != null && operator.isSuffix()) {
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			operator.toSource(sb);
-		} else if(operator != null && operator.isInfix() && (operator.isParen() || (
-				(operator.getOperatorType() == OperatorType.METHOD || (operator.getOperatorType() == OperatorType.LAZY_RHS && isLazyValue(this.argumentLists.head().head())))))) {
+		} else if(operator != null && operator.isInfix() && (operator.isParen() || operator.getOperatorType() == OperatorType.METHOD)) {
 			// TODO This isn't handling the lazy operators like ||, &&, ;, => properly
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			if(operator.isParen()) {
 				sb.append(operator.getParenType().getStartChar());
 				boolean first = true;
-				for(final CoreExpr arg : this.argumentLists.head()) {
+				for(final CoreExpr arg : this.getArgumentLists().head()) {
 					if(first) first = false;
 					else sb.append(", ");
 					arg.toSource(sb, Precedence.COMMA.nextHighest());
@@ -98,45 +106,34 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				if(operator.getOperatorType() == OperatorType.LAZY_RHS) {
-					this.argumentLists.head().head().acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
-						@Override
-						public CoreExpr fallback() {
-							throw new Error("Should be an object literal! (Internal error)");
-						}
-
-						@Override
-						public CoreExpr objectLiteral(ObjectLiteral n) {
-							return n.getMethods().head().getBody();
-						}
-					}).toSource(sb, operator.getPrecedence());
-				} else {
-					this.argumentLists.head().head().toSource(sb, operator.getPrecedence());
-				}
+				this.getArgumentLists().head().head().toSource(sb, operator.getPrecedence());
 			}
 		} else {
-
 			this.object.toSource(sb, Precedence.SUFFIX);
 			sb.append('.');
-			List<Key> np = nameParts;
-			List<List<CoreExpr>> al = argumentLists;
+			List<String> np = name.getParts();
+			List<List<CoreExpr>> al = getArgumentLists();
 			while(np.isNotEmpty()) {
-				np.head().toSource(sb);
+				Identifier.toSource(nonNull(np.head()), sb);
 				np = np.tail();
 				if(al.isNotEmpty()) {
-					sb.append('(');
-					boolean first = true;
-					for(final CoreExpr arg : al.head()) {
-						if(first) first = false;
-						else sb.append(", ");
-						arg.toSource(sb, Precedence.COMMA.nextHighest());
+					if(!(al.head().isEmpty() && np.isEmpty())) {
+						sb.append('(');
+						boolean first = true;
+						for(final CoreExpr arg : al.head()) {
+							if(first) first = false;
+							else sb.append(", ");
+							arg.toSource(sb, Precedence.COMMA.nextHighest());
+						}
+						sb.append(')');
 					}
-					sb.append(')');
 					al = al.tail();
 				} else if(np.isNotEmpty()) {
 					sb.append("()");
 				}
 			}
+			if(al.isNotEmpty())
+				throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length());
 		}
 	}
 
@@ -173,9 +170,9 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		final Call other = (Call) obj;
 		if (!this.object.equals(other.object))
 			return false;
-		if (!nameParts.equals(other.nameParts))
+		if (!name.equals(other.name))
 			return false;
-		if (!argumentLists.equals(other.argumentLists))
+		if (!getArgumentLists().equals(other.getArgumentLists()))
 			return false;
 		return true;
 	}
@@ -189,8 +186,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		if(cmp == 0) {
 			final Call other = (Call) o;
 			if(cmp == 0) cmp = this.object.compareTo(other.object);
-			if(cmp == 0) cmp = this.nameParts.compare(Key.ORD, other.nameParts).toPlusOrMinusOne();
-			if(cmp == 0) cmp = this.argumentLists.compare(Ord.listOrd(CoreExpr.ORD), other.argumentLists).toPlusOrMinusOne();
+			if(cmp == 0) cmp = this.name.compareTo(other.name);
+			if(cmp == 0) cmp = this.getArgumentLists().compare(Ord.listOrd(CoreExpr.ORD), other.getArgumentLists()).toInt();
 		}
 		return cmp;
 	}
@@ -198,16 +195,10 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
 		return visitor.call(
-				getSourceFileRanges(), 
+				getSourceFileRanges(),
 				object.acceptVisitor(visitor),
-				nameParts.map(new F<Key, T>() {
-					@Override
-					public T f(@Nullable Key key) {
-						if(key == null) throw new NullPointerException();
-						return key.acceptVisitor(visitor);
-					}
-				}), 
-				argumentLists.map(new F<List<CoreExpr>, List<T>>() {
+				name.acceptVisitor(visitor),
+				getArgumentLists().map(new F<List<CoreExpr>, List<T>>() {
 					@Override
 					public List<T> f(@Nullable List<CoreExpr> argumentList) {
 						if(argumentList == null) throw new NullPointerException();

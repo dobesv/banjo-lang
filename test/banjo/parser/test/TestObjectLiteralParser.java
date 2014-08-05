@@ -21,7 +21,7 @@ public class TestObjectLiteralParser {
 	// @Test public void backdentError()     { parseError("{a=1,b=2,\nc=3}", IncorrectIndentation.class); }
 
 	@Test public void trailingComma()     { abc("{a=1,b=2,c=3,}", 0); }
-	@Test public void stringKey() { parse("{\"a\"=1,\"b\"=2,\"c\"=3}", "{\"a\" = 1, \"b\" = 2, \"c\" = 3}"); }
+	@Test public void stringKey() { parse("{\"a\"=1,\"b\"=2,\"c\"=3}", "{a = 1, b = 2, c = 3}"); }
 
 	@Test public void mirrors1() { parse("{x,y}", "{x, y}"); }
 	@Test public void method1() { parse("{f(x) = x}", "{f(x) = x}"); }
@@ -31,7 +31,6 @@ public class TestObjectLiteralParser {
 	//	@Test public void method5() { parse("test:\n f() = 1\n y() = 2", "{test = {f = 1, y = 2}}"); }
 	@Test public void applyMethod1() { parse("{(self(x)) = self}", "self(x) -> self"); }
 	@Test public void applyMethod2() { parse("{(x) = x+1}", "(x) -> x + 1"); }
-	@Test public void applyMethod3() { parse("{self.\"()\"(x) = self}", "{(self(x)) = self}"); }
 	@Test public void bracketsMethod1() { parse("{(self[x]) = self}", "{(self[x]) = self}"); }
 	@Test public void bracketsMethod2() { parse("{[x] = x}", "{\\[\\](x) = x}"); }
 	@Test public void plusMethod() { parse("{(x + y) = y}", "{(x + y) = y}"); }
@@ -43,7 +42,7 @@ public class TestObjectLiteralParser {
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 	@Test public void consMethod() { parse("{(x :: y) = xy}", "{(x :: y) = xy}"); }
 
-	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{\"a b\" = 1, \"b.c\" = 2, \"-f\" = 3}"); }
+	@Test public void specialCharsKeys() { parse("{\"a b\"=1,\"b.c\"=2,\"-f\"=3}\n", "{a b = 1, b\\.c = 2, \\-f = 3}"); }
 	@Test public void numericSelfName1() { parse("{(0 + x) = x}", "{(0 + x) = x}"); }
 	@Test public void numericSelfName2() { parse("{0.plus(x) = x}", "{0.plus(x) = x}"); }
 	//@Test public void numericSelfName3() { parse("{(0).plus(x) = x}", "{(0).plus(x) = x}"); }
@@ -64,8 +63,8 @@ public class TestObjectLiteralParser {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
 			final Method actualValue = eltIt.next();
-			assertEquals(0, actualValue.getParts().head().getArguments().length());
-			assertEquals(expectedNames[i], actualValue.getParts().head().getKey().toSource());
+			assertEquals(0, actualValue.totalDeclaredArguments());
+			assertEquals(expectedNames[i], actualValue.getName().toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue.getBody());
 		}
 		assertEquals("Too many methods", false, eltIt.hasNext());

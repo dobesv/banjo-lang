@@ -7,8 +7,10 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
+import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -16,17 +18,16 @@ import fj.data.List;
 public class StringLiteral extends AbstractAtom implements Atom, Key {
 	private final String string;
 
-	public StringLiteral(SourceFileRange sfr, String string) {
-		super(string.hashCode(), sfr);
+	public StringLiteral(List<SourceFileRange> ranges, String string) {
+		super(string.hashCode(), ranges);
 		this.string = string;
 	}
 
-	public String getString() {
-		return this.string;
+	public StringLiteral(SourceFileRange range, String string) {
+		this(List.single(range), string);
 	}
 
-	@Override
-	public String getKeyString() {
+	public String getString() {
 		return this.string;
 	}
 
@@ -65,12 +66,12 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.stringLiteral(this);
 	}
 
 	@Override
-	public @Nullable <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
+	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.stringLiteral(this);
 	}
 
@@ -104,6 +105,21 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	@Override
 	public List<BadExpr> getProblems() {
 		return List.nil();
+	}
+
+	@Override
+	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
+		return visitor.stringLiteral(getSourceFileRanges(), string);
+	}
+
+	@Override
+	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
+		return visitor.stringLiteral(getSourceFileRanges(), string);
+	}
+
+	@Override
+	public List<String> getParts() {
+		return List.single(string);
 	}
 
 }

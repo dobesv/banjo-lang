@@ -15,6 +15,7 @@ import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.ParserReader.Pos;
 import banjo.parser.util.UnexpectedIOExceptionError;
+import banjo.util.SourceNumber;
 
 public class BanjoScanner {
 	boolean eof = false;
@@ -57,9 +58,9 @@ public class BanjoScanner {
 
 	/**
 	 * <p> Scan the entire input up until EOF, passing tokens to the given visitor.
-	 * 
+	 *
 	 * <p> Resets the scanner before scanning any tokens.
-	 * 
+	 *
 	 * @param in Input to parse
 	 * @param visitor Visitor to send events to
 	 * @return The return value from visitEof()
@@ -96,7 +97,7 @@ public class BanjoScanner {
 	 * Match an identifier at the current read position.  Returns the identifier string if there is a match,
 	 * null otherwise.  On failure the input position will reset to the same position as before
 	 * the call.
-	 * 
+	 *
 	 * @return A string if successful; null otherwise
 	 * @throws IOException
 	 */
@@ -240,7 +241,7 @@ public class BanjoScanner {
 
 	/**
 	 * Return the number of characters of an identifier starting at the given offset in the given string.
-	 * 
+	 *
 	 * @param in String to look at
 	 * @param start Starting offset to scan
 	 * @return The number of contiguous whitespace characters found
@@ -253,7 +254,7 @@ public class BanjoScanner {
 
 	/**
 	 * Return the number of characters of an identifier continuing at the given offset in the given string.
-	 * 
+	 *
 	 * @param in String to look at
 	 * @param start Starting offset to scan
 	 * @return The number of contiguous whitespace characters found
@@ -270,7 +271,7 @@ public class BanjoScanner {
 
 	/**
 	 * Return the number of characters of whitespace at the given offset in the given string.
-	 * 
+	 *
 	 * @param in String to look at
 	 * @param start Starting offset to scan
 	 * @return The number of contiguous whitespace characters found
@@ -290,7 +291,7 @@ public class BanjoScanner {
 
 	/**
 	 * Return the length of any comment at the given offset in the given string.
-	 * 
+	 *
 	 * @param in String to look at
 	 * @param start Starting offset to scan
 	 * @return The length of the comment or zero if no comment found
@@ -316,7 +317,7 @@ public class BanjoScanner {
 
 	/**
 	 * Return the number of characters of whitespace and/or comments at the given offset in the given string.
-	 * 
+	 *
 	 * @param in String to look at
 	 * @param start Starting offset to scan
 	 * @return The number of contiguous whitespace characters found
@@ -385,9 +386,9 @@ public class BanjoScanner {
 	/**
 	 * Check whether the input stream is positioned before a string literal and, if so, parse it and return a StringLiteral node.  If not,
 	 * leave the input in the same position as given and return null.
-	 * 
+	 *
 	 * The parser supports the following escape sequences (prefixed with a backslash ('\') character:
-	 * 
+	 *
 	 * <table>
 	 * <thead><tr><td>Escape</td><td>Unicode Ordinal</td><td>Comment</td></thead>
 	 * <tbody>
@@ -665,14 +666,14 @@ public class BanjoScanner {
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return new Container<T>(visitor.numberLiteral(fileRange, text, nonNull(number)));
+		return new Container<T>(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number))));
 	}
 
 	/**
 	 * Parse a simple identifier expression.  If the current parse position has an
 	 * identifier, this consumes it and returns it.  Otherwise, this resets the parse
 	 * position and returns null.
-	 * 
+	 *
 	 * @return An IdRef if the parse is successful; null otherwise.
 	 */
 	private @Nullable <T> Container<T> identifier(ParserReader in, TokenVisitor<T> visitor) throws IOException {
@@ -686,7 +687,7 @@ public class BanjoScanner {
 	 * Parse an operator.  If the current parse position has an operator,
 	 * this consumes it and returns it.  Otherwise, this resets the parse
 	 * position and returns null.
-	 * 
+	 *
 	 * @return An OperatorRef if the parse is successful; O otherwise
 	 */
 	private @Nullable <T> Container<T> operator(ParserReader in, TokenVisitor<T> visitor) throws IOException {
