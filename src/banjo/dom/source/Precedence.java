@@ -17,7 +17,7 @@ public enum Precedence {
 	UNION, // |
 	LAZY_AND, // &&
 	LAZY_OR, // ||
-	ALTERNATIVE, // ||
+	ALTERNATIVE, // |||
 	TERNARY, // ? :
 	COLON, // Key/value pair
 	BULLET, // Bullets list

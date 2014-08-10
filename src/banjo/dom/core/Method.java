@@ -2,6 +2,8 @@ package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
 
+import java.util.Objects;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import fj.F;
@@ -25,29 +27,48 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	private final Key selfArg;
 	private final Key name;
 	private final List<List<Key>> argumentLists;
+	private final CoreExpr precondition;
 	private final CoreExpr body;
+	private final CoreExpr postcondition;
 
 	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
 
-	public Method(List<SourceFileRange> ranges, Key selfArg, Key name, List<List<Key>> argumentLists, CoreExpr body) {
-		super(calcHash(ranges, selfArg, name, argumentLists, body), ranges);
+	public static final CoreExpr EMPTY_PRECONDITION = Identifier.TRUE;
+	public static final CoreExpr EMPTY_POSTCONDITION = Identifier.TRUE;
+
+	/**
+	 *
+	 * @param ranges Original source code location
+	 * @param selfArg Name given to the receiver of the call, if any
+	 * @param name Name of the method
+	 * @param argumentLists Names of the methods in the argument lists
+	 * @param precondition Expression that must be true for the method to be the right method, it may refer to the arguments
+	 * @param body Method body expression
+	 * @param postcondition Expression that checks postconditions on the result of the body expression
+	 */
+	public Method(List<SourceFileRange> ranges, Key selfArg, Key name, List<List<Key>> argumentLists, CoreExpr precondition, CoreExpr body, CoreExpr postcondition) {
+		super(calcHash(ranges, selfArg, name, argumentLists, precondition, body, postcondition), ranges);
 		this.selfArg = selfArg;
 		this.name = name;
 		this.argumentLists = argumentLists;
+		this.precondition = precondition;
 		this.body = body;
+		this.postcondition = postcondition;
 	}
 
 	public static Method nullary(Key name, CoreExpr body) {
-		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.<List<Key>>nil(), body);
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.<List<Key>>nil(), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 	private static int calcHash(List<SourceFileRange> ranges, Key selfArg, Key name,
-			List<List<Key>> argumentLists, CoreExpr body) {
+			List<List<Key>> argumentLists, CoreExpr precondition, CoreExpr body, CoreExpr postcondition) {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + selfArg.hashCode();
 		result = prime * result + name.hashCode();
 		result = prime * result + argumentLists.hashCode();
+		result = prime * result + precondition.hashCode();
 		result = prime * result + body.hashCode();
+		result = prime * result + postcondition.hashCode();
 		result = prime * result + ranges.hashCode();
 		return result;
 	}
@@ -155,7 +176,16 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		sb.append(' ');
 		Operator.ASSIGNMENT.toSource(sb);
 		sb.append(' ');
-		this.body.toSource(sb, Precedence.COLON);
+		CoreExpr pre = this.precondition;
+		if(!pre.equals(EMPTY_PRECONDITION)) {
+			pre.toSource(Operator.PREREQUISITE.getLeftPrecedence());
+			Operator.PREREQUISITE.toSource(sb);
+			this.body.toSource(sb, Operator.PREREQUISITE.getRightPrecedence());
+		} else {
+			this.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
+		}
+		// TODO postcondition ...
+		if(!postcondition.equals(EMPTY_POSTCONDITION)) throw new IllegalStateException("Not implemented... postcondition");
 	}
 
 	public CoreExpr getBody() {
@@ -173,7 +203,11 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		final Method other = (Method) obj;
 		if (!this.name.equals(other.name))
 			return false;
+		if (Objects.equals(this.precondition, other.precondition))
+			return false;
 		if (!this.body.equals(other.body))
+			return false;
+		if (Objects.equals(this.postcondition, other.postcondition))
 			return false;
 		if (!this.selfArg.equals(other.selfArg))
 			return false;
@@ -236,7 +270,9 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 						});
 					}
 				}),
-				body.acceptVisitor(visitor));
+				precondition.acceptVisitor(visitor),
+				body.acceptVisitor(visitor),
+				postcondition.acceptVisitor(visitor));
 	}
 
 	public Key getSelfArg() {
@@ -261,6 +297,18 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 			i += argList.length();
 		}
 		return i;
+	}
+
+	public CoreExpr getPrecondition() {
+		return precondition;
+	}
+
+	public CoreExpr getPostcondition() {
+		return postcondition;
+	}
+
+	public static Method function(Key arg, CoreExpr body) {
+		return new Method(List.<SourceFileRange>nil(), Key.ANONYMOUS, Key.ANONYMOUS, List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 
 }

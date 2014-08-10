@@ -99,8 +99,4 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 		return fallback();
 	}
 
-	@Override
-	public T alternativeDefinition(AlternativeDefinition alternativeDefinition) {
-		return fallback();
-	}
 }

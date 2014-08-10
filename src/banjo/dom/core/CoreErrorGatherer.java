@@ -50,10 +50,12 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> method(List<SourceFileRange> sourceFileRanges,
+	public List<BadExpr> method(List<SourceFileRange> ranges,
 			List<BadExpr> selfArg, List<BadExpr> name,
-			List<List<List<BadExpr>>> argumentLists, List<BadExpr> body) {
-		return selfArg.append(name).append(List.join(List.join(argumentLists))).append(body);
+			List<List<List<BadExpr>>> argumentLists,
+			List<BadExpr> precondition, List<BadExpr> body,
+			List<BadExpr> postcondition) {
+		return selfArg.append(name).append(List.join(List.join(argumentLists))).append(body).append(precondition).append(postcondition);
 	}
 
 	@Override

@@ -19,6 +19,7 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
 	public static final Identifier EMPTY_LIST = new Identifier("[]");
 	public static final Identifier ENVIRONMENT = new Identifier("ε");
+	public static final Identifier TRUE = new Identifier("true");
 
 	final String id;
 

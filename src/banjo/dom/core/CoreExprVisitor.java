@@ -23,6 +23,5 @@ public interface CoreExprVisitor<T> extends ExprVisitor<T> {
 	T method(Method method);
 	T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier);
 	T anonymous();
-	T alternativeDefinition(AlternativeDefinition alternativeDefinition);
 
 }

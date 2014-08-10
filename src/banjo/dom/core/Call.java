@@ -24,16 +24,20 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr object;
 	private final Key name;
 	private final List<List<CoreExpr>> argumentLists;
+	private final boolean callNext;
+	private final boolean optional;
 
-	public Call(List<SourceFileRange> ranges, CoreExpr object, Key name, List<List<CoreExpr>> argumentLists) {
+	public Call(List<SourceFileRange> ranges, CoreExpr object, Key name, List<List<CoreExpr>> argumentLists, boolean callNext, boolean optional) {
 		super(object.hashCode() + name.hashCode() + argumentLists.hashCode(), ranges);
 		this.object = object;
 		this.name = name;
 		this.argumentLists = argumentLists;
+		this.callNext = callNext;
+		this.optional = optional;
 	}
 
 	public Call(List<SourceFileRange> ranges, CoreExpr object, Key methodName, CoreExpr ... arguments) {
-		this(ranges, object, methodName, List.single(List.list(arguments)));
+		this(ranges, object, methodName, List.single(List.list(arguments)), false, false);
 	}
 
 	public CoreExpr getObject() {
@@ -51,6 +55,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	private @Nullable Operator getOperator() {
+		if(optional || callNext)
+			return null;
 		List<String> nameParts = name.getParts();
 		if(nameParts.isEmpty())
 			return Operator.CALL;
@@ -91,7 +97,6 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			operator.toSource(sb);
 		} else if(operator != null && operator.isInfix() && (operator.isParen() || operator.getOperatorType() == OperatorType.METHOD)) {
-			// TODO This isn't handling the lazy operators like ||, &&, ;, => properly
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			if(operator.isParen()) {
 				sb.append(operator.getParenType().getStartChar());
@@ -110,7 +115,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 			}
 		} else {
 			this.object.toSource(sb, Precedence.SUFFIX);
-			sb.append('.');
+			Operator op = optional ? callNext ? Operator.OPT_CALL_NEXT_METHOD : Operator.OPT_PROJECTION : callNext ? Operator.CALL_NEXT_METHOD : Operator.PROJECTION;
+			op.toSource(sb);
 			List<String> np = name.getParts();
 			List<List<CoreExpr>> al = getArgumentLists();
 			while(np.isNotEmpty()) {
@@ -212,6 +218,26 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 					}
 				})
 		);
+	}
+
+	public static Call callFunction(CoreExpr func, List<CoreExpr> args) {
+		return new Call(List.<SourceFileRange>nil(), func, Key.ANONYMOUS, List.single(args), false, false);
+	}
+
+	public static CoreExpr operator(CoreExpr object, Operator operator, CoreExpr arg) {
+		return new Call(List.<SourceFileRange>nil(), object, new Identifier(operator.getMethodName()), List.single(List.single(arg)), false, false);
+	}
+
+	public Key getName() {
+		return name;
+	}
+
+	public boolean isCallNext() {
+		return callNext;
+	}
+
+	public boolean isOptional() {
+		return optional;
 	}
 
 }

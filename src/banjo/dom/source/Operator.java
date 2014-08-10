@@ -25,9 +25,10 @@ public enum Operator {
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
+	VARIANT("#", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	OPTIONAL("?", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
-	EXISTS("??", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
+	//OPTIONAL("?", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
+	//EXISTS("??", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
 	UNARY_NEWLINE_INDENT("(nl+indent)", OperatorType.BUILTIN, Position.PREFIX, Precedence.SEMICOLON),
 
 	// Binary operators
@@ -39,8 +40,10 @@ public enum Operator {
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_OPT_PROJECTION("*.?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	CALL_NEXT_METHOD(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
+	OPT_CALL_NEXT_METHOD(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
 	MATCH("#", OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
+	TRY_MATCH("#?", OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
 	POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	MUL("*", 0x00D7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	DIV("/", 0x00F7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
@@ -59,11 +62,9 @@ public enum Operator {
 	UNION("|", 0x222A, OperatorType.METHOD, Position.INFIX, Precedence.UNION),
 	LOGICAL_AND("&&", 0x2227, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
 	LOGICAL_OR("||", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
-	IF_UNDEFINED_THEN("|||", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
-	IF_DEFINED_THEN("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
+	PREREQUISITE("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
-	OVERLOAD_METHOD("|||=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 
 	// CONSTRAIN("&&&=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NONE),
 	EXTEND_RESULT("@=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
@@ -223,6 +224,9 @@ public enum Operator {
 
 	public Precedence getLeftPrecedence() {
 		return this.leftPrecedence;
+	}
+	public Precedence getRightPrecedence() {
+		return this.precedence;
 	}
 
 	public Precedence getPrecedence() {
