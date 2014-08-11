@@ -48,9 +48,9 @@ public class TestObjectLiteralParser {
 	//@Test public void numericSelfName3() { parse("{(0).plus(x) = x}", "{(0).plus(x) = x}"); }
 
 	@Test public void testUnpack1() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
-			"(_obj) -> ((character, list, _obj3) -> ((true, false) -> {empty = {empty = true}})(_obj3.true, _obj3.false))(_obj.character, _obj.list, _obj.boolean)"); }
+			"(character) -> ((character, list, true) -> ((true, false) -> {empty = {empty = true}})(true.true, true.false))(character.character, character.list, character.boolean)"); }
 	@Test public void testUnpack2() { parse("{({boolean={true, false}, numbers={one, zero}}) = { empty = { empty = true } } }",
-			"(_obj) -> ((_obj, _obj2) -> ((true, false) -> ((one, zero) -> {empty = {empty = true}})(_obj2.one, _obj2.zero))(_obj.true, _obj.false))(_obj.boolean, _obj.numbers)"); }
+			"(true) -> ((true, one) -> ((true, false) -> ((one, zero) -> {empty = {empty = true}})(one.one, one.zero))(true.true, true.false))(true.boolean, true.numbers)"); }
 	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
 	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }
 

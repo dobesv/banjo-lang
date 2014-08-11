@@ -40,9 +40,6 @@ public class TestMathParser {
 	@Test public void unaries2() { unaries("+\n -\n  ~\n   1"); }
 	@Test public void unaries3() { unaries("  +  -  ~ 1"); }
 
-	@Test public void questionMark() { test("s?", "s?"); }
-	@Test public void existential() { test("s??", "s??"); }
-
 	@Test public void plusOne1() { test("x+1", "x + 1"); }
 	@Test public void plusOne2() { test("+1+x", "+1 + x"); }
 	@Test public void minusOne1() { test("x-1", "x - 1"); }
