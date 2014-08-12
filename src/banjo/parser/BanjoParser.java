@@ -311,8 +311,8 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 		return visitAtom(range, new StringLiteral(sfr(range), token));
 	}
 	@Override
-	public NumberLiteral numberLiteral(FileRange range, Number number) {
-		return visitAtom(range, new NumberLiteral(sfr(range), number));
+	public NumberLiteral numberLiteral(FileRange range, Number number, String suffix) {
+		return visitAtom(range, new NumberLiteral(sfr(range), number, suffix));
 	}
 	@Override @Nullable
 	public Atom identifier(FileRange range, String text) {

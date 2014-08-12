@@ -64,7 +64,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String numberLiteral(@NonNull FileRange range, @NonNull Number value) {
+	public String numberLiteral(@NonNull FileRange range, @NonNull Number value, String suffix) {
 		return token("num", range);
 	}
 

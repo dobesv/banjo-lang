@@ -9,7 +9,7 @@ import banjo.util.SourceNumber;
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T objectLiteral(List<SourceFileRange> ranges, List<T> methods);
-	T numberLiteral(List<SourceFileRange> ranges, Number value);
+	T numberLiteral(List<SourceFileRange> ranges, Number value, String suffix);
 	T stringLiteral(List<SourceFileRange> ranges, String text);
 	T listLiteral(List<SourceFileRange> ranges, List<T> elements);
 	T call(List<SourceFileRange> ranges, T object, T name, List<List<T>> argumentLists);

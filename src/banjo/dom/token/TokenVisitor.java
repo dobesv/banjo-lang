@@ -7,7 +7,7 @@ import banjo.util.SourceNumber;
 
 public interface TokenVisitor<T> {
 	@Nullable T stringLiteral(FileRange range, String string);
-	@Nullable T numberLiteral(FileRange range, Number number);
+	@Nullable T numberLiteral(FileRange range, Number number, String suffix);
 	@Nullable T identifier(FileRange range, String id);
 	@Nullable T operator(FileRange range, String op);
 	@Nullable T whitespace(FileRange range, String text);

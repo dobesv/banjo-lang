@@ -1194,7 +1194,7 @@ public class BanjoDesugarer {
 					final Key listTmpName = nonNull(tempMethod.getArgumentLists().head().head());
 					List<CoreExpr> args = List.<CoreExpr>nil();
 					for(int n=tempParams.length()-1; n >= 0; n--) {
-						args = args.cons(new Call(NOT_FROM_SOURCE, listTmpName, opMethodName(Operator.LOOKUP), new NumberLiteral(NOT_FROM_SOURCE, n)));
+						args = args.cons(new Call(NOT_FROM_SOURCE, listTmpName, opMethodName(Operator.LOOKUP), new NumberLiteral(n)));
 					}
 					return wrapper(paramList, precondition, tempMethodDs, tempMethod, listTmpName, args);
 				}

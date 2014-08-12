@@ -59,7 +59,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> numberLiteral(List<SourceFileRange> ranges, Number value) {
+	public List<BadExpr> numberLiteral(List<SourceFileRange> ranges, Number value, String suffix) {
 		return List.nil();
 	}
 

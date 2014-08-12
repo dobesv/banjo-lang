@@ -10,7 +10,7 @@ public interface SourceExprAlgebra<T> {
 	T unaryOp(List<SourceFileRange> sourceFileRanges, Operator operator, SourceFileRange operatorRange, T operand);
 	T emptyExpr(List<SourceFileRange> sourceFileRanges);
 	T identifier(List<SourceFileRange> sourceFileRanges, String id);
-	T numberLiteral(List<SourceFileRange> sourceFileRanges, Number number);
+	T numberLiteral(List<SourceFileRange> sourceFileRanges, Number number, String suffix);
 	T stringLiteral(List<SourceFileRange> sourceFileRanges, String string);
 
 }

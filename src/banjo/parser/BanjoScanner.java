@@ -570,7 +570,6 @@ public class BanjoScanner {
 						in.seek(this.tokenStartPos);
 						return null;
 					} else {
-						in.seek(this.afterDigits);
 						break;
 					}
 				} else {
@@ -597,7 +596,6 @@ public class BanjoScanner {
 					}
 					final int digitValue = Character.digit(cp, 10); // Always base 10
 					if(digitValue == -1) {
-						in.seek(this.afterDigits);
 						break;
 					}
 					exp = exp * 10 + digitValue;
@@ -614,7 +612,6 @@ public class BanjoScanner {
 						return null;
 					} else {
 						// Number ends when we find any non-number character
-						in.unread();
 						break;
 					}
 				} else {
@@ -633,6 +630,14 @@ public class BanjoScanner {
 				}
 			}
 		}
+
+		// Back out the last character we read, it's not part of the number
+		in.seek(this.afterDigits);
+
+		// However, if the number is followed on immediately by an identifier, it's a unit or something like that
+		String suffix = matchID(in);
+		if(suffix == null) suffix = "";
+
 		final int digitsRightOfDecimalPoint = digits - digitsLeftOfDecimalPoint;
 		if(!isInteger && digits == digitsLeftOfDecimalPoint) {
 			if(!isNumber) {
@@ -666,7 +671,7 @@ public class BanjoScanner {
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return new Container<T>(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number))));
+		return new Container<T>(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number)), suffix));
 	}
 
 	/**

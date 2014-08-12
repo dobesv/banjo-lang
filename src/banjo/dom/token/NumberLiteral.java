@@ -22,14 +22,20 @@ import fj.data.List;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom, Key {
-	final Number number;
+	private final Number number;
+	private final String suffix;
 
-	public NumberLiteral(SourceFileRange sfr, Number number) {
-		this(List.single(sfr), number);
+	public NumberLiteral(SourceFileRange sfr, Number number, String suffix) {
+		this(List.single(sfr), number, suffix);
 	}
-	public NumberLiteral(List<SourceFileRange> ranges, Number number) {
-		super(number.hashCode(), ranges);
+	public NumberLiteral(List<SourceFileRange> ranges, Number number, String suffix) {
+		super(number.hashCode() ^ suffix.hashCode(), ranges);
 		this.number = number;
+		this.suffix = suffix;
+	}
+
+	public NumberLiteral(Integer n) {
+		this(List.<SourceFileRange>nil(), n, "");
 	}
 
 	public Number getNumber() {
@@ -38,7 +44,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 
 	@Override
 	public String toString() {
-		return nonNull(this.number.toString());
+		return nonNull(this.number.toString()+this.suffix);
 	}
 
 	@Override
@@ -49,6 +55,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append(this.toString());
+		sb.append(suffix);
 	}
 
 	@Override
@@ -83,6 +90,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		if(cmp == 0) {
 			final NumberLiteral other = (NumberLiteral) o;
 			if(cmp == 0) cmp = number.getClass().getName().compareTo(other.number.getClass().getName());
+			if(cmp == 0) cmp = suffix.compareTo(other.suffix);
 			if(cmp == 0) {
 				if(number instanceof SourceNumber) return ((SourceNumber)number).compareTo((SourceNumber)other.number);
 				if(number instanceof BigDecimal) return ((BigDecimal)number).compareTo((BigDecimal)other.number);
@@ -109,17 +117,36 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number);
+		return visitor.numberLiteral(getSourceFileRanges(), number, suffix);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number);
+		return visitor.numberLiteral(getSourceFileRanges(), number, suffix);
 	}
 
 	@Override
 	public List<String> getParts() {
 		return List.single(number.toString());
+	}
+	public String getSuffix() {
+		return suffix;
+	}
+
+	@Override
+	public boolean equals(@Nullable Object obj) {
+		if (this == obj)
+			return true;
+		if (!super.equals(obj))
+			return false;
+		if (!(obj instanceof NumberLiteral))
+			return false;
+		NumberLiteral other = (NumberLiteral) obj;
+		if (!number.equals(other.number))
+			return false;
+		if (!suffix.equals(other.suffix))
+			return false;
+		return true;
 	}
 
 }
