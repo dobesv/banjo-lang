@@ -15,6 +15,7 @@ import banjo.dom.core.MethodFormalArgument;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
+import banjo.dom.token.Key;
 import banjo.eval.BanjoMessage.MessagePart;
 import banjo.parser.util.SourceFileRange;
 import fj.F;
@@ -30,55 +31,55 @@ import static fj.data.List.list;
  */
 public final class BanjoObject {
 	@NonNull @SuppressWarnings("null")
-	public static final TreeMap<List<String>, MethodClosure> NO_METHODS = TreeMap.empty(Ord.listOrd(Ord.stringOrd));
+	public static final TreeMap<Key, MethodClosure> NO_METHODS = TreeMap.empty(Ord.listOrd(Ord.stringOrd));
 
 	@NonNull @SuppressWarnings("null")
 	public static final TreeMap<String,BanjoObject> EMPTY_ENVIRONMENT = TreeMap.empty(Ord.stringOrd);
 
 	private final BanjoEvaluator evaluator;
-	private final TreeMap<List<String>, MethodClosure> methods;
+	private final TreeMap<Key, MethodClosure> methods;
 	private final @Nullable Object javaObject;
-	
+
 	public BanjoObject(BanjoEvaluator evaluator) {
 		this(NO_METHODS, evaluator);
 	}
 
-	public BanjoObject(TreeMap<List<String>, MethodClosure> methods, BanjoEvaluator evaluator) {
+	public BanjoObject(TreeMap<Key, MethodClosure> methods, BanjoEvaluator evaluator) {
 		this(methods, null, evaluator);
 	}
-	
+
 	static public BanjoObject nativeWrapper(Object obj, BanjoEvaluator evaluator) {
 		return new BanjoObject(NO_METHODS, obj, evaluator);
 	}
-	
-	public BanjoObject(TreeMap<List<String>, MethodClosure> methods, @Nullable Object javaObject, BanjoEvaluator evaluator) {
+
+	public BanjoObject(TreeMap<Key, MethodClosure> methods, @Nullable Object javaObject, BanjoEvaluator evaluator) {
 		super();
 		this.methods = methods;
 		this.evaluator = evaluator;
 		this.javaObject = javaObject;
 	}
 
-	public TreeMap<List<String>, MethodClosure> getMethods() {
+	public TreeMap<Key, MethodClosure> getMethods() {
 		return this.methods;
 	}
 
 	public BanjoObject extend(BanjoObject extension) {
-		final TreeMap<List<String>, MethodClosure> newMethods = this.methods;
-		for(final P2<List<String>,MethodClosure> p : extension.getMethods()) {
+		final TreeMap<Key, MethodClosure> newMethods = this.methods;
+		for(final P2<Key,MethodClosure> p : extension.getMethods()) {
 			newMethods.set(p._1(), p._2());
 		}
 		return new BanjoObject(newMethods, this.evaluator);
 	}
 
 	public BanjoObject call(BanjoMessage message) {
-		List<String> key = message.getParts().map(new F<BanjoMessage.MessagePart,String>() {
+		Key key = message.getParts().map(new F<BanjoMessage.MessagePart,String>() {
 			@Override
 			public String f(@Nullable MessagePart a) {
 				if(a == null) throw new NullPointerException();
 				return a.getKey();
 			}
 		});
-		
+
 		final MethodClosure impl = this.methods.get(key).toNull();
 		if(impl == null)
 			return this.evaluator.emptyObject;
@@ -89,7 +90,7 @@ public final class BanjoObject {
 		// Add arguments to the environment
 		if(methodDef.hasSelfArg())
 			newEnvironment = newEnvironment.set(methodDef.getSelfName().getKeyString(), this);
-		
+
 		newEnvironment = nonNull(message.getParts().zip(methodDef.getParts()).foldRight(new F2<P2<BanjoMessage.MessagePart, Method.SignaturePart>, TreeMap<String, BanjoObject>, TreeMap<String, BanjoObject>>() {
 			public @Nullable fj.data.TreeMap<String,BanjoObject> f(@Nullable fj.P2<MessagePart,banjo.dom.core.Method.SignaturePart> a, @Nullable TreeMap<String,BanjoObject> b) {
 				if(a == null) throw new NullPointerException();
@@ -98,7 +99,7 @@ public final class BanjoObject {
 				SignaturePart signaturePart = a._2();
 				if(messagePart == null) throw new NullPointerException();
 				if(signaturePart == null) throw new NullPointerException();
-				
+
 				return messagePart.getArguments().zip(signaturePart.getArguments()).foldRight(new F2<P2<BanjoObject,MethodFormalArgument>,TreeMap<String,BanjoObject>, TreeMap<String, BanjoObject>> () {
 					@Override
 					public TreeMap<String, BanjoObject> f(
@@ -114,10 +115,10 @@ public final class BanjoObject {
 					}
 				}, b);
 			}
-			
+
 		}, newEnvironment));
-		
-		if(methodDef.hasGuarantee())
+
+		if(methodDef.hasPostcondition())
 			throw new Error("TODO: Guarantee not implemented");
 
 		// Evaluate the method body
@@ -125,25 +126,25 @@ public final class BanjoObject {
 
 	}
 
-	public BanjoObject call(String methodName, BanjoObject ... arguments) {
+	public BanjoObject call(Key methodName, BanjoObject ... arguments) {
 		return call(new BanjoMessage(List.single(new BanjoMessage.MessagePart(methodName, List.<BanjoObject>list(arguments)))));
 	}
-	
-	public boolean hasMethod(String name) {
+
+	public boolean hasMethod(Key name) {
 		return hasMethod(list(name));
 	}
-	
-	public boolean hasMethod(List<String> name) {
+
+	public boolean hasMethod(Key name) {
 		return methods.contains(name);
 	}
-	
+
 	/**
 	 * If this object behaves as a boolean in banjo, convert it to a java boolean.
-	 * 
+	 *
 	 * Behaves like:
-	 * 
+	 *
 	 *  <code>this # { true = Boolean.TRUE , false = Boolean.FALSE, ... = null }</code>
-	 * 
+	 *
 	 * @return
 	 */
 	public @Nullable Boolean toBoolean(BanjoEvaluator evaluator) {

@@ -57,21 +57,10 @@ public class BanjoEvaluator {
 
 			@Override
 			public BanjoObject objectLiteral(ObjectLiteral objectLiteral) {
-				final TreeMap<List<String>, MethodClosure> methodMap = BanjoObject.NO_METHODS;
+				final TreeMap<Key, MethodClosure> methodMap = BanjoObject.NO_METHODS;
 				for(@NonNull @SuppressWarnings("null") final Method methodDef : objectLiteral.getMethods()) {
-					final DefRefAnalyser defRefAnalyser = new DefRefAnalyser();
-					final Analysis analysis = defRefAnalyser.analyseMethod(methodDef);
-					final TreeMap<String,BanjoObject> closure = BanjoObject.EMPTY_ENVIRONMENT;
-					for(final Key freeRef : analysis.getFree()) {
-						final String id = freeRef.getKeyString();
-						closure.set(id, environment.get(id).orSome(BanjoEvaluator.this.emptyObject));
-					}
-					List<String> key = methodDef.getParts().map(new F<SignaturePart,String>() { 
-						public String f(@Nullable SignaturePart a) {
-							if(a == null) throw new NullPointerException();
-							return a.getKey().getKeyString(); 
-						}
-					});
+					final TreeMap<String,BanjoObject> closure = environment;
+					Key key = methodDef.getName();
 					methodMap.set(key, new MethodClosure(methodDef, closure));
 				}
 				return new BanjoObject(methodMap, BanjoEvaluator.this);

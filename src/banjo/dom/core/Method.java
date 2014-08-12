@@ -311,4 +311,8 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		return new Method(List.<SourceFileRange>nil(), Key.ANONYMOUS, Key.ANONYMOUS, List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 
+	public boolean hasPostcondition() {
+		return !postcondition.equals(EMPTY_POSTCONDITION);
+	}
+
 }

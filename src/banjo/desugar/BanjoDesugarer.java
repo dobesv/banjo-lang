@@ -501,17 +501,25 @@ public class BanjoDesugarer {
 		return nonNull(fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<Method>>>() {
 			@Override
 			public DesugarResult<List<Method>> binaryOp(BinaryOp op) {
-				if(op.getOperator() == Operator.ASSIGNMENT) {
-					return visitPair(op);
-				} else {
+				switch(op.getOperator()) {
+				case ASSIGNMENT: return visitPair(op, Operator.ASSIGNMENT);
+				case EXTEND_METHOD: return visitPair(op, Operator.EXTEND);
+				case ADD_METHOD: return visitPair(op, Operator.ADD);
+				case SUB_METHOD: return visitPair(op, Operator.SUB);
+				case MUL_METHOD: return visitPair(op, Operator.MUL);
+				case DIVID_METHOD: return visitPair(op, Operator.DIV);
+				case UNION_METHOD: return visitPair(op, Operator.UNION);
+				case AND_METHOD: return visitPair(op, Operator.AND_METHOD);
+				case OR_METHOD: return visitPair(op, Operator.OR_METHOD);
+				default:
 					return fallback(op);
 				}
 			}
 
-			private DesugarResult<List<Method>> visitPair(BinaryOp fieldOp) {
+			private DesugarResult<List<Method>> visitPair(BinaryOp fieldOp, Operator combiningOp) {
 				final SourceExpr left = fieldOp.getLeft();
 				final SourceExpr right = fieldOp.getRight();
-				return pair(left, right);
+				return pair(left, right, combiningOp);
 			}
 
 			@Override
@@ -528,11 +536,12 @@ public class BanjoDesugarer {
 
 			@Override
 			public DesugarResult<List<Method>> key(Key key) {
-				return pair(key, key);
+				return pair(key, key, Operator.ASSIGNMENT);
 			}
 
-			private DesugarResult<List<Method>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr) {
+			private DesugarResult<List<Method>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
 				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
+				// TODO Apply operator ...
 				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Method.EMPTY_POSTCONDITION, fields);
 			}
 
@@ -1436,7 +1445,6 @@ public class BanjoDesugarer {
 			case XOR:
 			case UNION:
 			case LOOKUP:
-			case CONS:
 			case MEMBER_OF:
 				return binaryOpToMethodCall(op);
 
@@ -1656,15 +1664,6 @@ public class BanjoDesugarer {
 		final DesugarResult<CoreExpr> rhsDs = contDs.expr(letOp.getRight()); // y
 		final DesugarResult<CoreExpr> funcDs = rhsDs.functionLiteral(pairOp, callOp, callOp.getRight(), rhsDs.getSourceExpr(), funcNameDs.getValue(), rhsDs.getValue()); // (x -> y)
 		return funcDs.withDesugared(pairOp, new Call(pairOp.getSourceFileRanges(), contDs.getValue(), Key.ANONYMOUS, funcDs.getValue())); // (f -> z)(x -> y)
-	}
-
-	public DesugarResult<CoreExpr> monadExtract(final SourceExpr pairOp,
-			final SourceExpr bodySourceExpr, final CoreExpr body,
-			BinaryOp arrowOp) {
-		// x <- y, z == (y)."<-"(x -> z)
-		final DesugarResult<CoreExpr> rhsDs = expr(arrowOp.getRight());
-		final DesugarResult<CoreExpr> contDs = rhsDs.functionLiteral(arrowOp, arrowOp.getLeft(), bodySourceExpr, body);
-		return contDs.withDesugared(pairOp, new Call(pairOp.getSourceFileRanges(), rhsDs.getValue(), opMethodName(Operator.MONAD_EXTRACT), contDs.getValue()));
 	}
 
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {

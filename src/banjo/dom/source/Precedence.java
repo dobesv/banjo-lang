@@ -15,6 +15,7 @@ public enum Precedence {
 	INTERSECT, // &
 	XOR, // ^
 	UNION, // |
+	MATCH, // #, #?
 	LAZY_AND, // &&
 	LAZY_OR, // ||
 	ALTERNATIVE, // |||
