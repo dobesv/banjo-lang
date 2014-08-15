@@ -10,7 +10,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.token.TokenVisitor;
-import banjo.parser.BanjoScanner;
+import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 
@@ -81,7 +81,7 @@ public class TokensToString implements TokenVisitor<String> {
 			final int rangeEnd, String[] expectedTokens,
 			TokensToString testVisitor) throws Error {
 		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
-		final BanjoScanner scanner = new BanjoScanner();
+		final SourceCodeScanner scanner = new SourceCodeScanner();
 
 		final ArrayList<String> foundTokens = new ArrayList<String>(expectedTokens.length);
 		while(!testVisitor.done) {

@@ -9,7 +9,7 @@ import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Key;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.BanjoScanner;
+import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.ExprOrd;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
@@ -115,7 +115,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		for(int i=0; i < identifier.length(); i++) {
 			final int cp = identifier.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++; // Actually a pair of characters
-			final boolean ok = i==0 ? BanjoScanner.isIdentifierStart(cp):BanjoScanner.isIdentifierPart(cp);
+			final boolean ok = i==0 ? SourceCodeScanner.isIdentifierStart(cp):SourceCodeScanner.isIdentifierPart(cp);
 			if(!ok) {
 				return StringLiteral.toSource(identifier, sb);
 			}

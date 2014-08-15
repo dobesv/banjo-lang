@@ -17,7 +17,7 @@ import banjo.parser.util.ParserReader.Pos;
 import banjo.parser.util.UnexpectedIOExceptionError;
 import banjo.util.SourceNumber;
 
-public class BanjoScanner {
+public class SourceCodeScanner {
 	boolean eof = false;
 
 	public @Nullable <T> T scan(String inStr, TokenVisitor<T> visitor) {

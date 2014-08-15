@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import banjo.parser.BanjoScanner;
+import banjo.parser.SourceCodeScanner;
 
 public class TestScanner {
 
@@ -22,13 +22,13 @@ public class TestScanner {
 	@Test public void testScanWhitespaceComments5() { testScanWhitespaceComments("    ##foo", 0, 9); }
 
 	private void testScanWhitespaceComments(String text, int start, int expectedLength) {
-		assertEquals(expectedLength, BanjoScanner.scanWhitespaceAndComments(text, start, text.length()));
+		assertEquals(expectedLength, SourceCodeScanner.scanWhitespaceAndComments(text, start, text.length()));
 	}
 	private void testScanComment(String text, int start, int expectedLength) {
-		assertEquals(expectedLength, BanjoScanner.scanComment(text, start, text.length()));
+		assertEquals(expectedLength, SourceCodeScanner.scanComment(text, start, text.length()));
 	}
 	private void testScanWhitespace(String text, int start, int expectedLength) {
-		assertEquals(expectedLength, BanjoScanner.scanWhitespace(text, start, text.length()));
+		assertEquals(expectedLength, SourceCodeScanner.scanWhitespace(text, start, text.length()));
 	}
 
 }

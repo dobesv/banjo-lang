@@ -29,30 +29,30 @@ import static fj.data.List.list;
 /**
  * An object that carries method definitions plus a captured environment.
  */
-public final class BanjoObject {
+public final class EvalObject {
 	@NonNull @SuppressWarnings("null")
 	public static final TreeMap<Key, MethodClosure> NO_METHODS = TreeMap.empty(Ord.listOrd(Ord.stringOrd));
 
 	@NonNull @SuppressWarnings("null")
-	public static final TreeMap<String,BanjoObject> EMPTY_ENVIRONMENT = TreeMap.empty(Ord.stringOrd);
+	public static final TreeMap<String,EvalObject> EMPTY_ENVIRONMENT = TreeMap.empty(Ord.stringOrd);
 
-	private final BanjoEvaluator evaluator;
+	private final ExprEvaluator evaluator;
 	private final TreeMap<Key, MethodClosure> methods;
 	private final @Nullable Object javaObject;
 
-	public BanjoObject(BanjoEvaluator evaluator) {
+	public EvalObject(ExprEvaluator evaluator) {
 		this(NO_METHODS, evaluator);
 	}
 
-	public BanjoObject(TreeMap<Key, MethodClosure> methods, BanjoEvaluator evaluator) {
+	public EvalObject(TreeMap<Key, MethodClosure> methods, ExprEvaluator evaluator) {
 		this(methods, null, evaluator);
 	}
 
-	static public BanjoObject nativeWrapper(Object obj, BanjoEvaluator evaluator) {
-		return new BanjoObject(NO_METHODS, obj, evaluator);
+	static public EvalObject nativeWrapper(Object obj, ExprEvaluator evaluator) {
+		return new EvalObject(NO_METHODS, obj, evaluator);
 	}
 
-	public BanjoObject(TreeMap<Key, MethodClosure> methods, @Nullable Object javaObject, BanjoEvaluator evaluator) {
+	public EvalObject(TreeMap<Key, MethodClosure> methods, @Nullable Object javaObject, ExprEvaluator evaluator) {
 		super();
 		this.methods = methods;
 		this.evaluator = evaluator;
@@ -63,15 +63,15 @@ public final class BanjoObject {
 		return this.methods;
 	}
 
-	public BanjoObject extend(BanjoObject extension) {
+	public EvalObject extend(EvalObject extension) {
 		final TreeMap<Key, MethodClosure> newMethods = this.methods;
 		for(final P2<Key,MethodClosure> p : extension.getMethods()) {
 			newMethods.set(p._1(), p._2());
 		}
-		return new BanjoObject(newMethods, this.evaluator);
+		return new EvalObject(newMethods, this.evaluator);
 	}
 
-	public BanjoObject call(BanjoMessage message) {
+	public EvalObject call(BanjoMessage message) {
 		Key key = message.getParts().map(new F<BanjoMessage.MessagePart,String>() {
 			@Override
 			public String f(@Nullable MessagePart a) {
@@ -85,14 +85,14 @@ public final class BanjoObject {
 			return this.evaluator.emptyObject;
 		final Method methodDef = impl.getMethod();
 		@NonNull
-		TreeMap<String, BanjoObject> newEnvironment = impl.getEnvironment();
+		TreeMap<String, EvalObject> newEnvironment = impl.getEnvironment();
 
 		// Add arguments to the environment
 		if(methodDef.hasSelfArg())
 			newEnvironment = newEnvironment.set(methodDef.getSelfName().getKeyString(), this);
 
-		newEnvironment = nonNull(message.getParts().zip(methodDef.getParts()).foldRight(new F2<P2<BanjoMessage.MessagePart, Method.SignaturePart>, TreeMap<String, BanjoObject>, TreeMap<String, BanjoObject>>() {
-			public @Nullable fj.data.TreeMap<String,BanjoObject> f(@Nullable fj.P2<MessagePart,banjo.dom.core.Method.SignaturePart> a, @Nullable TreeMap<String,BanjoObject> b) {
+		newEnvironment = nonNull(message.getParts().zip(methodDef.getParts()).foldRight(new F2<P2<BanjoMessage.MessagePart, Method.SignaturePart>, TreeMap<String, EvalObject>, TreeMap<String, EvalObject>>() {
+			public @Nullable fj.data.TreeMap<String,EvalObject> f(@Nullable fj.P2<MessagePart,banjo.dom.core.Method.SignaturePart> a, @Nullable TreeMap<String,EvalObject> b) {
 				if(a == null) throw new NullPointerException();
 				if(b == null) throw new NullPointerException();
 				MessagePart messagePart = a._1();
@@ -100,17 +100,17 @@ public final class BanjoObject {
 				if(messagePart == null) throw new NullPointerException();
 				if(signaturePart == null) throw new NullPointerException();
 
-				return messagePart.getArguments().zip(signaturePart.getArguments()).foldRight(new F2<P2<BanjoObject,MethodFormalArgument>,TreeMap<String,BanjoObject>, TreeMap<String, BanjoObject>> () {
+				return messagePart.getArguments().zip(signaturePart.getArguments()).foldRight(new F2<P2<EvalObject,MethodFormalArgument>,TreeMap<String,EvalObject>, TreeMap<String, EvalObject>> () {
 					@Override
-					public TreeMap<String, BanjoObject> f(
-							@Nullable P2<BanjoObject, MethodFormalArgument> aa,
-							@Nullable TreeMap<String, BanjoObject> bb) {
+					public TreeMap<String, EvalObject> f(
+							@Nullable P2<EvalObject, MethodFormalArgument> aa,
+							@Nullable TreeMap<String, EvalObject> bb) {
 						if(aa == null) throw new NullPointerException();
 						if(bb == null) throw new NullPointerException();
 						MethodFormalArgument argFormal = aa._2();
 						if(argFormal.hasAssertion())
 							throw new Error("TODO: Assertions not implemented");
-						BanjoObject argActual = aa._1();
+						EvalObject argActual = aa._1();
 						return bb.set(argFormal.getName().getKeyString(), argActual);
 					}
 				}, b);
@@ -126,8 +126,8 @@ public final class BanjoObject {
 
 	}
 
-	public BanjoObject call(Key methodName, BanjoObject ... arguments) {
-		return call(new BanjoMessage(List.single(new BanjoMessage.MessagePart(methodName, List.<BanjoObject>list(arguments)))));
+	public EvalObject call(Key methodName, EvalObject ... arguments) {
+		return call(new BanjoMessage(List.single(new BanjoMessage.MessagePart(methodName, List.<EvalObject>list(arguments)))));
 	}
 
 	public boolean hasMethod(Key name) {
@@ -147,17 +147,17 @@ public final class BanjoObject {
 	 *
 	 * @return
 	 */
-	public @Nullable Boolean toBoolean(BanjoEvaluator evaluator) {
+	public @Nullable Boolean toBoolean(ExprEvaluator evaluator) {
 		if(javaObject instanceof Boolean)
 			return (Boolean) javaObject;
 		Identifier trueId = new Identifier(SourceFileRange.SYNTHETIC, "true");
 		Identifier falseId = new Identifier(SourceFileRange.SYNTHETIC, "false");
-		BanjoObject trueObj = nativeWrapper(nonNull(Boolean.TRUE), evaluator);
-		BanjoObject falseObj = nativeWrapper(nonNull(Boolean.FALSE), evaluator);
+		EvalObject trueObj = nativeWrapper(nonNull(Boolean.TRUE), evaluator);
+		EvalObject falseObj = nativeWrapper(nonNull(Boolean.FALSE), evaluator);
 		MethodClosure trueCallback = new MethodClosure(Method.nullary(trueId, trueId), EMPTY_ENVIRONMENT.set("true", trueObj));
 		MethodClosure falseCallback = new MethodClosure(Method.nullary(falseId, falseId), EMPTY_ENVIRONMENT.set("false", falseObj));
-		BanjoObject visitor = new BanjoObject(NO_METHODS.set(list("true"), trueCallback).set(list("false"), falseCallback), evaluator);
-		BanjoObject marker = call(Operator.MATCH.getMethodName(), visitor);
+		EvalObject visitor = new EvalObject(NO_METHODS.set(list("true"), trueCallback).set(list("false"), falseCallback), evaluator);
+		EvalObject marker = call(Operator.MATCH.getMethodName(), visitor);
 		if(marker.getJavaObject() instanceof Boolean)
 			return (Boolean) marker.getJavaObject();
 		return null;

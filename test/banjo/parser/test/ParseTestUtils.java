@@ -13,8 +13,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import fj.Unit;
 import fj.data.List;
-import banjo.desugar.BanjoDesugarer;
-import banjo.desugar.BanjoDesugarer.DesugarResult;
+import banjo.desugar.SourceExprDesugarer;
+import banjo.desugar.SourceExprDesugarer.DesugarResult;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -22,7 +22,7 @@ import banjo.dom.core.CoreExpr;
 import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
-import banjo.parser.BanjoParser;
+import banjo.parser.SourceCodeParser;
 import banjo.parser.util.SourceFileRange;
 import banjo.parser.util.UnexpectedIOExceptionError;
 
@@ -34,14 +34,14 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		final BanjoParser parser = new BanjoParser("<test>");
+		final SourceCodeParser parser = new SourceCodeParser("<test>");
 		return test(source, expectedErrors, expectedErrorClass, expectedClass,
 				normalizedSource, parser);
 	}
 
 	public static <T extends Expr> T test(String source, int expectedErrors,
 			Class<? extends BadExpr> expectedErrorClass,
-			Class<T> expectedClass, String normalizedSource, BanjoParser parser)
+			Class<T> expectedClass, String normalizedSource, SourceCodeParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		try {
@@ -51,7 +51,7 @@ public class ParseTestUtils {
 			assertTrue(parser.reachedEof());
 			int errCount = parseErrors(expectedErrorClass, parseTree);
 			if(errCount == 0) {
-				final BanjoDesugarer desugarer = new BanjoDesugarer();
+				final SourceExprDesugarer desugarer = new SourceExprDesugarer();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));

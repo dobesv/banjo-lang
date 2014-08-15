@@ -10,7 +10,7 @@ import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
-import banjo.parser.BanjoScanner;
+import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
@@ -58,8 +58,8 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 			if(cp == ' ') spaces++;
 			else spaces=0;
 			final boolean ok = i==0?
-					BanjoScanner.isIdentifierStart(cp):
-						BanjoScanner.isIdentifierPart(cp) || (cp == ' ' && spaces == 1);
+					SourceCodeScanner.isIdentifierStart(cp):
+						SourceCodeScanner.isIdentifierPart(cp) || (cp == ' ' && spaces == 1);
 					if(!ok) {
 						sb.append('\\');
 					}

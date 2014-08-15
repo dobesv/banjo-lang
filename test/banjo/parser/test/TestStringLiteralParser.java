@@ -9,7 +9,7 @@ import java.util.Collection;
 import org.junit.Test;
 
 import banjo.dom.token.StringLiteral;
-import banjo.parser.BanjoParser;
+import banjo.parser.SourceCodeParser;
 import banjo.parser.util.ParserReader;
 
 public class TestStringLiteralParser {

@@ -10,7 +10,7 @@ import banjo.dom.BadExpr;
 import banjo.dom.source.BadSourceExpr.ExpectedOperator;
 import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
-import banjo.parser.BanjoParser;
+import banjo.parser.SourceCodeParser;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.UnexpectedIOExceptionError;
 
@@ -22,7 +22,7 @@ public class TestParseErrors {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		SourceExpr parsed;
 		try {
-			parsed = new BanjoParser().parse(source);
+			parsed = new SourceCodeParser().parse(source);
 		} catch (final IOException e1) {
 			throw new UnexpectedIOExceptionError(e1);
 		}

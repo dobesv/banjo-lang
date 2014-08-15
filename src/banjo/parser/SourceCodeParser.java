@@ -33,7 +33,7 @@ import banjo.util.SourceNumber;
 /**
  * Change input into an AST.
  */
-public class BanjoParser implements TokenVisitor<SourceExpr> {
+public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 
 	private final LinkedList<PartialOp> opStack = new LinkedList<>();
 	private @Nullable SourceExpr operand = null;
@@ -192,14 +192,14 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	 * Construct a parser with the given string as the source file name to use when
 	 * reporting errors.
 	 */
-	public BanjoParser(String sourceFile) {
+	public SourceCodeParser(String sourceFile) {
 		this.sourceFile = sourceFile;
 	}
 
 	/**
 	 * Constructor that doesn't take a filename, for when you don't care about filenames
 	 */
-	public BanjoParser() {
+	public SourceCodeParser() {
 		this("");
 	}
 
@@ -214,7 +214,7 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 	public SourceExpr parse(ParserReader in) throws IOException {
 		try {
 			reset();
-			final BanjoScanner scanner = new BanjoScanner();
+			final SourceCodeScanner scanner = new SourceCodeScanner();
 			final SourceExpr result = nonNull(scanner.scan(in, this));
 			return result;
 		} finally {
@@ -224,7 +224,7 @@ public class BanjoParser implements TokenVisitor<SourceExpr> {
 
 	public SourceExpr parse(String source) throws IOException {
 		reset();
-		final BanjoScanner scanner = new BanjoScanner();
+		final SourceCodeScanner scanner = new SourceCodeScanner();
 		return nonNull(scanner.scan(source, this));
 	}
 

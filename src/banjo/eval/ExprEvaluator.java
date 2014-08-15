@@ -28,22 +28,22 @@ import fj.F;
 import fj.data.List;
 import fj.data.TreeMap;
 
-public class BanjoEvaluator {
-	BanjoObject emptyObject = new BanjoObject(this);
-	public BanjoObject eval(CoreExpr expr, final TreeMap<String,BanjoObject> environment) {
-		final BanjoObject evalResult = nonNull(expr.acceptVisitor(new CoreExprVisitor<BanjoObject>() {
-			@Override public BanjoObject badExpr(SourceFileRange range, String messageTemplate, Object... args) { return BanjoEvaluator.this.emptyObject; }
-			@Override public BanjoObject badIdentifier(BadIdentifier badIdentifier) { return BanjoEvaluator.this.emptyObject; }
+public class ExprEvaluator {
+	EvalObject emptyObject = new EvalObject(this);
+	public EvalObject eval(CoreExpr expr, final TreeMap<String,EvalObject> environment) {
+		final EvalObject evalResult = nonNull(expr.acceptVisitor(new CoreExprVisitor<EvalObject>() {
+			@Override public EvalObject badExpr(SourceFileRange range, String messageTemplate, Object... args) { return ExprEvaluator.this.emptyObject; }
+			@Override public EvalObject badIdentifier(BadIdentifier badIdentifier) { return ExprEvaluator.this.emptyObject; }
 
 			@Override
-			public BanjoObject call(final Call call) {
+			public EvalObject call(final Call call) {
 				final List<BanjoMessage.MessagePart> messageParts = call.getParts().map(new F<Call.MessagePart, BanjoMessage.MessagePart>() {
 					@Override
 					public MessagePart f(@Nullable Call.MessagePart a) {
 						if(a == null) throw new NullPointerException();
-						final List<BanjoObject> actualArgs = a.getArguments().map(new F<CoreExpr,BanjoObject>() {
+						final List<EvalObject> actualArgs = a.getArguments().map(new F<CoreExpr,EvalObject>() {
 							@Override
-							public BanjoObject f(@Nullable CoreExpr arg) {
+							public EvalObject f(@Nullable CoreExpr arg) {
 								return eval(nonNull(arg), environment);
 							}
 						});
@@ -51,33 +51,33 @@ public class BanjoEvaluator {
 					}
 				});
 				BanjoMessage message = new BanjoMessage(messageParts);
-				final BanjoObject actualTargetObject = eval(call.getObject(), environment);
+				final EvalObject actualTargetObject = eval(call.getObject(), environment);
 				return actualTargetObject.call(message);
 			}
 
 			@Override
-			public BanjoObject objectLiteral(ObjectLiteral objectLiteral) {
-				final TreeMap<Key, MethodClosure> methodMap = BanjoObject.NO_METHODS;
+			public EvalObject objectLiteral(ObjectLiteral objectLiteral) {
+				final TreeMap<Key, MethodClosure> methodMap = EvalObject.NO_METHODS;
 				for(@NonNull @SuppressWarnings("null") final Method methodDef : objectLiteral.getMethods()) {
-					final TreeMap<String,BanjoObject> closure = environment;
+					final TreeMap<String,EvalObject> closure = environment;
 					Key key = methodDef.getName();
 					methodMap.set(key, new MethodClosure(methodDef, closure));
 				}
-				return new BanjoObject(methodMap, BanjoEvaluator.this);
+				return new EvalObject(methodMap, ExprEvaluator.this);
 			}
 
 			@Override
-			public BanjoObject identifier(Identifier identifier) {
+			public EvalObject identifier(Identifier identifier) {
 				@SuppressWarnings("null") @NonNull
-				final BanjoObject result = environment.get(identifier.getId()).orSome(BanjoEvaluator.this.emptyObject);
+				final EvalObject result = environment.get(identifier.getId()).orSome(ExprEvaluator.this.emptyObject);
 				return result;
 			}
 
 			@Override
-			public BanjoObject stringLiteral(StringLiteral stringLiteral) {
+			public EvalObject stringLiteral(StringLiteral stringLiteral) {
 				// Generate strings by starting with an empty string and append characters by number
-				BanjoObject value = identifier(Identifier.EMPTY_STRING);
-				final BanjoObject zero = identifier(Identifier.ZERO);
+				EvalObject value = identifier(Identifier.EMPTY_STRING);
+				final EvalObject zero = identifier(Identifier.ZERO);
 				final String s = stringLiteral.getString();
 				for(int i=0, count = s.length(); i < count; ) {
 					final int cp = s.codePointAt(i);
@@ -88,20 +88,20 @@ public class BanjoEvaluator {
 			}
 
 			@Override
-			public BanjoObject numberLiteral(NumberLiteral numberLiteral) {
+			public EvalObject numberLiteral(NumberLiteral numberLiteral) {
 				// TODO Perhaps we can require there to be special identifiers "1" and "0" in the environment that we use to construct numbers?  Or even "0".."9" ?  Or "0" .. "10" ?
 				final Number number = numberLiteral.getNumber();
-				final BanjoObject zero = identifier(Identifier.ZERO);
+				final EvalObject zero = identifier(Identifier.ZERO);
 				if(number instanceof Long) {
 					return fromLong(zero, number.longValue());
 				} else if(number instanceof Integer) {
 					return fromInt(zero, number.intValue());
 				}
-				return BanjoEvaluator.this.emptyObject;
+				return ExprEvaluator.this.emptyObject;
 			}
 
 
-			public BanjoObject fromLong(BanjoObject value, final long val) {
+			public EvalObject fromLong(EvalObject value, final long val) {
 				final boolean negative = val < 0;
 				final long absVal = Math.abs(val);
 				for(int i=62; i >= 0; i--) {
@@ -123,7 +123,7 @@ public class BanjoEvaluator {
 				}
 				return value;
 			}
-			public BanjoObject fromInt(BanjoObject value, final int val) {
+			public EvalObject fromInt(EvalObject value, final int val) {
 				final boolean negative = val < 0;
 				final long absVal = Math.abs(val);
 				for(int i=30; i >= 0; i--) {
@@ -148,26 +148,26 @@ public class BanjoEvaluator {
 
 			@Override
 			@Nullable
-			public BanjoObject operator(OperatorRef operatorRef) {
+			public EvalObject operator(OperatorRef operatorRef) {
 				throw new Error("Not implemented!");
 			}
 
 			@Override
-			public BanjoObject extend(Extend extend) {
-				final BanjoObject base = eval(extend.getBase(), environment);
-				final BanjoObject extension = eval(extend.getExtension(), environment);
+			public EvalObject extend(Extend extend) {
+				final EvalObject base = eval(extend.getBase(), environment);
+				final EvalObject extension = eval(extend.getExtension(), environment);
 				return base.extend(extension);
 			}
 
 			@Override
 			@Nullable
-			public BanjoObject inspect(Inspect inspect) {
+			public EvalObject inspect(Inspect inspect) {
 				throw new Error("Not implemented!");
 			}
 
 			@Override
 			@Nullable
-			public BanjoObject listLiteral(ListLiteral listLiteral) {
+			public EvalObject listLiteral(ListLiteral listLiteral) {
 				throw new Error("Not implemented!");
 			}
 		}));

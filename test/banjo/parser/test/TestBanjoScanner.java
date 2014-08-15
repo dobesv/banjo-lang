@@ -17,8 +17,8 @@ import banjo.dom.token.Identifier;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.Token;
 import banjo.dom.token.Whitespace;
-import banjo.parser.BanjoParser;
-import banjo.parser.BanjoScanner;
+import banjo.parser.SourceCodeParser;
+import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.TokenCollector;
 public class TestBanjoScanner {
 	@Test
@@ -39,10 +39,10 @@ public class TestBanjoScanner {
 			Class<? extends Expr> expectedClass,
 			String[] expectedTokenNormalizedSource,
 			Class<?>[] expectedTokenClasses) throws Error {
-		final BanjoScanner scanner = new BanjoScanner();
+		final SourceCodeScanner scanner = new SourceCodeScanner();
 		final ArrayList<Token> tokens = new ArrayList<>();
 		scanner.scan(src, new TokenCollector(tokens));
-		final BanjoParser parser = new BanjoParser();
+		final SourceCodeParser parser = new SourceCodeParser();
 		test(src, 0, null, expectedClass, normalizedSource, parser);
 		final int expectedTokenCount = expectedTokenNormalizedSource.length;
 		assertEquals(expectedTokenCount, tokens.size());

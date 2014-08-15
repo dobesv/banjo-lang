@@ -13,7 +13,7 @@ import banjo.dom.BadExpr;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
-import banjo.parser.BanjoParser;
+import banjo.parser.SourceCodeParser;
 
 public class TestNumberLiteralParser {
 
@@ -31,7 +31,7 @@ public class TestNumberLiteralParser {
 	}
 	private void testNonNumber(@NonNull String inStr, Class<? extends BadExpr> eClass) {
 		try {
-			final BanjoParser parser = new BanjoParser();
+			final SourceCodeParser parser = new SourceCodeParser();
 			final SourceExpr node = parser.parse(inStr);
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
 			final int errCount = ParseTestUtils.parseErrors(eClass, node);

@@ -16,10 +16,10 @@ import banjo.dom.token.StringLiteral;
 import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
 import banjo.dom.token.Whitespace;
-import banjo.parser.BanjoParser;
+import banjo.parser.SourceCodeParser;
 
 public class TokenCollector implements TokenVisitor<Token> {
-	final BanjoParser parser = new BanjoParser();
+	final SourceCodeParser parser = new SourceCodeParser();
 	final Collection<Token> tokens;
 
 	public TokenCollector(Collection<Token> tokens) {
