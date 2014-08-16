@@ -292,7 +292,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		SourceCodeParser ps = this;
 		while(ps.shouldPopBasedOnDedent(column)) {
 			final PartialOp op = ps.opStack.head();
-			ps = ps.update(opStack.tail(), op.rhs(operand));
+			ps = ps.update(ps.opStack.tail(), op.rhs(operand));
 		}
 		operand = ps.operand;
 		if(operand == null)
