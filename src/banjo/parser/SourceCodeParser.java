@@ -289,10 +289,9 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 			return this;
 
 		// Now if we get a de-dent we have to move up the operator stack
-		List<PartialOp> opStack = this.opStack;
 		SourceCodeParser ps = this;
 		while(ps.shouldPopBasedOnDedent(column)) {
-			final PartialOp op = opStack.head();
+			final PartialOp op = ps.opStack.head();
 			ps = ps.update(opStack.tail(), op.rhs(operand));
 		}
 		operand = ps.operand;
