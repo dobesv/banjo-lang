@@ -120,52 +120,6 @@ public class CoreExprEvaluator {
 				return new CoreExprObject(methods, numberLiteral.getNumber(), CoreExprEvaluator.this);
 			}
 
-
-//			public Object fromLong(Object value, final long val) {
-//				final boolean negative = val < 0;
-//				final long absVal = Math.abs(val);
-//				for(int i=62; i >= 0; i--) {
-//					// Find the highest set bit
-//					if((absVal & (1 << i)) != 0) {
-//						// Set the first bit
-//						value = value.call("succ");
-//						// Now push the remaining bits
-//						for( ; i >= 0 ; i--) {
-//							value = value.call("double"); // Shift left one
-//							if((absVal & (1 << i)) != 0) {
-//								value = value.call("succ"); // Add one to set the low bit if this bit was set
-//							}
-//						}
-//						if(negative)
-//							value = value.call("-");
-//						break;
-//					}
-//				}
-//				return value;
-//			}
-//			public Object fromInt(Object value, final int val) {
-//				final boolean negative = val < 0;
-//				final long absVal = Math.abs(val);
-//				for(int i=30; i >= 0; i--) {
-//					// Find the highest set bit
-//					if((absVal & (1 << i)) != 0) {
-//						// Set the first bit
-//						value = ExprEvaluator.this.call(value, "succ");
-//						// Now push the remaining bits
-//						for( ; i >= 0 ; i--) {
-//							value = value.call("double"); // Shift left one
-//							if((absVal & (1 << i)) != 0) {
-//								value = value.call("succ"); // Add one to set the low bit if this bit was set
-//							}
-//						}
-//						if(negative)
-//							value = ExprEvaluator.this.call(value, "-");
-//						break;
-//					}
-//				}
-//				return value;
-//			}
-
 			@Override
 			public Object operator(OperatorRef operatorRef) {
 				throw new Error("Not implemented!");
