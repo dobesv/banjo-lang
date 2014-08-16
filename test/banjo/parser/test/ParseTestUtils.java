@@ -48,7 +48,6 @@ public class ParseTestUtils {
 			final SourceExpr parseTree = parser.parse(source);
 			System.out.println("Parsed:\n  " + parseTree.toSource().replace("\n", "\n  "));
 			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
-			assertTrue(parser.reachedEof());
 			int errCount = parseErrors(expectedErrorClass, parseTree);
 			if(errCount == 0) {
 				final SourceExprDesugarer desugarer = new SourceExprDesugarer();

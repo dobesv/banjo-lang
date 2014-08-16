@@ -64,6 +64,10 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 		super(ranges, message, args);
 	}
 
+	public BadSourceExpr(SourceFileRange sfr, String message) {
+		this(List.single(sfr), message);
+	}
+
 	@Override
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
 		return visitor.badSourceExpr(this);

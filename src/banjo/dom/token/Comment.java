@@ -3,14 +3,22 @@ package banjo.dom.token;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.parser.util.AbstractCachedHashCode;
+import banjo.parser.util.FileRange;
 
 
 public class Comment extends AbstractCachedHashCode implements Token {
+	private final FileRange fileRange;
 	private final String text;
 
-	public Comment(String body) {
+	public Comment(FileRange fileRange, String body) {
 		super(body.hashCode());
+		this.fileRange = fileRange;
 		this.text = body;
+
+	}
+
+	public FileRange getFileRange() {
+		return fileRange;
 	}
 
 	public String getText() {
@@ -40,6 +48,8 @@ public class Comment extends AbstractCachedHashCode implements Token {
 		final Comment other = (Comment) obj;
 		if (!this.text.equals(other.text))
 			return false;
+		if (!this.fileRange.equals(other.fileRange))
+			return false;
 		return true;
 	}
 
@@ -48,5 +58,8 @@ public class Comment extends AbstractCachedHashCode implements Token {
 		return this.text;
 	}
 
-
+	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.comment(fileRange, text);
+	}
 }

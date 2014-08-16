@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: banjo.lang
 Bundle-SymbolicName: banjo.lang
 Bundle-Version: 1.0.0.qualifier
-Export-Package: banjo.analysis;uses:="banjo.dom.token,banjo.parser.util,banjo.dom.core",
+Export-Package: 
  banjo.desugar;
   uses:="banjo.dom.token,
    banjo.dom.source,

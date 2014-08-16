@@ -76,6 +76,11 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.stringLiteral(getSourceFileRanges().head().getFileRange(), string);
+	}
+
+	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;

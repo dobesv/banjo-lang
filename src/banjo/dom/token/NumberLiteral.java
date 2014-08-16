@@ -126,6 +126,11 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), number, suffix);
+	}
+
+	@Override
 	public List<String> getParts() {
 		return List.single(number.toString());
 	}

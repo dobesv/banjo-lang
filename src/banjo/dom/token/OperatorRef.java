@@ -52,6 +52,11 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.operator(getSourceFileRanges().head().getFileRange(), op);
+	}
+
+	@Override
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;

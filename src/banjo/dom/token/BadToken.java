@@ -3,14 +3,17 @@ package banjo.dom.token;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.parser.util.AbstractCachedHashCode;
+import banjo.parser.util.FileRange;
 
 
 public class BadToken extends AbstractCachedHashCode implements Token {
+	private final FileRange fileRange;
 	private final String text;
 	private final String message;
 
-	public BadToken(String text, String message) {
+	public BadToken(FileRange fileRange, String text, String message) {
 		super(text.hashCode() + message.hashCode());
+		this.fileRange = fileRange;
 		this.text = text;
 		this.message = message;
 	}
@@ -23,6 +26,10 @@ public class BadToken extends AbstractCachedHashCode implements Token {
 	@Override
 	public String toSource() {
 		return this.text;
+	}
+
+	public FileRange getFileRange() {
+		return fileRange;
 	}
 
 	public String getText() {
@@ -39,9 +46,12 @@ public class BadToken extends AbstractCachedHashCode implements Token {
 		if(obj == null || !(obj instanceof BadToken)) return false;
 		if(obj.hashCode() != this.hashCode()) return false;
 		final BadToken x = (BadToken) obj;
-		return x.message.equals(this.message) && x.text.equals(this.text);
+		return x.message.equals(this.message) && x.text.equals(this.text) && fileRange.equals(x.fileRange);
 	}
 
-
+	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.badToken(getFileRange(), text, message);
+	}
 
 }

@@ -315,4 +315,8 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		return !postcondition.equals(EMPTY_POSTCONDITION);
 	}
 
+	public boolean hasPrecondition() {
+		return !precondition.equals(EMPTY_PRECONDITION);
+	}
+
 }

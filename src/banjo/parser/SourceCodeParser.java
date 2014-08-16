@@ -21,6 +21,7 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.Atom;
 import banjo.dom.token.Identifier;
+import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
@@ -33,12 +34,11 @@ import banjo.util.SourceNumber;
 /**
  * Change input into an AST.
  */
-public class SourceCodeParser implements TokenVisitor<SourceExpr> {
-
-	private final LinkedList<PartialOp> opStack = new LinkedList<>();
-	private @Nullable SourceExpr operand = null;
+public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	private final String sourceFile;
-	private boolean eof;
+	private final List<PartialOp> opStack;
+	private final @Nullable SourceExpr operand;
+	private final @Nullable SourceExpr result;
 
 	abstract class PartialOp {
 		protected final Operator operator;
@@ -188,12 +188,20 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 		}
 	}
 
+	public SourceCodeParser(String sourceFile, List<PartialOp> opStack, @Nullable SourceExpr operand, @Nullable SourceExpr result) {
+		super();
+		this.sourceFile = sourceFile;
+		this.opStack = opStack;
+		this.operand = operand;
+		this.result = result;
+	}
+
 	/**
 	 * Construct a parser with the given string as the source file name to use when
 	 * reporting errors.
 	 */
 	public SourceCodeParser(String sourceFile) {
-		this.sourceFile = sourceFile;
+		this(sourceFile, List.<PartialOp>nil(), null, null);
 	}
 
 	/**
@@ -215,8 +223,11 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 		try {
 			reset();
 			final SourceCodeScanner scanner = new SourceCodeScanner();
-			final SourceExpr result = nonNull(scanner.scan(in, this));
-			return result;
+			SourceCodeParser parseResult = scanner.scan(in, this);
+			SourceExpr operand = parseResult.getOperand();
+			if(operand == null)
+				return new EmptyExpr();
+			return operand;
 		} finally {
 			in.close();
 		}
@@ -225,15 +236,11 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 	public SourceExpr parse(String source) throws IOException {
 		reset();
 		final SourceCodeScanner scanner = new SourceCodeScanner();
-		return nonNull(scanner.scan(source, this));
-	}
-
-
-	/**
-	 * @return true iff we have reached the end of the input
-	 */
-	public boolean reachedEof() {
-		return this.eof;
+		SourceCodeParser parseResult = nonNull(scanner.scan(source, this));
+		SourceExpr operand = parseResult.getOperand();
+		if(operand == null)
+			return new EmptyExpr();
+		return operand;
 	}
 
 	/**
@@ -242,7 +249,7 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 	 */
 	boolean shouldPopBasedOnDedent(int column) {
 		if(this.opStack.isEmpty()) return false;
-		final PartialOp first = this.opStack.getFirst();
+		final PartialOp first = this.opStack.head();
 		if(first.ranges.isEmpty())
 			return false; // Can't pop based on dedent for a synthetic node
 		int startColumn = first.ranges.head().getStartColumn();
@@ -271,70 +278,90 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 	 * @param range The range of the token
 	 * @param token The token we just encountered (should not be whitespace or a comment)
 	 */
-	private void checkIndentDedent(FileRange range) {
+	private SourceCodeParser checkIndentDedent(FileRange range) {
 		final int line = range.getStartLine();
 		final int column = range.getStartColumn();
 		//final int offset = range.getStartOffset();
-		SourceExpr operand = this.operand;
-		if(operand != null && operand.getSourceFileRanges().isNotEmpty() && line > operand.getSourceFileRanges().head().getEndLine()) {
-			// Now if we get a de-dent we have to move up the operator stack
-			while(shouldPopBasedOnDedent(column)) {
-				final PartialOp op = this.opStack.pop();
-				this.operand = operand = op.rhs(operand);
-			}
+		SourceExpr operand = this.getOperand();
 
-			// If we de-dented back to an exact match on the column of an enclosing
-			// expression, insert a newline operator
-			if(operand.getSourceFileRanges().isNotEmpty() && operand.getSourceFileRanges().head().getStartColumn() == column) {
-				pushPartialOp(new PartialBinaryOp(Operator.NEWLINE, operand, sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range))));
-			}
+		// Check if we have an operand, it has source location, and we have moved to the next line
+		if(operand == null || operand.getSourceFileRanges().isEmpty() || line <= operand.getSourceFileRanges().head().getEndLine())
+			return this;
+
+		// Now if we get a de-dent we have to move up the operator stack
+		List<PartialOp> opStack = this.opStack;
+		SourceCodeParser ps = this;
+		while(ps.shouldPopBasedOnDedent(column)) {
+			final PartialOp op = opStack.head();
+			ps = ps.update(opStack.tail(), op.rhs(operand));
 		}
+		operand = ps.operand;
+		if(operand == null)
+			return this;
+
+		// If we de-dented back to an exact match on the column of an enclosing
+		// expression, insert a newline operator
+		if(operand.getSourceFileRanges().isNotEmpty() && operand.getSourceFileRanges().head().getStartColumn() == column) {
+			ps = ps.pushPartialOp(new PartialBinaryOp(Operator.NEWLINE, operand, sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range))));
+		}
+		return ps;
 	}
 
-	public void pushPartialOp(PartialOp partialOp) {
-		this.opStack.push(partialOp);
-		this.operand = null;
+	private SourceCodeParser update(List<PartialOp> opStack, @Nullable SourceExpr operand, @Nullable SourceExpr result) {
+		return new SourceCodeParser(sourceFile, opStack, operand, result);
+	}
+	private SourceCodeParser update(List<PartialOp> opStack, @Nullable SourceExpr operand) {
+		return update(opStack, operand, result);
 	}
 
-	private <T extends SourceExpr> T visitAtom(FileRange range, T token) {
-		checkIndentDedent(range);
-		final SourceExpr operand = this.operand;
+	public SourceCodeParser pushPartialOp(PartialOp partialOp) {
+		return update(opStack.cons(partialOp), null);
+	}
+
+	private SourceCodeParser visitAtom(FileRange range, SourceExpr token) {
+		SourceCodeParser ps = checkIndentDedent(range);
+		final SourceExpr operand = ps.operand;
 		if(operand != null) {
 			final SourceFileRange betweenRange = operand.getSourceFileRanges().isEmpty() ? sfr(range.headRange()) : sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range));
-			pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, betweenRange));
+			ps = ps.pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, betweenRange));
 		}
-		this.operand = token;
-		return token;
+		return ps.withOperand(token);
 	}
+	private SourceCodeParser withOperand(SourceExpr newOperand) {
+		return update(opStack, newOperand);
+	}
+
 	@Override
-	public StringLiteral stringLiteral(FileRange range, String token) {
+	public SourceCodeParser stringLiteral(FileRange range, String token) {
 		return visitAtom(range, new StringLiteral(sfr(range), token));
 	}
 	@Override
-	public NumberLiteral numberLiteral(FileRange range, Number number, String suffix) {
+	public SourceCodeParser numberLiteral(FileRange range, Number number, String suffix) {
 		return visitAtom(range, new NumberLiteral(sfr(range), number, suffix));
 	}
-	@Override @Nullable
-	public Atom identifier(FileRange range, String text) {
+	@Override
+	public SourceCodeParser identifier(FileRange range, String text) {
 		return visitAtom(range, new Identifier(sfr(range), text));
 	}
 
-	@Override @Nullable
-	public Atom operator(FileRange range, String op) {
-		checkIndentDedent(range);
-		if(tryCloseParen(range, op)) {
-			return null;
+	@Override
+	public SourceCodeParser operator(FileRange range, String op) {
+		SourceCodeParser ps = checkIndentDedent(range);
+
+		SourceCodeParser cp = tryCloseParen(range, op);
+		if(cp != null) {
+			return cp;
 		}
-		SourceExpr operand = this.operand;
+		SourceExpr operand = this.getOperand();
 		if(operand != null) {
 			// Infix or suffix position
 			@Nullable
 			final Operator suffixOperator = Operator.fromOp(op, Position.SUFFIX);
 			if(suffixOperator != null) {
-				operand = applyOperatorPrecedenceToStack(operand, suffixOperator); // Apply operator precedence
+				ps = applyOperatorPrecedenceToStack(operand, suffixOperator); // Apply operator precedence
+				operand = nonNull(ps.getOperand());
 				final List<SourceFileRange> exprRanges = operand.getSourceFileRanges().snoc(sfr(range));
-				this.operand = operand = new UnaryOp(exprRanges, suffixOperator, sfr(range), operand);
-				return null;
+				return ps.update(new UnaryOp(exprRanges, suffixOperator, sfr(range), operand));
 			}
 			@Nullable Operator operator = Operator.fromOp(op, Position.INFIX);
 
@@ -342,122 +369,136 @@ public class SourceCodeParser implements TokenVisitor<SourceExpr> {
 				operator = Operator.INVALID;
 			}
 			// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
-			operand = applyOperatorPrecedenceToStack(operand, operator);
-			pushPartialOp(new PartialBinaryOp(operator, operand, new OperatorRef(sfr(range), op)));
+			ps = applyOperatorPrecedenceToStack(operand, operator);
+			operand = nonNull(ps.getOperand());
+			return ps.pushPartialOp(new PartialBinaryOp(operator, operand, new OperatorRef(sfr(range), op)));
 		} else {
 			// Prefix position
 			@Nullable Operator operator = Operator.fromOp(op, Position.PREFIX);
 			if(operator == null) {
 				operator = Operator.INVALID;
 			}
-			pushPartialOp(new PartialUnaryOp(sfr(range), nonNull(operator)));
+			return ps.pushPartialOp(new PartialUnaryOp(sfr(range), nonNull(operator)));
 		}
-		return null;
 	}
 
-	public SourceExpr applyOperatorPrecedenceToStack(SourceExpr operand,
+	private SourceCodeParser update(SourceExpr operand) {
+		return update(opStack, operand);
+	}
+
+	public SourceCodeParser applyOperatorPrecedenceToStack(SourceExpr operand,
 			Operator operator) {
 		final Precedence prec = operator.getLeftPrecedence();
 		final boolean rightAssoc = operator.isRightAssociative();
-		while(!this.opStack.isEmpty()
-				&& this.opStack.getFirst().getOperator().isParen() == false
-				&& !(rightAssoc && this.opStack.getFirst().getOperator() == operator)
-				&& (this.opStack.getFirst().getPrecedence().isHigherOrEqual(prec))) {
-			final PartialOp op = this.opStack.pop();
+		List<PartialOp> opStack = this.opStack;
+		while(!opStack.isEmpty()
+				&& opStack.head().getOperator().isParen() == false
+				&& !(rightAssoc && opStack.head().getOperator() == operator)
+				&& (opStack.head().getPrecedence().isHigherOrEqual(prec))) {
+			final PartialOp op = opStack.head();
+			opStack = opStack.tail();
 			operand = op.rhs(operand);
 		}
-		return operand;
+		return update(opStack, operand);
 	}
 
-	private boolean tryCloseParen(FileRange range, String op) {
-		if(op.length() == 1) {
-			@Nullable
-			final ParenType closeParenTypeMaybe = ParenType.forCloseChar(op.charAt(0));
+	private @Nullable SourceCodeParser tryCloseParen(FileRange range, String op) {
+		if(op.length() != 1)
+			return null;
 
-			if(closeParenTypeMaybe != null) {
-				// If there is a trailing comma, semicolon, or newline we can pop it off the stack
-				final ParenType closeParenType = nonNull(closeParenTypeMaybe);
+		@Nullable
+		final ParenType closeParenTypeMaybe = ParenType.forCloseChar(op.charAt(0));
 
-				// When the open and close paren are the same, we can't match, so only check for
-				// a close paren if we're previously encountered an open paren.
-				if(closeParenType.getStartChar() == closeParenType.getEndChar()) {
-					boolean found = false;
-					for(final PartialOp po : this.opStack) {
-						if(po.isOpenParen(closeParenType)) {
-							found = true;
-							break;
-						}
-					}
-					if(!found)
-						return false;
+		if(closeParenTypeMaybe == null)
+			return null;
+
+		// If there is a trailing comma, semicolon, or newline we can pop it off the stack
+		final ParenType closeParenType = nonNull(closeParenTypeMaybe);
+
+		// When the open and close paren are the same, we can't match, so only check for
+		// a close paren if we're previously encountered an open paren.
+		List<PartialOp> opStack = this.opStack;
+		if(closeParenType.getStartChar() == closeParenType.getEndChar()) {
+			boolean found = false;
+			for(final PartialOp po : opStack) {
+				if(po.isOpenParen(closeParenType)) {
+					found = true;
+					break;
 				}
+			}
+			if(!found)
+				return null;
+		}
 
-				while(!this.opStack.isEmpty()) {
-					final PartialOp po = this.opStack.pop();
-					SourceExpr operand = this.operand;
-					if(operand == null) {
-						operand = new EmptyExpr(sfr(FileRange.between(po.ranges.last().getFileRange(), range)));
-					}
-					if(po.isOpenParen(closeParenType)) {
-						this.operand = po.closeParen(operand, range);
-						break;
-					}
-					if(po.isParen()) {
-						final List<SourceFileRange> newRanges = operand.getSourceFileRanges().snoc(sfr(range));
-						this.operand = new BadSourceExpr.MismatchedCloseParen(newRanges, closeParenType);
-						break;
-					} else {
-						this.operand = po.rhs(operand);
-					}
-				}
-				return true;
+		SourceExpr operand = this.getOperand();
+		while(!opStack.isEmpty()) {
+			final PartialOp po = opStack.head();
+			opStack = opStack.tail();
+			if(operand == null) {
+				operand = new EmptyExpr(sfr(FileRange.between(po.ranges.last().getFileRange(), range)));
+			}
+			if(po.isOpenParen(closeParenType)) {
+				return update(opStack, po.closeParen(operand, range));
+			}
+			if(po.isParen()) {
+				final List<SourceFileRange> newRanges = operand.getSourceFileRanges().snoc(sfr(range));
+				operand = new BadSourceExpr.MismatchedCloseParen(newRanges, closeParenType);
+				break;
+			} else {
+				operand = po.rhs(operand);
 			}
 		}
-		return false;
+		return update(opStack, operand);
 	}
 
 	@Override
-	public @Nullable SourceExpr whitespace(FileRange range, String text) {
-		return null;
+	public SourceCodeParser whitespace(FileRange range, String text) {
+		return this;
 	}
 	@Override
-	public @Nullable SourceExpr comment(FileRange range, String text) {
-		return null;
+	public SourceCodeParser comment(FileRange range, String text) {
+		return this;
 	}
 
 	@Override
-	public @Nullable SourceExpr eof(FileRange entireFileRange) {
-		this.eof = true;
-		SourceExpr operand = this.operand;
+	public SourceCodeParser eof(FileRange entireFileRange) {
+		SourceExpr operand = this.getOperand();
 		// No operand?  Treat it as an empty expression for now
 		if(operand == null) {
-			this.operand = operand = new EmptyExpr(sfr(entireFileRange));
+			operand = new EmptyExpr(sfr(entireFileRange));
 		}
-		while(!this.opStack.isEmpty()) {
-			final PartialOp po = this.opStack.pop();
+		List<PartialOp> opStack = this.opStack;
+		while(!opStack.isEmpty()) {
+			final PartialOp po = opStack.head();
+			opStack = opStack.tail();
 			if(po.isParen()) {
-				this.operand = operand = new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType());
+				operand = new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType());
 			} else {
-				this.operand = operand = po.rhs(nonNull(operand));
+				operand = po.rhs(nonNull(operand));
 			}
 		}
-		return operand;
+		return update(opStack, operand, operand);
 	}
 
-	public void reset() {
-		this.opStack.clear();
-		this.operand = null;
-		this.eof = false;
+	public SourceCodeParser reset() {
+		return update(List.<PartialOp>nil(), null, null);
 	}
 
 	@Override
-	@Nullable
-	public SourceExpr badToken(FileRange fileRange, String text, String message) {
-		// TODO Propagate the error ?
-		return null;
+	public SourceCodeParser badToken(FileRange fileRange, String text, String message) {
+		return visitAtom(fileRange, new BadSourceExpr(sfr(fileRange), message));
 	}
 
 	private final SourceFileRange sfr(FileRange fileRange) {
 		return new SourceFileRange(this.sourceFile, fileRange);
 	}
+
+	public @Nullable SourceExpr getOperand() {
+		return operand;
+	}
+
+	public @Nullable SourceExpr getResult() {
+		return result;
+	}
+
 }

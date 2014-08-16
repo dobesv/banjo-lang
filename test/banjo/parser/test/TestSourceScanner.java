@@ -10,6 +10,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.core.Call;
 import banjo.dom.token.Comment;
@@ -20,7 +21,7 @@ import banjo.dom.token.Whitespace;
 import banjo.parser.SourceCodeParser;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.TokenCollector;
-public class TestBanjoScanner {
+public class TestSourceScanner {
 	@Test
 	public void test1() {
 		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "((foo) -> baz)(bar bar)", Call.class,
@@ -40,28 +41,27 @@ public class TestBanjoScanner {
 			String[] expectedTokenNormalizedSource,
 			Class<?>[] expectedTokenClasses) throws Error {
 		final SourceCodeScanner scanner = new SourceCodeScanner();
-		final ArrayList<Token> tokens = new ArrayList<>();
-		scanner.scan(src, new TokenCollector(tokens));
+		List<Token> tokens = scanner.scan(src, new TokenCollector()).getTokens();
 		final SourceCodeParser parser = new SourceCodeParser();
 		test(src, 0, null, expectedClass, normalizedSource, parser);
 		final int expectedTokenCount = expectedTokenNormalizedSource.length;
-		assertEquals(expectedTokenCount, tokens.size());
-		for(int i=0; i < expectedTokenCount; i++) {
-			final Token token = tokens.get(i);
+		assertEquals(expectedTokenCount, tokens.length());
+		for(int i=0; i < expectedTokenCount; i++, tokens = tokens.tail()) {
+			final Token token = tokens.head();
 			assertEquals(expectedTokenClasses[i], token.getClass());
 			assertEquals(expectedTokenNormalizedSource[i], token.toString());
 		}
 	}
 
 	@Test public void testTokenStream1() { testScanner("a + b + c + d", 0, 13,
-			"id", "ws", "op", "ws", "id", "ws", "op", "ws", "id", "ws", "op", "ws", "id", "eof"); }
-	@Test public void testTokenStream2() { testScanner("a + b + c + d", 0, 1, "id", "eof"); }
-	@Test public void testTokenStream3() { testScanner("a + b + c + d", 1, 2, "ws", "eof"); }
-	@Test public void testTokenStream4() { testScanner("a + b + c + d", 2, 3, "op", "eof"); }
-	@Test public void testTokenStream5() { testScanner("; foo", 0, 5, "com", "eof"); }
+			"id", "ws", "op", "ws", "id", "ws", "op", "ws", "id", "ws", "op", "ws", "id"); }
+	@Test public void testTokenStream2() { testScanner("a + b + c + d", 0, 1, "id"); }
+	@Test public void testTokenStream3() { testScanner("a + b + c + d", 1, 2, "ws"); }
+	@Test public void testTokenStream4() { testScanner("a + b + c + d", 2, 3, "op"); }
+	@Test public void testTokenStream5() { testScanner("; foo", 0, 5, "com"); }
 	@Ignore // TODO: Do we need to support scanning partial lines?
-	@Test public void testTokenStream6() { testScanner("/* foo */", 1, 5, "com", "eof"); }
-	@Test public void testTokenStream7() { testScanner(";  foo  \n   a", 0, 13, "com", "ws", "id", "eof"); }
-	@Test public void testTokenStream8() { testScanner("a?,b?", 0, 5, "id", "op", "op", "id", "op", "eof"); }
+	@Test public void testTokenStream6() { testScanner("/* foo */", 1, 5, "com"); }
+	@Test public void testTokenStream7() { testScanner(";  foo  \n   a", 0, 13, "com", "ws", "id"); }
+	@Test public void testTokenStream8() { testScanner("a?,b?", 0, 5, "id", "op", "op", "id", "op"); }
 
 }

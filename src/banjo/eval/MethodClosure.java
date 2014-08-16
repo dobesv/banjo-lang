@@ -1,12 +1,13 @@
 package banjo.eval;
 
 import banjo.dom.core.Method;
+import banjo.dom.token.Key;
 import fj.data.TreeMap;
 
 public class MethodClosure {
 	final Method method;
-	final TreeMap<String, EvalObject> environment;
-	public MethodClosure(Method method, TreeMap<String, EvalObject> environment) {
+	final TreeMap<Key, Object> environment;
+	public MethodClosure(Method method, TreeMap<Key, Object> environment) {
 		super();
 		this.method = method;
 		this.environment = environment;
@@ -14,7 +15,7 @@ public class MethodClosure {
 	public Method getMethod() {
 		return this.method;
 	}
-	public TreeMap<String, EvalObject> getEnvironment() {
+	public TreeMap<Key, Object> getEnvironment() {
 		return this.environment;
 	}
 

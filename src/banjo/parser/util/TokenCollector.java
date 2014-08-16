@@ -5,6 +5,7 @@ import java.util.Collection;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Atom;
 import banjo.dom.token.BadToken;
@@ -18,71 +19,66 @@ import banjo.dom.token.TokenVisitor;
 import banjo.dom.token.Whitespace;
 import banjo.parser.SourceCodeParser;
 
-public class TokenCollector implements TokenVisitor<Token> {
-	final SourceCodeParser parser = new SourceCodeParser();
-	final Collection<Token> tokens;
+public class TokenCollector implements TokenVisitor<TokenCollector> {
+	final SourceCodeParser parser;
+	final List<Token> tokensReversed;
 
-	public TokenCollector(Collection<Token> tokens) {
-		this.tokens = tokens;
+	public TokenCollector(List<Token> tokens, SourceCodeParser parser) {
+		this.tokensReversed = tokens;
+		this.parser = parser;
 	}
-
-	@Nullable
-	public SourceExpr parse(ParserReader in) throws IOException {
-		return this.parser.parse(in);
-	}
-	public @Nullable SourceExpr parse(String source) throws IOException {
-		return this.parser.parse(source);
-	}
-	public boolean reachedEof() {
-		return this.parser.reachedEof();
+	public TokenCollector() {
+		this(List.<Token>nil(), new SourceCodeParser());
 	}
 
 	public SourceFileRange sfr(FileRange range) {
 		return new SourceFileRange("", range);
 	}
 
-	public <T extends Token> T token(T token) {
-		this.tokens.add(token);
-		return token;
+	public TokenCollector token(Token token) {
+		return new TokenCollector(tokensReversed.cons(token), token.acceptVisitor(parser));
 	}
 
 	@Override
-	public StringLiteral stringLiteral(FileRange range, String token) {
-		return token(this.parser.stringLiteral(range, token));
+	public TokenCollector stringLiteral(FileRange range, String string) {
+		return token(new StringLiteral(sfr(range), string));
 	}
 	@Override
-	public NumberLiteral numberLiteral(FileRange range, Number number, String suffix) {
-		return token(this.parser.numberLiteral(range, number, suffix));
+	public TokenCollector numberLiteral(FileRange range, Number number, String suffix) {
+		return token(new NumberLiteral(sfr(range), number, suffix));
 	}
-	@Override @Nullable
-	public Atom identifier(FileRange range, String id) {
+	@Override
+	public TokenCollector identifier(FileRange range, String id) {
 		this.parser.identifier(range, id);
 		return token(new Identifier(sfr(range), id));
 	}
 	@Override
-	public Atom operator(FileRange range, String op) {
+	public TokenCollector operator(FileRange range, String op) {
 		this.parser.operator(range, op);
 		return token(new OperatorRef(sfr(range), op));
 	}
 	@Override
-	public Whitespace whitespace(FileRange range, String ws) {
+	public TokenCollector whitespace(FileRange range, String ws) {
 		this.parser.whitespace(range, ws);
 		return token(new Whitespace(sfr(range), ws));
 	}
 	@Override
-	public Comment comment(FileRange range, String text) {
+	public TokenCollector comment(FileRange range, String text) {
 		this.parser.comment(range, text);
-		return token(new Comment(text));
+		return token(new Comment(range, text));
 	}
 	@Override
-	public @Nullable Token eof(FileRange entireFileRange) {
-		return null;
+	public TokenCollector eof(FileRange entireFileRange) {
+		return this;
 	}
 
 	@Override
-	public Token badToken(FileRange fileRange, String badToken, String message) {
+	public TokenCollector badToken(FileRange fileRange, String badToken, String message) {
 		this.parser.badToken(fileRange, badToken, message);
-		return token(new BadToken(badToken, message));
+		return token(new BadToken(fileRange, badToken, message));
 	}
 
+	public List<Token> getTokens() {
+		return tokensReversed.reverse();
+	}
 }

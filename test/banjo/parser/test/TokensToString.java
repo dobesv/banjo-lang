@@ -9,10 +9,15 @@ import java.util.Arrays;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.F;
+import fj.data.List;
+import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
+import banjo.parser.util.TokenCollector;
+import banjo.parser.util.UnexpectedIOExceptionError;
 
 public class TokensToString implements TokenVisitor<String> {
 
@@ -27,23 +32,23 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String whitespace(@NonNull FileRange range, @NonNull String tok) {
+	public @NonNull String whitespace(@NonNull FileRange range, @NonNull String tok) {
 		return token("ws", range);
 	}
 
-	protected String token(String t, FileRange range) {
+	protected @NonNull String token(@NonNull String t, FileRange range) {
 		assertEquals("Characters skipped?", this.lastTokRange != null ? this.lastTokRange.getEndOffset() : this.rangeStart, range.getStartOffset());
 		this.lastTokRange = range;
 		return t;
 	}
 
 	@Override
-	public String comment(@NonNull FileRange range, @NonNull String tok) {
+	public @NonNull String comment(@NonNull FileRange range, @NonNull String tok) {
 		return token("com", range);
 	}
 
 	@Override
-	public String eof(@NonNull FileRange entireFileRange) {
+	public @NonNull String eof(@NonNull FileRange entireFileRange) {
 		this.done = true;
 		assertEquals(0, entireFileRange.getStartOffset());
 		assertEquals(1, entireFileRange.getStartLine());
@@ -54,22 +59,22 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String operator(@NonNull FileRange range, @NonNull String tok) {
+	public @NonNull String operator(@NonNull FileRange range, @NonNull String tok) {
 		return token("op", range);
 	}
 
 	@Override
-	public String stringLiteral(@NonNull FileRange range, @NonNull String tok) {
+	public @NonNull String stringLiteral(@NonNull FileRange range, @NonNull String tok) {
 		return token("str", range);
 	}
 
 	@Override
-	public String numberLiteral(@NonNull FileRange range, @NonNull Number value, String suffix) {
+	public @NonNull String numberLiteral(@NonNull FileRange range, @NonNull Number value, String suffix) {
 		return token("num", range);
 	}
 
 	@Override
-	public String identifier(@NonNull FileRange range, @NonNull String tok) {
+	public @NonNull String identifier(@NonNull FileRange range, @NonNull String tok) {
 		return token("id", range);
 	}
 
@@ -79,24 +84,27 @@ public class TokensToString implements TokenVisitor<String> {
 
 	public static void testScanner(@NonNull String src, final int rangeStart,
 			final int rangeEnd, String[] expectedTokens,
-			TokensToString testVisitor) throws Error {
+			final @NonNull TokensToString testVisitor) throws Error {
 		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
 		final SourceCodeScanner scanner = new SourceCodeScanner();
-
-		final ArrayList<String> foundTokens = new ArrayList<String>(expectedTokens.length);
-		while(!testVisitor.done) {
-			try {
-				foundTokens.add(scanner.next(in, testVisitor));
-			} catch (final IOException e) {
-				throw new Error(e);
-			}
+		List<String> foundTokens;
+		try {
+			foundTokens = scanner.scan(in, new TokenCollector()).getTokens().map(new F<Token, String>() {
+				@Override
+				public String f(Token a) {
+					if(testVisitor.done)
+						return "";
+					return a.acceptVisitor(testVisitor);
+				}
+			});
+		} catch (IOException e) {
+			throw new UnexpectedIOExceptionError(e);
 		}
-		assertEquals(Arrays.asList(expectedTokens).toString(), foundTokens.toString());
+		assertEquals(List.list(expectedTokens).toString(), foundTokens.toString());
 	}
 
 	@Override
-	@Nullable
-	public String badToken(@NonNull FileRange fileRange, @NonNull String badToken, @NonNull String message) {
+	public @NonNull String badToken(@NonNull FileRange fileRange, @NonNull String badToken, @NonNull String message) {
 		return token("bad", fileRange);
 	}
 

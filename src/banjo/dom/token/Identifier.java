@@ -118,6 +118,11 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	@Override
+	public <T> T acceptVisitor(TokenVisitor<T> parser) {
+		return parser.identifier(getSourceFileRanges().head().getFileRange(), id);
+	}
+
+	@Override
 	public List<String> getParts() {
 		return List.single(id);
 	}

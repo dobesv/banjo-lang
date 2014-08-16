@@ -8,8 +8,8 @@ import java.math.BigInteger;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.data.List;
 import banjo.dom.token.TokenVisitor;
-import banjo.parser.util.Container;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
@@ -20,7 +20,7 @@ import banjo.util.SourceNumber;
 public class SourceCodeScanner {
 	boolean eof = false;
 
-	public @Nullable <T> T scan(String inStr, TokenVisitor<T> visitor) {
+	public <T extends TokenVisitor<T>> T scan(String inStr, TokenVisitor<T> visitor) {
 		try {
 			return scan(ParserReader.fromString("<string>", inStr), visitor);
 		} catch (final IOException e) {
@@ -32,17 +32,17 @@ public class SourceCodeScanner {
 		return cp == '_' || cp == '$' || cp == '\\' || Character.isLetter(cp);
 	}
 
-	public @Nullable <T> T next(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	public <T extends TokenVisitor<T>> T next(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		for(;;) {
 			in.getCurrentPosition(this.tokenStartPos);
-			@Nullable Container<T> result = null;
-			if( (result = whitespace(in, visitor)) != null ||
-					(result = comment(in, visitor)) != null ||
-					(result = identifier(in, visitor)) != null ||
-					(result = operator(in, visitor)) != null ||
-					(result = numberLiteral(in, visitor)) != null ||
-					(result = stringLiteral(in, visitor)) != null) {
-				return nonNull(result).getValue();
+			List<T> result = List.<T>nil();
+			if( (result = whitespace(in, visitor)).isNotEmpty() ||
+					(result = comment(in, visitor)).isNotEmpty() ||
+					(result = identifier(in, visitor)).isNotEmpty() ||
+					(result = operator(in, visitor)).isNotEmpty() ||
+					(result = numberLiteral(in, visitor)).isNotEmpty() ||
+					(result = stringLiteral(in, visitor)).isNotEmpty()) {
+				return nonNull(result.head());
 			} else {
 				// Invalid character ?
 				final int badCp = in.read();
@@ -66,12 +66,13 @@ public class SourceCodeScanner {
 	 * @return The return value from visitEof()
 	 * @throws IOException If the underlying stream cannot be read
 	 */
-	public @Nullable <T> T scan(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	public <T extends TokenVisitor<T>> T scan(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		reset();
 		for(;;) {
 			final T result = next(in, visitor);
 			if(this.eof)
 				return result;
+			visitor = result;
 		}
 	}
 
@@ -214,29 +215,29 @@ public class SourceCodeScanner {
 	public static boolean isWhitespaceChar(int codePoint) {
 		return Character.isWhitespace(codePoint);
 	}
-	public @Nullable <T> Container<T> comment(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	public <T extends TokenVisitor<T>> List<T> comment(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
 		if(cp == ';') {
 			skipToEndOfLine(in);
 		} else {
 			// Not a comment, and thus also not whitespace any more
 			in.seek(this.tokenStartPos);
-			return null;
+			return List.nil();
 		}
 
-		return new Container<T>(visitor.comment(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos)));
+		return List.<T>single(visitor.comment(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos)));
 	}
 
-	public @Nullable <T> Container<T> whitespace(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	public <T extends TokenVisitor<T>> List<T> whitespace(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		boolean foundWhitespace = false;
 		for(int cp = in.read(); isWhitespaceChar(cp); cp = in.read()) {
 			foundWhitespace = true;
 		}
 		in.unread(); // Push back the non-whitespace character we found
 		if(!foundWhitespace)
-			return null; // No whitespace found
+			return List.nil(); // No whitespace found
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return new Container<T>(visitor.whitespace(fileRange, in.readStringFrom(this.tokenStartPos)));
+		return List.<T>single(visitor.whitespace(fileRange, in.readStringFrom(this.tokenStartPos)));
 	}
 
 	/**
@@ -406,14 +407,14 @@ public class SourceCodeScanner {
 	 * </table>
 	 */
 
-	private @Nullable <T> Container<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private <T extends TokenVisitor<T>> List<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
 		if(cp == '`') {
 			return backtick(in, visitor);
 		}
 		if(cp != '"' && cp != '\'') {
 			in.seek(this.tokenStartPos);
-			return null;
+			return List.nil();
 		}
 		final int quoteType = cp;
 
@@ -475,17 +476,17 @@ public class SourceCodeScanner {
 			}
 		}
 		if(cp == -1) visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal");
-		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));
+		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), nonNull(this.buf.toString())));
 	}
 
-	private @Nullable <T> Container<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private <T extends TokenVisitor<T>> List<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		String str = matchOperator(in);
 		if(str == null) str = matchID(in);
 		if(str == null) {
 			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), "Empty backtick");
 			str = "";
 		}
-		return new Container<T>(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), str));
+		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), str));
 	}
 
 	private final Pos afterDigits = new Pos();
@@ -522,7 +523,7 @@ public class SourceCodeScanner {
 		buf.appendCodePoint(result);
 	}
 
-	private @Nullable <T> Container<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private <T extends TokenVisitor<T>> List<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
 		boolean negative = false;
 		boolean isNumber = false;
@@ -568,7 +569,7 @@ public class SourceCodeScanner {
 				if(!isInteger) {
 					if(!isNumber) {
 						in.seek(this.tokenStartPos);
-						return null;
+						return List.nil();
 					} else {
 						break;
 					}
@@ -584,7 +585,7 @@ public class SourceCodeScanner {
 				// Can't start a number with an exponent
 				if(!isNumber) {
 					in.seek(this.tokenStartPos);
-					return null;
+					return List.nil();
 				}
 				cp = in.read();
 				final boolean negexp = cp == '-';
@@ -609,7 +610,7 @@ public class SourceCodeScanner {
 				if(digitValue == -1) {
 					if(!isNumber) {
 						in.seek(this.tokenStartPos);
-						return null;
+						return List.nil();
 					} else {
 						// Number ends when we find any non-number character
 						break;
@@ -642,7 +643,7 @@ public class SourceCodeScanner {
 		if(!isInteger && digits == digitsLeftOfDecimalPoint) {
 			if(!isNumber) {
 				in.seek(this.tokenStartPos);
-				return null;
+				return List.nil();
 			} else {
 				in.seek(this.afterDigits);
 				isInteger = true;
@@ -671,7 +672,7 @@ public class SourceCodeScanner {
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return new Container<T>(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number)), suffix));
+		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number)), suffix));
 	}
 
 	/**
@@ -681,11 +682,11 @@ public class SourceCodeScanner {
 	 *
 	 * @return An IdRef if the parse is successful; null otherwise.
 	 */
-	private @Nullable <T> Container<T> identifier(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private <T extends TokenVisitor<T>> List<T> identifier(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		final String identifier = matchID(in);
 		if(identifier == null)
-			return null;
-		return new Container<T>(visitor.identifier(in.getFileRange(this.tokenStartPos), identifier));
+			return List.nil();
+		return List.<T>single(visitor.identifier(in.getFileRange(this.tokenStartPos), identifier));
 	}
 
 	/**
@@ -695,11 +696,11 @@ public class SourceCodeScanner {
 	 *
 	 * @return An OperatorRef if the parse is successful; O otherwise
 	 */
-	private @Nullable <T> Container<T> operator(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+	private <T extends TokenVisitor<T>> List<T> operator(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		final String operator = matchOperator(in);
 		if(operator == null)
-			return null;
-		return new Container<T>(visitor.operator(in.getFileRange(this.tokenStartPos), operator));
+			return List.nil();
+		return List.<T>single(visitor.operator(in.getFileRange(this.tokenStartPos), operator));
 	}
 
 	public static String codePointToString(int cp) {
