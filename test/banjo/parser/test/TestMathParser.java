@@ -20,8 +20,8 @@ public class TestMathParser {
 	@Test public void multiline3() { test("2\n + 2\n  > 1\n   + 1", "2 + 2 > 1 + 1"); }
 	@Test public void multiline4() { test("  2\n+ 2", "2 + 2"); }
 
-	// Not how indentation is overriding the operator precedence here; feature or bug ?
-	@Test public void multiline5() { test("  2\n+ 2\n* 4", "(2 + 2) * 4"); }
+	// Note how indentation is overriding the operator precedence here; feature or bug ?
+	@Test public void multiline5() { test("  2\n+ 2\n* 4", "2 + 2 * 4"); }
 
 	@Test public void gt() { test("3 > 2", "3 > 2"); }
 	@Test public void lt() { test("3 < 2", "3 < 2"); }
@@ -33,8 +33,8 @@ public class TestMathParser {
 	// TODO Support right-aligned operands
 	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).\\+(11).\\+(111)"); }
 
-	@Test public void badDedent1() { test("3\n> 2", 1, BadSourceExpr.class); }
-	@Test public void badDedent2() { test("3\n@@ 2", 1, BadSourceExpr.class); }
+	@Test public void badDedent1() { test("    3\n> 2", 1, BadSourceExpr.class); }
+	@Test public void badDedent2() { test("    3\n@ 2", 1, BadSourceExpr.class); }
 
 	@Test public void unaries1() { unaries("+ - ~1"); }
 	@Test public void unaries2() { unaries("+\n -\n  ~\n   1"); }
@@ -46,8 +46,6 @@ public class TestMathParser {
 	@Test public void minusOne2() { test("-1-x", "-1 - x"); }
 
 	@Test public void abs1() { test("|x|", "|x|"); }
-
-	@Test public void cons1() { test("x :: y", "y.\\:\\:(x)"); }
 
 	@Test public void memberOf1() { test("x in y", "x in y"); }
 	@Test public void memberOf2() { test("x\u2208y", "x <++ y"); }
