@@ -10,7 +10,7 @@ import fj.F;
 import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
-
+	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.<SourceFileRange>nil(), List.<CoreExpr>nil());
 	private final List<CoreExpr> elements;
 
 	public ListLiteral(List<SourceFileRange> ranges, List<CoreExpr> elements) {

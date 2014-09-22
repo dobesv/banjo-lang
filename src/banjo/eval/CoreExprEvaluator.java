@@ -26,131 +26,99 @@ import fj.data.List;
 import fj.data.TreeMap;
 
 public class CoreExprEvaluator {
-	CoreExprObject emptyObject = new CoreExprObject(this);
+	EvalObject emptyObject = new CoreExprObject(this);
 
-	/**
-	 * Call a method on an object using the rules of the evaluator.
-	 *
-	 * @param x Target object of the call
-	 * @param methodName Method name to call
-	 * @param argumentLists Arguments
-	 * @return The result of the call
-	 * @throws ContractFailure If a precondition or postcondition fails
-	 */
-	public Object call(Object x, Key methodName, List<List<Object>> argumentLists) {
-		if(x instanceof CoreExprObject) {
-			return ((CoreExprObject)x).call(methodName, argumentLists);
-		}
-		return CoreExprObject.wrap(x, this).call(methodName, argumentLists);
-	}
-
-	/**
-	 * Extend any object with any other object, concatenating the methods of one
-	 * to the methods of the other.
-	 *
-	 * @param base
-	 * @param extension
-	 * @return
-	 */
-	public Object extend(Object base, Object extension) {
-		if(base instanceof CoreExprObject) {
-			return ((CoreExprObject)base).extend(extension);
-		} else {
-			return CoreExprObject.wrap(base, this).extend(extension);
-		}
-	}
-
-	public Object eval(CoreExpr expr, final TreeMap<Key,Object> environment) {
-		final Object evalResult = nonNull(expr.acceptVisitor(new CoreExprVisitor<Object>() {
-			@Override public Object badExpr(BadExpr expr) { return CoreExprEvaluator.this.emptyObject; }
-			@Override public Object badIdentifier(BadIdentifier badIdentifier) { return CoreExprEvaluator.this.emptyObject; }
+	public EvalObject eval(CoreExpr expr, final TreeMap<Key,EvalObject> environment) {
+		final CoreExprEvaluator evaluator = this;
+		final EvalObject evalResult = nonNull(expr.acceptVisitor(new CoreExprVisitor<EvalObject>() {
+			@Override public EvalObject badExpr(BadExpr expr) { return evaluator.emptyObject; }
+			@Override public EvalObject badIdentifier(BadIdentifier badIdentifier) { return evaluator.emptyObject; }
 
 			@Override
-			public Object call(final Call call) {
-				List<List<Object>> argumentLists = call.getArgumentLists().map(new F<List<CoreExpr>, List<Object>>() {
+			public EvalObject call(final Call call) {
+				// This is where the laziness is supposed to come in ...
+				List<List<EvalObject>> argumentLists = call.getArgumentLists().map(new F<List<CoreExpr>, List<EvalObject>>() {
 					@Override
-					public List<Object> f(@Nullable List<CoreExpr> a) {
+					public List<EvalObject> f(@Nullable List<CoreExpr> a) {
 						if(a == null) throw new NullPointerException();
-						return a.map(new F<CoreExpr,Object>() {
+						return a.map(new F<CoreExpr,EvalObject>() {
 							@Override
-							public Object f(@Nullable CoreExpr arg) {
+							public EvalObject f(@Nullable CoreExpr arg) {
 								if(arg == null) throw new NullPointerException();
 								return eval(arg, environment);
 							}
 						});
 					}
 				});
-				final Object actualTargetObject = eval(call.getObject(), environment);
-				return CoreExprEvaluator.this.call(actualTargetObject, call.getName(), argumentLists);
+				final EvalObject target = eval(call.getObject(), environment);
+
+				// Lazy by default
+				return new DeferredCall(target, call.getName(), argumentLists, call.isOptional(), target, call.isCallNext());
 			}
 
 			@Override
-			public Object objectLiteral(ObjectLiteral objectLiteral) {
-				final TreeMap<Key, MethodClosure> methodMap = CoreExprObject.NO_METHODS;
+			public EvalObject objectLiteral(ObjectLiteral objectLiteral) {
+				TreeMap<Key, List<MethodClosure>> methodMap = CoreExprObject.NO_METHODS;
 				for(@NonNull @SuppressWarnings("null") final Method methodDef : objectLiteral.getMethods()) {
-					final TreeMap<Key,Object> closure = environment;
-					Key key = methodDef.getName();
-					methodMap.set(key, new MethodClosure(methodDef, closure));
+					methodMap = methodMap.set(methodDef.getName(), methodMap.get(methodDef.getName()).orSome(List.<MethodClosure>nil()).cons(new MethodClosure(methodDef, environment)));
 				}
-				return new CoreExprObject(methodMap, CoreExprEvaluator.this);
+				return new CoreExprObject(methodMap, evaluator);
 			}
 
-			public Object key(Key k) {
+			public EvalObject key(Key k) {
 				@SuppressWarnings("null") @NonNull
-				final Object result = environment.get(k).orSome(emptyObject);
+				final EvalObject result = environment.get(k).orSome(emptyObject);
 				return result;
 			}
 
 			@Override
-			public Object identifier(Identifier identifier) {
+			public EvalObject identifier(Identifier identifier) {
 				return key(identifier);
 			}
 
 			@Override
-			public Object stringLiteral(StringLiteral stringLiteral) {
-				TreeMap<Key, MethodClosure> methods = CoreExprObject.NO_METHODS;
+			public EvalObject stringLiteral(StringLiteral stringLiteral) {
 				// TODO Call factory method so we get the right methods added
-				return new CoreExprObject(methods, stringLiteral.getString(), CoreExprEvaluator.this);
+				return new CoreExprObject(CoreExprObject.NO_METHODS, evaluator);
 			}
 
 			@Override
-			public Object numberLiteral(NumberLiteral numberLiteral) {
-				TreeMap<Key, MethodClosure> methods = CoreExprObject.NO_METHODS;
+			public EvalObject numberLiteral(NumberLiteral numberLiteral) {
 				// TODO Call factory method so we get the right methods added
-				return new CoreExprObject(methods, numberLiteral.getNumber(), CoreExprEvaluator.this);
+				return new CoreExprObject(CoreExprObject.NO_METHODS, evaluator);
 			}
 
 			@Override
-			public Object operator(OperatorRef operatorRef) {
+			public EvalObject operator(OperatorRef operatorRef) {
 				throw new Error("Not implemented!");
 			}
 
 			@Override
-			public Object extend(Extend extend) {
-				final Object base = eval(extend.getBase(), environment);
-				final Object extension = eval(extend.getExtension(), environment);
-				return CoreExprEvaluator.this.extend(base, extension);
+			public EvalObject extend(Extend extend) {
+				final EvalObject base = eval(extend.getBase(), environment);
+				final EvalObject extension = eval(extend.getExtension(), environment);
+				return base.extend(extension);
 			}
 
 			@Override
-			public Object inspect(Inspect inspect) {
+			public EvalObject inspect(Inspect inspect) {
 				throw new Error("Not implemented!");
 			}
 
 			@Override
-			public Object listLiteral(ListLiteral listLiteral) {
+			public EvalObject listLiteral(ListLiteral listLiteral) {
 				throw new Error("Not implemented!");
 			}
 			@Override
-			public Object method(Method method) {
+			public EvalObject method(Method method) {
 				throw new Error("Not implemented!");
 			}
 			@Override
-			public Object mixfixFunctionIdentifier(MixfixFunctionIdentifier identifier) {
+			public EvalObject mixfixFunctionIdentifier(MixfixFunctionIdentifier identifier) {
 				return key(identifier);
 			}
 			@Override
-			public Object anonymous() {
+			public EvalObject anonymous() {
 				return key(Key.ANONYMOUS);
 			}
 		}));

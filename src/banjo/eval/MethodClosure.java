@@ -6,8 +6,9 @@ import fj.data.TreeMap;
 
 public class MethodClosure {
 	final Method method;
-	final TreeMap<Key, Object> environment;
-	public MethodClosure(Method method, TreeMap<Key, Object> environment) {
+	final TreeMap<Key, EvalObject> environment;
+
+	public MethodClosure(Method method, TreeMap<Key, EvalObject> environment) {
 		super();
 		this.method = method;
 		this.environment = environment;
@@ -15,7 +16,7 @@ public class MethodClosure {
 	public Method getMethod() {
 		return this.method;
 	}
-	public TreeMap<Key, Object> getEnvironment() {
+	public TreeMap<Key, EvalObject> getEnvironment() {
 		return this.environment;
 	}
 

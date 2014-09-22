@@ -16,5 +16,18 @@ public class EvalUtil {
 		throw new ContractFailure("Not a boolean: "+x);
 	}
 
+	public static EvalObject preconditionFailed(String message, boolean optional) {
+		if(optional) {
+			return PrimitiveListWrapper.EMPTY;
+		}
+		throw new ContractFailure(message);
+	}
 
+	public static EvalObject noNextMethod(Key methodName, boolean optional) {
+		return preconditionFailed("No more implementations of "+methodName, optional);
+	}
+
+	public static EvalObject notEnoughArguments(boolean optional) {
+		return preconditionFailed("Too few arguments", optional);
+	}
 }

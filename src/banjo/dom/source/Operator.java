@@ -6,6 +6,8 @@ import static banjo.parser.util.Check.nonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.ParenType;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.Key;
 
 public enum Operator {
 	// Nullary operator
@@ -96,6 +98,7 @@ public enum Operator {
 	private final Associativity associativity;
 	private final Position position;
 	private final String methodName;
+	private final Key methodNameKey;
 	private final OperatorType operatorType;
 
 	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
@@ -108,6 +111,7 @@ public enum Operator {
 		this.associativity = associativity;
 		this.position = position;
 		this.methodName = methodName;
+		this.methodNameKey = new Identifier(methodName);
 	}
 
 	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
@@ -257,6 +261,10 @@ public enum Operator {
 
 	public String getMethodName() {
 		return this.methodName;
+	}
+
+	public Key getMethodNameKey() {
+		return methodNameKey;
 	}
 
 	public OperatorType getOperatorType() {
