@@ -32,13 +32,6 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> call(List<SourceFileRange> ranges,
-			List<BadExpr> object, List<BadExpr> name,
-			List<List<List<BadExpr>>> argumentLists) {
-		return object.append(name).append(List.join(List.join(argumentLists)));
-	}
-
-	@Override
 	public List<BadExpr> extend(List<SourceFileRange> ranges,
 			List<BadExpr> base, List<BadExpr> extension) {
 		return base.append(extension);
@@ -80,8 +73,11 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> alternativeDefinition(List<SourceFileRange> sourceFileRanges, List<BadExpr> base, List<BadExpr> alternative) {
-		return base.append(alternative);
+	public List<BadExpr> call(List<SourceFileRange> ranges,
+			List<BadExpr> object, List<BadExpr> name,
+			List<List<List<BadExpr>>> argumentLists, boolean optional,
+			boolean callNext) {
+		return object.append(name).append(List.join(List.join(argumentLists)));
 	}
 
 }

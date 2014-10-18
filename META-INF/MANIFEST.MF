@@ -36,7 +36,10 @@ Export-Package:
    banjo.parser.util",
  banjo.parser.util;uses:="banjo.dom.token,banjo.dom.source,banjo.parser"
 Bundle-ClassPath: lib/functionaljava.jar,
- .
+ .,
+ lib/js.jar,
+ lib/jsr173_1.0_api.jar,
+ lib/xbean.jar
 Require-Bundle: org.eclipse.jdt.annotation;bundle-version="[1.1.0,2.0.0)",
  org.junit;bundle-version="4.11.0";resolution:=optional,
  org.functionaljava;bundle-version="3.0.0";visibility:=reexport

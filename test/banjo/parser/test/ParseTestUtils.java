@@ -100,6 +100,10 @@ public class ParseTestUtils {
 		return count;
 	}
 
+	public static CoreExpr toCoreExpr(String source) {
+		return test(source, (String)null, CoreExpr.class);
+	}
+
 	public static void test(String source, String expectedSource) {
 		test(source, expectedSource, null);
 
