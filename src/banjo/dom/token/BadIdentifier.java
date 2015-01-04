@@ -15,8 +15,8 @@ import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
 public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
-	private final String message;
-	final String originalSource;
+	public final String message;
+	public final String originalSource;
 
 	public BadIdentifier(List<SourceFileRange> ranges, String message, String originalSource) {
 		super(message.hashCode() + originalSource.hashCode(), ranges);
@@ -30,7 +30,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(this.originalSource);
+		Identifier.toSource(originalSource, sb);
 	}
 
 	@Override
@@ -79,7 +79,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 
 	@Override
 	public List<BadExpr> getProblems() {
-		return List.<BadExpr>single(this);
+		return List.single(this);
 	}
 
 	@Override

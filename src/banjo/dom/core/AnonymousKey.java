@@ -1,17 +1,16 @@
 package banjo.dom.core;
 
-import fj.data.List;
 import banjo.dom.BadExpr;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.token.Key;
-import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class AnonymousKey extends AbstractCoreExpr implements Key {
 
 	public AnonymousKey() {
-		super(1337331, List.<SourceFileRange>nil());
+		super(1337331, List.nil());
 	}
 
 	@Override

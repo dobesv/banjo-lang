@@ -3,19 +3,20 @@ package banjo.parser;
 import static banjo.parser.util.Check.nonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import fj.data.List;
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.ParserReader.Pos;
-import banjo.parser.util.UnexpectedIOExceptionError;
 import banjo.util.SourceNumber;
+import fj.data.List;
 
 public class SourceCodeScanner {
 	boolean eof = false;
@@ -24,7 +25,7 @@ public class SourceCodeScanner {
 		try {
 			return scan(ParserReader.fromString("<string>", inStr), visitor);
 		} catch (final IOException e) {
-			throw new UnexpectedIOExceptionError(e);
+			throw new UncheckedIOException(e);
 		}
 	}
 
@@ -42,7 +43,7 @@ public class SourceCodeScanner {
 					(result = operator(in, visitor)).isNotEmpty() ||
 					(result = numberLiteral(in, visitor)).isNotEmpty() ||
 					(result = stringLiteral(in, visitor)).isNotEmpty()) {
-				return nonNull(result.head());
+				return result.head();
 			} else {
 				// Invalid character ?
 				final int badCp = in.read();
@@ -90,6 +91,7 @@ public class SourceCodeScanner {
 				|| Character.isDigit(cp)
 				|| cp == NBSP
 				|| cp == NNBSP
+				|| cp == '\''
 				;
 	}
 
@@ -434,8 +436,7 @@ public class SourceCodeScanner {
 			final FilePos afterBackslash = in.getFilePos();
 			cp = in.read();
 			if(cp == -1) {
-				visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Backslash at end of file.");
-				break;
+				return List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Backslash at end of file."));
 			}
 			switch (cp) {
 			case '\\': this.buf.append('\\'); break;
@@ -459,24 +460,29 @@ public class SourceCodeScanner {
 			}
 
 			case 'x':  {
-				hexEscape(in, this.buf, 2, visitor);
+				@NonNull
+				List<@NonNull T> errs = hexEscape(in, this.buf, 2, visitor);
+				if(errs.isNotEmpty())
+					return errs;
 				break;
 			}
 
 			case 'u': {
-				hexEscape(in, this.buf, 4, visitor);
+				@NonNull
+				List<@NonNull T> errs = hexEscape(in, this.buf, 4, visitor);
+				if(errs.isNotEmpty())
+					return errs;
 				break;
 			}
 
 			default:  {
 				final String escSeq = in.readStringFrom(afterBackslash);
-				visitor.badToken(in.getFileRange(afterBackslash), escSeq, "Unknown escape sequence "+escSeq);
-				break;
+				return List.<T>single(visitor.badToken(in.getFileRange(afterBackslash), escSeq, "Unknown escape sequence "+escSeq));
 			}
 			}
 		}
-		if(cp == -1) visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal");
-		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), nonNull(this.buf.toString())));
+		if(cp == -1) List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
+		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));
 	}
 
 	private <T extends TokenVisitor<T>> List<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
@@ -490,21 +496,23 @@ public class SourceCodeScanner {
 	}
 
 	private final Pos afterDigits = new Pos();
-	private void hexEscape(ParserReader in, StringBuffer buf, final int digitCount, TokenVisitor<?> visitor) throws IOException {
+
+	private <T extends TokenVisitor<T>> List<T> hexEscape(ParserReader in, StringBuffer buf, final int digitCount, TokenVisitor<T> visitor) throws IOException {
 		int result = 0;
 		in.getCurrentPosition(this.afterDigits);
 		for(int digits = 0; digits < digitCount; digits++) {
 			final int digitValue = Character.digit(in.read(), 16);
 			if(digitValue == -1) {
-				visitor.badToken(in.getFileRange(this.afterDigits), in.readStringFrom(this.afterDigits), "Invalid hex digit in \\x escape");
+				T err = visitor.badToken(in.getFileRange(this.afterDigits), in.readStringFrom(this.afterDigits), "Invalid hex digit in \\x escape");
 				in.seek(this.afterDigits);
-				return;
+				return List.<T>single(err);
 			} else {
 				result = (result << 4) | digitValue;
 				in.getCurrentPosition(this.afterDigits);
 			}
 		}
 		buf.appendCodePoint(result);
+		return List.nil();
 	}
 
 	private void octalEscape(ParserReader in, int cp, StringBuffer buf) throws IOException {
@@ -672,7 +680,7 @@ public class SourceCodeScanner {
 		}
 		final String text = in.readStringFrom(this.tokenStartPos);
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, nonNull(number)), suffix));
+		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, number), suffix));
 	}
 
 	/**

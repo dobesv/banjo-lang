@@ -6,13 +6,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 
-import fj.Unit;
-import fj.data.List;
 import banjo.desugar.SourceExprDesugarer;
 import banjo.desugar.SourceExprDesugarer.DesugarResult;
 import banjo.dom.BadExpr;
@@ -24,23 +22,22 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.SourceCodeParser;
 import banjo.parser.util.SourceFileRange;
-import banjo.parser.util.UnexpectedIOExceptionError;
+import fj.Unit;
+import fj.data.List;
 
-@NonNullByDefault(false)
 public class ParseTestUtils {
 
 	public ParseTestUtils() {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends Expr> T test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
+	public static <T extends Expr> void test(String source, int expectedErrors, @Nullable Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
 		final SourceCodeParser parser = new SourceCodeParser("<test>");
-		return test(source, expectedErrors, expectedErrorClass, expectedClass,
-				normalizedSource, parser);
+		test(source, expectedErrors, expectedErrorClass, expectedClass, normalizedSource, parser);
 	}
 
-	public static <T extends Expr> T test(String source, int expectedErrors,
-			Class<? extends BadExpr> expectedErrorClass,
+	public static <T extends Expr> void test(String source, int expectedErrors,
+			@Nullable Class<? extends BadExpr> expectedErrorClass,
 			Class<T> expectedClass, String normalizedSource, SourceCodeParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
@@ -61,14 +58,13 @@ public class ParseTestUtils {
 				if(errCount == 0 && expectedClass != null) {
 					assertTrue("Expecting an instance of "+expectedClass.getName()+" but got "+ast.getClass().getName(), expectedClass.isInstance(ast));
 					assertNotNull(ast);
-					return expectedClass.cast(ast);
+					expectedClass.cast(ast);
 				}
 
 			}
 			assertEquals("Wrong number of errors found", expectedErrors, errCount);
-			return null;
 		} catch (final IOException e1) {
-			throw new UnexpectedIOExceptionError(e1);
+			throw new UncheckedIOException(e1);
 		}
 	}
 
@@ -101,19 +97,19 @@ public class ParseTestUtils {
 	}
 
 	public static CoreExpr toCoreExpr(String source) {
-		return test(source, (String)null, CoreExpr.class);
+		return CoreExpr.fromString(source);
 	}
 
 	public static void test(String source, String expectedSource) {
 		test(source, expectedSource, null);
 
 	}
-	public static <T extends CoreExpr> T test(String source, Class<T> expectedClass) {
-		return test(source, source, expectedClass);
+	public static <T extends CoreExpr> void test(String source, Class<T> expectedClass) {
+		test(source, source, expectedClass);
 	}
 
-	public static <T extends CoreExpr> T test(String source, String expectedSource, Class<T> expectedClass) {
-		return test(source, 0, null, expectedClass, expectedSource);
+	public static <T extends CoreExpr> void test(String source, String expectedSource, Class<T> expectedClass) {
+		test(source, 0, null, expectedClass, expectedSource);
 	}
 
 	public static void assertIsNumberLiteralWithValue(final long value, final CoreExpr e) {

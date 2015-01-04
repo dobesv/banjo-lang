@@ -1,7 +1,5 @@
 package banjo.dom.source;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.AbstractBadExpr;
 import banjo.dom.BadExpr;
 import banjo.dom.ParenType;
@@ -26,8 +24,8 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class MismatchedCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
-			super(ranges, "Mismatched close paren %s", closeParenType.getEndChar());
+		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType openParenType, ParenType closeParenType) {
+			super(ranges, "Mismatched close paren; expecting '%s' but got '%s'", openParenType.getEndChar(), closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
 
@@ -80,7 +78,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 
 	@Override
 	public List<BadExpr> getProblems() {
-		return List.<BadExpr>single(this);
+		return List.single(this);
 	}
 
 }

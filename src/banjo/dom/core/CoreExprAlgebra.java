@@ -1,10 +1,8 @@
 package banjo.dom.core;
 
-import fj.data.List;
 import banjo.dom.ExprAlgebra;
-import banjo.dom.token.Key;
 import banjo.parser.util.SourceFileRange;
-import banjo.util.SourceNumber;
+import fj.data.List;
 
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {

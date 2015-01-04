@@ -3,24 +3,23 @@ package banjo.parser.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.io.UncheckedIOException;
 
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 
-import fj.F;
-import fj.data.List;
-import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.TokenCollector;
-import banjo.parser.util.UnexpectedIOExceptionError;
+import fj.data.List;
 
-public class TokensToString implements TokenVisitor<String> {
+@NonNullByDefault
+public class TokensToString implements TokenVisitor<@NonNull String> {
 
+	@Nullable
 	FileRange lastTokRange;
 	final int rangeStart;
 	final int rangeEnd;
@@ -36,8 +35,9 @@ public class TokensToString implements TokenVisitor<String> {
 		return token("ws", range);
 	}
 
-	protected @NonNull String token(@NonNull String t, FileRange range) {
-		assertEquals("Characters skipped?", this.lastTokRange != null ? this.lastTokRange.getEndOffset() : this.rangeStart, range.getStartOffset());
+	protected String token(String t, FileRange range) {
+		final @Nullable FileRange lastTokRange = this.lastTokRange;
+		assertEquals("Characters skipped?", lastTokRange != null ? lastTokRange.getEndOffset() : this.rangeStart, range.getStartOffset());
 		this.lastTokRange = range;
 		return t;
 	}
@@ -69,7 +69,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public @NonNull String numberLiteral(@NonNull FileRange range, @NonNull Number value, String suffix) {
+	public @NonNull String numberLiteral(@NonNull FileRange range, @NonNull Number value, @NonNull String suffix) {
 		return token("num", range);
 	}
 
@@ -78,27 +78,23 @@ public class TokensToString implements TokenVisitor<String> {
 		return token("id", range);
 	}
 
-	public static void testScanner(@NonNull String src, final int rangeStart, final int rangeEnd, String ... expectedTokens) {
+	public static void testScanner(String src, final int rangeStart, final int rangeEnd, String ... expectedTokens) {
 		testScanner(src, rangeStart, rangeEnd, expectedTokens, new TokensToString(rangeStart, rangeEnd));
 	}
 
-	public static void testScanner(@NonNull String src, final int rangeStart,
+	public static void testScanner(String src, final int rangeStart,
 			final int rangeEnd, String[] expectedTokens,
-			final @NonNull TokensToString testVisitor) throws Error {
+			final TokensToString testVisitor) throws Error {
 		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
 		final SourceCodeScanner scanner = new SourceCodeScanner();
 		List<String> foundTokens;
 		try {
-			foundTokens = scanner.scan(in, new TokenCollector()).getTokens().map(new F<Token, String>() {
-				@Override
-				public String f(Token a) {
-					if(testVisitor.done)
-						return "";
-					return a.acceptVisitor(testVisitor);
-				}
-			});
+			final TokenCollector collector = new TokenCollector();
+			foundTokens = scanner.scan(in, collector).getTokens().map(
+					a -> testVisitor.done ? "": (String)a.acceptVisitor(testVisitor)
+			);
 		} catch (IOException e) {
-			throw new UnexpectedIOExceptionError(e);
+			throw new UncheckedIOException(e);
 		}
 		assertEquals(List.list(expectedTokens).toString(), foundTokens.toString());
 	}

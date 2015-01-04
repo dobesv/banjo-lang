@@ -33,7 +33,7 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	public Identifier(String id) {
-		this(List.<SourceFileRange>nil(), id);
+		this(List.nil(), id);
 	}
 
 	public String getId() {
@@ -81,6 +81,8 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if(obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		final Identifier other = (Identifier) obj;

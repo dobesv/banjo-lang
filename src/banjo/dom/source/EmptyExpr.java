@@ -13,7 +13,7 @@ import fj.data.List;
  * a list with consecutive or trailing separators.
  */
 public class EmptyExpr extends AbstractExpr implements SourceExpr {
-	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(List.<SourceFileRange>nil());
+	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.EMPTY_LIST);
 
 	public EmptyExpr(List<SourceFileRange> ranges) {
 		super(733512, ranges);
@@ -23,7 +23,7 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	}
 
 	public EmptyExpr() {
-		this(List.<SourceFileRange>nil());
+		this(List.nil());
 	}
 
 	@Override
@@ -34,7 +34,6 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
 		return visitor.emptyExpr(getSourceFileRanges());
 	}
-
 
 	@Override
 	public void toSource(StringBuffer sb) {

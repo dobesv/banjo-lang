@@ -1,7 +1,6 @@
 package banjo.parser.util;
 
-import static banjo.parser.util.Check.nonNull;
-
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
@@ -11,8 +10,8 @@ import fj.Ordering;
 
 public class ExprOrd {
 
-	public static <T extends Expr> Ord<T> exprOrd() {
-		return nonNull(Ord.ord(new F<T, F<T, Ordering>>() {
+	public static <T extends Expr> Ord<@NonNull T> exprOrd() {
+		return Ord.ord(new F<T, F<T, Ordering>>() {
 			@Override
 			public F<T, Ordering> f(final @Nullable T a1) {
 				return new F<T, Ordering>() {
@@ -24,7 +23,7 @@ public class ExprOrd {
 					}
 				};
 			}
-		}));
+		});
 	}
 
 }

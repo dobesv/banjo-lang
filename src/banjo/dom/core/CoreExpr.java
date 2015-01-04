@@ -1,10 +1,10 @@
 package banjo.dom.core;
 
-import static banjo.parser.util.Check.nonNull;
-
 import org.eclipse.jdt.annotation.Nullable;
 
+import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.Expr;
+import banjo.dom.source.SourceExpr;
 import fj.F;
 import fj.Ord;
 import fj.Ordering;
@@ -20,11 +20,10 @@ public interface CoreExpr extends Expr {
 
 	<T> T acceptVisitor(CoreExprAlgebra<T> visitor);
 
-	public static final Ord<CoreExpr> ORD = nonNull(Ord.ord(new F<CoreExpr, F<CoreExpr, Ordering>>() {
+	public static final Ord<CoreExpr> ORD = Ord.ord(new F<CoreExpr, F<CoreExpr, Ordering>>() {
 		@Override
 		public F<CoreExpr, Ordering> f(final @Nullable CoreExpr a1) {
 			return new F<CoreExpr, Ordering>() {
-				@SuppressWarnings("null")
 				@Override
 				public Ordering f(final @Nullable CoreExpr a2) {
 					if(a1 == null || a2 == null) throw new NullPointerException();
@@ -33,6 +32,12 @@ public interface CoreExpr extends Expr {
 				}
 			};
 		}
-	}));
+	});
 
+	/**
+	 * Parse a string to a CoreExpr
+	 */
+	public static CoreExpr fromString(String src) {
+		return new SourceExprDesugarer().desugar(SourceExpr.fromString(src)).getValue();
+	}
 }

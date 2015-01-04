@@ -85,11 +85,6 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T method(Method method) {
-		return fallback();
-	}
-
-	@Override
 	public T anonymous() {
 		return fallback();
 	}

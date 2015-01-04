@@ -15,6 +15,7 @@ import banjo.dom.source.OperatorType;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
@@ -38,6 +39,16 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	public Call(List<SourceFileRange> ranges, CoreExpr object, Key methodName, CoreExpr ... arguments) {
 		this(ranges, object, methodName, List.single(List.list(arguments)), false, false);
+	}
+	public Call(List<SourceFileRange> ranges, CoreExpr object, Key methodName, boolean optional, CoreExpr ... arguments) {
+		this(ranges, object, methodName, List.single(List.list(arguments)), false, optional);
+	}
+	public Call(CoreExpr object, Key methodName, CoreExpr ... arguments) {
+		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(List.list(arguments)), false, false);
+	}
+
+	public Call(CoreExpr a, Operator op, CoreExpr ... b) {
+		this(a, op.getMethodNameKey(), b);
 	}
 
 	public CoreExpr getObject() {
@@ -169,9 +180,9 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
-			return false;
 		if (!(obj instanceof Call))
+			return false;
+		if (!super.equals(obj))
 			return false;
 		final Call other = (Call) obj;
 		if (!this.object.equals(other.object))
@@ -223,11 +234,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static Call callFunction(CoreExpr func, List<CoreExpr> args) {
-		return new Call(List.<SourceFileRange>nil(), func, Key.ANONYMOUS, List.single(args), false, false);
+		return new Call(List.nil(), func, Key.ANONYMOUS, List.single(args), false, false);
 	}
 
 	public static CoreExpr operator(CoreExpr object, Operator operator, CoreExpr arg) {
-		return new Call(List.<SourceFileRange>nil(), object, new Identifier(operator.getMethodName()), List.single(List.single(arg)), false, false);
+		return new Call(List.nil(), object, new Identifier(operator.getMethodName()), List.single(List.single(arg)), false, false);
 	}
 
 	public Key getName() {

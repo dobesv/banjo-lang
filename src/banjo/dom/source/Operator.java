@@ -64,7 +64,7 @@ public enum Operator {
 	UNION("|", 0x222A, OperatorType.METHOD, Position.INFIX, Precedence.UNION),
 	LOGICAL_AND("&&", 0x2227, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
 	LOGICAL_OR("||", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
-	PREREQUISITE("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
+	PRECONDITION("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	EXTEND_METHOD("@=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
@@ -110,8 +110,8 @@ public enum Operator {
 		this.parenType = parenType;
 		this.associativity = associativity;
 		this.position = position;
-		this.methodName = methodName;
-		this.methodNameKey = new Identifier(methodName);
+		this.methodName = parenType == ParenType.PARENS ? "" : methodName.replaceFirst("\\?$", "");
+		this.methodNameKey = parenType == ParenType.PARENS ? Key.ANONYMOUS : new Identifier(this.methodName);
 	}
 
 	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {

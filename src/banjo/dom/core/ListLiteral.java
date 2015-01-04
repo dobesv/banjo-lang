@@ -1,21 +1,29 @@
 package banjo.dom.core;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
+import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.F;
 import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
-	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.<SourceFileRange>nil(), List.<CoreExpr>nil());
+	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.nil(), List.nil());
 	private final List<CoreExpr> elements;
 
 	public ListLiteral(List<SourceFileRange> ranges, List<CoreExpr> elements) {
 		super(elements.hashCode()+ranges.hashCode(), ranges);
 		this.elements = elements;
+	}
+
+	public ListLiteral(List<CoreExpr> elements) {
+		this(SourceFileRange.EMPTY_LIST, elements);
 	}
 
 	public List<CoreExpr> getElements() {
@@ -48,6 +56,8 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if (obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof ListLiteral))
@@ -74,13 +84,16 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.listLiteral(getSourceFileRanges(), elements.map(new F<CoreExpr, T>() {
-			@Override
-			public T f(@Nullable CoreExpr a) {
-				if(a == null) throw new NullPointerException();
-				return a.acceptVisitor(visitor);
-			}
-		}));
+		return visitor.listLiteral(getSourceFileRanges(), elements.<@NonNull T>map(a -> a.acceptVisitor(visitor)));
+	}
+
+	public CoreExpr toConstructionExpression() {
+		final CoreExpr empty = new Identifier("[]");
+		final Identifier single = new Identifier("[_]");
+		final CoreExpr ctor = elements
+				.map(elt -> new Call(single, Operator.CALL.getMethodNameKey(), elt))
+				.foldLeft((a, b) -> (CoreExpr)(a == empty ? b : b == empty ? a : new Call(a, Operator.PLUS.getMethodNameKey(), (CoreExpr)b)), empty);
+		return ctor;
 	}
 
 }

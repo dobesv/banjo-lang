@@ -1,13 +1,7 @@
 package banjo.parser.util;
 
-import java.io.IOException;
-import java.util.Collection;
+import org.eclipse.jdt.annotation.NonNull;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
-import banjo.dom.source.SourceExpr;
-import banjo.dom.token.Atom;
 import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Identifier;
@@ -18,8 +12,9 @@ import banjo.dom.token.Token;
 import banjo.dom.token.TokenVisitor;
 import banjo.dom.token.Whitespace;
 import banjo.parser.SourceCodeParser;
+import fj.data.List;
 
-public class TokenCollector implements TokenVisitor<TokenCollector> {
+public class TokenCollector implements TokenVisitor<@NonNull TokenCollector> {
 	final SourceCodeParser parser;
 	final List<Token> tokensReversed;
 
@@ -28,7 +23,7 @@ public class TokenCollector implements TokenVisitor<TokenCollector> {
 		this.parser = parser;
 	}
 	public TokenCollector() {
-		this(List.<Token>nil(), new SourceCodeParser());
+		this(List.nil(), new SourceCodeParser());
 	}
 
 	public SourceFileRange sfr(FileRange range) {

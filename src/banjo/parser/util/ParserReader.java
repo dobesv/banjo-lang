@@ -21,7 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 /**
  * A reader that keeps track of the file line and column information.
- * 
+ *
  */
 public class ParserReader extends Reader {
 
@@ -139,8 +139,7 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(@Nullable char[] cbuf) throws IOException {
-		if(cbuf == null) throw new NullPointerException();
+	public int read(char[] cbuf) throws IOException {
 		final int len = this.delegate.read(cbuf);
 		for(int i=0; i < len; i++) {
 			accumulate(cbuf[i]);
@@ -149,8 +148,7 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(@Nullable char[] cbuf, int off, int len) throws IOException {
-		if(cbuf == null) throw new NullPointerException();
+	public int read(char[] cbuf, int off, int len) throws IOException {
 		final int lenRead = this.delegate.read(cbuf, off, len);
 		for(int i=0; i < lenRead; i++) {
 			accumulate(cbuf[off+i]);
@@ -203,7 +201,7 @@ public class ParserReader extends Reader {
 	 * However, this will be faster if you do call mark() periodically,
 	 * since it will seek back to the last mark and then scan characters
 	 * to recalculate the line number at the target position.
-	 * 
+	 *
 	 * @throws IndexOutOfBoundsException If the offset provided is before the last mark or beyond the end of the file
 	 */
 	public void seek(int offset) throws IOException {
@@ -248,7 +246,7 @@ public class ParserReader extends Reader {
 	 * <p>
 	 * Note that this will assume that the line and column information provided are
 	 * correct for the given offset.
-	 * 
+	 *
 	 * @see #seek(int)
 	 */
 	public void seek(Pos offset) throws IOException {
@@ -271,7 +269,7 @@ public class ParserReader extends Reader {
 	 * <p>
 	 * Note that this will assume that the line and column information provided are
 	 * correct for the given offset.  To seek to just an offset, call seek(int).
-	 * 
+	 *
 	 * @see #seek(int)
 	 */
 	public void seek(FilePos filePos) throws IOException {
@@ -299,7 +297,7 @@ public class ParserReader extends Reader {
 	 * <p>
 	 * After this call, the file position will be set to read the character
 	 * immediately following the provided range.
-	 * 
+	 *
 	 * @param range Range to use as a reference.
 	 * @throws IOException If bytes had to be read from the the file and an error occurred while doing so
 	 */
@@ -339,7 +337,7 @@ public class ParserReader extends Reader {
 
 	/**
 	 * Create a CharSequence wrapping this reader at its current position.
-	 * 
+	 *
 	 * Don't use the Reader and the CharSequence in parallel.  Note that
 	 * the CharSequence reads ahead and may advance the reader position arbitrarily;
 	 * use mark() and reset() to restore the file position after using
@@ -354,7 +352,7 @@ public class ParserReader extends Reader {
 	 * available characters in the stream.
 	 *
 	 * Returns a Matcher indicating the result of the match.
-	 * 
+	 *
 	 * This method will advance the file pointer arbitrarily; be sure to
 	 * use reset() when you are done with the matcher to go to your
 	 * desired file position.
@@ -374,7 +372,7 @@ public class ParserReader extends Reader {
 
 	/**
 	 * Create a new parser reader.
-	 * 
+	 *
 	 * @param delegate Reader to delegate to.  If it doesn't support marks, this will
 	 *                 wrap it in a buffered reader capable of buffering the entire file.
 	 *                 If it does support marks, it should never invalidate the mark
@@ -385,6 +383,7 @@ public class ParserReader extends Reader {
 	 * @throws IOException If there's a problem getting the length of the file
 	 */
 	public ParserReader(Reader delegate, String filename, int fileSize) throws IOException {
+		if(fileSize < 0) throw new IllegalArgumentException("Negative fileSize");
 		if(!delegate.markSupported()) {
 			delegate = new BufferedReader(delegate, fileSize);
 		}
@@ -396,7 +395,7 @@ public class ParserReader extends Reader {
 
 	/**
 	 * Create a new parser reader from a URL.
-	 * 
+	 *
 	 * @param url URL to load
 	 * @throws IOException If there's a problem connecting to the given URL or getting the length of the file
 	 */
@@ -416,7 +415,7 @@ public class ParserReader extends Reader {
 
 	/**
 	 * Create a ParserReader from a string.
-	 * 
+	 *
 	 * @param filename Filename to use for error reporting
 	 * @param body Body of the string
 	 * @return A new parser reader
@@ -431,10 +430,10 @@ public class ParserReader extends Reader {
 
 	/**
 	 * Parse a substring of the given string.
-	 * 
+	 *
 	 * <p> This may eventually be implemented so it doesn't copy parts the original string but rather
 	 * pretends to have an EOF at the given offset.
-	 * 
+	 *
 	 * @param filename File to use for reporting errors
 	 * @param body Text to use an input
 	 * @param beginIndex Position to start at (it will scan to this position and calculate the line/column information)
@@ -508,7 +507,7 @@ public class ParserReader extends Reader {
 	 * If they do, the read position is advanced beyond the end of the characters
 	 * that matched.  Otherwise, the file position will be reset back to the same
 	 * position as before this call was made.
-	 * 
+	 *
 	 * @param expected String to check for
 	 * @return True if the next characters match the string, or if the string was empty
 	 */
@@ -594,7 +593,7 @@ public class ParserReader extends Reader {
 	/**
 	 * Create a FileRange that is a subRange of the given token.  This ensures that
 	 * line numbers are calculated appropriately.
-	 * 
+	 *
 	 * @param token Token to use for the range
 	 * @param startOffset Offset from the token's start to start the range in
 	 * @param endOffset Offset from the token's start to end the range in (exclusive)
@@ -619,7 +618,7 @@ public class ParserReader extends Reader {
 	/**
 	 * Read a string starting at the given file position up to the current position.  Useful if you have been parsing some stuff
 	 * and want to bundle up everything you parsed into a new Token.
-	 * 
+	 *
 	 * @param start Start position of the token to read
 	 * @return A new String taken from that range
 	 * @throws IOException If there's a problem reading the data
@@ -633,7 +632,7 @@ public class ParserReader extends Reader {
 	/**
 	 * Read a string starting at the given file position up to the current position.  Useful if you have been parsing some stuff
 	 * and want to bundle up everything you parsed into a new Token.
-	 * 
+	 *
 	 * @param start Start position of the token to read
 	 * @return A new String taken from that range
 	 * @throws IOException If there's a problem reading the data

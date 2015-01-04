@@ -2,28 +2,19 @@ package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.source.SourceExpr;
-import banjo.parser.SourceCodeParser;
-import banjo.parser.util.UnexpectedIOExceptionError;
 
 public class TestPrecedence {
 
-	@Test public void testNewlinePrecAssoc() { test("a=1\nb=2\nc", "(a = 1) (nl) ((b = 2) (nl) c)"); }
-	@SuppressWarnings("null")
+	@Test public void testNewlinePrecAssoc() { test("a=1\nb=2\nc", "((a = 1) (nl) (b = 2)) (nl) c"); }
 
 	private void test(String source, String expectedFullyParenthesized) {
-		try {
-			final SourceExpr parseResult = new SourceCodeParser().parse(source);
-			final String actualFullyParenthesizedSource = parseResult.toFullyParenthesizedSource();
-			assertEquals(expectedFullyParenthesized, actualFullyParenthesizedSource);
-		} catch (final IOException e) {
-			throw new UnexpectedIOExceptionError(e);
-		}
+		final SourceExpr parseResult = SourceExpr.fromString(source);
+		final String actualFullyParenthesizedSource = parseResult.toFullyParenthesizedSource();
+		assertEquals(expectedFullyParenthesized, actualFullyParenthesizedSource);
 	}
 
 	@Ignore @Test public void testDedentClosesParen() {

@@ -2,12 +2,15 @@ package banjo.dom.source;
 
 import static banjo.parser.util.Check.nonNull;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Comparator;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.parser.SourceCodeParser;
 import fj.F;
 import fj.Ord;
 import fj.Ordering;
@@ -19,12 +22,10 @@ import fj.data.Option;
  */
 public interface SourceExpr extends Expr, SourceNode {
 
-	public static final Option<Integer> NOT_A_CHILD = nonNull(Option.<Integer>none());
-
 	<T> T acceptVisitor(SourceExprVisitor<T> visitor);
 	<T> T acceptVisitor(SourceExprAlgebra<T> visitor);
 
-	public static final Ord<SourceExpr> ORD = nonNull(Ord.ord(new F<SourceExpr, F<SourceExpr, Ordering>>() {
+	public static final Ord<SourceExpr> ORD = Ord.ord(new F<SourceExpr, F<SourceExpr, Ordering>>() {
 		@Override
 		public F<SourceExpr, Ordering> f(final @Nullable SourceExpr a1) {
 			return new F<SourceExpr, Ordering>() {
@@ -36,7 +37,7 @@ public interface SourceExpr extends Expr, SourceNode {
 				}
 			};
 		}
-	}));
+	});
 
 	public static final Comparator<SourceExpr> COMPARATOR = new Comparator<SourceExpr>() {
 		@Override
@@ -50,5 +51,13 @@ public interface SourceExpr extends Expr, SourceNode {
 	void toFullyParenthesizedSource(StringBuffer sb);
 
 	List<BadExpr> getProblems();
+
+	public static SourceExpr fromString(String src) {
+		try {
+			return new SourceCodeParser().parse(src);
+		} catch (IOException e) {
+			throw new UncheckedIOException(e);
+		}
+	}
 
 }

@@ -1,13 +1,10 @@
 package banjo.dom.core;
 
-import fj.data.List;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.util.SourceFileRange;
 
 public interface CoreExprVisitor<T> extends ExprVisitor<T> {
 	T stringLiteral(StringLiteral stringLiteral);
@@ -20,7 +17,6 @@ public interface CoreExprVisitor<T> extends ExprVisitor<T> {
 	T badIdentifier(BadIdentifier badIdentifier);
 	T inspect(Inspect inspect);
 	T extend(Extend extend);
-	T method(Method method);
 	T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier);
 	T anonymous();
 

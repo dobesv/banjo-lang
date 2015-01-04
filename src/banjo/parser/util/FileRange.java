@@ -23,7 +23,7 @@ public final class FileRange implements Comparable<FileRange> {
 	 * Create a new range by extending the first parameter to the end position
 	 * of the second parameter.  The second parameter must end after the beginning
 	 * of the first parameter;
-	 * 
+	 *
 	 * @param head First range, the start of which is used in the new range
 	 * @param tail Second range, the end of which is used in the new range
 	 */
@@ -32,7 +32,7 @@ public final class FileRange implements Comparable<FileRange> {
 	}
 	/**
 	 * Create a new file range by extending an existing one to a new end position.
-	 * 
+	 *
 	 * @param baseRange Range to extend
 	 * @param newTail New end position
 	 */
@@ -112,7 +112,7 @@ public final class FileRange implements Comparable<FileRange> {
 
 	/**
 	 * Check whether the given offset falls within this range.
-	 * 
+	 *
 	 * @param offset Offset to check
 	 * @return true if the given offset is >= getStartOffset() and < getEndOffset().
 	 */

@@ -6,6 +6,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.core.Call;
+import banjo.dom.core.CoreExpr;
 
 public class TestCallParser {
 
@@ -29,7 +30,8 @@ public class TestCallParser {
 	//	@Test public void objArg3() { call("a(b = 1\n  c = 2)", "a({b = 1, c = 2})", 1, 0); }
 
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
-		final Call call = ParseTestUtils.test(source, expectedErrors, null, Call.class, expectedSource);
+		ParseTestUtils.test(source, expectedErrors, null, Call.class, expectedSource);
+		Call call = (Call)CoreExpr.fromString(source);
 		assertEquals(numArgs, call.getArgumentLists().head().length());
 	}
 }

@@ -2,15 +2,20 @@ package banjo.dom.source;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr operand;
 
-	public UnaryOp(List<SourceFileRange> ranges, Operator operator, SourceFileRange operatorRange, SourceExpr operand) {
-		super(ranges, operator, operatorRange, operand);
+	public UnaryOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr operand) {
+		super(ranges, operator, operatorRanges, operand);
 		this.operand = operand;
 	}
+    public UnaryOp(Operator operator, List<SourceFileRange> operatorRanges, SourceExpr operand) {
+    	this(operatorRanges.append(operand.getSourceFileRanges()).sort(SourceFileRange.ORD),
+    			operator, operatorRanges, operand);
+    }
 	public SourceExpr getOperand() {
 		return this.operand;
 	}
@@ -25,7 +30,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	}
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.unaryOp(getSourceFileRanges(), getOperator(), getOperatorRange(), getOperand().acceptVisitor(visitor));
+		return visitor.unaryOp(getSourceFileRanges(), getOperator(), getOperatorRanges(), getOperand().acceptVisitor(visitor));
 	}
 	@Override
 	public void toSource(StringBuffer sb) {

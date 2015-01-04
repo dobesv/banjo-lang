@@ -4,6 +4,7 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.util.Objects;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import fj.F;
@@ -31,7 +32,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr body;
 	private final CoreExpr postcondition;
 
-	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
+	public static final Ord<Method> ORD = ExprOrd.<@NonNull Method>exprOrd();
 
 	public static final CoreExpr EMPTY_PRECONDITION = Identifier.TRUE;
 	public static final CoreExpr EMPTY_POSTCONDITION = Identifier.TRUE;
@@ -57,7 +58,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static Method nullary(Key name, CoreExpr body) {
-		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.<List<Key>>nil(), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.nil(), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 	private static int calcHash(List<SourceFileRange> ranges, Key selfArg, Key name,
 			List<List<Key>> argumentLists, CoreExpr precondition, CoreExpr body, CoreExpr postcondition) {
@@ -178,9 +179,9 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		sb.append(' ');
 		CoreExpr pre = this.precondition;
 		if(!pre.equals(EMPTY_PRECONDITION)) {
-			pre.toSource(Operator.PREREQUISITE.getLeftPrecedence());
-			Operator.PREREQUISITE.toSource(sb);
-			this.body.toSource(sb, Operator.PREREQUISITE.getRightPrecedence());
+			pre.toSource(Operator.PRECONDITION.getLeftPrecedence());
+			Operator.PRECONDITION.toSource(sb);
+			this.body.toSource(sb, Operator.PRECONDITION.getRightPrecedence());
 		} else {
 			this.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
 		}
@@ -196,6 +197,8 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if(obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof Method))
@@ -249,7 +252,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.method(this);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -308,7 +311,14 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static Method function(Key arg, CoreExpr body) {
-		return new Method(List.<SourceFileRange>nil(), Key.ANONYMOUS, Key.ANONYMOUS, List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, Key.ANONYMOUS, List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
+	}
+
+	public static Method unary(Key name, Key arg, CoreExpr body) {
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
+	}
+	public static Method unary(Operator op, Key arg, CoreExpr body) {
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, op.getMethodNameKey(), List.single(List.single(arg)), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 
 	public boolean hasPostcondition() {

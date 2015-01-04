@@ -7,18 +7,19 @@ import org.eclipse.jdt.annotation.Nullable;
 import fj.data.List;
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
+import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 
 public abstract class AbstractOp extends AbstractExpr {
-	protected final Operator operator;
-	protected final SourceExpr[] operands;
-	private final SourceFileRange operatorRange;
+	public final Operator operator;
+	public final SourceExpr[] operands;
+	public final List<SourceFileRange> operatorRanges;
 
-	public AbstractOp(List<SourceFileRange> ranges, Operator operator, SourceFileRange operatorRange, SourceExpr ... operands) {
+	public AbstractOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr ... operands) {
 		super(operator.hashCode() ^ Arrays.hashCode(operands) + ranges.hashCode(), ranges);
 		this.operator = operator;
 		this.operands = operands;
-		this.operatorRange = operatorRange;
+		this.operatorRanges = operatorRanges;
 	}
 
 	public Operator getOperator() {
@@ -43,7 +44,7 @@ public abstract class AbstractOp extends AbstractExpr {
 				cmp = this.operands[i].compareTo(other.operands[i]);
 			}
 			if(cmp == 0) cmp = Integer.compare(this.operands.length, other.operands.length);
-			if(cmp == 0) cmp = this.operatorRange.compareTo(other.operatorRange);
+			if(cmp == 0) cmp = ListUtil.compare(this.operatorRanges, other.operatorRanges);
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
@@ -59,8 +60,8 @@ public abstract class AbstractOp extends AbstractExpr {
 		return x.operator == this.operator && Arrays.equals(x.operands, this.operands);
 	}
 
-	public SourceFileRange getOperatorRange() {
-		return operatorRange;
+	public List<SourceFileRange> getOperatorRanges() {
+		return operatorRanges;
 	}
 
 }

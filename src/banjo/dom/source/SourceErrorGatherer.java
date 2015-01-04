@@ -19,35 +19,35 @@ public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> binaryOp(List<SourceFileRange> sourceFileRanges,
-			Operator operator, SourceFileRange operatorRange, List<BadExpr> left,
+			Operator operator, List<SourceFileRange> operatorRanges, List<BadExpr> left,
 			List<BadExpr> right) {
 		return left.append(right);
 	}
 
 	@Override
 	public List<BadExpr> unaryOp(List<SourceFileRange> sourceFileRanges,
-			Operator operator, SourceFileRange operatorRange, List<BadExpr> operand) {
+			Operator operator, List<SourceFileRange> operatorRanges, List<BadExpr> operand) {
 		return operand;
 	}
 
 	@Override
 	public List<BadExpr> emptyExpr(List<SourceFileRange> sourceFileRanges) {
-		return List.<BadExpr>nil();
+		return List.nil();
 	}
 
 	@Override
 	public List<BadExpr> identifier(List<SourceFileRange> sourceFileRanges, String id) {
-		return List.<BadExpr>nil();
+		return List.nil();
 	}
 
 	@Override
 	public List<BadExpr> numberLiteral(List<SourceFileRange> sourceFileRanges, Number number, String suffix) {
-		return List.<BadExpr>nil();
+		return List.nil();
 	}
 
 	@Override
 	public List<BadExpr> stringLiteral(List<SourceFileRange> sourceFileRanges, String string) {
-		return List.<BadExpr>nil();
+		return List.nil();
 	}
 
 }

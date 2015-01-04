@@ -2,6 +2,7 @@ package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.Expr;
@@ -21,15 +22,15 @@ import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
-	public static final ObjectLiteral EMPTY = new ObjectLiteral(List.<SourceFileRange>nil());
-	public static final fj.data.List<Method> EMPTY_METHOD_LIST = nonNull(fj.data.List.<Method>nil());
+	public static final ObjectLiteral EMPTY = new ObjectLiteral();
+	public static final fj.data.List<Method> EMPTY_METHOD_LIST = fj.data.List.nil();
 	private final fj.data.List<Method> methods;
 
-	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
+	public static final Ord<Method> ORD = ExprOrd.<@NonNull Method>exprOrd();
 
-	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> fields) {
-		super(fields.hashCode()+ranges.hashCode(), ranges);
-		this.methods = nonNull(fields);
+	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> methods) {
+		super(methods.hashCode()+ranges.hashCode(), ranges);
+		this.methods = nonNull(methods);
 	}
 
 	@SafeVarargs
@@ -38,7 +39,11 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public ObjectLiteral(Method ... methods) {
-		this(List.<SourceFileRange>nil(), fj.data.List.list(methods));
+		this(fj.data.List.list(methods));
+	}
+
+	public ObjectLiteral(fj.data.List<Method> methods) {
+		this(SourceFileRange.EMPTY_LIST, methods);
 	}
 
 	public fj.data.List<Method> getMethods() {
@@ -54,7 +59,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public void toSource(final StringBuffer sb) {
 		if(isLambda()) {
 			final Method method = this.methods.head();
-			if(method.hasSelfArg() || !method.getArgumentLists().head().isEmpty()) {
+			if(method.hasSelfArg() || !(method.getArgumentLists().isEmpty() || method.getArgumentLists().head().isEmpty())) {
 				if(method.hasSelfArg()) {
 					method.getSelfArg().acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 						@Override
@@ -134,6 +139,8 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if (obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof ObjectLiteral))
@@ -172,5 +179,14 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 				return a.acceptVisitor(visitor);
 			}
 		}));
+	}
+
+	public @Nullable Method findMethod(Key name) {
+		for(Method method : methods) {
+			if(name.getParts().equals(method.getName().getParts())) {
+				return method;
+			}
+		}
+		return null;
 	}
 }

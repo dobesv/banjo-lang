@@ -29,6 +29,9 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append("fail(");
+		if(sourceFileRanges.isNotEmpty()) {
+			sb.append(sourceFileRanges.head().toString()).append(": ");
+		}
 		StringLiteral.toSource(this.getMessage(), sb);
 		sb.append(")");
 	}

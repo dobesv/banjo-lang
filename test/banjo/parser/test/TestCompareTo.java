@@ -11,8 +11,10 @@ public class TestCompareTo {
 	@Test public void testInequalObjectLit1() { testInequalCoreExpr("(a=1,a=1)=>a", "(a=1)=>a"); }
 
 	private void testInequalCoreExpr(String srcA, String srcB) {
-		final CoreExpr dsA = ParseTestUtils.test(srcA, null, CoreExpr.class);
-		final CoreExpr dsB = ParseTestUtils.test(srcB, null, CoreExpr.class);
+		ParseTestUtils.test(srcA, null, CoreExpr.class);
+		ParseTestUtils.test(srcB, null, CoreExpr.class);
+		final CoreExpr dsA = CoreExpr.fromString(srcA);
+		final CoreExpr dsB = CoreExpr.fromString(srcB);
 		assertNotEquals(dsA, dsB);
 		assertNotEquals(0, dsA.compareTo(dsB));
 	}

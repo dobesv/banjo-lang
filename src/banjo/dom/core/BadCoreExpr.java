@@ -1,12 +1,9 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
 import banjo.dom.AbstractBadExpr;
 import banjo.dom.BadExpr;
-import banjo.dom.ExprAlgebra;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 	public static final class UnknownType extends BadCoreExpr {
@@ -17,6 +14,10 @@ public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 
 	public BadCoreExpr(List<SourceFileRange> ranges, String messageTemplate, Object ... args) {
 		super(ranges, messageTemplate, args);
+	}
+
+	public BadCoreExpr(SourceFileRange sourceFileRange, String messageTemplate, Object ... args) {
+		this(List.single(sourceFileRange), messageTemplate, args);
 	}
 
 	@Override

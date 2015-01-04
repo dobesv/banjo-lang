@@ -24,7 +24,8 @@ public class TestFunctionLiteralParser {
 		final String normalizedSource =
 				(selfName==null?"":selfName)+
 				(expectedArgNames==null?"-> ":"("+expectedArgNames+") -> ")+expectedArgReturned;
-		final ObjectLiteral func = ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
+		ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
+		final ObjectLiteral func = (ObjectLiteral)CoreExpr.fromString(source);
 		assert func.isLambda();
 		if(expectedArgNames == null) assert func.isLazyValue();
 		else {

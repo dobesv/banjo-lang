@@ -3,6 +3,7 @@ package banjo.parser.test;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import org.junit.Test;
 
@@ -12,7 +13,6 @@ import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
 import banjo.parser.SourceCodeParser;
 import banjo.parser.util.FileRange;
-import banjo.parser.util.UnexpectedIOExceptionError;
 
 public class TestParseErrors {
 
@@ -20,12 +20,7 @@ public class TestParseErrors {
 
 	private static void test(String source, Class<ExpectedOperator> expectedErrorClass, int errorStart, int errorEnd) {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
-		SourceExpr parsed;
-		try {
-			parsed = new SourceCodeParser().parse(source);
-		} catch (final IOException e1) {
-			throw new UnexpectedIOExceptionError(e1);
-		}
+		SourceExpr parsed = SourceExpr.fromString(source);
 		int count = 0;
 		for(final BadExpr e : SourceErrorGatherer.getProblems(parsed)) {
 			final FileRange range = e.getSourceFileRanges().head().getFileRange();

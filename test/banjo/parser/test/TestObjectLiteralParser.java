@@ -9,6 +9,7 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 
@@ -16,6 +17,10 @@ public class TestObjectLiteralParser {
 
 
 	@Test public void newlineSeparated()  { abc("{a=1\n b=2\n c=3}", 0); }
+	@Test public void newlineSeparated2()  { abc("{\n a=1\n b=2\n c=3\n}", 0); }
+	@Test public void newlineSeparatedOpMethods1()  { parse("{\n (!a)=1\n}", "{(!a) = 1}"); }
+	@Test public void newlineSeparatedOpMethods2()  { parse("{\n (!a)=1\n (!b)=2\n}", "{(!a) = 1, (!b) = 2}"); }
+	@Test public void newlineSeparatedOpMethods3()  { parse("{\n (!a)=1\n (!b)=2\n (!c)=3\n}", "{(!a) = 1, (!b) = 2, (!c) = 3}"); }
 	@Test public void commaSeparator()    { abc("{a=1,b=2,c=3}", 0); }
 	@Test public void mixCommasNewlines() { abc("{a=1\n b=2,\n c=3}", 0); }
 	// @Test public void backdentError()     { parseError("{a=1,b=2,\nc=3}", IncorrectIndentation.class); }
@@ -54,7 +59,8 @@ public class TestObjectLiteralParser {
 	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }
 
 	private void abc(String source, int expectedErrorCount) {
-		final ObjectLiteral node = parse(source, "{a = 1, b = 2, c = 3}");
+		parse(source, "{a = 1, b = 2, c = 3}");
+		final ObjectLiteral node = (ObjectLiteral) CoreExpr.fromString(source);
 		final String[] expectedNames = {"a","b","c"};
 		final Iterator<Method> eltIt = node.getMethods().iterator();
 		final long[] expectedValues = {1,2,3};
@@ -69,8 +75,11 @@ public class TestObjectLiteralParser {
 		assertEquals("Too many methods", false, eltIt.hasNext());
 	}
 
-	public ObjectLiteral parse(String source, String expectedSource) {
-		return test(source, 0, null, ObjectLiteral.class, expectedSource);
+	public void parse(String source, String expectedSource) {
+		test(source, 0, null, ObjectLiteral.class, expectedSource);
 	}
 
+	@Test public void trueDef() {
+		parse("{\n  (!true) = false\n  (true && x) = x\n  (true || x) = true\n}", "{(!true) = false, (true && x) = x, (true || x) = true}");
+	}
 }

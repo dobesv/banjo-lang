@@ -10,6 +10,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
@@ -85,7 +86,8 @@ public class TestNumberLiteralParser {
 	}
 
 	public NumberLiteral parseNumber(String inStr) throws IOException {
-		return ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		return (NumberLiteral) CoreExpr.fromString(inStr);
 	}
 
 	@Test
@@ -115,7 +117,8 @@ public class TestNumberLiteralParser {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
-		final NumberLiteral node = ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
+		final NumberLiteral node = (NumberLiteral) CoreExpr.fromString(inStr);
 		assertEquals(outStr, node.getNumber().toString());
 	}
 }

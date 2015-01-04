@@ -1,11 +1,14 @@
 package banjo.parser.util;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
+import fj.Ord;
 import fj.data.List;
 
-public class SourceFileRange implements Comparable<SourceFileRange> {
-	public static final List<SourceFileRange> EMPTY_LIST = List.nil();
+public class SourceFileRange implements Comparable<@NonNull SourceFileRange> {
+	public static final List<@NonNull SourceFileRange> EMPTY_LIST = List.nil();
+	public static final Ord<@NonNull SourceFileRange> ORD = Ord.<@NonNull SourceFileRange>comparableOrd();
 
 	final String sourceFile;
 	final FileRange fileRange;

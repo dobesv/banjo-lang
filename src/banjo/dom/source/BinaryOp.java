@@ -1,21 +1,27 @@
 package banjo.dom.source;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(List<SourceFileRange> ranges, Operator operator, SourceFileRange operatorRange, SourceExpr left, SourceExpr right) {
-		super(ranges, operator, operatorRange, left, right);
+	public BinaryOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
+		super(ranges, operator, operatorRanges, left, right);
 		this.left = left;
 		this.right = right;
 	}
 
+	public BinaryOp(Operator operator, List<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
+		this(left.getSourceFileRanges().append(right.getSourceFileRanges()).append(operatorRanges).sort(SourceFileRange.ORD),
+				operator, operatorRanges, left, right);
+	}
 	public SourceExpr getLeft() {
 		return this.left;
 	}
@@ -29,7 +35,7 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	}
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.binaryOp(getSourceFileRanges(), getOperator(), getOperatorRange(), getLeft().acceptVisitor(visitor), getRight().acceptVisitor(visitor));
+		return visitor.binaryOp(getSourceFileRanges(), getOperator(), getOperatorRanges(), getLeft().acceptVisitor(visitor), getRight().acceptVisitor(visitor));
 	}
 
 
@@ -53,6 +59,11 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		if(this.left.getPrecedence() != Precedence.ATOM) sb.append('(');
 		this.left.toFullyParenthesizedSource(sb);
 		if(this.left.getPrecedence() != Precedence.ATOM) sb.append(')');
+		if(this.operator.isParen()) {
+			sb.append(this.operator.getParenType().getStartChar());
+			this.right.toFullyParenthesizedSource(sb);
+			sb.append(this.operator.getParenType().getEndChar());
+		}
 		sb.append(' ');
 		this.operator.toSource(sb);
 		sb.append(' ');

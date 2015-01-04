@@ -7,8 +7,11 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.core.Call;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
+import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
@@ -25,6 +28,9 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 
 	public StringLiteral(SourceFileRange range, String string) {
 		this(List.single(range), string);
+	}
+	public StringLiteral(String string) {
+		this(List.nil(), string);
 	}
 
 	public String getString() {
@@ -84,6 +90,8 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if (obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof StringLiteral))
@@ -125,6 +133,14 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	@Override
 	public List<String> getParts() {
 		return List.single(string);
+	}
+
+	public CoreExpr toConstructionExpression() {
+		return getString()
+			.codePoints()
+			.mapToObj(cp -> (CoreExpr) new Call(new Identifier("'_'"), Operator.CALL.getMethodNameKey(), new NumberLiteral(cp)))
+			.reduce((a,b) -> (CoreExpr) new Call(a, Operator.ADD.getMethodNameKey(), b))
+			.orElse((CoreExpr)new Identifier("''"));
 	}
 
 }

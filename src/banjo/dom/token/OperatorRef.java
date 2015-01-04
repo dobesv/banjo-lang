@@ -60,9 +60,9 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
-			return false;
 		if (!(obj instanceof OperatorRef))
+			return false;
+		if (!super.equals(obj))
 			return false;
 		final OperatorRef other = (OperatorRef) obj;
 		if (!this.op.equals(other.op))

@@ -10,9 +10,11 @@ import org.eclipse.jdt.annotation.Nullable;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
+import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
@@ -34,8 +36,8 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		this.suffix = suffix;
 	}
 
-	public NumberLiteral(Integer n) {
-		this(List.<SourceFileRange>nil(), n, "");
+	public NumberLiteral(Number n) {
+		this(List.nil(), n, "");
 	}
 
 	public Number getNumber() {
@@ -142,6 +144,8 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
+		if (obj == null)
+			return false;
 		if (!super.equals(obj))
 			return false;
 		if (!(obj instanceof NumberLiteral))
@@ -152,6 +156,89 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		if (!suffix.equals(other.suffix))
 			return false;
 		return true;
+	}
+	public CoreExpr toConstructionExpression() {
+		Call ctor;
+		Number n = getNumber();
+		if(n instanceof SourceNumber) n = ((SourceNumber) n).getValue();
+		if(n instanceof BigInteger) {
+			BigInteger bi = (BigInteger)n;
+			int signum = bi.signum();
+			if(bi.equals(BigInteger.ZERO)) {
+				return new Identifier("0");
+			}
+			if(bi.equals(BigInteger.ONE)) {
+				return new Identifier("1");
+			}
+
+			final boolean negative = signum == -1;
+			if(negative) {
+				bi = bi.abs();
+			}
+			// 10 = 5 + 5
+			// 5 = 2 + 2 + 1
+			// 2 = 1 + 1
+			boolean odd = bi.testBit(0);
+			NumberLiteral half = new NumberLiteral(bi.shiftRight(1));
+			ctor = new Call(half, Operator.PLUS, half);
+			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+		} else if(n instanceof Integer) {
+			int i = n.intValue();
+			if(i == 0) {
+				return new Identifier("0");
+			}
+			if(i == 1) {
+				return new Identifier("1");
+			}
+			boolean negative = (i < 0);
+			if(negative) i = -i;
+			boolean odd = (i&1) == 1;
+			NumberLiteral half = new NumberLiteral(i >> 1);
+			ctor = new Call(half, Operator.PLUS, half);
+			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+		} else if(n instanceof Long) {
+			long i = n.longValue();
+			if(i == 0) {
+				return new Identifier("0");
+			}
+			if(i == 1) {
+				return new Identifier("1");
+			}
+			boolean negative = (i < 0);
+			if(negative) i = -i;
+			boolean odd = (i&1) == 1;
+			NumberLiteral half = new NumberLiteral(i >> 1);
+			ctor = new Call(half, Operator.PLUS, half);
+			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+		} else if(n instanceof Double) {
+			double d = n.doubleValue();
+			if(d == 0) {
+				return new Identifier("0");
+			}
+			if(d == 1) {
+				return new Identifier("1");
+			}
+			if(d == Double.NaN) {
+				return new Identifier("NaN");
+			}
+			if(d == Double.NEGATIVE_INFINITY) {
+				return new Call(new Identifier("\u221E"), Operator.NEGATE);
+			}
+			if(d == Double.POSITIVE_INFINITY) {
+				return new Identifier("\u221E");
+			}
+			boolean negative = (d < 0);
+			if(negative) d = -d;
+			int exp = Math.getExponent(d);
+			long base = Double.doubleToLongBits(d) & 0x000fffffffffffffL;
+
+			ctor = new Call(new NumberLiteral(base), Operator.POW, new NumberLiteral(exp));
+			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+		} else throw new Error("TODO: "+n.getClass().getSimpleName());
+		return ctor;
 	}
 
 }
