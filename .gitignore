@@ -1,3 +1,9 @@
 bin
 *.class
 /junit
+/.settings
+/.classpath
+/.project
+/build
+/.gradle
+/.externalToolBuilders
