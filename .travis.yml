@@ -1,2 +1,8 @@
 language: java
 script: ant -f build.travis.xml test
+before_script:
+ - wget https://github.com/dobesv/functionaljava/archive/master.tar.gz -o /tmp/functionaljava.tar.gz
+ - tar -zxvf /tmp/functionaljava.tar.gz
+ - cd functionaljava-master
+ - ./gradlew
+ - cp core/build/libs/* $TRAVIS_BUILD_DIR/lib
