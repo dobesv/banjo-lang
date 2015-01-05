@@ -2,6 +2,7 @@ package banjo.eval.test;
 
 import static org.junit.Assert.*;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +46,7 @@ public class TestProjectLoader {
 			});
 		}
 		if(errors == null) {
-			errors = List.join(bindings.values().map(expr -> expr.acceptVisitor(new CoreErrorGatherer())));
+			errors = List.<@NonNull BadExpr>join(bindings.values().map(expr -> expr.acceptVisitor(new CoreErrorGatherer())));
 		}
 	}
 	private void assertDefined(final String id) {

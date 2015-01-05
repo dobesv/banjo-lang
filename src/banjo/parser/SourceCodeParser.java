@@ -479,6 +479,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 				operandIndentLevel = po.indentLevel;
 			}
 		}
+		operand = new BadSourceExpr.MismatchedCloseParen(List.single(sfr(range)), closeParenType);
 		return update(opStack, operand, operandIndentLevel);
 	}
 

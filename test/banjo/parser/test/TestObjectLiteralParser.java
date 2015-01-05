@@ -9,9 +9,11 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
+import banjo.dom.BadExpr;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.source.BadSourceExpr;
 
 public class TestObjectLiteralParser {
 
@@ -81,5 +83,13 @@ public class TestObjectLiteralParser {
 
 	@Test public void trueDef() {
 		parse("{\n  (!true) = false\n  (true && x) = x\n  (true || x) = true\n}", "{(!true) = false, (true && x) = x, (true || x) = true}");
+	}
+
+	@Test public void nestedDef1() {
+		parse("{\n  x = {\n    foo = 1\n  }\n\n  y = (\n    doc = \"bla\"\n  ) => []\n\n}", "{x = {foo = 1}, y = ((doc) -> [])(\"bla\")}");
+	}
+
+	@Test public void tooManyCloseCurlies() {
+		test("{ a = { b = c } } }", 1, BadSourceExpr.class, ObjectLiteral.class, "{a = {b = c}}");
 	}
 }

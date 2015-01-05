@@ -422,6 +422,7 @@ public class SourceCodeScanner {
 
 		final int leftColumn = in.getCurrentColumnNumber();
 		this.buf.setLength(0);
+		List<@NonNull T> errs = List.nil();
 		while((cp = in.read()) != -1) {
 			if(cp == quoteType)
 				break; // End of string
@@ -460,18 +461,12 @@ public class SourceCodeScanner {
 			}
 
 			case 'x':  {
-				@NonNull
-				List<@NonNull T> errs = hexEscape(in, this.buf, 2, visitor);
-				if(errs.isNotEmpty())
-					return errs;
+				errs = errs.append(hexEscape(in, this.buf, 2, visitor));
 				break;
 			}
 
 			case 'u': {
-				@NonNull
-				List<@NonNull T> errs = hexEscape(in, this.buf, 4, visitor);
-				if(errs.isNotEmpty())
-					return errs;
+				errs = errs.append(hexEscape(in, this.buf, 4, visitor));
 				break;
 			}
 
@@ -481,7 +476,9 @@ public class SourceCodeScanner {
 			}
 			}
 		}
-		if(cp == -1) List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
+		if(cp == -1) errs = errs.append(List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal")));
+		if(errs.isNotEmpty())
+			return errs;
 		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));
 	}
 

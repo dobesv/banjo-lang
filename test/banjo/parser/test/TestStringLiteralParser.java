@@ -33,9 +33,11 @@ public class TestStringLiteralParser {
 
 	private void testParser(String sourceString, String expectedParsedString, int expectedErrorCount) {
 		ParseTestUtils.test(sourceString, expectedErrorCount, null, StringLiteral.class, null);
-		StringLiteral actualNode = (StringLiteral) CoreExpr.fromString(sourceString);
-		assertNotNull(actualNode);
-		assertEquals(expectedParsedString, actualNode.getString());
+		if(expectedErrorCount == 0) {
+			StringLiteral actualNode = (StringLiteral) CoreExpr.fromString(sourceString);
+			assertNotNull(actualNode);
+			assertEquals(expectedParsedString, actualNode.getString());
+		}
 	}
 
 	@Test

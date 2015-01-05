@@ -6,7 +6,7 @@ import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class CoreErrorGatherer implements CoreExprAlgebra<List<@NonNull BadExpr>> {
+public class CoreErrorGatherer implements CoreExprAlgebra<@NonNull List<@NonNull BadExpr>> {
 
 	@Override
 	public List<BadExpr> badExpr(List<SourceFileRange> ranges, String message, Object... args) {

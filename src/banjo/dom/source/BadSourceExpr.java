@@ -29,6 +29,11 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 			this.closeParenType = closeParenType;
 		}
 
+		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
+			super(ranges, "Mismatched close paren '%s'; no matching open paren found", closeParenType.getEndChar());
+			this.closeParenType = closeParenType;
+		}
+
 		public ParenType getCloseParenType() {
 			return this.closeParenType;
 		}
