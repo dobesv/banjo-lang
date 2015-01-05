@@ -2,6 +2,7 @@ language: java
 jdk:
   - oraclejdk8
 before_install:
- - wget https://github.com/dobesv/functionaljava/archive/master.tar.gz -O /tmp/functionaljava.tar.gz
- - tar -C /tmp -zxvf /tmp/functionaljava.tar.gz
- - cd /tmp/functionaljava-master && gradle java8:install
+ - wget https://github.com/dobesv/functionaljava/archive/master.tar.gz -O functionaljava.tar.gz
+ - tar -zxvf functionaljava.tar.gz
+ - cd functionaljava-master && gradle java8:install && cd ..
+
