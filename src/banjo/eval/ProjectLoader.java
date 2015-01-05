@@ -11,6 +11,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.CoreExpr;
@@ -86,7 +88,11 @@ public class ProjectLoader {
 	}
 
 	public static TreeMap<Key, CoreExpr> loadBanjoPath() {
-		return loadImportedBindings(System.getProperty("banjo.path"));
+		@Nullable
+		String path = System.getProperty("banjo.path");
+		if(path == null) path = System.getenv("BANJO_PATH");
+		if(path == null) return EMPTY_BINDINGS;
+		return loadImportedBindings(path);
 	}
 
 	public static TreeMap<Key, CoreExpr> loadImportedBindings(String searchPath) {
