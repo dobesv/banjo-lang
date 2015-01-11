@@ -8,7 +8,6 @@ import banjo.dom.token.Key;
 import fj.data.List;
 
 public class AnonymousKey extends AbstractCoreExpr implements Key {
-
 	public AnonymousKey() {
 		super(1337331, List.nil());
 	}

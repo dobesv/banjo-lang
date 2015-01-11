@@ -27,7 +27,7 @@ public class CoreExprEvaluator {
 		super();
 		// Arg ... these root environment things cannot refer to one another if I do it this way!!
 		// Might have to hack it and mutate the
-		this.environment = new EvalEnvironment(bindings);
+		this.environment = EvalEnvironment.root(bindings);
 	}
 
 	public EvalResult evaluate(CoreExpr expr) {

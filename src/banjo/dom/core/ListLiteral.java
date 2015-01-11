@@ -7,10 +7,9 @@ import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
-import fj.F;
 import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
@@ -89,11 +88,11 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	public CoreExpr toConstructionExpression() {
 		final CoreExpr empty = new Identifier("[]");
-		final Identifier single = new Identifier("[_]");
-		final CoreExpr ctor = elements
-				.map(elt -> new Call(single, Operator.CALL.getMethodNameKey(), elt))
-				.foldLeft((a, b) -> (CoreExpr)(a == empty ? b : b == empty ? a : new Call(a, Operator.PLUS.getMethodNameKey(), (CoreExpr)b)), empty);
-		return ctor;
+		final Identifier nonempty = new Identifier("nonempty");
+		final Identifier x = new Identifier("x");
+		return elements.foldRight((head,tail) -> (CoreExpr)new Extend(empty, new ObjectLiteral(
+				new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, nonempty, List.single(List.single(x)), Method.EMPTY_PRECONDITION, new Call(x, nonempty, head, tail), Method.EMPTY_POSTCONDITION)
+		)), (CoreExpr)empty);
 	}
 
 }

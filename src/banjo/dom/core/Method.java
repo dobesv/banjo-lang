@@ -156,9 +156,11 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 			List<String> np = name.getParts();
 			List<List<Key>> al = argumentLists;
-			while(np.isNotEmpty()) {
-				Identifier.toSource(nonNull(np.head()), sb);
-				np = np.tail();
+			do {
+				if(np.isNotEmpty()) {
+					Identifier.toSource(np.head(), sb);
+					np = np.tail();
+				}
 				if(al.isNotEmpty()) {
 					if(!(al.head().isEmpty() && np.isEmpty())) {
 						sb.append('(');
@@ -172,7 +174,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 				} else if(np.isNotEmpty()) {
 					sb.append("()");
 				}
-			}
+			} while(np.isNotEmpty());
 		}
 		sb.append(' ');
 		Operator.ASSIGNMENT.toSource(sb);

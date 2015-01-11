@@ -1449,19 +1449,13 @@ public class SourceExprDesugarer {
 			case UNION:
 			case LOOKUP:
 			case MEMBER_OF:
-			case MATCH:
-				return binaryOpToMethodCall(op, false);
-
-			case TRY_MATCH:
-				return binaryOpToMethodCall(op, true);
-
-			case EXTEND: return extend(op);
-
-			// Short-circuit operators have a lazy right operand
 			case LOGICAL_AND:
 			case LOGICAL_OR:
 			case FALLBACK:
 				return binaryOpToMethodCall(op, false);
+
+			case EXTEND:
+				return extend(op);
 
 			case JUXTAPOSITION:
 				return juxtaposition(op);
@@ -1498,11 +1492,8 @@ public class SourceExprDesugarer {
 			case INSPECT:
 				return inspect(op);
 
-			case VARIANT:
-				return variant(op);
-
-			case FREE_METHOD:
-				return freeMethod(op);
+			case SELECTOR:
+				return selector(op);
 
 			case INVALID:
 				return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Invalid unary operator"));
@@ -1575,51 +1566,7 @@ public class SourceExprDesugarer {
 	 *
 	 * #<something> = { (x # y) = y.?<something> &&& y.<something> }
 	 */
-	public DesugarResult<CoreExpr> variant(UnaryOp op) {
-		final Identifier y = new Identifier(op.toSource()); // TODO: Hygienic variable name
-		P3<CoreExpr,CoreExpr,SourceExprDesugarer> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprDesugarer>>() {
-			@Override
-			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> key(Key field) {
-				DesugarResult<CoreExpr> preDs = projection(op, (CoreExpr)y, field, false, true);
-				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, (CoreExpr)y, field, false, false);
-				CoreExpr body = bodyDs.getValue();
-				return P.p(precondition, body, bodyDs);
-			}
-
-			@Override
-			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> binaryOp(BinaryOp op) {
-				// Variant has arguments
-				DesugarResult<CoreExpr> preDs = desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.OPT_PROJECTION, op.getOperatorRanges(), y, op.getLeft()), op.getRight()));
-				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.PROJECTION, op.getOperatorRanges(), y, op.getLeft()), op.getRight()));
-				CoreExpr body = bodyDs.getValue();
-				return P.p(precondition, body, bodyDs);
-			}
-
-			@Override
-			public P3<CoreExpr, CoreExpr, SourceExprDesugarer> fallback(SourceExpr other) {
-				final BadCoreExpr expr = new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier or method invokation: "+other);
-				return P.p(expr, expr, withDesugared(other, expr));
-			}
-		});
-
-		SourceExprDesugarer ds = ps._3();
-		CoreExpr precondition = ps._1();
-		CoreExpr body = ps._2();
-		Method method = new Method(NOT_FROM_SOURCE, Key.ANONYMOUS, opMethodName(Operator.MATCH), single(single((Key)y)), precondition , body, Method.EMPTY_POSTCONDITION);
-		return ds.withDesugared(op, new ObjectLiteral(method));
-	}
-
-	/**
-	 * A variant is a special kind of callback.  Using the special variant syntax will result
-	 * in an object that tries to call back, but treats it as a contract failure if the provided
-	 * object does not implement the specified method or has a contract failure for calling that
-	 * method:
-	 *
-	 * #<something> = { (x # y) = y.?<something> &&& y.<something> }
-	 */
-	public DesugarResult<CoreExpr> freeMethod(UnaryOp op) {
+	public DesugarResult<CoreExpr> selector(UnaryOp op) {
 		final Identifier y = new Identifier(op.toSource()); // TODO: Hygienic variable name
 		P3<CoreExpr,CoreExpr,SourceExprDesugarer> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprDesugarer>>() {
 			@Override

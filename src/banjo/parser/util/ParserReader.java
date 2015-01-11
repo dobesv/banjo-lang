@@ -139,7 +139,8 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(char[] cbuf) throws IOException {
+	public int read(@Nullable char @Nullable [] cbuf) throws IOException {
+		if(cbuf == null) throw new NullPointerException();
 		final int len = this.delegate.read(cbuf);
 		for(int i=0; i < len; i++) {
 			accumulate(cbuf[i]);
@@ -148,7 +149,8 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(char[] cbuf, int off, int len) throws IOException {
+	public int read(@Nullable char @Nullable [] cbuf, int off, int len) throws IOException {
+		if(cbuf == null) throw new NullPointerException();
 		final int lenRead = this.delegate.read(cbuf, off, len);
 		for(int i=0; i < lenRead; i++) {
 			accumulate(cbuf[off+i]);

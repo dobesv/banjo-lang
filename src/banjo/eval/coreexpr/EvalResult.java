@@ -1,5 +1,6 @@
 package banjo.eval.coreexpr;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import banjo.dom.core.Call;
@@ -102,6 +103,11 @@ public class EvalResult {
 		final EvalEnvironment rootEnv = environment.getRootEnvironment();
 		EvalEnvironment tempEnv = new EvalEnvironment(rootEnv, rootEnv.bindings.set(value, this));
 		return f.f(value, tempEnv);
+	}
+
+	public boolean hasMethod(Key id) {
+		final @Nullable EvalResult found = findMethod(id);
+		return found != null && found.currentMethod != null;
 	}
 }
 

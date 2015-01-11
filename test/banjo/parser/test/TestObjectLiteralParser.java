@@ -53,6 +53,8 @@ public class TestObjectLiteralParser {
 	@Test public void numericSelfName2() { parse("{0.plus(x) = x}", "{0.plus(x) = x}"); }
 	//@Test public void numericSelfName3() { parse("{(0).plus(x) = x}", "{(0).plus(x) = x}"); }
 
+	@Test public void callable1() { parse("{x=y, (x) = x.foo}", "{x = y, (x) = x.foo}"); }
+
 	@Test public void testUnpack1() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
 			"(character) -> ((character, list, true) -> ((true, false) -> {empty = {empty = true}})(true.true, true.false))(character.character, character.list, character.boolean)"); }
 	@Test public void testUnpack2() { parse("{({boolean={true, false}, numbers={one, zero}}) = { empty = { empty = true } } }",

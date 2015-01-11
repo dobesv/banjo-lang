@@ -18,9 +18,12 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 		this.extension = extension;
 	}
 
+	public Extend(CoreExpr base, CoreExpr extension) {
+		this(SourceFileRange.EMPTY_LIST, base, extension);
+	}
 
 	public Extend(int hashCode, List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
-		super(hashCode+ranges.hashCode(), ranges);
+		super(hashCode+ranges.hashCode()+base.hashCode()+extension.hashCode(), ranges);
 		this.base = base;
 		this.extension = extension;
 	}
@@ -72,9 +75,9 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
-		if (!super.equals(obj))
-			return false;
 		if (!(obj instanceof Extend))
+			return false;
+		if (!super.equals(obj))
 			return false;
 		final Extend other = (Extend) obj;
 		if (!this.base.equals(other.base))

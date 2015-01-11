@@ -1,21 +1,10 @@
 package banjo.dom.token;
 
-import static banjo.parser.util.Check.nonNull;
-
 import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 
-import banjo.dom.BadExpr;
-import banjo.dom.Expr;
 import banjo.dom.core.AnonymousKey;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.CoreExprAlgebra;
-import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
-import banjo.dom.source.SourceExprVisitor;
-import banjo.parser.util.SourceFileRange;
-import fj.F;
 import fj.Ord;
 import fj.Ordering;
 import fj.data.List;
@@ -28,7 +17,6 @@ public interface Key extends SourceExpr, CoreExpr {
 	});
 
 	public static final Key ANONYMOUS = new AnonymousKey();
-
 	/**
 	 * Get a list of name parts for this key.
 	 *

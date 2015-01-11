@@ -10,8 +10,8 @@ public enum Precedence {
 	ADDSUB, // +, -
 	BITSHIFT, // <<, >>, >>>
 	ORDERING, // <, <=, >, >=
-	EQUALITY, // ==, !=
 	MEMBER_OF, // in
+	EQUALITY, // ==, !=
 	INTERSECT, // &
 	XOR, // ^
 	UNION, // |

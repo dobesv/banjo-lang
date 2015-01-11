@@ -27,11 +27,8 @@ public enum Operator {
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
-	VARIANT("#", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	FREE_METHOD(".", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	//OPTIONAL("?", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
-	//EXISTS("??", OperatorType.BUILTIN, Precedence.SUFFIX, Position.SUFFIX),
+	SELECTOR(".", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	UNARY_NEWLINE_INDENT("(nl+indent)", OperatorType.BUILTIN, Position.PREFIX, Precedence.SEMICOLON),
 
 	// Binary operators
@@ -45,8 +42,6 @@ public enum Operator {
 	CALL_NEXT_METHOD(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	OPT_CALL_NEXT_METHOD(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
-	MATCH("#", OperatorType.BUILTIN, Position.INFIX, Precedence.MATCH),
-	TRY_MATCH("#?", OperatorType.BUILTIN, Position.INFIX, Precedence.MATCH),
 	POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	MUL("*", 0x00D7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	DIV("/", 0x00F7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
@@ -180,6 +175,15 @@ public enum Operator {
 	public static @Nullable Operator fromMethodName(String methodName, boolean infix) {
 		for(final Operator operator : values()) {
 			if(infix == operator.isInfix() && methodName.equals(operator.methodName)) {
+				return operator;
+			}
+		}
+		return null;
+	}
+
+	public static @Nullable Operator fromMethodName(Key methodName, boolean infix) {
+		for(final Operator operator : values()) {
+			if(infix == operator.isInfix() && methodName.compareTo(operator.methodNameKey) == 0) {
 				return operator;
 			}
 		}
