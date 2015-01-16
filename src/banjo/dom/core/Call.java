@@ -123,33 +123,41 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 			}
 		} else {
 			this.object.toSource(sb, Precedence.SUFFIX);
-			Operator op = optional ? callNext ? Operator.OPT_CALL_NEXT_METHOD : Operator.OPT_PROJECTION : callNext ? Operator.CALL_NEXT_METHOD : Operator.PROJECTION;
-			op.toSource(sb);
-			List<String> np = name.getParts();
-			List<List<CoreExpr>> al = getArgumentLists();
-			while(np.isNotEmpty()) {
-				Identifier.toSource(nonNull(np.head()), sb);
-				np = np.tail();
-				if(al.isNotEmpty()) {
-					if(!(al.head().isEmpty() && np.isEmpty())) {
-						sb.append('(');
-						boolean first = true;
-						for(final CoreExpr arg : al.head()) {
-							if(first) first = false;
-							else sb.append(", ");
-							arg.toSource(sb, Precedence.COMMA.nextHighest());
-						}
-						sb.append(')');
-					}
-					al = al.tail();
-				} else if(np.isNotEmpty()) {
-					sb.append("()");
-				}
-			}
-			if(al.isNotEmpty())
-				throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length());
+			projectionToSource(sb);
 		}
 	}
+
+	public void projectionToSource(final StringBuffer sb) {
+	    Operator op = optional ? callNext ? Operator.OPT_CALL_NEXT_METHOD : Operator.OPT_PROJECTION : callNext ? Operator.CALL_NEXT_METHOD : Operator.PROJECTION;
+	    op.toSource(sb);
+	    argsToSource(sb);
+    }
+
+	private void argsToSource(final StringBuffer sb) {
+	    List<String> np = name.getParts();
+	    List<List<CoreExpr>> al = getArgumentLists();
+	    while(np.isNotEmpty()) {
+	    	Identifier.toSource(nonNull(np.head()), sb);
+	    	np = np.tail();
+	    	if(al.isNotEmpty()) {
+	    		if(!(al.head().isEmpty() && np.isEmpty())) {
+	    			sb.append('(');
+	    			boolean first = true;
+	    			for(final CoreExpr arg : al.head()) {
+	    				if(first) first = false;
+	    				else sb.append(", ");
+	    				arg.toSource(sb, Precedence.COMMA.nextHighest());
+	    			}
+	    			sb.append(')');
+	    		}
+	    		al = al.tail();
+	    	} else if(np.isNotEmpty()) {
+	    		sb.append("()");
+	    	}
+	    }
+	    if(al.isNotEmpty())
+	    	throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length());
+    }
 
 
 	private static boolean isLazyValue(CoreExpr head) {

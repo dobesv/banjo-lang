@@ -28,7 +28,7 @@ import fj.data.Option;
 import fj.data.TreeMap;
 
 public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
-	
+
 	public final EvalEnvironment parent;
 	public final TreeMap<Key, EvalResult> bindings;
 	public static final Key TOP_SCOPE = new Identifier("TOP SCOPE");
@@ -53,8 +53,8 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 
 	public EvalResult failure(String variant, CoreExpr info) {
 		return new Extend(
-				ObjectLiteral.selector(new Identifier(variant), info),
-				new ObjectLiteral(Method.property(new Identifier("is failure"), new Identifier("true")))
+				new ObjectLiteral(Method.property(new Identifier("is failure"), new Identifier("true"))),
+				ObjectLiteral.selector(variant, info)
 		).acceptVisitor(getRootEnvironment());
 	}
 
@@ -84,6 +84,22 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 		return badExpr(badIdentifier.getMessage());
 	}
 
+	static CoreExpr sourceFileRangeExpr(SourceFileRange sfr) {
+		return new ObjectLiteral(
+			Method.property("file", sfr.getSourceFile()),
+			Method.property("start line", sfr.getStartLine()),
+			Method.property("start column", sfr.getStartColumn()),
+			Method.property("start offset", sfr.getFileRange().getStartOffset()),
+			Method.property("end line", sfr.getEndLine()),
+			Method.property("end column", sfr.getFileRange().getEndColumn()),
+			Method.property("end offset", sfr.getFileRange().getEndOffset())
+		);
+	}
+
+	static CoreExpr sourceFileRangesExpr(List<SourceFileRange> sfr) {
+		return new ListLiteral(sfr.map(EvalEnvironment::sourceFileRangeExpr));
+	}
+
 	@Override
 	public EvalResult call(Call call) {
 		EvalResult object = call.getObject().acceptVisitor(this);
@@ -95,7 +111,7 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 			throw new Error("TODO");
 		}
 
-		
+
 		EvalResult methodBinding = object.findMethod(call.getName(),
 				call.isCallNext());
 		if (methodBinding == null || methodBinding.currentMethod == null) {
@@ -105,7 +121,12 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 				if(call.getName().compareTo(Key.ANONYMOUS) == 0) {
 					return failure("missing method definition", "()");
 				} else {
-					return failure("missing method definition", call.getName().toSource());
+					return failure("missing method definition",
+							new ObjectLiteral(
+									Method.property("method", ObjectLiteral.selector(call.getName())),
+									Method.property("target", object.toExtend()),
+									Method.property("source", sourceFileRangesExpr(call.getSourceFileRanges()))
+							));
 				}
 			}
 		}

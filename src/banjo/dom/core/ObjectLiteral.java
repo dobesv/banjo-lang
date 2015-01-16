@@ -4,6 +4,7 @@ import static banjo.parser.util.Check.nonNull;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.SourceCodeScanner;
@@ -46,12 +47,16 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public Precedence getPrecedence() {
-		return isLambda() ? Precedence.FUNCTION : Precedence.ATOM;
+		return isSelector() ? Operator.SELECTOR.getPrecedence() :
+			isLambda() ? Operator.FUNCTION.getPrecedence() :
+				Precedence.ATOM;
 	}
 
 	@Override
 	public void toSource(final StringBuffer sb) {
-		if(isLambda()) {
+		if(isSelector()) {
+			((Call)methods.head().getBody()).projectionToSource(sb);
+		} else if(isLambda()) {
 			final Method method = this.methods.head();
 			if(method.hasSelfArg() || !(method.getArgumentLists().isEmpty() || method.getArgumentLists().head().isEmpty())) {
 				if(method.hasSelfArg()) {
@@ -94,6 +99,15 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 			sb.append('}');
 		}
 	}
+
+	private boolean isSelector() {
+	    return methods.isSingle()
+	    		&& methods.head().getArgumentLists().isSingle()
+	    		&& methods.head().getArgumentLists().head().isSingle()
+	    		&& methods.head().getBody() instanceof Call
+	    		&& ((Call)methods.head().getBody()).getObject().equals(methods.head().getArgumentLists().head().head())
+	    		&& methods.head().getName().equals(Key.ANONYMOUS);
+    }
 
 	private void argListToSource(final StringBuffer sb, final Method method) {
 		sb.append('(');
@@ -187,4 +201,8 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static ObjectLiteral selector(Key name, CoreExpr ... args) {
 		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, args)));
 	}
+
+	public static CoreExpr selector(String variant, CoreExpr info) {
+	    return selector(new Identifier(variant), info);
+    }
 }

@@ -2,13 +2,13 @@ package banjo.dom.core;
 
 import java.util.Objects;
 
-
-
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.StringLiteral;
 import banjo.parser.util.ExprOrd;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
@@ -53,6 +53,9 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	public static Method property(Key name, CoreExpr body) {
 		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.nil(), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
+	public static Method property(String name, CoreExpr body) {
+		return property(new Identifier(name), body);
+	}
 	private static int calcHash(List<SourceFileRange> ranges, Key selfArg, Key name,
 			List<List<Key>> argumentLists, CoreExpr precondition, CoreExpr body, CoreExpr postcondition) {
 		final int prime = 31;
@@ -78,7 +81,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	/**
 	 * If this method is an operator definition, return which operator it defines.  Otherwise, returns null.
 	 */
-	
+
 	Operator getOperator() {
 		// Operators always define a simply named "self" part
 		if(selfArg instanceof MixfixFunctionIdentifier || selfArg instanceof AnonymousKey)
@@ -330,5 +333,12 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 			CoreExpr body) {
 		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, methodName, List.single(args), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
+
+	public static Method property(String name, String value) {
+	    return property(name, new StringLiteral(value));
+    }
+	public static Method property(String name, Number value) {
+	    return property(name, new NumberLiteral(value));
+    }
 
 }

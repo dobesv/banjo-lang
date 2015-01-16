@@ -4,6 +4,7 @@ package banjo.eval.coreexpr;
 
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.Extend;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.Operator;
@@ -12,13 +13,13 @@ import banjo.dom.token.Key;
 import fj.F2;
 
 public class EvalResult {
-	
+
 	public final EvalResult base;
 	public final ObjectLiteral object;
 	public final EvalEnvironment environment;
-	
+
 	public final Method currentMethod;
-	
+
 	public final EvalResult currentMethodSource;
 
 	public EvalResult(EvalResult base, ObjectLiteral object,
@@ -52,7 +53,7 @@ public class EvalResult {
 			final EvalResult cmsBase = cms.base;
 			if(cmsBase == null)
 				return null;
-			
+
 			EvalResult next = cmsBase.findMethod(name, false);
 			if(next == null)
 				return null;
@@ -112,5 +113,23 @@ public class EvalResult {
 		final EvalResult found = findMethod(id);
 		return found != null && found.currentMethod != null;
 	}
+
+	/**
+	 * Return an object literal with all the available methods,
+	 * including those inherited from the base.
+	 */
+	public ObjectLiteral manifestObject() {
+		if(base == null) {
+			return object;
+		} else {
+			return new ObjectLiteral(base.manifestObject().getMethods().append(object.getMethods()));
+		}
+	}
+
+	public CoreExpr toExtend() {
+		if(base == null)
+			return object;
+	    return new Extend(base.toExtend(), object);
+    }
 }
 
