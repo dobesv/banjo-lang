@@ -5,13 +5,14 @@ apply plugin: "maven"
 apply plugin: "osgi"
 
 version = "0.1"
-group = "org.banjo-lang"
+group = "banjo"
 sourceCompatibility = "1.8"
+archivesBaseName = "banjo.banjo-lang"
 
 ext {
 	projectTitle = "Banjo Language Tools"
 	projectName = "banjo-lang"
-	groupId = "org.banjo-lang"
+	groupId = "banjo"
 }
 
 repositories {
@@ -43,10 +44,10 @@ sourceSets {
 
 jar {
 	version project.version
+	baseName "banjo.banjo-lang"
 	manifest {
-		name = 'Banjo Language Tools'
 		instruction 'Bundle-ActivationPolicy', 'lazy'
-		instruction 'Bundle-Vendor', 'org.banjo-lang'
+		instruction 'Bundle-Vendor', 'banjo'
 		instruction 'Require-Bundle', 'org.functionaljava;bundle-version="[4.3,5)"'
 	}
 }
