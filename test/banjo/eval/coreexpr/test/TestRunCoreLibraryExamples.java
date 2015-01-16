@@ -3,6 +3,7 @@ package banjo.eval.coreexpr.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -66,7 +67,7 @@ public class TestRunCoreLibraryExamples {
 
 	Boolean testFails(CoreExpr x) {
 		System.out.println("Testing: "+x);
-		
+
 		EvalResult result = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile()).evaluate(x);
 		final boolean working = !result.isFailure();
 		if(!working) System.out.println("Error: "+result.object);
@@ -137,8 +138,8 @@ public class TestRunCoreLibraryExamples {
 			}
 		});
 	}
-	@Test public void testCoreLibraryExamplesPass() {
-		
+	@Ignore public void testCoreLibraryExamplesPass() {
+
 		List<CoreExpr> allExamples = List.join(ProjectLoader.loadBanjoPath()
 			.values()
 			.<List<CoreExpr>>map(this::findExamples));

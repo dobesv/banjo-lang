@@ -22,14 +22,12 @@ public class TestProjectLoader {
 	@Test public void testStringsDefined() { assertDefined("strings"); }
 	@Test public void testListsDefined() { assertDefined("lists"); }
 	@Test public void testEmptyListDefined() { assertDefined("[]"); }
-	@Test public void testSingletonListDefined() { assertDefined("[_]"); }
 	@Test public void testEmptyStringDefined() { assertDefined("''"); }
-	@Test public void testSingletonStringDefined() { assertDefined("'_'"); }
 
 	@Test public void testNoProblems() { assertEquals(0, problems().length()); }
 
 	public TreeMap<Key, CoreExpr> bindings() {
-		
+
 		TreeMap<Key, CoreExpr> bindings = ProjectLoader.loadBanjoPath();
 		bindings.forEach(binding -> {
 			System.out.println("Binding: "+binding._1()+" -> "+binding._2());
