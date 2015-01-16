@@ -1,7 +1,5 @@
 package banjo.dom.token;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.AbstractCoreExpr;
@@ -44,7 +42,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) return -1;
 		if(this == o)
 			return 0;
@@ -59,7 +57,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		if(obj == null || !(obj instanceof BadIdentifier)) return false;
 		if(!super.equals(obj)) return false;

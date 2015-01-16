@@ -1,11 +1,5 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.DefaultLocation;
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
-
-@NonNullByDefault({})
 public class Check {
 
 	/**
@@ -15,9 +9,8 @@ public class Check {
 	 * If the value is in fact, null, this throws a NullPointerException.  Otherwise it returns
 	 * the value as-is.
 	 */
-	public static <T> @NonNull T nonNull(final @Nullable T value) {
+	public static <T> T nonNull(final T value) {
 		assert value != null;
-		if(value == null) throw new NullPointerException();
 		return value;
 	}
 }

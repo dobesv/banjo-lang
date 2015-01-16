@@ -5,9 +5,9 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.eclipse.jdt.annotation.Nullable;
+
+
+
 
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.SourceCodeScanner;
@@ -16,10 +16,9 @@ import banjo.parser.util.ParserReader;
 import banjo.parser.util.TokenCollector;
 import fj.data.List;
 
-@NonNullByDefault
-public class TokensToString implements TokenVisitor<@NonNull String> {
+public class TokensToString implements TokenVisitor<String> {
 
-	@Nullable
+
 	FileRange lastTokRange;
 	final int rangeStart;
 	final int rangeEnd;
@@ -31,24 +30,24 @@ public class TokensToString implements TokenVisitor<@NonNull String> {
 	}
 
 	@Override
-	public @NonNull String whitespace(@NonNull FileRange range, @NonNull String tok) {
+	public String whitespace(FileRange range, String tok) {
 		return token("ws", range);
 	}
 
 	protected String token(String t, FileRange range) {
-		final @Nullable FileRange lastTokRange = this.lastTokRange;
+		final FileRange lastTokRange = this.lastTokRange;
 		assertEquals("Characters skipped?", lastTokRange != null ? lastTokRange.getEndOffset() : this.rangeStart, range.getStartOffset());
 		this.lastTokRange = range;
 		return t;
 	}
 
 	@Override
-	public @NonNull String comment(@NonNull FileRange range, @NonNull String tok) {
+	public String comment(FileRange range, String tok) {
 		return token("com", range);
 	}
 
 	@Override
-	public @NonNull String eof(@NonNull FileRange entireFileRange) {
+	public String eof(FileRange entireFileRange) {
 		this.done = true;
 		assertEquals(0, entireFileRange.getStartOffset());
 		assertEquals(1, entireFileRange.getStartLine());
@@ -59,22 +58,22 @@ public class TokensToString implements TokenVisitor<@NonNull String> {
 	}
 
 	@Override
-	public @NonNull String operator(@NonNull FileRange range, @NonNull String tok) {
+	public String operator(FileRange range, String tok) {
 		return token("op", range);
 	}
 
 	@Override
-	public @NonNull String stringLiteral(@NonNull FileRange range, @NonNull String tok) {
+	public String stringLiteral(FileRange range, String tok) {
 		return token("str", range);
 	}
 
 	@Override
-	public @NonNull String numberLiteral(@NonNull FileRange range, @NonNull Number value, @NonNull String suffix) {
+	public String numberLiteral(FileRange range, Number value, String suffix) {
 		return token("num", range);
 	}
 
 	@Override
-	public @NonNull String identifier(@NonNull FileRange range, @NonNull String tok) {
+	public String identifier(FileRange range, String tok) {
 		return token("id", range);
 	}
 
@@ -100,7 +99,7 @@ public class TokensToString implements TokenVisitor<@NonNull String> {
 	}
 
 	@Override
-	public @NonNull String badToken(@NonNull FileRange fileRange, @NonNull String badToken, @NonNull String message) {
+	public String badToken(FileRange fileRange, String badToken, String message) {
 		return token("bad", fileRange);
 	}
 

@@ -1,7 +1,5 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.Expr;
 import banjo.dom.source.SourceExpr;
@@ -22,10 +20,10 @@ public interface CoreExpr extends Expr {
 
 	public static final Ord<CoreExpr> ORD = Ord.ord(new F<CoreExpr, F<CoreExpr, Ordering>>() {
 		@Override
-		public F<CoreExpr, Ordering> f(final @Nullable CoreExpr a1) {
+		public F<CoreExpr, Ordering> f(final CoreExpr a1) {
 			return new F<CoreExpr, Ordering>() {
 				@Override
-				public Ordering f(final @Nullable CoreExpr a2) {
+				public Ordering f(final CoreExpr a2) {
 					if(a1 == null || a2 == null) throw new NullPointerException();
 					final int x = a1.compareTo(a2);
 					return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;

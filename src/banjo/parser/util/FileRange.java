@@ -2,8 +2,6 @@ package banjo.parser.util;
 
 import static banjo.parser.util.Check.nonNull;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 
 public final class FileRange implements Comparable<FileRange> {
 	public static final FileRange EMPTY = new FileRange(FilePos.START, FilePos.START);
@@ -50,7 +48,7 @@ public final class FileRange implements Comparable<FileRange> {
 		return result;
 	}
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -143,7 +141,7 @@ public final class FileRange implements Comparable<FileRange> {
 	}
 
 	@Override
-	public int compareTo(@Nullable FileRange o) {
+	public int compareTo(FileRange o) {
 		if(o == null) throw new NullPointerException();
 		int cmp = Integer.compare(getStartOffset(), o.getStartOffset());
 		if(cmp == 0) cmp = Integer.compare(getEndOffset(), o.getEndOffset());

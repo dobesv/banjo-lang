@@ -1,17 +1,12 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
 import banjo.dom.BadExpr;
-import banjo.dom.token.Atom;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.util.SourceFileRange;
 
 /**
  * Provide a default base implementation of CoreExprVisitor that passes unhandled

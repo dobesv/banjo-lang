@@ -1,17 +1,11 @@
 package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
 
-import fj.Unit;
-import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.ObjectLiteral;
-import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 
 
@@ -41,13 +35,13 @@ public class TestFunctionLiteralParser {
 //		final CoreExpr body = func.getMethods().iterator().next().getBody();
 //		body.acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 //			@Override
-//			public @NonNull Unit fallback() {
+//			public Unit fallback() {
 //				fail("Expected identifier: "+body);
 //				return Unit.unit();
 //			}
 //
 //			@Override
-//			public @NonNull Unit identifier(@NonNull Identifier n) {
+//			public Unit identifier(Identifier n) {
 //				assertEquals(expectedArgReturned, n.getId());
 //				return Unit.unit();
 //			}
@@ -65,5 +59,5 @@ public class TestFunctionLiteralParser {
 	@Test public void testSelfName2() { testParse("s()↦s", 0, 0, "s", "", "s"); } // Lazy value, with parens
 
 	@Test public void testUnpackObjectNoParens() { testParse("{a,b}↦a", 0, 1, null, "a", "((a, b) -> a)(a.a, a.b)"); }
-	@Test public void testUnpackListNoParens() { testParse("[a,b]↦a", 0, 1, null, "a", "((a, b) -> a)(a[0], a[1])"); }
+	@Test public void testUnpackListNoParens() { testParse("[a,b]↦a", 0, 1, null, "a", "((a, b) -> a)(a.get(0), a.get(1))"); }
 }

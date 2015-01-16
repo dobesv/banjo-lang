@@ -1,9 +1,8 @@
 package banjo.dom;
 
-import fj.data.List;
-import banjo.dom.core.ExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 
 

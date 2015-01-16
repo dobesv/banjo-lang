@@ -1,12 +1,10 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr base;
@@ -42,7 +40,7 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -72,7 +70,7 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (!(obj instanceof Extend))

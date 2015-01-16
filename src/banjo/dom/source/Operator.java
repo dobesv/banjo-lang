@@ -2,9 +2,6 @@ package banjo.dom.source;
 
 import static banjo.dom.Consts.CODEPOINT_NONE;
 import static banjo.parser.util.Check.nonNull;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.ParenType;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -29,10 +26,8 @@ public enum Operator {
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	SELECTOR(".", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	UNARY_NEWLINE_INDENT("(nl+indent)", OperatorType.BUILTIN, Position.PREFIX, Precedence.SEMICOLON),
 
 	// Binary operators
-	LOOKUP(ParenType.BRACKETS, OperatorType.METHOD, Position.INFIX),
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
 	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
@@ -91,14 +86,14 @@ public enum Operator {
 	private final int codePoint; // -1 if no special unicode character
 	private final Precedence leftPrecedence; // For binary operators only
 	private final Precedence precedence;
-	private final @Nullable ParenType parenType; // nullable
+	private final ParenType parenType; // nullable
 	private final Associativity associativity;
 	private final Position position;
 	private final String methodName;
 	private final Key methodNameKey;
 	private final OperatorType operatorType;
 
-	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
+	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
 		this.op = op;
 		this.codePoint = codePoint;
 		this.operatorType = operatorType;
@@ -111,12 +106,12 @@ public enum Operator {
 		this.methodNameKey = parenType == ParenType.PARENS ? Key.ANONYMOUS : new Identifier(this.methodName);
 	}
 
-	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
+	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
 		this(op, codePoint, operatorType, parenType, position, associativity, leftPrecedence, precedence,
 				(position==Position.PREFIX || associativity==Associativity.RIGHT) && !op.endsWith(":") ? op+":" : op);
 	}
 
-	Operator(String op, int codePoint, OperatorType operatorType, @Nullable ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
+	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
 		this(op, codePoint, operatorType, parenType, position, associativity, precedence, precedence);
 	}
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Precedence p) {
@@ -157,7 +152,7 @@ public enum Operator {
 		this(parenType.getEmptyPairString(), CODEPOINT_NONE, operatorType, parenType, position, defaultAssociativity(position), Precedence.SUFFIX);
 	}
 
-	public static @Nullable Operator fromOp(String op, Position pos) {
+	public static Operator fromOp(String op, Position pos) {
 		for(final Operator operator : values()) {
 			// Wrong position
 			if(operator.getPosition() != pos)
@@ -172,7 +167,7 @@ public enum Operator {
 		return null;
 	}
 
-	public static @Nullable Operator fromMethodName(String methodName, boolean infix) {
+	public static Operator fromMethodName(String methodName, boolean infix) {
 		for(final Operator operator : values()) {
 			if(infix == operator.isInfix() && methodName.equals(operator.methodName)) {
 				return operator;
@@ -181,7 +176,7 @@ public enum Operator {
 		return null;
 	}
 
-	public static @Nullable Operator fromMethodName(Key methodName, boolean infix) {
+	public static Operator fromMethodName(Key methodName, boolean infix) {
 		for(final Operator operator : values()) {
 			if(infix == operator.isInfix() && methodName.compareTo(operator.methodNameKey) == 0) {
 				return operator;
@@ -190,7 +185,7 @@ public enum Operator {
 		return null;
 	}
 
-	public static @Nullable Operator fromParenType(ParenType pt, Position pos) {
+	public static Operator fromParenType(ParenType pt, Position pos) {
 		for(final Operator operator : values()) {
 			if(pt.equals(operator.parenType) && pos == operator.position) {
 				return operator;

@@ -1,14 +1,11 @@
 package banjo.parser;
 
-import static banjo.parser.util.Check.nonNull;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
+
 
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.util.FilePos;
@@ -104,7 +101,7 @@ public class SourceCodeScanner {
 	 * @return A string if successful; null otherwise
 	 * @throws IOException
 	 */
-	public @Nullable String matchID(ParserReader in) throws IOException {
+	public String matchID(ParserReader in) throws IOException {
 		final int first = in.read();
 		if(!isIdentifierStart(first)) {
 			in.unread();
@@ -162,7 +159,7 @@ public class SourceCodeScanner {
 			return false;
 		}
 	}
-	@Nullable
+	
 	public String matchOperator(ParserReader in) throws IOException {
 		final int first = in.read();
 		switch(first) {
@@ -422,7 +419,7 @@ public class SourceCodeScanner {
 
 		final int leftColumn = in.getCurrentColumnNumber();
 		this.buf.setLength(0);
-		List<@NonNull T> errs = List.nil();
+		List<T> errs = List.nil();
 		while((cp = in.read()) != -1) {
 			if(cp == quoteType)
 				break; // End of string

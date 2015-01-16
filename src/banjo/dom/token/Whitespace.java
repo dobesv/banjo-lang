@@ -1,7 +1,5 @@
 package banjo.dom.token;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.Expr;
 import banjo.parser.util.SourceFileRange;
 
@@ -29,7 +27,7 @@ public class Whitespace extends AbstractAtom implements Token {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -42,7 +40,7 @@ public class Whitespace extends AbstractAtom implements Token {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		if(obj == null || !(obj instanceof Whitespace)) return false;
 		if(obj.hashCode() != this.hashCode()) return false;

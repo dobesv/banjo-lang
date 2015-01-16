@@ -8,9 +8,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.desugar.SourceExprDesugarer;
 import banjo.desugar.SourceExprDesugarer.DesugarResult;
 import banjo.dom.BadExpr;
@@ -31,13 +28,13 @@ public class ParseTestUtils {
 		// TODO Auto-generated constructor stub
 	}
 
-	public static <T extends Expr> void test(String source, int expectedErrors, @Nullable Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
+	public static <T extends Expr> void test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
 		final SourceCodeParser parser = new SourceCodeParser("<test>");
 		test(source, expectedErrors, expectedErrorClass, expectedClass, normalizedSource, parser);
 	}
 
 	public static <T extends Expr> void test(String source, int expectedErrors,
-			@Nullable Class<? extends BadExpr> expectedErrorClass,
+			Class<? extends BadExpr> expectedErrorClass,
 			Class<T> expectedClass, String normalizedSource, SourceCodeParser parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
@@ -68,7 +65,7 @@ public class ParseTestUtils {
 		}
 	}
 
-	public static int parseErrors(Class<? extends BadExpr> expectedClass, @NonNull SourceExpr parseTree) throws Error {
+	public static int parseErrors(Class<? extends BadExpr> expectedClass, SourceExpr parseTree) throws Error {
 		return errors(expectedClass, SourceErrorGatherer.getProblems(parseTree));
 	}
 
@@ -115,12 +112,12 @@ public class ParseTestUtils {
 	public static void assertIsNumberLiteralWithValue(final long value, final CoreExpr e) {
 		e.acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 			@Override
-			public @NonNull Unit numberLiteral(@NonNull NumberLiteral n) {
+			public Unit numberLiteral(NumberLiteral n) {
 				assertEquals(n.getNumber().longValue(), value);
 				return Unit.unit();
 			}
 			@Override
-			public @NonNull Unit fallback() {
+			public Unit fallback() {
 				fail("Not a number literal: "+e);
 				return Unit.unit();
 			}

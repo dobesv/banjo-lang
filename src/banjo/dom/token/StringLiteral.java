@@ -2,15 +2,14 @@ package banjo.dom.token;
 
 
 import static banjo.parser.util.Check.nonNull;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
+import banjo.dom.core.Extend;
+import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
@@ -87,7 +86,7 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -103,7 +102,7 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -138,7 +137,13 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	public CoreExpr toConstructionExpression() {
 		return getString()
 			.codePoints()
-			.mapToObj(cp -> (CoreExpr) new Call(new Identifier("'_'"), Operator.CALL.getMethodNameKey(), new NumberLiteral(cp)))
+			.mapToObj(cp ->
+			(CoreExpr) new Extend(
+					new Identifier("''"),
+					ObjectLiteral.selector(
+							new Identifier("nonempty"),
+							new NumberLiteral(cp),
+							new Identifier("''"))))
 			.reduce((a,b) -> (CoreExpr) new Call(a, Operator.ADD.getMethodNameKey(), b))
 			.orElse((CoreExpr)new Identifier("''"));
 	}

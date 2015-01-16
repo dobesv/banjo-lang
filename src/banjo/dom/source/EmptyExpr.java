@@ -1,7 +1,5 @@
 package banjo.dom.source;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.AbstractExpr;
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;

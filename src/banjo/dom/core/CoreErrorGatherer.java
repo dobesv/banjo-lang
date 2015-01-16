@@ -1,12 +1,14 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class CoreErrorGatherer implements CoreExprAlgebra<@NonNull List<@NonNull BadExpr>> {
+public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
+	public static final CoreErrorGatherer INSTANCE = new CoreErrorGatherer();
+	public static List<BadExpr> problems(CoreExpr e) {
+		return e.acceptVisitor(INSTANCE);
+	}
 
 	@Override
 	public List<BadExpr> badExpr(List<SourceFileRange> ranges, String message, Object... args) {

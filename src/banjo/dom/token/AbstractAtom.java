@@ -1,9 +1,9 @@
 package banjo.dom.token;
 
-import fj.data.List;
 import banjo.dom.AbstractExpr;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 
 

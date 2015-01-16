@@ -1,27 +1,20 @@
 package banjo.dom.core;
 
-import static banjo.parser.util.Check.nonNull;
-
 import java.util.Objects;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 
-import fj.F;
-import fj.Ord;
-import fj.Unit;
-import fj.data.List;
+
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
-import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
-import banjo.dom.token.OperatorRef;
-import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.ExprOrd;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.F;
+import fj.Ord;
+import fj.data.List;
 
 public class Method extends AbstractCoreExpr implements CoreExpr {
 
@@ -32,7 +25,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	private final CoreExpr body;
 	private final CoreExpr postcondition;
 
-	public static final Ord<Method> ORD = ExprOrd.<@NonNull Method>exprOrd();
+	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
 
 	public static final CoreExpr EMPTY_PRECONDITION = Identifier.TRUE;
 	public static final CoreExpr EMPTY_POSTCONDITION = Identifier.TRUE;
@@ -57,7 +50,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		this.postcondition = postcondition;
 	}
 
-	public static Method nullary(Key name, CoreExpr body) {
+	public static Method property(Key name, CoreExpr body) {
 		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, name, List.nil(), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 	private static int calcHash(List<SourceFileRange> ranges, Key selfArg, Key name,
@@ -85,7 +78,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	/**
 	 * If this method is an operator definition, return which operator it defines.  Otherwise, returns null.
 	 */
-	@Nullable
+	
 	Operator getOperator() {
 		// Operators always define a simply named "self" part
 		if(selfArg instanceof MixfixFunctionIdentifier || selfArg instanceof AnonymousKey)
@@ -100,9 +93,6 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		if(!(name instanceof Identifier))
 			return null;
 		String methodName = ((Identifier)name).getId();
-		if(binary && methodName.equals(Operator.LOOKUP.getMethodName())) {
-			return Operator.LOOKUP;
-		}
 		return Operator.fromMethodName(methodName, binary);
 
 	}
@@ -196,7 +186,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if(obj == null)
@@ -222,13 +212,13 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) return -1;
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			Method other = (Method) o;
 			cmp = name.compareTo(other.name);
-			if(cmp == 0) cmp = argumentLists.compare(Ord.listOrd(Key.ORD), other.argumentLists).toInt();
+			if(cmp == 0) cmp = Ord.listOrd(Ord.listOrd(Key.ORD)).compare(argumentLists, other.argumentLists).toInt();
 			if(cmp == 0) cmp = selfArg.compareTo(other.selfArg);
 			if(cmp == 0) cmp = this.body.compareTo(other.body);
 			if(cmp == 0) cmp = ListUtil.compare(this.getSourceFileRanges(), other.getSourceFileRanges());
@@ -264,11 +254,11 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 				name.acceptVisitor(visitor),
 				argumentLists.map(new F<List<Key>, List<T>>() {
 					@Override
-					public List<T> f(@Nullable List<Key> a) {
+					public List<T> f(List<Key> a) {
 						if(a == null) throw new NullPointerException();
 						return a.map(new F<Key, T>() {
 							@Override
-							public T f(@Nullable Key a) {
+							public T f(Key a) {
 								if(a == null) throw new NullPointerException();
 								return a.acceptVisitor(visitor);
 							}
@@ -329,6 +319,16 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 	public boolean hasPrecondition() {
 		return !precondition.equals(EMPTY_PRECONDITION);
+	}
+
+	public static Method call(List<Key> args, CoreExpr body) {
+		return simple(Key.ANONYMOUS, args, body);
+	}
+
+	private static Method simple(
+			Key methodName, List<Key> args,
+			CoreExpr body) {
+		return new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, methodName, List.single(args), EMPTY_PRECONDITION, body, EMPTY_POSTCONDITION);
 	}
 
 }

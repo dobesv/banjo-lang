@@ -9,7 +9,6 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Method;
 import banjo.dom.core.ObjectLiteral;
@@ -38,8 +37,6 @@ public class TestObjectLiteralParser {
 	//	@Test public void method5() { parse("test:\n f() = 1\n y() = 2", "{test = {f = 1, y = 2}}"); }
 	@Test public void applyMethod1() { parse("{(self(x)) = self}", "self(x) -> self"); }
 	@Test public void applyMethod2() { parse("{(x) = x+1}", "(x) -> x + 1"); }
-	@Test public void bracketsMethod1() { parse("{(self[x]) = self}", "{(self[x]) = self}"); }
-	@Test public void bracketsMethod2() { parse("{[x] = x}", "{\\[\\](x) = x}"); }
 	@Test public void plusMethod() { parse("{(x + y) = y}", "{(x + y) = y}"); }
 	@Test public void timesMethod() { parse("{(x * y) = y}", "{(x * y) = y}"); }
 	@Test public void logicalOrMethod() { parse("{(x || y) = y}", "{(x || y) = y}"); }

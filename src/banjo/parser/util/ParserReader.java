@@ -15,8 +15,6 @@ import java.nio.charset.Charset;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 
 
 /**
@@ -116,7 +114,7 @@ public class ParserReader extends Reader {
 	public static final char[][] DEFAULT_LINE_DELIMITERS = {{'\n'}};
 
 	@Override
-	public int read(@Nullable CharBuffer target) throws IOException {
+	public int read(CharBuffer target) throws IOException {
 		if(target == null) throw new NullPointerException();
 		final int offset = target.position();
 		final int charsRead = this.delegate.read(target);
@@ -139,7 +137,7 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(@Nullable char @Nullable [] cbuf) throws IOException {
+	public int read(char [] cbuf) throws IOException {
 		if(cbuf == null) throw new NullPointerException();
 		final int len = this.delegate.read(cbuf);
 		for(int i=0; i < len; i++) {
@@ -149,7 +147,7 @@ public class ParserReader extends Reader {
 	}
 
 	@Override
-	public int read(@Nullable char @Nullable [] cbuf, int off, int len) throws IOException {
+	public int read(char [] cbuf, int off, int len) throws IOException {
 		if(cbuf == null) throw new NullPointerException();
 		final int lenRead = this.delegate.read(cbuf, off, len);
 		for(int i=0; i < lenRead; i++) {
@@ -576,7 +574,7 @@ public class ParserReader extends Reader {
 		}
 	}
 
-	public @Nullable String positionInLineAsString() throws IOException {
+	public String positionInLineAsString() throws IOException {
 		final Pos start = new Pos(this.current);
 		final int colToMark = this.current.col;
 		start.moveToStartOfLine();

@@ -1,7 +1,7 @@
 package banjo.dom;
 
-import fj.data.List;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public interface ExprAlgebra<T> {
 

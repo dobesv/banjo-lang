@@ -5,8 +5,6 @@ import static banjo.parser.util.Check.nonNull;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -84,7 +82,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -141,7 +139,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)

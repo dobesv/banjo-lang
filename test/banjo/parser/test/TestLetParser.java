@@ -4,8 +4,6 @@ import static banjo.parser.test.ParseTestUtils.test;
 
 import org.junit.Test;
 
-import banjo.dom.source.BadSourceExpr.ExpectedOperator;
-
 public class TestLetParser {
 	private static final String HELLO_WORLD_NORMALIZED = "((hello) -> hello)(\"world\")";
 

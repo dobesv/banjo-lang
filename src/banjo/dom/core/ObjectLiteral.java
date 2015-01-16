@@ -1,10 +1,6 @@
 package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
-
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
@@ -12,13 +8,11 @@ import banjo.dom.token.Key;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.ExprOrd;
-import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.F;
 import fj.Ord;
 import fj.Unit;
 import fj.data.List;
-import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
@@ -26,7 +20,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final fj.data.List<Method> EMPTY_METHOD_LIST = fj.data.List.nil();
 	private final fj.data.List<Method> methods;
 
-	public static final Ord<Method> ORD = ExprOrd.<@NonNull Method>exprOrd();
+	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
 
 	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> methods) {
 		super(methods.hashCode()+ranges.hashCode(), ranges);
@@ -136,7 +130,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -152,7 +146,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null)
@@ -160,7 +154,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ObjectLiteral other = (ObjectLiteral) o;
-			cmp = this.methods.compare(Method.ORD, other.methods).toInt();
+			cmp = Ord.listOrd(Method.ORD).compare(this.methods, other.methods).toInt();
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
@@ -174,19 +168,23 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
 		return visitor.objectLiteral(getSourceFileRanges(), methods.map(new F<Method, T>() {
 			@Override
-			public T f(@Nullable Method a) {
+			public T f(Method a) {
 				if(a == null) throw new NullPointerException();
 				return a.acceptVisitor(visitor);
 			}
 		}));
 	}
 
-	public @Nullable Method findMethod(Key name) {
+	public Method findMethod(Key name) {
 		for(Method method : methods) {
 			if(name.getParts().equals(method.getName().getParts())) {
 				return method;
 			}
 		}
 		return null;
+	}
+
+	public static ObjectLiteral selector(Key name, CoreExpr ... args) {
+		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, args)));
 	}
 }

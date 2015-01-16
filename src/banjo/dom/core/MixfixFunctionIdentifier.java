@@ -1,18 +1,14 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
-import banjo.dom.token.BadIdentifier;
-import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, CoreExpr {
 
@@ -92,7 +88,7 @@ public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, C
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) return -1;
 		if(this == o)
 			return 0;
@@ -106,7 +102,7 @@ public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, C
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		if(obj == null || !(obj instanceof MixfixFunctionIdentifier)) return false;
 		if(!super.equals(obj)) return false;

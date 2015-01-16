@@ -1,8 +1,6 @@
 package banjo.dom.token;
 
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.CoreExprAlgebra;
@@ -78,7 +76,7 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if(obj == null)
@@ -92,7 +90,7 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) return -1;
 		if(this == o)
 			return 0;

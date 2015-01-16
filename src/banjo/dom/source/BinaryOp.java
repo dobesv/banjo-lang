@@ -1,11 +1,7 @@
 package banjo.dom.source;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
-import fj.Ord;
 import fj.data.List;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {

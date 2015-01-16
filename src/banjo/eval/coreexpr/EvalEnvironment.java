@@ -2,8 +2,7 @@ package banjo.eval.coreexpr;
 
 import static banjo.parser.util.Check.nonNull;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
+
 
 import banjo.dom.BadExpr;
 import banjo.dom.core.AnonymousKey;
@@ -29,7 +28,7 @@ import fj.data.Option;
 import fj.data.TreeMap;
 
 public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
-	@Nullable
+	
 	public final EvalEnvironment parent;
 	public final TreeMap<Key, EvalResult> bindings;
 	public static final Key TOP_SCOPE = new Identifier("TOP SCOPE");
@@ -37,7 +36,7 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 	public static final TreeMap<Key, EvalResult> EMPTY_BINDINGS = TreeMap
 			.empty(Key.ORD);
 
-	EvalEnvironment(@Nullable EvalEnvironment parent,
+	EvalEnvironment(EvalEnvironment parent,
 			TreeMap<Key, EvalResult> bindings) {
 		super();
 		this.parent = parent;
@@ -53,16 +52,10 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 	}
 
 	public EvalResult failure(String variant, CoreExpr info) {
-		final EvalEnvironment rootEnv = getRootEnvironment();
-		final @NonNull Method is_failure = Method.nullary(new Identifier("is failure"),
-				new Identifier("true"));
-		final @NonNull Method cb = new Method(
-				SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, Key.ANONYMOUS,
-				List.single(List.single(new Identifier("x"))), Method.EMPTY_PRECONDITION,
-				new Call(new Identifier("x"), new Identifier(variant), info), Method.EMPTY_POSTCONDITION
-		);
-		//final EvalEnvironment subEnv = new EvalEnvironment(bindings.set(new Identifier("failure info"), info));
-		return new ObjectLiteral(is_failure, cb).acceptVisitor(rootEnv);
+		return new Extend(
+				ObjectLiteral.selector(new Identifier(variant), info),
+				new ObjectLiteral(Method.property(new Identifier("is failure"), new Identifier("true")))
+		).acceptVisitor(getRootEnvironment());
 	}
 
 	public EvalEnvironment getRootEnvironment() {
@@ -102,20 +95,23 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 			throw new Error("TODO");
 		}
 
-		@Nullable
+		
 		EvalResult methodBinding = object.findMethod(call.getName(),
 				call.isCallNext());
 		if (methodBinding == null || methodBinding.currentMethod == null) {
 			if (call.isOptional()) {
 				return new ListLiteral(List.nil()).acceptVisitor(this);
 			} else {
-				return failure("missing method definition", call.getName()
-						.toSource());
+				if(call.getName().compareTo(Key.ANONYMOUS) == 0) {
+					return failure("missing method definition", "()");
+				} else {
+					return failure("missing method definition", call.getName().toSource());
+				}
 			}
 		}
 		Method method = nonNull(methodBinding.currentMethod);
 		EvalEnvironment closure = methodBinding.environment;
-		final @NonNull TreeMap<@NonNull Key, @NonNull EvalResult> bindingsWithSelf = method.hasSelfArg() ? closure.bindings.set(
+		final TreeMap<Key, EvalResult> bindingsWithSelf = method.hasSelfArg() ? closure.bindings.set(
 method.getSelfArg(), methodBinding) : closure.bindings;
 		TreeMap<Key, EvalResult> newBindings = method
 				.getArgumentLists().zip(call.getArgumentLists()).foldLeft(
@@ -157,9 +153,9 @@ method.getSelfArg(), methodBinding) : closure.bindings;
 	@Override
 	public EvalResult identifier(Identifier id) {
 		return this.bindings.get(id)
-			.orElse(P.lazy(u -> bindings.get(TOP_SCOPE)
+			.orElse(P.<Option<EvalResult>>lazy(u -> bindings.get(TOP_SCOPE)
 					.map(x -> x.hasMethod(id) ? call(new Call(TOP_SCOPE, id)) : failure("unbound identifier", id.toString()))))
-			.orSome(P.lazy(u -> failure("unbound identifier", id.toString())));
+			.orSome(P.<EvalResult>lazy(u -> failure("unbound identifier", id.toString())));
 	}
 
 	@Override
@@ -180,7 +176,7 @@ method.getSelfArg(), methodBinding) : closure.bindings;
 	}
 
 	public EvalResult mixfixFunctionIdentifier(MixfixFunctionIdentifier id) {
-		return this.bindings.get(id).orSome(P.lazy(u -> failure("unbound identifier", id.toString())));
+		return this.bindings.get(id).orSome(P.<EvalResult>lazy(u -> failure("unbound identifier", id.toString())));
 	}
 
 	@Override
@@ -201,7 +197,7 @@ method.getSelfArg(), methodBinding) : closure.bindings;
 
 	public static EvalEnvironment root(
 			TreeMap<Key, CoreExpr> rootDefs) {
-		List<Method> methods = rootDefs.keys().map(
+		List<Method> methods = rootDefs.keys().<Method>map(
 				methodName -> new Method(SourceFileRange.EMPTY_LIST, TOP_SCOPE, methodName, List.nil(), Method.EMPTY_PRECONDITION, rootDefs.get(methodName).some(), Method.EMPTY_POSTCONDITION)
 		);
 		ObjectLiteral rootObj = new ObjectLiteral(methods);

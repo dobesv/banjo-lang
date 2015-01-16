@@ -2,13 +2,11 @@ package banjo.dom.source;
 
 import java.util.Arrays;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
 import banjo.dom.AbstractExpr;
 import banjo.dom.Expr;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public abstract class AbstractOp extends AbstractExpr {
 	public final Operator operator;
@@ -32,7 +30,7 @@ public abstract class AbstractOp extends AbstractExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -51,7 +49,7 @@ public abstract class AbstractOp extends AbstractExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		if(obj == null) return false;
 		if(!(obj instanceof AbstractOp)) return false;

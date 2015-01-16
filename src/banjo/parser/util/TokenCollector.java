@@ -1,7 +1,5 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import banjo.dom.token.BadToken;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Identifier;
@@ -14,7 +12,7 @@ import banjo.dom.token.Whitespace;
 import banjo.parser.SourceCodeParser;
 import fj.data.List;
 
-public class TokenCollector implements TokenVisitor<@NonNull TokenCollector> {
+public class TokenCollector implements TokenVisitor<TokenCollector> {
 	final SourceCodeParser parser;
 	final List<Token> tokensReversed;
 

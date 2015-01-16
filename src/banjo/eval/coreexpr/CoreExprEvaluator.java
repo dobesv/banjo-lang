@@ -1,12 +1,9 @@
 package banjo.eval.coreexpr;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
-import fj.data.TreeMap;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.token.Key;
 import banjo.eval.ProjectLoader;
+import fj.data.TreeMap;
 
 /**
  * Interpreter operates by translating between source expressions.

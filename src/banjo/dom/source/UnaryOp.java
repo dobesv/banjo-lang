@@ -2,7 +2,6 @@ package banjo.dom.source;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
-import fj.Ord;
 import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {

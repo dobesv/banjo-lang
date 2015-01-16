@@ -1,24 +1,16 @@
 package banjo.dom.core;
 
 import static banjo.parser.util.Check.nonNull;
-
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.F;
-import fj.Ord;
-import fj.Unit;
-import fj.data.List;
 import banjo.dom.Expr;
-import banjo.dom.ExprAlgebra;
 import banjo.dom.source.Operator;
 import banjo.dom.source.OperatorType;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
-import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OperatorRef;
-import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.F;
+import fj.Ord;
+import fj.data.List;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 
@@ -65,7 +57,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		return Precedence.SUFFIX;
 	}
 
-	private @Nullable Operator getOperator() {
+	private Operator getOperator() {
 		if(optional || callNext)
 			return null;
 		List<String> nameParts = name.getParts();
@@ -80,14 +72,19 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 			return null;
 
 		String methodName = nameParts.head();
-		if(binary && methodName.equals(Operator.LOOKUP.getMethodName()))
-			return Operator.LOOKUP;
-
 		return Operator.fromMethodName(methodName, binary);
 	}
 
 	public List<List<CoreExpr>> getArgumentLists() {
 		return argumentLists;
+	}
+
+	/**
+	 * Flatten the argument lists into a single list
+	 * @return
+	 */
+	public List<CoreExpr> getAllArguments() {
+		return List.join(argumentLists);
 	}
 
 	@Override
@@ -155,7 +152,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 
-	private static boolean isLazyValue(@Nullable CoreExpr head) {
+	private static boolean isLazyValue(CoreExpr head) {
 		return head != null && head.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
 			@Override
 			@SuppressWarnings("null")
@@ -177,7 +174,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (!(obj instanceof Call))
@@ -195,7 +192,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) throw new NullPointerException();
 		if(this == o)
 			return 0;
@@ -204,7 +201,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 			final Call other = (Call) o;
 			if(cmp == 0) cmp = this.object.compareTo(other.object);
 			if(cmp == 0) cmp = this.name.compareTo(other.name);
-			if(cmp == 0) cmp = this.getArgumentLists().compare(Ord.listOrd(CoreExpr.ORD), other.getArgumentLists()).toInt();
+			if(cmp == 0) cmp = Ord.listOrd(Ord.listOrd(CoreExpr.ORD)).compare(this.getArgumentLists(), other.getArgumentLists()).toInt();
 		}
 		return cmp;
 	}
@@ -217,11 +214,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 				name.acceptVisitor(visitor),
 				getArgumentLists().map(new F<List<CoreExpr>, List<T>>() {
 					@Override
-					public List<T> f(@Nullable List<CoreExpr> argumentList) {
+					public List<T> f(List<CoreExpr> argumentList) {
 						if(argumentList == null) throw new NullPointerException();
 						return argumentList.map(new F<CoreExpr, T>() {
 							@Override
-							public T f(@Nullable CoreExpr arg) {
+							public T f(CoreExpr arg) {
 								if(arg == null) throw new NullPointerException();
 								return arg.acceptVisitor(visitor);
 							}

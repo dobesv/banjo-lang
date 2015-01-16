@@ -1,7 +1,5 @@
 package banjo.dom.token;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.FileRange;
 
@@ -41,7 +39,7 @@ public class BadToken extends AbstractCachedHashCode implements Token {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		if(obj == null || !(obj instanceof BadToken)) return false;
 		if(obj.hashCode() != this.hashCode()) return false;

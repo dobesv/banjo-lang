@@ -5,7 +5,6 @@ import org.junit.Test;
 
 import banjo.dom.BadExpr;
 import banjo.dom.source.BadSourceExpr;
-import banjo.dom.source.BadSourceExpr.UnsupportedOperator;
 
 public class TestMathParser {
 
@@ -49,12 +48,6 @@ public class TestMathParser {
 
 	@Test public void memberOf1() { test("x in y", "x in y"); }
 	@Test public void memberOf2() { test("x\u2208y", "x <++ y"); }
-
-	@Test public void match1() { test("x#y", "x.\\#(y)"); }
-	@Test public void tryMatch1() { test("x #? y", "x.?\\#(y)"); }
-
-	@Test public void variant1() { test("#y", "{\\#(\\#y) = &&&\\#y.y}"); }
-	@Test public void variant2() { test("#x(y)", "{\\#(\\#x\\(y\\)) = &&&\\#x\\(y\\).x(y)}"); }
 
 	@Test public void parenMultiline1() { test("{\n  x = (\n    doc = \"bla\"\n  ) => bloo(\n    1, 2, 3\n  )\n}", "{x = ((doc) -> bloo(1, 2, 3))(\"bla\")}"); }
 

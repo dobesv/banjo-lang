@@ -2,16 +2,12 @@ package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
 import banjo.dom.source.BadSourceExpr.ExpectedOperator;
 import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
-import banjo.parser.SourceCodeParser;
 import banjo.parser.util.FileRange;
 
 public class TestParseErrors {

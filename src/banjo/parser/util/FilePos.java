@@ -1,6 +1,5 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.Nullable;
 
 public final class FilePos {
 	/** Absolute file position in characters; this is the count of characters coming BEFORE this position */
@@ -39,7 +38,7 @@ public final class FilePos {
 		return result;
 	}
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)

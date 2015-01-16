@@ -1,6 +1,5 @@
 package banjo.dom;
 
-import org.eclipse.jdt.annotation.Nullable;
 
 public enum ParenType {
 	PARENS('(', ')'),
@@ -27,7 +26,7 @@ public enum ParenType {
 		return this.endChar;
 	}
 
-	public static @Nullable ParenType forChar(char startChar) {
+	public static ParenType forChar(char startChar) {
 		for(final ParenType t : values()) {
 			if(startChar == t.startChar)
 				return t;
@@ -35,7 +34,7 @@ public enum ParenType {
 		return null;
 	}
 
-	public static @Nullable ParenType forCloseChar(char endChar) {
+	public static ParenType forCloseChar(char endChar) {
 		for(final ParenType t : values()) {
 			if(endChar == t.endChar)
 				return t;

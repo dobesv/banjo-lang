@@ -1,7 +1,5 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 public class AbstractCachedHashCode {
 
 	private final int hashCode;
@@ -16,7 +14,7 @@ public class AbstractCachedHashCode {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if(obj == this) return true;
 		return obj != null && obj.hashCode() == this.hashCode;
 	}

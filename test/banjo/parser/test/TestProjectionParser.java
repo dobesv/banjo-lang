@@ -22,12 +22,12 @@ public class TestProjectionParser {
 	@Test public void specialCharField1q() { ParseTestUtils.test("a.\"--\"", "a.\\-\\-", Call.class); }
 	@Test public void specialCharField2q() { ParseTestUtils.test("a.\"..\"", "a.\\.\\.", Call.class); }
 	@Test public void specialCharField3q() { ParseTestUtils.test("a.\".\"", "a.\\.", Call.class); }
-	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map((_arg) -> _arg.b)", Call.class); }
+	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map((\\.b) -> \\.b.b)", Call.class); }
 
 	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a.?b", Call.class); }
 	@Test public void aDotQuestionBC() { ParseTestUtils.test("a.?b(c)", "a.?b(c)", Call.class); }
-	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map((_arg) -> _arg.?b)", Call.class); }
-	@Test public void aStarDotQuestionBC() { ParseTestUtils.test("a*.?b(c)", "a.map((_arg) -> _arg.?b(c))", Call.class); }
+	@Test public void aStarDotQuestionB() { ParseTestUtils.test("a*.?b", "a.map((\\.b) -> \\.b.?b)", Call.class); }
+	@Test public void aStarDotQuestionBC() { ParseTestUtils.test("a*.?b(c)", "a.map((\\.b) -> \\.b.?b(c))", Call.class); }
 
 	@Test public void parenNewlineLhs1() { ParseTestUtils.test("{t = [x, y].map((z) -> (\n  x\n )).min\n}", "{t = [x, y].map((z) -> x).min}", ObjectLiteral.class); }
 	@Test public void parenNewlineLhs2() { ParseTestUtils.test("{t = [\nx, \ny].length\n}", "{t = [x, y].length}", ObjectLiteral.class); }

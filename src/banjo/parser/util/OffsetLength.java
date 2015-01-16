@@ -1,6 +1,5 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.Nullable;
 
 public class OffsetLength implements Comparable<OffsetLength> {
 	final int offset;
@@ -25,7 +24,7 @@ public class OffsetLength implements Comparable<OffsetLength> {
 		return result;
 	}
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -41,7 +40,7 @@ public class OffsetLength implements Comparable<OffsetLength> {
 	}
 
 	@Override
-	public int compareTo(@Nullable OffsetLength o) {
+	public int compareTo(OffsetLength o) {
 		if(o == null) return -1;
 		final int cmp = Integer.compare(this.offset, o.offset);
 		if(cmp != 0) return cmp;

@@ -1,7 +1,5 @@
 package banjo.dom.token;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.CoreExprAlgebra;
@@ -14,7 +12,7 @@ import fj.data.List;
 
 public class OperatorRef extends AbstractAtom implements Atom {
 
-	public static final @Nullable OperatorRef NONE = null;
+	public static final OperatorRef NONE = null;
 
 	private final String op;
 
@@ -57,7 +55,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (!(obj instanceof OperatorRef))
@@ -71,7 +69,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;

@@ -1,8 +1,8 @@
 package banjo.eval.coreexpr.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
 import banjo.eval.coreexpr.CoreExprEvaluator;
@@ -11,7 +11,7 @@ import banjo.eval.coreexpr.EvalResult;
 public class TestSimpleExpressions {
 	public static boolean isTruthyExpr(String src) {
 		System.out.println("Source: "+src);
-		final @NonNull EvalResult value = CoreExprEvaluator.eval(src);
+		final EvalResult value = CoreExprEvaluator.eval(src);
 		System.out.println("Result: "+value.object.toSource());
 		return value.isTruthy();
 	}

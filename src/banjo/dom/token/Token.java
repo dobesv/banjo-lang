@@ -1,6 +1,5 @@
 package banjo.dom.token;
 
-import banjo.parser.SourceCodeParser;
 
 
 /**

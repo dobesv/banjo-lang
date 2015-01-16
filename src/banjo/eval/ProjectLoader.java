@@ -5,13 +5,12 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.io.StringReader;
-import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import org.eclipse.jdt.annotation.Nullable;
+
 
 import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
@@ -81,14 +80,13 @@ public class ProjectLoader {
 		try {
 			return Files.list(Paths.get(rootPath))
 					.map(p -> loadBinding(p))
-					.reduce(EMPTY_BINDINGS, (b1, b2) -> b1.setAll(b2));
+					.reduce(EMPTY_BINDINGS, (b1, b2) -> b2.union(b1));
 		} catch (IOException e) {
 			return EMPTY_BINDINGS;
 		}
 	}
 
 	public static TreeMap<Key, CoreExpr> loadBanjoPath() {
-		@Nullable
 		String path = System.getProperty("banjo.path");
 		if(path == null) path = System.getenv("BANJO_PATH");
 		if(path == null) return EMPTY_BINDINGS;
@@ -101,7 +99,7 @@ public class ProjectLoader {
 			for(String path: searchPath.split(File.pathSeparator)) {
 				if(path.isEmpty())
 					continue;
-				bindings = bindings.setAll(loadBindings(path));
+				bindings = loadBindings(path).union(bindings);
 			}
 		}
 		return bindings;
@@ -121,6 +119,6 @@ public class ProjectLoader {
 	}
 
 	public static TreeMap<Key, CoreExpr> loadLocalAndLibraryBindings(String sourceFilePath) {
-		return loadBanjoPath().setAll(loadLocalBindings(sourceFilePath));
+		return loadLocalBindings(sourceFilePath).union(loadBanjoPath());
 	}
 }

@@ -2,14 +2,11 @@ package banjo.dom;
 
 import java.util.Arrays;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import fj.data.List;
-import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.ExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
@@ -60,7 +57,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null || !super.equals(obj))
@@ -79,7 +76,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(o == null) throw new NullPointerException();
 		if(this == o)
 			return 0;

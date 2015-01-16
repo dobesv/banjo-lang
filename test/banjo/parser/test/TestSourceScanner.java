@@ -4,13 +4,9 @@ import static banjo.parser.test.ParseTestUtils.test;
 import static banjo.parser.test.TokensToString.testScanner;
 import static org.junit.Assert.assertEquals;
 
-import java.util.ArrayList;
-
-import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import fj.data.List;
 import banjo.dom.Expr;
 import banjo.dom.core.Call;
 import banjo.dom.token.Comment;
@@ -21,6 +17,7 @@ import banjo.dom.token.Whitespace;
 import banjo.parser.SourceCodeParser;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.TokenCollector;
+import fj.data.List;
 public class TestSourceScanner {
 	@Test
 	public void test1() {
@@ -36,7 +33,7 @@ public class TestSourceScanner {
 		});
 	}
 
-	private void testTokenizer(@NonNull String src, String normalizedSource,
+	private void testTokenizer(String src, String normalizedSource,
 			Class<? extends Expr> expectedClass,
 			String[] expectedTokenNormalizedSource,
 			Class<?>[] expectedTokenClasses) throws Error {

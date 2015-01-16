@@ -1,14 +1,11 @@
 package banjo.parser.util;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
 import fj.Ord;
 import fj.data.List;
 
-public class SourceFileRange implements Comparable<@NonNull SourceFileRange> {
-	public static final List<@NonNull SourceFileRange> EMPTY_LIST = List.nil();
-	public static final Ord<@NonNull SourceFileRange> ORD = Ord.<@NonNull SourceFileRange>comparableOrd();
+public class SourceFileRange implements Comparable<SourceFileRange> {
+	public static final List<SourceFileRange> EMPTY_LIST = List.nil();
+	public static final Ord<SourceFileRange> ORD = Ord.<SourceFileRange>comparableOrd();
 
 	final String sourceFile;
 	final FileRange fileRange;
@@ -28,7 +25,7 @@ public class SourceFileRange implements Comparable<@NonNull SourceFileRange> {
 		return this.fileRange.hashCode() ^ this.sourceFile.hashCode();
 	}
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -44,7 +41,7 @@ public class SourceFileRange implements Comparable<@NonNull SourceFileRange> {
 	}
 
 	@Override
-	public int compareTo(@Nullable SourceFileRange o) {
+	public int compareTo(SourceFileRange o) {
 		if(o == null) return -1;
 		int cmp = this.sourceFile.compareTo(o.sourceFile);
 		if(cmp == 0) cmp = this.fileRange.compareTo(o.fileRange);

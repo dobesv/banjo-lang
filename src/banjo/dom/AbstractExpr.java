@@ -3,14 +3,13 @@ package banjo.dom;
 
 import static banjo.parser.util.Check.nonNull;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
 
-import fj.data.List;
+
 import banjo.dom.source.Precedence;
 import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.data.List;
 
 public abstract class AbstractExpr extends AbstractCachedHashCode implements Expr {
 	final List<SourceFileRange> sourceFileRanges;
@@ -39,7 +38,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	public String toSource(Precedence prec) {
 		final StringBuffer buf = new StringBuffer();
 		toSource(buf, prec);
-		@SuppressWarnings("null") @NonNull
+		@SuppressWarnings("null") 
 		final String result = buf.toString();
 		return result;
 	}
@@ -56,7 +55,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	public String toFullyParenthesizedSource() {
 		final StringBuffer buf = new StringBuffer();
 		toFullyParenthesizedSource(buf);
-		@SuppressWarnings("null") @NonNull
+		@SuppressWarnings("null") 
 		final String result = buf.toString();
 		return result;
 	}
@@ -67,8 +66,8 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return toSource();
 	}
 
-	static @Nullable
-	protected <T extends Expr> T optTransform(@Nullable T opt, ExprTransformer transformer) {
+	static 
+	protected <T extends Expr> T optTransform(T opt, ExprTransformer transformer) {
 		if(opt == null)
 			return opt;
 		final T value = nonNull(opt);
@@ -79,12 +78,12 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		return ListUtil.compare(sourceFileRanges, nonNull(o).getSourceFileRanges());
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		return obj == this || (
 				super.equals(obj) &&
 				(obj instanceof Expr) &&

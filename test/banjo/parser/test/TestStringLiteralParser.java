@@ -1,17 +1,14 @@
 package banjo.parser.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 
 import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.SourceCodeParser;
-import banjo.parser.util.ParserReader;
 
 public class TestStringLiteralParser {
 

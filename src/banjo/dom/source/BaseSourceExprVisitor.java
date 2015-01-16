@@ -1,8 +1,5 @@
 package banjo.dom.source;
 
-import org.eclipse.jdt.annotation.Nullable;
-
-import banjo.dom.token.Atom;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;

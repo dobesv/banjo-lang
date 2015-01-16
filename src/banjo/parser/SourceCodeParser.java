@@ -4,7 +4,7 @@ import static banjo.parser.util.Check.nonNull;
 
 import java.io.IOException;
 
-import org.eclipse.jdt.annotation.Nullable;
+
 
 import banjo.dom.ParenType;
 import banjo.dom.source.BadSourceExpr;
@@ -25,7 +25,6 @@ import banjo.dom.token.TokenVisitor;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceFileRange;
-import fj.Ord;
 import fj.data.List;
 
 /**
@@ -34,8 +33,8 @@ import fj.data.List;
 public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	public final String sourceFile;
 	public final List<PartialOp> opStack;
-	public final @Nullable SourceExpr operand;
-	public final @Nullable SourceExpr result;
+	public final SourceExpr operand;
+	public final SourceExpr result;
 	public final int operandIndentLevel;
 
 	abstract class PartialOp {
@@ -195,7 +194,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		}
 	}
 
-	public SourceCodeParser(String sourceFile, List<PartialOp> opStack, @Nullable SourceExpr operand, @Nullable SourceExpr result, int operandIndentLevel) {
+	public SourceCodeParser(String sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
 		super();
 		this.sourceFile = sourceFile;
 		this.opStack = opStack;
@@ -278,9 +277,8 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	 * whitespace/comments only.
 	 *
 	 * @param range The range of the token
-	 * @param addNewline
 	 */
-	private SourceCodeParser checkIndentDedent(FileRange range, boolean addNewline) {
+	private SourceCodeParser checkNewline(FileRange range) {
 		final int line = range.getStartLine();
 		final int column = range.getStartColumn();
 		//final int offset = range.getStartOffset();
@@ -297,16 +295,13 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		}
 
 		// Insert a newline operation since we moved to a new line
-		if(addNewline) {
-			return ps.pushNewline(range);
-		}
-		return ps;
+		return ps.pushNewline(range);
 	}
 
-	private SourceCodeParser update(List<PartialOp> opStack, @Nullable SourceExpr operand, @Nullable SourceExpr result, int operandIndentLevel) {
+	private SourceCodeParser update(List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
 		return new SourceCodeParser(sourceFile, opStack, operand, result, operandIndentLevel);
 	}
-	private SourceCodeParser update(List<PartialOp> opStack, @Nullable SourceExpr operand, int operandIndentLevel) {
+	private SourceCodeParser update(List<PartialOp> opStack, SourceExpr operand, int operandIndentLevel) {
 		return update(opStack, operand, result, operandIndentLevel);
 	}
 
@@ -315,14 +310,26 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	private SourceCodeParser visitAtom(FileRange range, SourceExpr token) {
-		SourceCodeParser ps = checkIndentDedent(range, true);
-		final SourceExpr operand = ps.operand;
-		if(operand != null) {
-			final SourceFileRange betweenRange = operand.getSourceFileRanges().isEmpty() ? sfr(range.headRange()) : sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range));
-			ps = ps.pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, betweenRange, range.getStartColumn()));
-		}
-		return ps.withOperand(token, range.getStartColumn());
+		return checkNewline(range)
+				.maybeJuxtaposition(range)
+				.withOperand(token, range.getStartColumn());
 	}
+
+	private SourceCodeParser maybeJuxtaposition(FileRange nextTokenRange) {
+		final SourceExpr operand = this.operand;
+		if(operand != null) {
+			return juxtaposition(nextTokenRange);
+		}
+		return this;
+	}
+
+	private SourceCodeParser juxtaposition(FileRange nextTokenRange) {
+		final SourceExpr operand = this.operand;
+		if(operand == null) throw new IllegalStateException();
+		final SourceFileRange betweenRange = operand.getSourceFileRanges().isEmpty() ? sfr(nextTokenRange.headRange()) : sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), nextTokenRange));
+		return pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, betweenRange, nextTokenRange.getStartColumn()));
+	}
+
 	private SourceCodeParser withOperand(SourceExpr newOperand, int operandIndentLevel) {
 		return update(opStack, newOperand, operandIndentLevel);
 	}
@@ -342,7 +349,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 
 	@Override
 	public SourceCodeParser operator(FileRange range, String op) {
-		SourceCodeParser ps = checkIndentDedent(range, true);
+		SourceCodeParser ps = checkNewline(range);
 
 		SourceCodeParser cp = ps.tryCloseParen(range, op);
 		if(cp != null) {
@@ -351,30 +358,32 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		SourceExpr operand = ps.getOperand();
 		if(operand != null) {
 			// Infix or suffix position
-			@Nullable
+			
 			final Operator suffixOperator = Operator.fromOp(op, Position.SUFFIX);
 			if(suffixOperator != null) {
 				ps = ps.applyOperatorPrecedenceToStack(operand, suffixOperator); // Apply operator precedence
 				operand = nonNull(ps.operand);
 				return ps.update(new UnaryOp(suffixOperator, List.single(sfr(range)), operand), ps.operandIndentLevel);
 			}
-			@Nullable Operator operator = Operator.fromOp(op, Position.INFIX);
+			Operator operator = Operator.fromOp(op, Position.INFIX);
 
-			if(operator == null) {
-				operator = Operator.INVALID;
+			if(operator != null) {
+				// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
+				ps = ps.applyOperatorPrecedenceToStack(operand, operator);
+				operand = nonNull(ps.operand);
+				return ps.pushPartialOp(new PartialBinaryOp(operator, operand, new OperatorRef(sfr(range), op), ps.operandIndentLevel(operator, range)));
+			} else {
+				// Maybe a juxtaposition with a unary operator (like parens)?
+				ps = ps.juxtaposition(range);
 			}
-			// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
-			ps = ps.applyOperatorPrecedenceToStack(operand, operator);
-			operand = nonNull(ps.operand);
-			return ps.pushPartialOp(new PartialBinaryOp(operator, operand, new OperatorRef(sfr(range), op), ps.operandIndentLevel(operator, range)));
-		} else {
-			// Prefix position
-			@Nullable Operator operator = Operator.fromOp(op, Position.PREFIX);
-			if(operator == null) {
-				operator = Operator.INVALID;
-			}
-			return ps.pushPartialOp(new PartialUnaryOp(sfr(range), operator, ps.operandIndentLevel(operator, range)));
 		}
+
+		// Prefix position
+		Operator operator = Operator.fromOp(op, Position.PREFIX);
+		if(operator == null) {
+			operator = Operator.INVALID;
+		}
+		return ps.pushPartialOp(new PartialUnaryOp(sfr(range), operator, ps.operandIndentLevel(operator, range)));
 	}
 
 	private int operandIndentLevel(Operator operator, FileRange range) {
@@ -425,11 +434,11 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		return update(opStack, operand, operandIndentLevel);
 	}
 
-	private @Nullable SourceCodeParser tryCloseParen(FileRange range, String op) {
+	private SourceCodeParser tryCloseParen(FileRange range, String op) {
 		if(op.length() != 1)
 			return null;
 
-		@Nullable
+		
 		final ParenType closeParenTypeMaybe = ParenType.forCloseChar(op.charAt(0));
 
 		if(closeParenTypeMaybe == null)
@@ -521,11 +530,11 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		return new SourceFileRange(this.sourceFile, fileRange);
 	}
 
-	public @Nullable SourceExpr getOperand() {
+	public SourceExpr getOperand() {
 		return operand;
 	}
 
-	public @Nullable SourceExpr getResult() {
+	public SourceExpr getResult() {
 		return result;
 	}
 

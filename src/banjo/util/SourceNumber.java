@@ -1,6 +1,5 @@
 package banjo.util;
 
-import fj.Ordering;
 
 public class SourceNumber extends Number implements Comparable<SourceNumber> {
 	private static final long serialVersionUID = 707462831817160057L;

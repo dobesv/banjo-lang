@@ -1,7 +1,6 @@
 package banjo.eval.coreexpr;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
+
 
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
@@ -13,18 +12,18 @@ import banjo.dom.token.Key;
 import fj.F2;
 
 public class EvalResult {
-	@Nullable
+	
 	public final EvalResult base;
 	public final ObjectLiteral object;
 	public final EvalEnvironment environment;
-	@Nullable
+	
 	public final Method currentMethod;
-	@Nullable
+	
 	public final EvalResult currentMethodSource;
 
-	public EvalResult(@Nullable EvalResult base, ObjectLiteral object,
-			EvalEnvironment environment, @Nullable Method currentMethod,
-			@Nullable EvalResult currentMethodSource) {
+	public EvalResult(EvalResult base, ObjectLiteral object,
+			EvalEnvironment environment, Method currentMethod,
+			EvalResult currentMethodSource) {
 		super();
 		this.base = base;
 		this.object = object;
@@ -33,7 +32,7 @@ public class EvalResult {
 		this.currentMethodSource = currentMethodSource;
 	}
 
-	public EvalResult(@Nullable EvalResult base, ObjectLiteral object,
+	public EvalResult(EvalResult base, ObjectLiteral object,
 			EvalEnvironment environment) {
 		this(base, object, environment, null, null);
 	}
@@ -42,18 +41,18 @@ public class EvalResult {
 		this(null, object, environment);
 	}
 
-	public @Nullable EvalResult findMethod(Key name) {
+	public EvalResult findMethod(Key name) {
 		return findMethod(name, false);
 	}
 
-	public @Nullable EvalResult findMethod(Key name, boolean callNext) {
+	public EvalResult findMethod(Key name, boolean callNext) {
 		final Method cm = currentMethod;
 		final EvalResult cms = currentMethodSource;
 		if(callNext && cm != null && cms != null && cm.getName().equals(name)) {
 			final EvalResult cmsBase = cms.base;
 			if(cmsBase == null)
 				return null;
-			@Nullable
+			
 			EvalResult next = cmsBase.findMethod(name, false);
 			if(next == null)
 				return null;
@@ -78,7 +77,11 @@ public class EvalResult {
 	 */
 	public boolean isTruthy() {
 		ObjectLiteral trueMarker = new ObjectLiteral();
-		return this.useIn((x,tempEnv) -> new Call(x, Operator.LOGICAL_AND.getMethodNameKey(), trueMarker).acceptVisitor(tempEnv)).object == trueMarker;
+		return this.<EvalResult>useIn(
+				(x,tempEnv) ->
+					new Call(x, Operator.LOGICAL_AND.getMethodNameKey(), trueMarker)
+						.acceptVisitor(tempEnv)
+		).object == trueMarker;
 	}
 
 	/**
@@ -106,7 +109,7 @@ public class EvalResult {
 	}
 
 	public boolean hasMethod(Key id) {
-		final @Nullable EvalResult found = findMethod(id);
+		final EvalResult found = findMethod(id);
 		return found != null && found.currentMethod != null;
 	}
 }

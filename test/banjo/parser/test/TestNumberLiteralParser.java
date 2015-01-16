@@ -6,7 +6,6 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
@@ -27,10 +26,10 @@ public class TestNumberLiteralParser {
 	@Test public void numberAsProjection() { testNonNumber("_.1"); }
 	@Test public void leadingUnderscore() { testNonNumber("_1"); }
 
-	private void testNonNumber(@NonNull String inStr) {
+	private void testNonNumber(String inStr) {
 		testNonNumber(inStr, null);
 	}
-	private void testNonNumber(@NonNull String inStr, Class<? extends BadExpr> eClass) {
+	private void testNonNumber(String inStr, Class<? extends BadExpr> eClass) {
 		try {
 			final SourceCodeParser parser = new SourceCodeParser();
 			final SourceExpr node = parser.parse(inStr);

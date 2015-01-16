@@ -1,10 +1,6 @@
 package banjo.dom.core;
 
-import org.eclipse.jdt.annotation.NonNull;
-import org.eclipse.jdt.annotation.Nullable;
-
 import banjo.dom.Expr;
-import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -52,7 +48,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public boolean equals(@Nullable Object obj) {
+	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)
@@ -68,7 +64,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public int compareTo(@Nullable Expr o) {
+	public int compareTo(Expr o) {
 		if(this == o)
 			return 0;
 		if(o == null) return -1;
@@ -83,7 +79,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.listLiteral(getSourceFileRanges(), elements.<@NonNull T>map(a -> a.acceptVisitor(visitor)));
+		return visitor.listLiteral(getSourceFileRanges(), elements.<T>map(a -> a.acceptVisitor(visitor)));
 	}
 
 	public CoreExpr toConstructionExpression() {
