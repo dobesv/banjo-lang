@@ -1,10 +1,6 @@
 package banjo.parser;
 
-import static banjo.parser.util.Check.nonNull;
-
 import java.io.IOException;
-
-
 
 import banjo.dom.ParenType;
 import banjo.dom.source.BadSourceExpr;
@@ -17,6 +13,7 @@ import banjo.dom.source.Operator.Position;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
+import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
@@ -138,13 +135,11 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		@Override
 		public boolean badIndentation(SourceExpr rightOperand) {
 			return super.badIndentation(rightOperand) && Boolean.FALSE == this.leftOperand.acceptVisitor(new BaseSourceExprVisitor<Boolean>() {
-				@SuppressWarnings("null")
 				@Override
 				public Boolean binaryOp(BinaryOp op) {
 					return op.getOperator().isParen();
 				}
 
-				@SuppressWarnings("null")
 				@Override
 				public Boolean unaryOp(UnaryOp op) {
 					return op.getOperator().isParen();
@@ -268,10 +263,9 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	SourceCodeParser pushNewline(FileRange range) {
-		final SourceExpr operand = this.operand;
-		if(operand == null) throw new NullPointerException();
-		return pushPartialOp(new PartialBinaryOp(Operator.NEWLINE, operand, sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range)), operandIndentLevel));
+		return pushPartialBinaryOp(Operator.NEWLINE, FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range), "\n");
 	}
+
 	/**
 	 * Check for indent/dedent prior to the given token.  May consume the contents of nodes with the assumption it is
 	 * whitespace/comments only.
@@ -316,7 +310,6 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	private SourceCodeParser maybeJuxtaposition(FileRange nextTokenRange) {
-		final SourceExpr operand = this.operand;
 		if(operand != null) {
 			return juxtaposition(nextTokenRange);
 		}
@@ -324,10 +317,9 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	private SourceCodeParser juxtaposition(FileRange nextTokenRange) {
-		final SourceExpr operand = this.operand;
-		if(operand == null) throw new IllegalStateException();
-		final SourceFileRange betweenRange = operand.getSourceFileRanges().isEmpty() ? sfr(nextTokenRange.headRange()) : sfr(FileRange.between(operand.getSourceFileRanges().last().getFileRange(), nextTokenRange));
-		return pushPartialOp(new PartialBinaryOp(Operator.JUXTAPOSITION, operand, betweenRange, nextTokenRange.getStartColumn()));
+		final FileRange betweenRange = FileRange.between(operand.getSourceFileRanges().last().getFileRange(), nextTokenRange);
+		return applyOperatorPrecedenceToStack(Operator.JUXTAPOSITION)
+				.pushPartialBinaryOp(Operator.JUXTAPOSITION, betweenRange, "");
 	}
 
 	private SourceCodeParser withOperand(SourceExpr newOperand, int operandIndentLevel) {
@@ -349,41 +341,76 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 
 	@Override
 	public SourceCodeParser operator(FileRange range, String op) {
-		SourceCodeParser ps = checkNewline(range);
+		return checkNewline(range).operator_(range, op);
+	}
 
-		SourceCodeParser cp = ps.tryCloseParen(range, op);
+	private SourceCodeParser operator_(FileRange range, String op) {
+	    SourceCodeParser cp = tryCloseParen(range, op);
 		if(cp != null) {
 			return cp;
 		}
-		SourceExpr operand = ps.getOperand();
 		if(operand != null) {
-			// Infix or suffix position
-			
-			final Operator suffixOperator = Operator.fromOp(op, Position.SUFFIX);
-			if(suffixOperator != null) {
-				ps = ps.applyOperatorPrecedenceToStack(operand, suffixOperator); // Apply operator precedence
-				operand = nonNull(ps.operand);
-				return ps.update(new UnaryOp(suffixOperator, List.single(sfr(range)), operand), ps.operandIndentLevel);
-			}
-			Operator operator = Operator.fromOp(op, Position.INFIX);
+			// We have an operand, so this is either a suffix or infix operator applying to that operand.
+			SourceCodeParser suf = suffixOperator(range, op);
+			if(suf != null) return suf;
 
-			if(operator != null) {
-				// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
-				ps = ps.applyOperatorPrecedenceToStack(operand, operator);
-				operand = nonNull(ps.operand);
-				return ps.pushPartialOp(new PartialBinaryOp(operator, operand, new OperatorRef(sfr(range), op), ps.operandIndentLevel(operator, range)));
-			} else {
-				// Maybe a juxtaposition with a unary operator (like parens)?
-				ps = ps.juxtaposition(range);
-			}
+			SourceCodeParser infix = infixOperator(range, op);
+			if(infix != null) return infix;
+
+		} else {
+			SourceCodeParser prefix = prefixOperator(range, op);
+			if(prefix != null) return prefix;
 		}
 
+		return visitAtom(range, new BadIdentifier(sfr(range), "Unsupported operator: '"+op+"'", op));
+    }
+
+	public SourceCodeParser pushSuffixOperator(FileRange range, String op, Operator operator) {
+		return update(new UnaryOp(
+				operator,
+				List.single(sfr(range)),
+				operand),
+			operandIndentLevel);
+	}
+	public SourceCodeParser suffixOperator(FileRange range, String op) {
+			// Infix or suffix position
+			final Operator operator = Operator.fromOp(op, Position.SUFFIX);
+			if(operator != null) {
+				return applyOperatorPrecedenceToStack(operator)
+						.pushSuffixOperator(range, op, operator);
+			} else {
+				return null;
+			}
+	}
+
+	public SourceCodeParser pushPartialBinaryOp(Operator operator, FileRange range, String op) {
+		if(operand == null) throw new NullPointerException();
+		return pushPartialOp(new PartialBinaryOp(
+				operator,
+				operand,
+				new OperatorRef(sfr(range), op),
+				operandIndentLevel(operator, range)));
+	}
+	public SourceCodeParser infixOperator(FileRange range, String op) {
+		Operator operator = Operator.fromOp(op, Position.INFIX);
+
+		if(operator != null) {
+			// Current operand is the rightmost operand for anything of higher precedence than the operator we just got.
+			return applyOperatorPrecedenceToStack(operator)
+					.pushPartialBinaryOp(operator, range, op);
+		} else {
+			// Maybe a juxtaposition with a unary operator (like parens)?
+			return juxtaposition(range).prefixOperator(range, op);
+		}
+	}
+
+	public SourceCodeParser prefixOperator(FileRange range, String op) {
 		// Prefix position
 		Operator operator = Operator.fromOp(op, Position.PREFIX);
-		if(operator == null) {
-			operator = Operator.INVALID;
+		if(operator != null) {
+			return pushPartialOp(new PartialUnaryOp(sfr(range), operator, operandIndentLevel(operator, range)));
 		}
-		return ps.pushPartialOp(new PartialUnaryOp(sfr(range), operator, ps.operandIndentLevel(operator, range)));
+		return null;
 	}
 
 	private int operandIndentLevel(Operator operator, FileRange range) {
@@ -417,7 +444,8 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		return update(opStack, operand, operandIndentLevel);
 	}
 
-	public SourceCodeParser applyOperatorPrecedenceToStack(SourceExpr operand, Operator operator) {
+	public SourceCodeParser applyOperatorPrecedenceToStack(Operator operator) {
+		SourceExpr operand = this.operand;
 		final Precedence prec = operator.getLeftPrecedence();
 		final boolean rightAssoc = operator.isRightAssociative();
 		List<PartialOp> opStack = this.opStack;
@@ -438,7 +466,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		if(op.length() != 1)
 			return null;
 
-		
+
 		final ParenType closeParenTypeMaybe = ParenType.forCloseChar(op.charAt(0));
 
 		if(closeParenTypeMaybe == null)

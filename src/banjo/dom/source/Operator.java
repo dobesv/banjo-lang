@@ -74,7 +74,7 @@ public enum Operator {
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
-	JUXTAPOSITION("~~~JUXTAPOSITION~~~", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX, Associativity.LEFT),
+	JUXTAPOSITION("~~~JUXTAPOSITION~~~", OperatorType.BUILTIN, Position.INFIX, Precedence.JUXTAPOSITION, Associativity.LEFT),
 
 	// Special case operators
 	INVALID("~~~INVALID~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM),

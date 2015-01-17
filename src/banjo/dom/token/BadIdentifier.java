@@ -26,6 +26,10 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 		this(source.getSourceFileRanges(), "Expected identifier; got "+source.toSource(), source.toSource());
 	}
 
+	public BadIdentifier(SourceFileRange sfr, String message, String originalSource) {
+		this(List.single(sfr), message, originalSource);
+    }
+
 	@Override
 	public void toSource(StringBuffer sb) {
 		Identifier.toSource(originalSource, sb);

@@ -5,6 +5,7 @@ public enum Precedence {
 	// Listed here from HIGHEST to LOWEST
 	ATOM, // Identifier, string/number/character/object literal/constructor, parenthesized expr
 	SUFFIX, // array index, member access, function/method call
+	JUXTAPOSITION,
 	UNARY_PREFIX, // +, -, ~
 	MULDIV, // *, /, %
 	ADDSUB, // +, -

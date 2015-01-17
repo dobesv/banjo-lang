@@ -115,7 +115,7 @@ public class SourceExprDesugarer {
 		final CoreExpr[] results = new CoreExpr[sourceExprs.length];
 		SourceExprDesugarer desugarer = this;
 		for(int i=0; i < sourceExprs.length; i++) {
-			@SuppressWarnings("null")
+
 			final DesugarResult<CoreExpr> resultDs = desugarer.expr(sourceExprs[i]);
 			desugarer = resultDs;
 			results[i] = resultDs.getValue();
@@ -166,7 +166,7 @@ public class SourceExprDesugarer {
 
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return withDesugared(sourceExpr, new BadCoreExpr(sourceExpr.getSourceFileRanges(), "Expected identifier"));
+				return withDesugared(sourceExpr, new BadCoreExpr(sourceExpr.getSourceFileRanges(), "Expected identifier after '.'"));
 			}
 
 		}));
@@ -1667,17 +1667,12 @@ public class SourceExprDesugarer {
 
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {
 		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			private DesugarResult<CoreExpr> badJuxtaposition() {
+				return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Missing operator between expressions"));
+			}
+
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return badJuxtaposition();
-			}
-
-			private DesugarResult<CoreExpr> badJuxtaposition() {
-				return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Missing operator"));
-			}
-
-			@Override
-			public DesugarResult<CoreExpr> key(Key key) {
 				return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 					private DesugarResult<CoreExpr> juxtaCall() {
 						return SourceExprDesugarer.this.call(op);
