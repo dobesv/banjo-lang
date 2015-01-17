@@ -204,41 +204,9 @@ public class SourceExprDesugarer {
 		return call(op, Key.ANONYMOUS, List.nil());
 	}
 
-	protected List<String> getNameParts(Key k) {
-		return k.acceptVisitor(new BaseCoreExprVisitor<List<String>>() {
-			@Override
-			public List<String> fallback() {
-				throw new IllegalStateException("Unexpected key type: "+k.getClass().getSimpleName());
-			}
-
-			@Override
-			public List<String> badIdentifier(BadIdentifier n) {
-				return single(n.originalSource);
-			}
-			@Override
-			public List<String> anonymous() {
-				return List.nil();
-			}
-
-			@Override
-			public List<String> identifier(Identifier n) {
-				return single(n.getId());
-			}
-
-			@Override
-			public List<String> key(Key key) {
-				return single(key.toSource());
-			}
-
-			@Override
-			public List<String> mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
-				return mixfixFunctionIdentifier.getParts();
-			}
-		});
-	}
 	protected Key concatNameParts(Key prefix, Key suffix) {
 		List<SourceFileRange> ranges = suffix.getSourceFileRanges().append(prefix.getSourceFileRanges());
-		List<String> nameParts = getNameParts(prefix).append(getNameParts(suffix));
+		List<String> nameParts = prefix.getParts().append(suffix.getParts());
 		if(nameParts.isEmpty()) return Key.ANONYMOUS; // Both sides anonymous!
 		if(nameParts.tail().isEmpty()) return new Identifier(ranges, nonNull(nameParts.head()));
 		return new MixfixFunctionIdentifier(ranges, nameParts);
@@ -318,6 +286,19 @@ public class SourceExprDesugarer {
 				default:
 					return callFunction();
 				}
+			}
+
+			// Calling a function by name - be sure to put all the name parts together if there are
+			// more than.
+			@Override
+			public DesugarResult<CoreExpr> key(Key key) {
+				return call(
+						op,
+						(CoreExpr)concatNameParts(key, moreNames),
+						Key.ANONYMOUS,
+						cons(argSourceExprs, moreArgumentLists),
+						callNext,
+						optional);
 			}
 
 			@Override

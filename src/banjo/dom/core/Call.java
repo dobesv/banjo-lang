@@ -104,6 +104,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		} else if(operator != null && operator.isSuffix()) {
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			operator.toSource(sb);
+		} else if(operator == Operator.CALL && this.object instanceof MixfixFunctionIdentifier) {
+			argsToSource(sb, ((MixfixFunctionIdentifier)this.object).getParts());
 		} else if(operator != null && operator.isInfix() && (operator.isParen() || operator.getOperatorType() == OperatorType.METHOD)) {
 			this.object.toSource(sb, operator.getLeftPrecedence());
 			if(operator.isParen()) {
@@ -134,7 +136,10 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
     }
 
 	private void argsToSource(final StringBuffer sb) {
-	    List<String> np = name.getParts();
+	    argsToSource(sb, name.getParts());
+    }
+
+	private void argsToSource(final StringBuffer sb, List<String> np) {
 	    List<List<CoreExpr>> al = getArgumentLists();
 	    while(np.isNotEmpty()) {
 	    	Identifier.toSource(nonNull(np.head()), sb);

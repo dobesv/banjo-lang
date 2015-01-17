@@ -37,6 +37,9 @@ public class TestCallParser {
 	@Test public void testJuxtaposition9() { call("a.b {foo=1} (bar)", "a.b({foo = 1})(bar)", 1); }
 	@Test public void testJuxtaposition10() { call("a.b {foo=1} {bar}", "a.b({foo = 1})({bar})", 1); }
 
+	@Test public void testMixfixFunc1() { call ("a(1)b(2)c(3)", "a(1)b(2)c(3)", 1); }
+	@Test public void testMixfixMethod1() { call ("x.a(1)b(2)c(3)", "x.a(1)b(2)c(3)", 1); }
+
 	//	@Test public void objArg1() { call("a(b=1)", "a({b = 1})", 1, 0); }
 	//	@Test public void objArg2() { call("a(b = 1,c=2)", "a({b = 1, c = 2})", 1, 0); }
 	//	@Test public void objArg3() { call("a(b = 1\n  c = 2)", "a({b = 1, c = 2})", 1, 0); }
