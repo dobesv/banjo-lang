@@ -38,7 +38,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	public String toSource(Precedence prec) {
 		final StringBuffer buf = new StringBuffer();
 		toSource(buf, prec);
-		@SuppressWarnings("null") 
+		 
 		final String result = buf.toString();
 		return result;
 	}
@@ -55,7 +55,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 	public String toFullyParenthesizedSource() {
 		final StringBuffer buf = new StringBuffer();
 		toFullyParenthesizedSource(buf);
-		@SuppressWarnings("null") 
+		 
 		final String result = buf.toString();
 		return result;
 	}

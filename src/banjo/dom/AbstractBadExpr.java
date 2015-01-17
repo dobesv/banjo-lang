@@ -42,7 +42,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return this.messageTemplate;
 	}
 
-	@SuppressWarnings("null")
+	
 	@Override
 	public String getMessage() {
 		return String.format(this.messageTemplate, this.args);

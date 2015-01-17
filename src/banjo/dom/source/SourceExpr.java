@@ -24,7 +24,7 @@ public interface SourceExpr extends Expr, SourceNode {
 		@Override
 		public F<SourceExpr, Ordering> f(final SourceExpr a1) {
 			return new F<SourceExpr, Ordering>() {
-				@SuppressWarnings("null")
+				
 				@Override
 				public Ordering f(final SourceExpr a2) {
 					final int x = a1 == a2 ? 0 : a1 == null ? 1 : a2 == null ? -1 : a1.compareTo(a2);
