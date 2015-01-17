@@ -1667,41 +1667,13 @@ public class SourceExprDesugarer {
 
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {
 		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-			private DesugarResult<CoreExpr> badJuxtaposition() {
-				return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Missing operator between expressions"));
+			private DesugarResult<CoreExpr> nonCallJuxtaposition() {
+				return SourceExprDesugarer.this.call(op);
 			}
 
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-					private DesugarResult<CoreExpr> juxtaCall() {
-						return SourceExprDesugarer.this.call(op);
-					}
-
-					@Override
-					public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-						return badJuxtaposition();
-					}
-
-					@Override
-					public DesugarResult<CoreExpr> stringLiteral(StringLiteral n) {
-						return juxtaCall();
-					}
-
-					@Override
-					public DesugarResult<CoreExpr> numberLiteral(NumberLiteral n) {
-						return juxtaCall();
-					}
-
-					@Override
-					public DesugarResult<CoreExpr> unaryOp(UnaryOp op) {
-						if(op.getOperator().isParen()) {
-							return juxtaCall();
-						} else {
-							return badJuxtaposition();
-						}
-					}
-				});
+				return nonCallJuxtaposition();
 			}
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(final BinaryOp opLeft) {
@@ -1709,7 +1681,7 @@ public class SourceExprDesugarer {
 					return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 						@Override
 						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-							return badJuxtaposition();
+							return nonCallJuxtaposition();
 						}
 
 						public SourceExprDesugarer.DesugarResult<CoreExpr> key(Key keyOnRight) {

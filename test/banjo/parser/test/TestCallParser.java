@@ -34,6 +34,8 @@ public class TestCallParser {
 	@Test public void testJuxtaposition6() { call("a.b 1", "a.b(1)", 1); }
 	@Test public void testJuxtaposition7() { call("a.b \"1\"", "a.b(\"1\")", 1); }
 	@Test public void testJuxtaposition8() { call("a.b [1,2,3]", "a.b([1, 2, 3])", 1); }
+	@Test public void testJuxtaposition9() { call("a.b {foo=1} (bar)", "a.b({foo = 1})(bar)", 1); }
+	@Test public void testJuxtaposition10() { call("a.b {foo=1} {bar}", "a.b({foo = 1})({bar})", 1); }
 
 	//	@Test public void objArg1() { call("a(b=1)", "a({b = 1})", 1, 0); }
 	//	@Test public void objArg2() { call("a(b = 1,c=2)", "a({b = 1, c = 2})", 1, 0); }
