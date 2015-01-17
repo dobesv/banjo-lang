@@ -10,11 +10,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-
-
 import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.Extend;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -24,6 +23,7 @@ import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceFileRange;
+import fj.P2;
 import fj.data.TreeMap;
 
 public class ProjectLoader {
@@ -76,11 +76,18 @@ public class ProjectLoader {
 		return EMPTY_BINDINGS.set(key, value);
 	}
 
+	public static TreeMap<Key, CoreExpr> mergeBindings(TreeMap<Key, CoreExpr> a, TreeMap<Key, CoreExpr> b) {
+		for(P2<Key, CoreExpr> bb : b) {
+			// TODO Object properties inside the values should probably also be merged, somehow, (i.e. subfolders)
+			a = a.set(bb._1(), a.get(bb._1()).map(ab -> (CoreExpr)new Extend(ab, bb._2())).orSome(bb._2()));
+		}
+		return a;
+	}
 	public static TreeMap<Key, CoreExpr> loadBindings(String rootPath) {
 		try {
 			return Files.list(Paths.get(rootPath))
 					.map(p -> loadBinding(p))
-					.reduce(EMPTY_BINDINGS, (b1, b2) -> b2.union(b1));
+					.reduce(EMPTY_BINDINGS, (b1, b2) -> mergeBindings(b1, b2));
 		} catch (IOException e) {
 			return EMPTY_BINDINGS;
 		}
@@ -99,7 +106,7 @@ public class ProjectLoader {
 			for(String path: searchPath.split(File.pathSeparator)) {
 				if(path.isEmpty())
 					continue;
-				bindings = loadBindings(path).union(bindings);
+				bindings = mergeBindings(bindings, loadBindings(path));
 			}
 		}
 		return bindings;
