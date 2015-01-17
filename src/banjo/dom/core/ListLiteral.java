@@ -84,11 +84,12 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	public CoreExpr toConstructionExpression() {
 		final CoreExpr empty = new Identifier("[]");
-		final Identifier nonempty = new Identifier("nonempty");
-		final Identifier x = new Identifier("x");
-		return elements.foldRight((head,tail) -> (CoreExpr)new Extend(empty, new ObjectLiteral(
-				new Method(SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, nonempty, List.single(List.single(x)), Method.EMPTY_PRECONDITION, new Call(x, nonempty, head, tail), Method.EMPTY_POSTCONDITION)
-		)), (CoreExpr)empty);
+		final CoreExpr trait = new Call(new Identifier("traits"), new Identifier("list"));
+		return elements.foldRight(
+			((CoreExpr head,CoreExpr tail) ->
+				(CoreExpr)new Extend(trait, ObjectLiteral.selector("nonempty", head, tail))),
+			empty
+		);
 	}
 
 }

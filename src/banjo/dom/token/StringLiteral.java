@@ -9,6 +9,7 @@ import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.core.Extend;
+import banjo.dom.core.ListLiteral;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
@@ -135,17 +136,10 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	public CoreExpr toConstructionExpression() {
-		return getString()
-			.codePoints()
-			.mapToObj(cp ->
-			(CoreExpr) new Extend(
-					new Identifier("''"),
-					ObjectLiteral.selector(
-							new Identifier("nonempty"),
-							new NumberLiteral(cp),
-							new Identifier("''"))))
-			.reduce((a,b) -> (CoreExpr) new Call(a, Operator.ADD.getMethodNameKey(), b))
-			.orElse((CoreExpr)new Identifier("''"));
+		ListLiteral codePoints = new ListLiteral(
+				List.list(getString().codePoints().mapToObj(cp -> new NumberLiteral(cp)).toArray(CoreExpr[]::new))
+		);
+		return Call.callFunction(new Identifier("string from code points"), List.single(codePoints));
 	}
 
 }
