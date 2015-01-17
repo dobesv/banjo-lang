@@ -202,7 +202,11 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, args)));
 	}
 
-	public static CoreExpr selector(String variant, CoreExpr info) {
-	    return selector(new Identifier(variant), info);
+	public static CoreExpr selector(String variant, CoreExpr ... args) {
+	    return selector(new Identifier(variant), args);
+    }
+
+	public static ObjectLiteral lambda(List<Key> argList, CoreExpr body) {
+	    return new ObjectLiteral(Method.call(argList, body));
     }
 }

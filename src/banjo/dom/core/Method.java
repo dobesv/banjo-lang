@@ -70,7 +70,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		return result;
 	}
 
-	@SuppressWarnings("null")
+
 	@Override
 	public String toString() {
 		final StringBuffer sb = new StringBuffer();
@@ -339,6 +339,16 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
     }
 	public static Method property(String name, Number value) {
 	    return property(name, new NumberLiteral(value));
+    }
+
+	/**
+	 * A method with no argument list or a multipart name with no trailing argument list is
+	 * called a property and if it is called with an (extra) argument list the extra lists are
+	 * actually passed to the result of getting the property value, assuming it is returning
+	 * a callable object.
+	 */
+	public boolean isProperty() {
+	    return getArgumentLists().isEmpty() || (getName().getParts().length() > getArgumentLists().length());
     }
 
 }

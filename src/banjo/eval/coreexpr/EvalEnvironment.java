@@ -102,9 +102,24 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 
 	@Override
 	public EvalResult call(Call call) {
-		EvalResult object = call.getObject().acceptVisitor(this);
+		final CoreExpr callTarget = call.getObject();
+		final boolean callNext = call.isCallNext();
+		final Key name = call.getName();
+		final boolean optionalCall = call.isOptional();
+		final List<List<CoreExpr>> argumentLists = call.getArgumentLists();
+		final List<SourceFileRange> sourceFileRanges = call.getSourceFileRanges();
 
-		if (call.isCallNext()) {
+		EvalResult object = callTarget.acceptVisitor(this);
+
+		return call(object, name, callNext, optionalCall, argumentLists,
+                sourceFileRanges);
+	}
+
+	private EvalResult call(EvalResult object, final Key name,
+            final boolean callNext, final boolean optionalCall,
+            final List<List<CoreExpr>> argumentLists,
+            final List<SourceFileRange> sourceFileRanges) throws Error {
+	    if (callNext) {
 			// Tricky stuff - have to pass in a self arg that will
 			// result in a call next calling the right next method
 			// only within this method.
@@ -112,30 +127,29 @@ public class EvalEnvironment implements CoreExprVisitor<EvalResult> {
 		}
 
 
-		EvalResult methodBinding = object.findMethod(call.getName(),
-				call.isCallNext());
+		EvalResult methodBinding = object.findMethod(name,
+				callNext);
 		if (methodBinding == null || methodBinding.currentMethod == null) {
-			if (call.isOptional()) {
+			if (optionalCall) {
 				return new ListLiteral(List.nil()).acceptVisitor(this);
 			} else {
-				if(call.getName().compareTo(Key.ANONYMOUS) == 0) {
-					return failure("missing method definition", "()");
-				} else {
-					return failure("missing method definition",
-							new ObjectLiteral(
-									Method.property("method", ObjectLiteral.selector(call.getName())),
-									Method.property("target", object.toExtend()),
-									Method.property("source", sourceFileRangesExpr(call.getSourceFileRanges()))
-							));
-				}
+				return failure("missing method definition",
+						new ObjectLiteral(
+								Method.property("method", ObjectLiteral.selector(name)),
+								Method.property("target", object.toExtend()),
+								Method.property("source", sourceFileRangesExpr(sourceFileRanges))
+						));
 			}
 		}
-		Method method = nonNull(methodBinding.currentMethod);
+		Method method = methodBinding.currentMethod;
+		final int methodArgListCount = method.getArgumentLists().length();
+		List<List<CoreExpr>> argLists = argumentLists.take(methodArgListCount);
 		EvalEnvironment closure = methodBinding.environment;
-		final TreeMap<Key, EvalResult> bindingsWithSelf = method.hasSelfArg() ? closure.bindings.set(
-method.getSelfArg(), methodBinding) : closure.bindings;
+		final TreeMap<Key, EvalResult> bindingsWithSelf = method.hasSelfArg() ?
+				closure.bindings.set(method.getSelfArg(), methodBinding) :
+					closure.bindings;
 		TreeMap<Key, EvalResult> newBindings = method
-				.getArgumentLists().zip(call.getArgumentLists()).foldLeft(
+				.getArgumentLists().zip(argLists).foldLeft(
 				(bindings1, pair1) -> pair1
 						._1()
 						.zip(pair1._2())
@@ -148,10 +162,21 @@ method.getSelfArg(), methodBinding) : closure.bindings;
 								bindings1), bindingsWithSelf);
 
 		EvalEnvironment newEnvironment = new EvalEnvironment(this, newBindings);
+
+		List<List<Key>> extraMethodArgLists = method.getArgumentLists().drop(argumentLists.length());
+
+		CoreExpr methodBody = extraMethodArgLists.foldRight(
+				(argList,b) -> ObjectLiteral.lambda(argList, b),
+				method.getBody());
+
 		// TODO Precondition, postcondition
-		final EvalResult result = method.getBody()
-				.acceptVisitor(newEnvironment);
-		if (call.isOptional()) {
+		EvalResult result = methodBody.acceptVisitor(newEnvironment);
+
+		List<List<CoreExpr>> extraCallArgLists = argumentLists.drop(methodArgListCount);
+		if(extraCallArgLists.isNotEmpty() && !result.isFailure()) {
+			result = call(result, Key.ANONYMOUS, false, false, extraCallArgLists, sourceFileRanges);
+		}
+		if (optionalCall) {
 			// TODO Be more specific about the failure - maybe some will still
 			// propagate through ?
 			if (result.isFailure()) {
@@ -162,7 +187,7 @@ method.getSelfArg(), methodBinding) : closure.bindings;
 			}
 		}
 		return result;
-	}
+    }
 
 	@Override
 	public EvalResult extend(Extend extend) {
