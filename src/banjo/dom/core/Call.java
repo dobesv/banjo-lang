@@ -159,23 +159,6 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	    	throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length());
     }
 
-
-	private static boolean isLazyValue(CoreExpr head) {
-		return head != null && head.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
-			@Override
-			@SuppressWarnings("null")
-			public Boolean fallback() {
-				return Boolean.FALSE;
-			}
-
-			@SuppressWarnings("null")
-			@Override
-			public Boolean objectLiteral(ObjectLiteral n) {
-				return n.isLazyValue();
-			}
-		}) == Boolean.TRUE;
-	}
-
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.call(this);
