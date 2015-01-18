@@ -105,7 +105,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 		final boolean hasSelfName = this.hasSelfArg();
 		final Operator operator = getOperator();
-		if(operator != null && operator.isInfix()) {
+		if(operator != null && operator.isInfix() && argumentLists.isSingle() && argumentLists.head().isSingle()) {
 			sb.append('(');
 			Key arg = argumentLists.head().head();
 			if(operator.isParen()) {

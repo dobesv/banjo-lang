@@ -76,7 +76,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 						@Override
 						public Unit fallback() {
-							throw new IllegalStateException();
+							throw new IllegalStateException(method.getSelfArg().toSource());
 						}
 					});
 				} else {

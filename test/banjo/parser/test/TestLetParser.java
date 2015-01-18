@@ -23,6 +23,8 @@ public class TestLetParser {
 	@Test public void f2() { test("(f(x,y) = x) => f(1,2)", "((f) -> f(1, 2))(f(x, y) -> x)"); }
 	@Test public void f3() { test("(f() = x) => f()", "((f) -> f())(f() -> x)"); }
 
+	@Test public void mixfix1() { test("(f(x)g(y) = x + y) => f(1)g(2)", "((f()g) -> f(1)g(2))(f(x)g(y) -> x + y)"); }
+
 	@Test public void multiline1() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
 	@Test public void multiline2() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
 	@Test public void multiline3() { test("{\n  x = (\n    doc='foo'\n    examples=[]\n  ) => bar\n}", "{x = ((doc) -> ((examples) -> bar)([]))(\"foo\")}"); }

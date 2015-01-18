@@ -60,7 +60,7 @@ public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, C
 
 	@Override
 	public <T> T acceptVisitor(SourceExprVisitor<T> visitor) {
-		throw new IllegalStateException("Not a really source expression");
+		return visitor.mixfixFunctionIdentifier(this);
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package banjo.dom.source;
 
+import fj.data.List;
+import banjo.dom.core.MixfixFunctionIdentifier;
 import banjo.dom.token.BadIdentifier;
 
 public interface SourceExprVisitor<T> extends AtomVisitor<T> {
@@ -9,5 +11,6 @@ public interface SourceExprVisitor<T> extends AtomVisitor<T> {
 	T badSourceExpr(BadSourceExpr badSourceExpr);
 	T emptyExpr(EmptyExpr emptyExpr);
 	T badIdentifier(BadIdentifier badIdentifier);
+	T mixfixFunctionIdentifier(MixfixFunctionIdentifier id);
 
 }

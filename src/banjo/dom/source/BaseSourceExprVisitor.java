@@ -1,5 +1,6 @@
 package banjo.dom.source;
 
+import banjo.dom.core.MixfixFunctionIdentifier;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
@@ -32,6 +33,11 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 	@Override
 	public T identifier(Identifier identifier) {
 		return key(identifier);
+	}
+
+	@Override
+	public T mixfixFunctionIdentifier(MixfixFunctionIdentifier id) {
+	    return key(id);
 	}
 
 	@Override
