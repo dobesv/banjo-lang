@@ -318,25 +318,20 @@ public class SourceExprDesugarer {
 	}
 
 	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, CoreExpr object, final Key name, final List<List<SourceExpr>> argumentLists, boolean callNext, boolean optional) {
-		DesugarResult<List<List<CoreExpr>>> dsParts = argumentLists.foldRight(new F2<List<SourceExpr>, DesugarResult<List<List<CoreExpr>>>, DesugarResult<List<List<CoreExpr>>>>() {
-			@Override
-			public DesugarResult<List<List<CoreExpr>>> f(List<SourceExpr> argSourceExprs, DesugarResult<List<List<CoreExpr>>> b) {
-				if(argSourceExprs == null) throw new NullPointerException();
-				if(b == null) throw new NullPointerException();
-				final DesugarResult<List<CoreExpr>> dsArgs = argSourceExprs.foldRight(new F2<SourceExpr, DesugarResult<List<CoreExpr>>, DesugarResult<List<CoreExpr>>>() {
-					@Override
-					public DesugarResult<List<CoreExpr>> f(SourceExpr argSourceExpr, DesugarResult<List<CoreExpr>> a) {
-						final DesugarResult<CoreExpr> argDs = nonNull(a).expr(nonNull(argSourceExpr));
-						return argDs.withValue(cons(argDs.getValue(), nonNull(a).getValue()));
-					}
-				}, b.withValue(List.nil()));
-
-				return dsArgs.withValue(cons(dsArgs.getValue(), b.getValue()));
-			}
-		}, withValue(List.nil()));
-
+		DesugarResult<List<List<CoreExpr>>> dsParts = desugarArgLists(argumentLists);
 		return dsParts.withDesugared(sourceExpr, new Call(sourceExpr.getSourceFileRanges(), object, name, dsParts.getValue(), callNext, optional));
 	}
+
+	private DesugarResult<List<List<CoreExpr>>> desugarArgLists(
+            final List<List<SourceExpr>> argumentLists) {
+	    DesugarResult<List<List<CoreExpr>>> dsParts = argumentLists.foldRight(new F2<List<SourceExpr>, DesugarResult<List<List<CoreExpr>>>, DesugarResult<List<List<CoreExpr>>>>() {
+			@Override
+			public DesugarResult<List<List<CoreExpr>>> f(List<SourceExpr> argSourceExprs, DesugarResult<List<List<CoreExpr>>> b) {
+				return b.desugarArgList(argSourceExprs, b.getValue());
+			}
+		}, withValue(List.nil()));
+	    return dsParts;
+    }
 
 	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, List<SourceExpr> list, Operator requireBullet) {
 		return elements(sourceExpr, list, requireBullet, new F<DesugarResult<List<CoreExpr>>,DesugarResult<CoreExpr>>() {
@@ -957,12 +952,7 @@ public class SourceExprDesugarer {
 	 * a list of arguments lists with the arguments split by commas.
 	 */
 	List<List<SourceExpr>> flattenArgumentLists(List<SourceExpr> a) {
-		return a.map(new F<SourceExpr,List<SourceExpr>>() {
-			@Override
-			public List<SourceExpr> f(SourceExpr a) {
-				return flattenCommas(nonNull(a));
-			}
-		});
+		return a.map(x -> flattenCommas(x));
 	}
 
 	public DesugarResult<Method> method(SourceExpr methodSourceExpr, Operator operator, SourceExpr other, Key selfArg, CoreExpr body) {
@@ -1548,11 +1538,12 @@ public class SourceExprDesugarer {
 			public P3<CoreExpr, CoreExpr, SourceExprDesugarer> unaryOp(UnaryOp op) {
 				// Callback shorthand - .(x) == (f) -> f(x)
 				if(op.getOperator() == Operator.PARENS) {
-					List<List<CoreExpr>> argLists = single(flattenCommas(op.getOperand()).map(SourceExprDesugarer::expectIdentifier));
+					DesugarResult<List<List<CoreExpr>>> argListsDs = desugarArgLists(single(flattenCommas(op.getOperand())));
+					List<List<CoreExpr>> argLists = argListsDs.getValue();
 
 					CoreExpr precondition = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, true);
 					CoreExpr body = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, false);
-					return P.p(precondition, body, SourceExprDesugarer.this);
+					return P.p(precondition, body, argListsDs);
 				}
 			    return super.unaryOp(op);
 			}
@@ -1737,7 +1728,7 @@ public class SourceExprDesugarer {
 		}));
 	}
 
-	private DesugarResult<CoreExpr> callMethod(final BinaryOp op,
+	public DesugarResult<CoreExpr> callMethod(final BinaryOp op,
 			final Key moreNames,
 			final List<List<SourceExpr>> moreArgumentLists,
 			final boolean optional, final List<SourceExpr> argSourceExprs,
@@ -1752,6 +1743,20 @@ public class SourceExprDesugarer {
 		final DesugarResult<CoreExpr> mapCallDs = targetDs.withDesugared(op, new Call(NOT_FROM_SOURCE, target, new Identifier("map"), projectionFunc));
 		return mapCallDs;
 	}
+
+	public DesugarResult<List<List<CoreExpr>>> desugarArgList(
+            List<SourceExpr> argSourceExprs, List<List<CoreExpr>> list) {
+	    if(argSourceExprs == null) throw new NullPointerException();
+	    final DesugarResult<List<CoreExpr>> dsArgs = argSourceExprs.foldRight(new F2<SourceExpr, DesugarResult<List<CoreExpr>>, DesugarResult<List<CoreExpr>>>() {
+	    	@Override
+	    	public DesugarResult<List<CoreExpr>> f(SourceExpr argSourceExpr, DesugarResult<List<CoreExpr>> a) {
+	    		final DesugarResult<CoreExpr> argDs = nonNull(a).expr(nonNull(argSourceExpr));
+	    		return argDs.withValue(cons(argDs.getValue(), nonNull(a).getValue()));
+	    	}
+	    }, withValue(List.nil()));
+
+	    return dsArgs.withValue(cons(dsArgs.getValue(), list));
+    }
 
 
 }
