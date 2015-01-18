@@ -1545,6 +1545,18 @@ public class SourceExprDesugarer {
 			}
 
 			@Override
+			public P3<CoreExpr, CoreExpr, SourceExprDesugarer> unaryOp(UnaryOp op) {
+				// Callback shorthand - .(x) == (f) -> f(x)
+				if(op.getOperator() == Operator.PARENS) {
+					List<List<CoreExpr>> argLists = single(flattenCommas(op.getOperand()).map(SourceExprDesugarer::expectIdentifier));
+
+					CoreExpr precondition = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, true);
+					CoreExpr body = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, false);
+					return P.p(precondition, body, SourceExprDesugarer.this);
+				}
+			    return super.unaryOp(op);
+			}
+			@Override
 			public P3<CoreExpr, CoreExpr, SourceExprDesugarer> fallback(SourceExpr other) {
 				final BadCoreExpr expr = new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier or method invokation: "+other);
 				return P.p(expr, expr, withDesugared(other, expr));

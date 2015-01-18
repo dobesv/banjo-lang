@@ -130,13 +130,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public void projectionToSource(final StringBuffer sb) {
+	    final List<String> np = name.getParts();
+	    final List<String> np2 = np.isEmpty() ? List.single("") : np;
 	    Operator op = optional ? callNext ? Operator.OPT_CALL_NEXT_METHOD : Operator.OPT_PROJECTION : callNext ? Operator.CALL_NEXT_METHOD : Operator.PROJECTION;
 	    op.toSource(sb);
-	    argsToSource(sb);
-    }
-
-	private void argsToSource(final StringBuffer sb) {
-	    argsToSource(sb, name.getParts());
+    	argsToSource(sb, np2);
     }
 
 	private void argsToSource(final StringBuffer sb, List<String> np) {
@@ -161,7 +159,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	    	}
 	    }
 	    if(al.isNotEmpty())
-	    	throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length());
+	    	throw new IllegalStateException("Too many argument lists; there should be at most "+name.getParts().length()+", got "+getArgumentLists().length());
     }
 
 	@Override

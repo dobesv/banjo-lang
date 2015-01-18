@@ -76,7 +76,7 @@ public class TestObjectLiteralParser {
 		assertEquals("Too many methods", false, eltIt.hasNext());
 	}
 
-	public void parse(String source, String expectedSource) {
+	public static void parse(String source, String expectedSource) {
 		test(source, 0, null, ObjectLiteral.class, expectedSource);
 	}
 
