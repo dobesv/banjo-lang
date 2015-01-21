@@ -27,7 +27,7 @@ public class SourceCodeScanner {
 	}
 
 	public static boolean isIdentifierStart(int cp) {
-		return cp == '_' || cp == '$' || cp == '\\' || Character.isLetter(cp);
+		return cp == '_' || cp == '$' || cp == '\\' || cp == '∞' || Character.isLetter(cp);
 	}
 
 	public <T extends TokenVisitor<T>> T next(ParserReader in, TokenVisitor<T> visitor) throws IOException {
@@ -143,6 +143,7 @@ public class SourceCodeScanner {
 		case '\'':
 		case '_':
 		case '\\':
+		case '∞':
 			return false;
 		case '-':
 		case '^':
@@ -159,7 +160,7 @@ public class SourceCodeScanner {
 			return false;
 		}
 	}
-	
+
 	public String matchOperator(ParserReader in) throws IOException {
 		final int first = in.read();
 		switch(first) {
