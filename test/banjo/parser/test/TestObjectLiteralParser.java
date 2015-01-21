@@ -50,6 +50,8 @@ public class TestObjectLiteralParser {
 	@Test public void numericSelfName2() { parse("{0.plus(x) = x}", "{0.plus(x) = x}"); }
 	//@Test public void numericSelfName3() { parse("{(0).plus(x) = x}", "{(0).plus(x) = x}"); }
 
+	@Test public void testDocString() { parse("{ x = (\"bla\") => true }", "{x = ((_) -> true)(\"bla\")}"); }
+
 	@Test public void callable1() { parse("{x=y, (x) = x.foo}", "{x = y, (x) = x.foo}"); }
 
 	@Test public void testUnpack1() { parse("({character, list, boolean={true, false}}) -> { empty = { \n    empty = true\n} }\n",
