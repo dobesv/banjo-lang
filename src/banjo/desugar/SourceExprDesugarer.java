@@ -204,6 +204,18 @@ public class SourceExprDesugarer {
 		return call(op, Key.ANONYMOUS, List.nil());
 	}
 
+	protected DesugarResult<CoreExpr> pipeTo(final BinaryOp op) {
+		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
+		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
+		return withDesugared(op, new Call(op.getSourceFileRanges(), rightDs.getValue(), Key.ANONYMOUS, leftDs.getValue()));
+	}
+
+	protected DesugarResult<CoreExpr> pipeFrom(final BinaryOp op) {
+		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
+		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
+		return withDesugared(op, new Call(op.getSourceFileRanges(), leftDs.getValue(), Key.ANONYMOUS, rightDs.getValue()));
+	}
+
 	protected Key concatNameParts(Key prefix, Key suffix) {
 		List<SourceFileRange> ranges = suffix.getSourceFileRanges().append(prefix.getSourceFileRanges());
 		List<String> nameParts = prefix.getParts().append(suffix.getParts());
@@ -1362,6 +1374,8 @@ public class SourceExprDesugarer {
 //				return exprPair(op);
 //			}
 			case CALL: return call(op);
+			case PIPE_TO: return pipeTo(op);
+			case PIPE_FROM: return pipeFrom(op);
 
 			// '.' and variants with NO parameters.  When there's a call, these are
 			// checked for specially inside of call().
@@ -1376,9 +1390,10 @@ public class SourceExprDesugarer {
 
 			// Normal operators are translated into a method call
 			case GT:
-			case GE:
 			case LT:
+			case GE:
 			case LE:
+			case NEQ:
 			case EQ:
 			case CMP:
 			case POW:
@@ -1426,8 +1441,7 @@ public class SourceExprDesugarer {
 			case PLUS:
 			case NEGATE:
 			case ABSVALUE:
-				final DesugarResult<CoreExpr> operandCoreExpr = expr(operandSourceExpr);
-				return operandCoreExpr.withDesugared(op, new Call(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
+				return unaryOpToMethodCall(op);
 
 			case INSPECT:
 				return inspect(op);
@@ -1587,19 +1601,20 @@ public class SourceExprDesugarer {
 
 		DesugarResult<CoreExpr> letDs = nonNull(namedValues.foldRight(new F2<SourceExpr, DesugarResult<CoreExpr>, DesugarResult<CoreExpr>>() {
 			@Override
-			public DesugarResult<CoreExpr> f(SourceExpr a, final DesugarResult<CoreExpr> b) {
+			public DesugarResult<CoreExpr> f(SourceExpr a, final DesugarResult<CoreExpr> ds) {
 				return a.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 					@Override
 					public DesugarResult<CoreExpr> binaryOp(BinaryOp letOp) {
 						if(letOp.getOperator() == Operator.ASSIGNMENT) {
-							return b.let(op, nonNull(b.getSourceExpr()), b.getValue(), letOp);
+							return ds.let(op, ds.getSourceExpr(), ds.getValue(), letOp);
 						}
 						return fallback(letOp);
 					}
 
 					@Override
 					public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-						return b;
+						BinaryOp letOp = new BinaryOp(other.getSourceFileRanges(), Operator.ASSIGNMENT, SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, other);
+						return ds.localVariableDef(op, ds.getValue(), letOp, new Identifier("_"));
 					}
 				});
 			}
@@ -1756,6 +1771,11 @@ public class SourceExprDesugarer {
 	    }, withValue(List.nil()));
 
 	    return dsArgs.withValue(cons(dsArgs.getValue(), list));
+    }
+
+	private DesugarResult<CoreExpr> unaryOpToMethodCall(final UnaryOp op) {
+	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
+	    return operandCoreExpr.withDesugared(op, new Call(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
     }
 
 

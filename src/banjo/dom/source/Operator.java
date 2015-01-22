@@ -56,6 +56,10 @@ public enum Operator {
 	LOGICAL_AND("&&", 0x2227, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
 	LOGICAL_OR("||", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 	FALLBACK("?:", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+
+	PIPE_TO("|>", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+	PIPE_FROM("<|", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+
 	PRECONDITION("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),

@@ -38,6 +38,9 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public Call(CoreExpr object, Key methodName, CoreExpr ... arguments) {
 		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(List.list(arguments)), false, false);
 	}
+	public Call(CoreExpr object, Key methodName, List<CoreExpr> arguments) {
+		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(arguments), false, false);
+	}
 
 	public Call(CoreExpr a, Operator op, CoreExpr ... b) {
 		this(a, op.getMethodNameKey(), b);

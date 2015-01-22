@@ -28,4 +28,9 @@ public class TestLetParser {
 	@Test public void multiline1() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
 	@Test public void multiline2() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
 	@Test public void multiline3() { test("{\n  x = (\n    doc='foo'\n    examples=[]\n  ) => bar\n}", "{x = ((doc) -> ((examples) -> bar)([]))(\"foo\")}"); }
+
+	@Test public void testDocString() { test("{ x = (\"bla\") => true }", "{x = ((_) -> true)(\"bla\")}"); }
+	@Test public void testEgVar() { test("{ x = (\"e.g.\" = \"bla\") => true }", "{x = ((\"e.g.\") -> true)(\"bla\")}"); }
+
+
 }
