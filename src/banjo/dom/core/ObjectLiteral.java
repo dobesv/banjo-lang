@@ -190,10 +190,10 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public Method findMethod(Key name) {
+		String baseName = name.toSource().replaceAll("[^/]*/", "");
 		for(Method method : methods) {
-			if(name.getParts().equals(method.getName().getParts())) {
+			if(baseName.equals(method.baseName))
 				return method;
-			}
 		}
 		return null;
 	}

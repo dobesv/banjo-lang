@@ -18,12 +18,13 @@ import fj.data.List;
 
 public class Method extends AbstractCoreExpr implements CoreExpr {
 
-	private final Key selfArg;
-	private final Key name;
-	private final List<List<Key>> argumentLists;
-	private final CoreExpr precondition;
-	private final CoreExpr body;
-	private final CoreExpr postcondition;
+	public final Key selfArg;
+	public final Key name;
+	public final String baseName;
+	public final List<List<Key>> argumentLists;
+	public final CoreExpr precondition;
+	public final CoreExpr body;
+	public final CoreExpr postcondition;
 
 	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
 
@@ -44,6 +45,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		super(calcHash(ranges, selfArg, name, argumentLists, precondition, body, postcondition), ranges);
 		this.selfArg = selfArg;
 		this.name = name;
+		this.baseName = name.toSource().replaceAll("[^/]*/", ""); // Strip namespace
 		this.argumentLists = argumentLists;
 		this.precondition = precondition;
 		this.body = body;

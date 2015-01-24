@@ -14,16 +14,18 @@ import fj.data.List;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 
-	private final CoreExpr object;
-	private final Key name;
-	private final List<List<CoreExpr>> argumentLists;
-	private final boolean callNext;
-	private final boolean optional;
+	public final CoreExpr object;
+	public final Key name;
+	public final String baseName;
+	public final List<List<CoreExpr>> argumentLists;
+	public final boolean callNext;
+	public final boolean optional;
 
 	public Call(List<SourceFileRange> ranges, CoreExpr object, Key name, List<List<CoreExpr>> argumentLists, boolean callNext, boolean optional) {
 		super(object.hashCode() + name.hashCode() + argumentLists.hashCode(), ranges);
 		this.object = object;
 		this.name = name;
+		this.baseName = name.toSource().replaceAll("[^/]*/", "");
 		this.argumentLists = argumentLists;
 		this.callNext = callNext;
 		this.optional = optional;
