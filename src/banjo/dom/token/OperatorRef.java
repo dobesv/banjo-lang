@@ -26,7 +26,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		sb.append(this.getOp());
 	}
 

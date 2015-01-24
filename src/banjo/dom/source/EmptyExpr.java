@@ -34,7 +34,7 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		// Empty ... do nothing
 	}
 

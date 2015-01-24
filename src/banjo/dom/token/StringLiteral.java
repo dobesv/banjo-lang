@@ -43,7 +43,7 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		sb.append(toSource(this.string));
 	}
 
@@ -139,7 +139,7 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 		ListLiteral codePoints = new ListLiteral(
 				List.list(getString().codePoints().mapToObj(cp -> new NumberLiteral(cp)).toArray(CoreExpr[]::new))
 		);
-		return Call.callFunction(new Identifier("string from code points"), List.single(codePoints));
+		return new Call(new Identifier("data"), new Identifier("string"), List.single(codePoints));
 	}
 
 }

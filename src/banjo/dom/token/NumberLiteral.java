@@ -53,7 +53,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		sb.append(this.toString());
 		sb.append(suffix);
 	}
@@ -156,7 +156,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		return true;
 	}
 	public CoreExpr toConstructionExpression() {
-		Call ctor;
+		CoreExpr ctor;
 		Number n = getNumber();
 		if(n instanceof SourceNumber) n = ((SourceNumber) n).getValue();
 		if(n instanceof BigInteger) {
@@ -178,9 +178,9 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 			// 2 = 1 + 1
 			boolean odd = bi.testBit(0);
 			NumberLiteral half = new NumberLiteral(bi.shiftRight(1));
-			ctor = new Call(half, Operator.PLUS, half);
-			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
-			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+			ctor = Call.binaryOp(half, Operator.PLUS, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Integer) {
 			int i = n.intValue();
 			if(i == 0) {
@@ -193,9 +193,9 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 			if(negative) i = -i;
 			boolean odd = (i&1) == 1;
 			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = new Call(half, Operator.PLUS, half);
-			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
-			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+			ctor = Call.binaryOp(half, Operator.PLUS, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Long) {
 			long i = n.longValue();
 			if(i == 0) {
@@ -208,9 +208,9 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 			if(negative) i = -i;
 			boolean odd = (i&1) == 1;
 			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = new Call(half, Operator.PLUS, half);
-			if(odd) ctor = new Call(ctor, Operator.PLUS, new Identifier("1"));
-			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+			ctor = Call.binaryOp(half, Operator.PLUS, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Double) {
 			double d = n.doubleValue();
 			if(d == 0) {
@@ -223,18 +223,19 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 				return new Identifier("NaN");
 			}
 			if(d == Double.NEGATIVE_INFINITY) {
-				return new Call(new Identifier("\u221E"), Operator.NEGATE);
+				return Call.unaryOp(new Identifier("∞"), Operator.NEGATE);
 			}
 			if(d == Double.POSITIVE_INFINITY) {
-				return new Identifier("\u221E");
+				return new Identifier("∞");
 			}
 			boolean negative = (d < 0);
 			if(negative) d = -d;
 			int exp = Math.getExponent(d);
 			long base = Double.doubleToLongBits(d) & 0x000fffffffffffffL;
 
-			ctor = new Call(new NumberLiteral(base), Operator.POW, new NumberLiteral(exp));
-			if(negative) ctor = new Call(ctor, Operator.NEGATE);
+			ctor = new NumberLiteral(base).toConstructionExpression();
+			if(exp != 0) ctor = Call.binaryOp(ctor, Operator.POW, new NumberLiteral(exp));
+			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else throw new Error("TODO: "+n.getClass().getSimpleName());
 		return ctor;
 	}

@@ -509,7 +509,7 @@ public class SourceExprDesugarer {
 
 			private DesugarResult<List<Method>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
 				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
-				// TODO Apply operator ...
+				// TODO Apply combiningOp operator ...
 				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Method.EMPTY_POSTCONDITION, fields);
 			}
 
@@ -621,7 +621,7 @@ public class SourceExprDesugarer {
 					public DesugarResult<List<Method>> fallback(SourceExpr signature2) {
 						// self.x = ... means self.x() = ...
 						final Key name = expectIdentifier(signature2);
-						final DesugarResult<Method> methodDs = method(methodSourceExpr, name, new EmptyExpr(NOT_FROM_SOURCE), selfName, body);
+						final DesugarResult<Method> methodDs = method(methodSourceExpr, name, List.nil(), selfName, body);
 						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
 					}
 				}));

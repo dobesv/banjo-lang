@@ -24,8 +24,11 @@ public abstract class AbstractAtom extends AbstractExpr {
 
 
 	@Override
-	public void toSource(StringBuffer sb, Precedence outerPrec) {
-		toSource(sb);
+	public void toSource(StringBuffer sb, Precedence outerPrec, String idPrefix) {
+		toSource(sb, idPrefix);
 	}
 
+	public void toSource(StringBuffer sb) {
+		toSource(sb, "");
+	}
 }

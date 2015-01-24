@@ -8,7 +8,7 @@ import fj.data.List;
 
 /**
  * A primitive operation for reading the metadata of an object.
- * 
+ *
  * The metadata is a map from a method name to that method's metadata.
  */
 public class Inspect extends AbstractCoreExpr implements CoreExpr {
@@ -24,8 +24,8 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
-		this.target.toSource(sb, Operator.INSPECT.getPrecedence());
+	public void toSource(StringBuffer sb, String idPrefix) {
+		this.target.toSource(sb, Operator.INSPECT.getPrecedence(), idPrefix);
 		sb.append(Operator.INSPECT.getOp());
 	}
 

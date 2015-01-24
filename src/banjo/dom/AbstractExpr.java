@@ -26,36 +26,36 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 
 
 	@Override
-	public void toSource(StringBuffer sb, Precedence outerPrec) {
+	public void toSource(StringBuffer sb, Precedence outerPrec, String idPrefix) {
 		final Precedence prec = getPrecedence();
 		final boolean needParens = prec != Precedence.ATOM && outerPrec != prec && outerPrec.isHigherThan(prec);
 		if(needParens) sb.append('(');
-		toSource(sb);
+		toSource(sb, idPrefix);
 		if(needParens) sb.append(')');
 	}
 
 	@Override
-	public String toSource(Precedence prec) {
+	public String toSource(Precedence prec, String idPrefix) {
 		final StringBuffer buf = new StringBuffer();
-		toSource(buf, prec);
-		 
+		toSource(buf, prec, idPrefix);
+
 		final String result = buf.toString();
 		return result;
 	}
 
 	@Override
 	public String toSource() {
-		return toSource(Precedence.lowest());
+		return toSource(Precedence.lowest(), "");
 	}
 
 	public void toFullyParenthesizedSource(StringBuffer sb) {
-		toSource(sb);
+		toSource(sb, "");
 	}
 
 	public String toFullyParenthesizedSource() {
 		final StringBuffer buf = new StringBuffer();
 		toFullyParenthesizedSource(buf);
-		 
+
 		final String result = buf.toString();
 		return result;
 	}
@@ -66,7 +66,7 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return toSource();
 	}
 
-	static 
+	static
 	protected <T extends Expr> T optTransform(T opt, ExprTransformer transformer) {
 		if(opt == null)
 			return opt;

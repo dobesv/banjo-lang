@@ -74,7 +74,7 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public String toString() {
 		final StringBuffer sb = new StringBuffer();
-		toSource(sb);
+		toSource(sb, "");
 		return sb.toString();
 	}
 
@@ -100,7 +100,8 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 
 	}
 
-	public void toSource(final StringBuffer sb) {
+	@Override
+	public void toSource(final StringBuffer sb, String idPrefix) {
 		// Check for brackets, apply
 
 		final boolean hasSelfName = this.hasSelfArg();
@@ -109,41 +110,41 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 			sb.append('(');
 			Key arg = argumentLists.head().head();
 			if(operator.isParen()) {
-				selfArg.toSource(sb);
+				selfArg.toSource(sb, idPrefix);
 				sb.append(operator.getParenType().getStartChar());
-				arg.toSource(sb);
+				arg.toSource(sb, idPrefix);
 				sb.append(operator.getParenType().getEndChar());
 			} else if(operator.isSelfOnRightMethodOperator()) {
-				arg.toSource(sb);
+				arg.toSource(sb, idPrefix);
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				this.selfArg.toSource(sb);
+				this.selfArg.toSource(sb, idPrefix);
 			} else {
-				this.selfArg.toSource(sb);
+				this.selfArg.toSource(sb, idPrefix);
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				arg.toSource(sb);
+				arg.toSource(sb, idPrefix);
 			}
 			sb.append(')');
 		} else if(operator != null && operator.isPrefix()) {
 			sb.append('(');
 			operator.toSource(sb);
-			this.selfArg.toSource(sb);
+			this.selfArg.toSource(sb, idPrefix);
 			sb.append(')');
 		} else if(operator != null && operator.isSuffix()) {
 			sb.append('(');
-			this.selfArg.toSource(sb);
+			this.selfArg.toSource(sb, idPrefix);
 			operator.toSource(sb);
 			sb.append(')');
 		} else {
 
 			if(hasSelfName) {
-				this.selfArg.toSource(sb);
+				this.selfArg.toSource(sb, idPrefix);
 				sb.append('.');
 			} else if(this.name.equals(this.body) && this.argumentLists.isEmpty()) {
-				this.body.toSource(sb);
+				this.body.toSource(sb, Precedence.ATOM, idPrefix);
 				return;
 			}
 
@@ -155,14 +156,12 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 					np = np.tail();
 				}
 				if(al.isNotEmpty()) {
-					if(!(al.head().isEmpty() && np.isEmpty())) {
-						sb.append('(');
-						for(Key arg : al.head()) {
-							if(arg == null) throw new NullPointerException();
-							arg.toSource(sb);
-						}
-						sb.append(')');
+					sb.append('(');
+					for(Key arg : al.head()) {
+						if(arg == null) throw new NullPointerException();
+						arg.toSource(sb, idPrefix);
 					}
+					sb.append(')');
 					al = al.tail();
 				} else if(np.isNotEmpty()) {
 					sb.append("()");
@@ -174,11 +173,11 @@ public class Method extends AbstractCoreExpr implements CoreExpr {
 		sb.append(' ');
 		CoreExpr pre = this.precondition;
 		if(!pre.equals(EMPTY_PRECONDITION)) {
-			pre.toSource(Operator.PRECONDITION.getLeftPrecedence());
+			pre.toSource(sb, Operator.PRECONDITION.getLeftPrecedence(), idPrefix);
 			Operator.PRECONDITION.toSource(sb);
-			this.body.toSource(sb, Operator.PRECONDITION.getRightPrecedence());
+			this.body.toSource(sb, Operator.PRECONDITION.getRightPrecedence(), idPrefix);
 		} else {
-			this.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
+			this.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence(), idPrefix);
 		}
 		// TODO postcondition ...
 		if(!postcondition.equals(EMPTY_POSTCONDITION)) throw new IllegalStateException("Not implemented... postcondition");

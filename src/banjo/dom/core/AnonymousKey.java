@@ -4,6 +4,7 @@ import banjo.dom.BadExpr;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import fj.data.List;
 
@@ -28,8 +29,8 @@ public class AnonymousKey extends AbstractCoreExpr implements Key {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
-		sb.append("___");
+	public void toSource(StringBuffer sb, String idPrefix) {
+		Identifier.toSource("ANONYMOUS/ANONYMOUS", sb);
 	}
 
 	@Override
@@ -51,5 +52,4 @@ public class AnonymousKey extends AbstractCoreExpr implements Key {
 	public List<String> getParts() {
 		return List.nil();
 	}
-
 }

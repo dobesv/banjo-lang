@@ -53,9 +53,9 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(final StringBuffer sb) {
+	public void toSource(final StringBuffer sb, String idPrefix) {
 		if(isSelector()) {
-			((Call)methods.head().getBody()).projectionToSource(sb);
+			((Call)methods.head().getBody()).projectionToSource(sb, idPrefix);
 		} else if(isLambda()) {
 			final Method method = this.methods.head();
 			if(method.hasSelfArg() || !(method.getArgumentLists().isEmpty() || method.getArgumentLists().head().isEmpty())) {
@@ -63,14 +63,14 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 					method.getSelfArg().acceptVisitor(new BaseCoreExprVisitor<Unit>() {
 						@Override
 						public Unit mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
-							mixfixFunctionIdentifier.toSource(sb, method.getArgumentLists());
+							mixfixFunctionIdentifier.toSource(sb, method.getArgumentLists(), idPrefix);
 							return Unit.unit();
 						}
 
 						@Override
 						public Unit key(Key key) {
-							key.toSource(sb);
-							argListToSource(sb, method);
+							key.toSource(sb, idPrefix);
+							argListToSource(sb, method, idPrefix);
 							return Unit.unit();
 						}
 
@@ -81,26 +81,26 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 					});
 				} else {
 					// Note: Only one argument list is supported in this case, if there are others they are ignored as they would be invalid
-					argListToSource(sb, method);
+					argListToSource(sb, method, idPrefix);
 				}
 				sb.append(' ');
 			}
 			Operator.FUNCTION.toSource(sb);
 			sb.append(' ');
-			method.getBody().toSource(sb, Operator.FUNCTION.getPrecedence());
+			method.getBody().toSource(sb, Operator.FUNCTION.getPrecedence(), idPrefix);
 		} else {
 			sb.append('{');
 			boolean first = true;
 			for(final Method method : this.methods) {
 				if(first) first = false;
 				else sb.append(", ");
-				method.toSource(sb);
+				method.toSource(sb, idPrefix);
 			}
 			sb.append('}');
 		}
 	}
 
-	private boolean isSelector() {
+	public boolean isSelector() {
 	    return methods.isSingle()
 	    		&& methods.head().getArgumentLists().isSingle()
 	    		&& methods.head().getArgumentLists().head().isSingle()
@@ -109,13 +109,13 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	    		&& methods.head().getName().equals(Key.ANONYMOUS);
     }
 
-	private void argListToSource(final StringBuffer sb, final Method method) {
+	private void argListToSource(final StringBuffer sb, final Method method, String idPrefix) {
 		sb.append('(');
 		boolean first = true;
 		for(Key arg : method.getArgumentLists().head()) {
 			if(first) first = false;
 			else sb.append(", ");
-			arg.toSource(sb);
+			arg.toSource(sb, idPrefix);
 		}
 		sb.append(')');
 	}
@@ -199,7 +199,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static ObjectLiteral selector(Key name, CoreExpr ... args) {
-		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, args)));
+		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, List.list(args))));
 	}
 
 	public static CoreExpr selector(String variant, CoreExpr ... args) {

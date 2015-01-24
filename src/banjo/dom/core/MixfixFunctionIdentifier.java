@@ -5,6 +5,7 @@ import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
+import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
@@ -22,16 +23,19 @@ public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, C
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		boolean first = true;
 		for(String part : getParts()) {
-			if(first) first = false;
-			else sb.append("()");
-			sb.append(part);
+			if(first) {
+				first = false;
+				if(!idPrefix.isEmpty() && part.startsWith(idPrefix))
+					part = part.substring(idPrefix.length());
+			} else sb.append("\\(\\)");
+			Identifier.toSource(part, sb);
 		}
 	}
 
-	public void toSource(StringBuffer sb, List<List<Key>> argumentLists) {
+	public void toSource(StringBuffer sb, List<List<Key>> argumentLists, String idPrefix) {
 		List<String> nl = getParts();
 		List<List<Key>> al = argumentLists;
 		while(nl.isNotEmpty()) {
@@ -43,7 +47,7 @@ public class MixfixFunctionIdentifier extends AbstractCoreExpr implements Key, C
 				for(Key arg : al.head()) {
 					if(first) first = false;
 					else sb.append(", ");
-					arg.toSource(sb);
+					arg.toSource(sb, idPrefix);
 				}
 				sb.append(')');
 				al = al.tail();

@@ -22,7 +22,7 @@ public class TestCallParser {
 	// TODO Warning/error on mixed comma and semicolon usage
 	@Ignore @Test public void mixed3() { call("a(b,c\n  d;e)", "a(b, c, d, e)", 4, 1); }
 
-	@Test public void dedentAfterParen1() { call("a.a().a(\n b\n c\n d\n e)", "a.a.a(b, c, d, e)", 4, 0); }
+	@Test public void dedentAfterParen1() { call("a.a().a(\n b\n c\n d\n e)", "a.a().a(b, c, d, e)", 4, 0); }
 	@Test public void dedentAfterParen2() { call("a(\nb\nc\nd\ne)", "a(b, c, d, e)", 4, 0); }
 
 	@Test public void testJuxtaposition1() { call("a {foo=1}", "a({foo = 1})", 1); }

@@ -45,6 +45,14 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	@Override
 	public void toSource(StringBuffer sb) {
+		toSource(sb, "");
+	}
+
+	@Override
+	public void toSource(StringBuffer sb, String idPrefix) {
+		String id = this.id;
+		if(!idPrefix.isEmpty() && id.startsWith(idPrefix))
+			id = id.substring(idPrefix.length());
 		toSource(id, sb);
 	}
 

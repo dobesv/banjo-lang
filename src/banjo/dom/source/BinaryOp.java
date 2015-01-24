@@ -36,17 +36,17 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 
 
 	@Override
-	public void toSource(StringBuffer sb) {
-		this.left.toSource(sb, getPrecedence());
+	public void toSource(StringBuffer sb, String idPrefix) {
+		this.left.toSource(sb, getPrecedence(), idPrefix);
 		if(this.operator.isParen()) {
 			sb.append(this.operator.getParenType().getStartChar());
-			this.right.toSource(sb, Precedence.lowest());
+			this.right.toSource(sb, Precedence.lowest(), idPrefix);
 			sb.append(this.operator.getParenType().getEndChar());
 		} else {
 			sb.append(' ');
 			sb.append(this.operator.getOp());
 			sb.append(' ');
-			this.right.toSource(sb, getPrecedence());
+			this.right.toSource(sb, getPrecedence(), idPrefix);
 		}
 	}
 

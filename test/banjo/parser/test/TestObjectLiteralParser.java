@@ -31,9 +31,10 @@ public class TestObjectLiteralParser {
 
 	@Test public void mirrors1() { parse("{x,y}", "{x, y}"); }
 	@Test public void method1() { parse("{f(x) = x}", "{f(x) = x}"); }
-	@Test public void method2() { parse("{f() = x}", "{f = x}"); }
-	@Test public void method3() { parse("{self.f() = self}", "{self.f = self}"); }
-	@Test public void method4() { parse("{self.f(x) = self}", "{self.f(x) = self}"); }
+	@Test public void method2() { parse("{f() = x}", "{f() = x}"); }
+	@Test public void method3() { parse("{self.f = self}", "{self.f = self}"); }
+	@Test public void method4() { parse("{self.f() = self}", "{self.f() = self}"); }
+	@Test public void method5() { parse("{self.f(x) = self}", "{self.f(x) = self}"); }
 	//	@Test public void method5() { parse("test:\n f() = 1\n y() = 2", "{test = {f = 1, y = 2}}"); }
 	@Test public void applyMethod1() { parse("{(self(x)) = self}", "self(x) -> self"); }
 	@Test public void applyMethod2() { parse("{(x) = x+1}", "(x) -> x + 1"); }

@@ -31,13 +31,13 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		sb.append('[');
 		boolean first = true;
 		for(final CoreExpr elt : this.elements) {
 			if(first) first = false;
 			else sb.append(", ");
-			elt.toSource(sb);
+			elt.toSource(sb, Precedence.COMMA, idPrefix);
 		}
 		sb.append(']');
 	}
@@ -83,12 +83,11 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public CoreExpr toConstructionExpression() {
-		final CoreExpr empty = new Identifier("[]");
-		return elements.foldRight(
-			((CoreExpr head,CoreExpr tail) ->
-				(CoreExpr)new Call(new Identifier("data"), new Identifier("list"), ObjectLiteral.selector("nonempty", head, tail))),
-			empty
-		);
+		CoreExpr result = new Identifier("[]");
+		for(CoreExpr elt : elements) {
+			result = new Call(new Identifier("data"), new Identifier("list"), ObjectLiteral.selector("nonempty", elt, result));
+		}
+		return result;
 	}
 
 }

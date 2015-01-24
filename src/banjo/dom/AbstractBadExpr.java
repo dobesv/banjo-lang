@@ -24,13 +24,17 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		sb.append("fail(");
 		if(sourceFileRanges.isNotEmpty()) {
 			sb.append(sourceFileRanges.head().toString()).append(": ");
 		}
 		StringLiteral.toSource(this.getMessage(), sb);
 		sb.append(")");
+	}
+
+	public void toSource(StringBuffer sb) {
+		toSource(sb, "");
 	}
 
 	@Override
@@ -42,7 +46,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return this.messageTemplate;
 	}
 
-	
+
 	@Override
 	public String getMessage() {
 		return String.format(this.messageTemplate, this.args);

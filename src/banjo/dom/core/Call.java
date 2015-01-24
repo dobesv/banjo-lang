@@ -35,15 +35,22 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public Call(List<SourceFileRange> ranges, CoreExpr object, Key methodName, boolean optional, CoreExpr ... arguments) {
 		this(ranges, object, methodName, List.single(List.list(arguments)), false, optional);
 	}
-	public Call(CoreExpr object, Key methodName, CoreExpr ... arguments) {
-		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(List.list(arguments)), false, false);
+	public Call(CoreExpr object, Key methodName, CoreExpr argument) {
+		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(List.single(argument)), false, false);
 	}
 	public Call(CoreExpr object, Key methodName, List<CoreExpr> arguments) {
 		this(SourceFileRange.EMPTY_LIST, object, methodName, List.single(arguments), false, false);
 	}
 
-	public Call(CoreExpr a, Operator op, CoreExpr ... b) {
-		this(a, op.getMethodNameKey(), b);
+	public static Call getter(CoreExpr a, Key name) {
+		return new Call(SourceFileRange.EMPTY_LIST, a, name, List.nil(), false, false);
+	}
+	public static Call binaryOp(CoreExpr a, Operator op, CoreExpr arg) {
+		return new Call(a, op.getMethodNameKey(), List.single(arg));
+	}
+
+	public static Call unaryOp(CoreExpr a, Operator op) {
+		return new Call(a, op.getMethodNameKey(), List.nil());
 	}
 
 	public CoreExpr getObject() {
@@ -91,71 +98,69 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(final StringBuffer sb) {
+	public void toSource(final StringBuffer sb, final String idPrefix) {
 
 		final Operator operator = this.getOperator();
 		if(operator != null && operator.isPrefix()) {
 			if(operator.isParen()) {
 				// Like |x|
 				sb.append(operator.getParenType().getStartChar());
-				this.object.toSource(sb, operator.getPrecedence());
+				this.object.toSource(sb, operator.getPrecedence(), idPrefix);
 				sb.append(operator.getParenType().getEndChar());
 			} else {
 				operator.toSource(sb);
-				this.object.toSource(sb, operator.getPrecedence());
+				this.object.toSource(sb, operator.getPrecedence(), idPrefix);
 			}
 		} else if(operator != null && operator.isSuffix()) {
-			this.object.toSource(sb, operator.getLeftPrecedence());
+			this.object.toSource(sb, operator.getLeftPrecedence(), idPrefix);
 			operator.toSource(sb);
 		} else if(operator == Operator.CALL && this.object instanceof MixfixFunctionIdentifier) {
-			argsToSource(sb, ((MixfixFunctionIdentifier)this.object).getParts());
+			argsToSource(sb, ((MixfixFunctionIdentifier)this.object).getParts(), idPrefix);
 		} else if(operator != null && operator.isInfix() && (operator.isParen() || operator.getOperatorType() == OperatorType.METHOD)) {
-			this.object.toSource(sb, operator.getLeftPrecedence());
+			this.object.toSource(sb, operator.getLeftPrecedence(), idPrefix);
 			if(operator.isParen()) {
 				sb.append(operator.getParenType().getStartChar());
 				boolean first = true;
 				for(final CoreExpr arg : this.getArgumentLists().head()) {
 					if(first) first = false;
 					else sb.append(", ");
-					arg.toSource(sb, Precedence.COMMA.nextHighest());
+					arg.toSource(sb, Precedence.COMMA.nextHighest(), idPrefix);
 				}
 				sb.append(operator.getParenType().getEndChar());
 			} else {
 				sb.append(' ');
 				operator.toSource(sb);
 				sb.append(' ');
-				this.getArgumentLists().head().head().toSource(sb, operator.getPrecedence());
+				this.getArgumentLists().head().head().toSource(sb, operator.getPrecedence(), idPrefix);
 			}
 		} else {
-			this.object.toSource(sb, Precedence.SUFFIX);
-			projectionToSource(sb);
+			this.object.toSource(sb, Precedence.SUFFIX, idPrefix);
+			projectionToSource(sb, idPrefix);
 		}
 	}
 
-	public void projectionToSource(final StringBuffer sb) {
+	public void projectionToSource(final StringBuffer sb, String idPrefix) {
 	    final List<String> np = name.getParts();
 	    final List<String> np2 = np.isEmpty() ? List.single("") : np;
 	    Operator op = optional ? callNext ? Operator.OPT_CALL_NEXT_METHOD : Operator.OPT_PROJECTION : callNext ? Operator.CALL_NEXT_METHOD : Operator.PROJECTION;
 	    op.toSource(sb);
-    	argsToSource(sb, np2);
+    	argsToSource(sb, np2, idPrefix);
     }
 
-	private void argsToSource(final StringBuffer sb, List<String> np) {
+	private void argsToSource(final StringBuffer sb, List<String> np, String idPrefix) {
 	    List<List<CoreExpr>> al = getArgumentLists();
 	    while(np.isNotEmpty()) {
 	    	Identifier.toSource(nonNull(np.head()), sb);
-	    	np = np.tail();
+	    	if(np.isNotEmpty()) np = np.tail();
 	    	if(al.isNotEmpty()) {
-	    		if(!(al.head().isEmpty() && np.isEmpty())) {
-	    			sb.append('(');
-	    			boolean first = true;
-	    			for(final CoreExpr arg : al.head()) {
-	    				if(first) first = false;
-	    				else sb.append(", ");
-	    				arg.toSource(sb, Precedence.COMMA.nextHighest());
-	    			}
-	    			sb.append(')');
-	    		}
+    			sb.append('(');
+    			boolean first = true;
+    			for(final CoreExpr arg : al.head()) {
+    				if(first) first = false;
+    				else sb.append(", ");
+    				arg.toSource(sb, Precedence.COMMA.nextHighest(), idPrefix);
+    			}
+    			sb.append(')');
 	    		al = al.tail();
 	    	} else if(np.isNotEmpty()) {
 	    		sb.append("()");

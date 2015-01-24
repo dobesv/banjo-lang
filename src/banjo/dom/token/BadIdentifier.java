@@ -31,7 +31,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
     }
 
 	@Override
-	public void toSource(StringBuffer sb) {
+	public void toSource(StringBuffer sb, String idPrefix) {
 		Identifier.toSource(originalSource, sb);
 	}
 
