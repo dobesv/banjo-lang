@@ -185,7 +185,7 @@ public class SourceExprDesugarer {
 	}
 
 	protected DesugarResult<CoreExpr> mapProjection(SourceExpr op, CoreExpr target,	SourceExpr projection, boolean callNext, boolean optional) {
-		final Key argName = new Identifier("."+projection.toSource());
+		final Key argName = new Identifier("compiler/map projection/x");
 		final DesugarResult<CoreExpr> projectionDs = projection(op, (CoreExpr)argName, projection, callNext, optional);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
 		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, new Call(NOT_FROM_SOURCE, target, new Identifier("map"), projectFuncDs.getValue()));
@@ -218,9 +218,13 @@ public class SourceExprDesugarer {
 
 	protected Key concatNameParts(Key prefix, Key suffix) {
 		List<SourceFileRange> ranges = suffix.getSourceFileRanges().append(prefix.getSourceFileRanges());
-		List<String> nameParts = prefix.getParts().append(suffix.getParts());
-		if(nameParts.isEmpty()) return Key.ANONYMOUS; // Both sides anonymous!
-		if(nameParts.tail().isEmpty()) return new Identifier(ranges, nonNull(nameParts.head()));
+		final List<String> suffixParts = suffix.getParts();
+		if(suffixParts.isEmpty())
+			return prefix;
+		final List<String> prefixParts = prefix.getParts();
+		if(prefixParts.isEmpty())
+			return suffix;
+		List<String> nameParts = prefixParts.append(suffixParts);
 		return new MixfixFunctionIdentifier(ranges, nameParts);
 	}
 
@@ -1527,7 +1531,7 @@ public class SourceExprDesugarer {
 	 * #<something> = { (x # y) = y.?<something> &&& y.<something> }
 	 */
 	public DesugarResult<CoreExpr> selector(UnaryOp op) {
-		final Identifier y = new Identifier(op.toSource()); // TODO: Hygienic variable name
+		final Identifier y = new Identifier("compiler/selector/x");
 		P3<CoreExpr,CoreExpr,SourceExprDesugarer> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprDesugarer>>() {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> key(Key field) {
@@ -1614,7 +1618,7 @@ public class SourceExprDesugarer {
 					@Override
 					public DesugarResult<CoreExpr> fallback(SourceExpr other) {
 						BinaryOp letOp = new BinaryOp(other.getSourceFileRanges(), Operator.ASSIGNMENT, SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, other);
-						return ds.localVariableDef(op, ds.getValue(), letOp, new Identifier("_"));
+						return ds.localVariableDef(op, ds.getValue(), letOp, new Identifier("compiler/let/unnamed"));
 					}
 				});
 			}
@@ -1749,7 +1753,7 @@ public class SourceExprDesugarer {
 			final boolean optional, final List<SourceExpr> argSourceExprs,
 			final BinaryOp calleeOp, Key key) {
 		boolean actualOptional = optional || calleeOp.getOperator() == Operator.MAP_OPT_PROJECTION;
-		final Key argName = new Identifier("."+key.toSource());
+		final Key argName = new Identifier("compiler/map projection/."+key.toSource());
 		final DesugarResult<CoreExpr> projectionDs = call(op, (CoreExpr)argName, concatNameParts(key, moreNames), cons(argSourceExprs, moreArgumentLists), false, actualOptional);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
 		final DesugarResult<CoreExpr> targetDs = projectFuncDs.expr(calleeOp.getLeft());
