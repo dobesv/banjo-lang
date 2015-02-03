@@ -3,7 +3,6 @@ package banjo.dom.core;
 import banjo.dom.Expr;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -31,13 +30,13 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
+	public void toSource(StringBuffer sb) {
 		sb.append('[');
 		boolean first = true;
 		for(final CoreExpr elt : this.elements) {
 			if(first) first = false;
 			else sb.append(", ");
-			elt.toSource(sb, Precedence.COMMA, idPrefix);
+			elt.toSource(sb, Precedence.COMMA);
 		}
 		sb.append(']');
 	}
@@ -83,9 +82,9 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public CoreExpr toConstructionExpression() {
-		CoreExpr result = new Identifier("[]");
+		CoreExpr result = Identifier.EMPTY_LIST;
 		for(CoreExpr elt : elements) {
-			result = new Call(new Identifier("data"), new Identifier("list"), ObjectLiteral.selector("nonempty", elt, result));
+			result = new Call(Identifier.DATA, new Identifier("list"), ObjectLiteral.selector("nonempty", elt, result));
 		}
 		return result;
 	}

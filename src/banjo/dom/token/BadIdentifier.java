@@ -12,7 +12,7 @@ import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
+public class BadIdentifier extends AbstractCoreExpr implements BadExpr {
 	public final String message;
 	public final String originalSource;
 
@@ -31,7 +31,7 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
     }
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
+	public void toSource(StringBuffer sb) {
 		Identifier.toSource(originalSource, sb);
 	}
 
@@ -97,5 +97,10 @@ public class BadIdentifier extends AbstractCoreExpr implements Key, BadExpr {
 	@Override
 	public List<String> getParts() {
 		return List.single(originalSource);
+	}
+
+	@Override
+	public Key withoutPrefix() {
+	    return this;
 	}
 }

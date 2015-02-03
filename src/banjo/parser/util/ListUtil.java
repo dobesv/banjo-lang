@@ -2,11 +2,17 @@ package banjo.parser.util;
 
 import static banjo.parser.util.Check.nonNull;
 
+
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+
+import java.util.function.Consumer;
+
+import fj.F;
 import fj.Ord;
 
 public class ListUtil {
@@ -83,6 +89,18 @@ public class ListUtil {
 			}
 		}
 		return Boolean.compare(it1.hasNext(), it2.hasNext());
+	}
+
+	/**
+	 * Iterate over a list, inserting commas in between each element into the string buffer
+	 * and calling the appender function (which is assumed to append to the buffer also).
+	 */
+	public static <T> void insertCommas(StringBuffer sb, Iterable<T> list, Consumer<? super T> appender) {
+		int start = sb.length();
+		list.forEach(x -> {
+			if (sb.length() > start) sb.append(", ");
+			appender.accept(x);
+		});
 	}
 
 }

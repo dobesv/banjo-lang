@@ -14,7 +14,7 @@ import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
-import banjo.dom.core.Method;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Identifier;
@@ -71,7 +71,7 @@ public class ProjectLoader {
 					.map(p -> loadBinding(p, idPrefix))
 					.reduce(EMPTY_BINDINGS, (b1, b2) -> mergeBindings(b1, b2))
 					.toStream()
-					.map(p -> Method.property(p._1(), p._2()))
+					.map(p -> FunctionLiteral.property(p._1(), p._2()))
 					.toList());
 
 
@@ -121,7 +121,7 @@ public class ProjectLoader {
 	public static TreeMap<Key, CoreExpr> loadBindings(String rootPath) {
 		try {
 			return Files.list(Paths.get(rootPath))
-					.map(p -> loadBinding(p, ""))
+					.map(p -> loadBinding(p, "/"))
 					.reduce(EMPTY_BINDINGS, (b1, b2) -> mergeBindings(b1, b2));
 		} catch (IOException e) {
 			return EMPTY_BINDINGS;

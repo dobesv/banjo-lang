@@ -24,8 +24,8 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
-		this.target.toSource(sb, Operator.INSPECT.getPrecedence(), idPrefix);
+	public void toSource(StringBuffer sb) {
+		this.target.toSource(sb, Operator.INSPECT.getPrecedence());
 		sb.append(Operator.INSPECT.getOp());
 	}
 

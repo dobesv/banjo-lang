@@ -10,7 +10,7 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.Method;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.BadSourceExpr;
 
@@ -64,12 +64,12 @@ public class TestObjectLiteralParser {
 		parse(source, "{a = 1, b = 2, c = 3}");
 		final ObjectLiteral node = (ObjectLiteral) CoreExpr.fromString(source);
 		final String[] expectedNames = {"a","b","c"};
-		final Iterator<Method> eltIt = node.getMethods().iterator();
+		final Iterator<FunctionLiteral> eltIt = node.getMethods().iterator();
 		final long[] expectedValues = {1,2,3};
 		for(int i=0; i < expectedValues.length; i++) {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
-			final Method actualValue = eltIt.next();
+			final FunctionLiteral actualValue = eltIt.next();
 			assertEquals(0, actualValue.totalDeclaredArguments());
 			assertEquals(expectedNames[i], actualValue.getName().toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue.getBody());

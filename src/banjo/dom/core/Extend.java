@@ -28,12 +28,12 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
-		this.base.toSource(sb, Operator.EXTEND.getPrecedence(), idPrefix);
+	public void toSource(StringBuffer sb) {
+		this.base.toSource(sb, Operator.EXTEND.getPrecedence());
 		sb.append(' ');
 		sb.append(Operator.EXTEND.getOp());
 		sb.append(' ');
-		this.extension.toSource(sb, Operator.EXTEND.getPrecedence(), idPrefix);
+		this.extension.toSource(sb, Operator.EXTEND.getPrecedence());
 	}
 
 	@Override

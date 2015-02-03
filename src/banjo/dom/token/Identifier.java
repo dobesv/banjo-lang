@@ -3,23 +3,32 @@ package banjo.dom.token;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.SourceCodeScanner;
+import banjo.parser.util.ExprOrd;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
-public class Identifier extends AbstractAtom implements Atom, Key, Token {
-	public static final Identifier ZERO = new Identifier("0");
-	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
-	public static final Identifier EMPTY_LIST = new Identifier("[]");
+public class Identifier extends AbstractAtom implements Atom, Token {
+	public static final Ord<Identifier> ORD = ExprOrd.exprOrd();
+	public static final Identifier ZERO = new Identifier("/0");
+	public static final Identifier ONE = new Identifier("/1");
+	public static final Identifier NAN = new Identifier("/NaN");
+	public static final Identifier EMPTY_STRING = new Identifier("/\"\"");
+	public static final Identifier EMPTY_LIST = new Identifier("/[]");
 	public static final Identifier ENVIRONMENT = new Identifier("ε");
-	public static final Identifier TRUE = new Identifier("true");
+	public static final Identifier TRUE = new Identifier("/true");
+	public static final Identifier FALSE = new Identifier("/false");
+	public static final Identifier DATA = new Identifier("/data");
+	public static final Identifier INFINITY = new Identifier("/∞");
 
-	final String id;
+	public final String id;
 
 	public Identifier(List<SourceFileRange> ranges, String id) {
 		super(id.hashCode() + ranges.hashCode(), ranges);
@@ -45,14 +54,6 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		toSource(sb, "");
-	}
-
-	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
-		String id = this.id;
-		if(!idPrefix.isEmpty() && id.startsWith(idPrefix))
-			id = id.substring(idPrefix.length());
 		toSource(id, sb);
 	}
 
@@ -129,12 +130,5 @@ public class Identifier extends AbstractAtom implements Atom, Key, Token {
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
 		return parser.identifier(getSourceFileRanges().head().getFileRange(), id);
 	}
-
-	@Override
-	public List<String> getParts() {
-		return List.single(id);
-	}
-
-
 }
 

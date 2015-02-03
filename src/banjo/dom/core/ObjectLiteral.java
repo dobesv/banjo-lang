@@ -1,48 +1,47 @@
 package banjo.dom.core;
 
-import static banjo.parser.util.Check.nonNull;
 import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.SourceCodeScanner;
 import banjo.parser.util.ExprOrd;
 import banjo.parser.util.SourceFileRange;
 import fj.F;
 import fj.Ord;
+import fj.P2;
 import fj.Unit;
 import fj.data.List;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final ObjectLiteral EMPTY = new ObjectLiteral();
-	public static final fj.data.List<Method> EMPTY_METHOD_LIST = fj.data.List.nil();
-	private final fj.data.List<Method> methods;
+	public static final fj.data.List<FunctionLiteral> EMPTY_METHOD_LIST = fj.data.List.nil();
+	private final fj.data.List<P2<Identifier,CoreExpr>> slots;
 
-	public static final Ord<Method> ORD = ExprOrd.<Method>exprOrd();
+	public static final Ord<FunctionLiteral> ORD = ExprOrd.<FunctionLiteral>exprOrd();
 
-	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<Method> methods) {
-		super(methods.hashCode()+ranges.hashCode(), ranges);
-		this.methods = nonNull(methods);
+	public ObjectLiteral() {
+		this(List.nil());
+    }
+
+	public ObjectLiteral(List<SourceFileRange> ranges, fj.data.List<P2<Identifier,CoreExpr>> slots) {
+		super(slots.hashCode()+ranges.hashCode(), ranges);
+		this.slots = slots;
 	}
 
 	@SafeVarargs
-	public ObjectLiteral(List<SourceFileRange> ranges, Method ... methods) {
-		this(ranges, fj.data.List.list(methods));
+	public ObjectLiteral(List<SourceFileRange> ranges, P2<Identifier,CoreExpr> ... slots) {
+		this(ranges, fj.data.List.list(slots));
 	}
 
-	public ObjectLiteral(Method ... methods) {
-		this(fj.data.List.list(methods));
+	public ObjectLiteral(P2<Identifier,CoreExpr> ... slots) {
+		this(fj.data.List.list(slots));
 	}
 
-	public ObjectLiteral(fj.data.List<Method> methods) {
-		this(SourceFileRange.EMPTY_LIST, methods);
-	}
-
-	public fj.data.List<Method> getMethods() {
-		return this.methods;
+	public ObjectLiteral(fj.data.List<P2<Identifier,CoreExpr>> slots) {
+		this(SourceFileRange.EMPTY_LIST, slots);
 	}
 
 	@Override
@@ -53,51 +52,15 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(final StringBuffer sb, String idPrefix) {
-		if(isSelector()) {
-			((Call)methods.head().getBody()).projectionToSource(sb, idPrefix);
-		} else if(isLambda()) {
-			final Method method = this.methods.head();
-			if(method.hasSelfArg() || !(method.getArgumentLists().isEmpty() || method.getArgumentLists().head().isEmpty())) {
-				if(method.hasSelfArg()) {
-					method.getSelfArg().acceptVisitor(new BaseCoreExprVisitor<Unit>() {
-						@Override
-						public Unit mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
-							mixfixFunctionIdentifier.toSource(sb, method.getArgumentLists(), idPrefix);
-							return Unit.unit();
-						}
-
-						@Override
-						public Unit key(Key key) {
-							key.toSource(sb, idPrefix);
-							argListToSource(sb, method, idPrefix);
-							return Unit.unit();
-						}
-
-						@Override
-						public Unit fallback() {
-							throw new IllegalStateException(method.getSelfArg().toSource());
-						}
-					});
-				} else {
-					// Note: Only one argument list is supported in this case, if there are others they are ignored as they would be invalid
-					argListToSource(sb, method, idPrefix);
-				}
-				sb.append(' ');
-			}
-			Operator.FUNCTION.toSource(sb);
-			sb.append(' ');
-			method.getBody().toSource(sb, Operator.FUNCTION.getPrecedence(), idPrefix);
-		} else {
-			sb.append('{');
-			boolean first = true;
-			for(final Method method : this.methods) {
-				if(first) first = false;
-				else sb.append(", ");
-				method.toSource(sb, idPrefix);
-			}
-			sb.append('}');
+	public void toSource(final StringBuffer sb) {
+		sb.append('{');
+		boolean first = true;
+		for(final P2<Identifier, CoreExpr> method : this.slots) {
+			if(first) first = false;
+			else sb.append(", ");
+			method.toSource(sb);
 		}
+		sb.append('}');
 	}
 
 	public boolean isSelector() {
@@ -106,16 +69,16 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	    		&& methods.head().getArgumentLists().head().isSingle()
 	    		&& methods.head().getBody() instanceof Call
 	    		&& ((Call)methods.head().getBody()).getObject().equals(methods.head().getArgumentLists().head().head())
-	    		&& methods.head().getName().equals(Key.ANONYMOUS);
+	    		&& methods.head().getName().equals(Identifier.ANONYMOUS);
     }
 
-	private void argListToSource(final StringBuffer sb, final Method method, String idPrefix) {
+	private void argListToSource(final StringBuffer sb, final FunctionLiteral method, String idPrefix) {
 		sb.append('(');
 		boolean first = true;
-		for(Key arg : method.getArgumentLists().head()) {
+		for(Identifier arg : method.getArgumentLists().head()) {
 			if(first) first = false;
 			else sb.append(", ");
-			arg.toSource(sb, idPrefix);
+			arg.toSource(sb);
 		}
 		sb.append(')');
 	}
@@ -124,7 +87,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		return this.methods.isSingle() && this.methods.head().isSimpleApplyMethod();
 	}
 
-	public static StringBuffer maybeQuoteKey(String identifier, StringBuffer sb) {
+	public static StringBuffer maybeQuoteIdentifier(String identifier, StringBuffer sb) {
 		for(int i=0; i < identifier.length(); i++) {
 			final int cp = identifier.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++; // Actually a pair of characters
@@ -168,7 +131,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		int cmp = getClass().getName().compareTo(o.getClass().getName());
 		if(cmp == 0) {
 			final ObjectLiteral other = (ObjectLiteral) o;
-			cmp = Ord.listOrd(Method.ORD).compare(this.methods, other.methods).toInt();
+			cmp = Ord.listOrd(FunctionLiteral.ORD).compare(this.methods, other.methods).toInt();
 			if(cmp == 0) cmp = super.compareTo(other);
 		}
 		return cmp;
@@ -180,33 +143,39 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.objectLiteral(getSourceFileRanges(), methods.map(new F<Method, T>() {
+		return visitor.objectLiteral(getSourceFileRanges(), methods.map(new F<FunctionLiteral, T>() {
 			@Override
-			public T f(Method a) {
+			public T f(FunctionLiteral a) {
 				if(a == null) throw new NullPointerException();
 				return a.acceptVisitor(visitor);
 			}
 		}));
 	}
 
-	public Method findMethod(Key name) {
-		String baseName = name.toSource().replaceAll("[^/]*/", "");
-		for(Method method : methods) {
-			if(baseName.equals(method.baseName))
-				return method;
-		}
-		return null;
+	public FunctionLiteral findMethod(String name) {
+		return findMethods(name).toOption().toNull();
 	}
 
-	public static ObjectLiteral selector(Key name, CoreExpr ... args) {
-		return new ObjectLiteral(Method.call(List.single(name), new Call(name, name, List.list(args))));
-	}
-
-	public static CoreExpr selector(String variant, CoreExpr ... args) {
-	    return selector(new Identifier(variant), args);
+	private List<FunctionLiteral> findMethods(String name) {
+	    return methods.filter(m -> (m.name instanceof Identifier) && name.equals(((Identifier)m.name).id)).reverse();
     }
 
-	public static ObjectLiteral lambda(List<Key> argList, CoreExpr body) {
-	    return new ObjectLiteral(Method.call(argList, body));
+	public FunctionLiteral findMethod(Identifier name) {
+		return findMethods(name).toOption().toNull();
+	}
+
+	private List<FunctionLiteral> findMethods(Identifier name) {
+		final Identifier baseName = name.withoutPrefix();
+	    return methods.filter(m -> baseName.compareTo(m.name) == 0).reverse();
+    }
+
+	public ObjectLiteral withSlots(List<P2<Identifier,CoreExpr>> newSlots) {
+		if(newSlots.equals(slots))
+			return this;
+	    return new ObjectLiteral(getSourceFileRanges(), newSlots);
+    }
+
+	public fj.data.List<P2<Identifier,CoreExpr>> getSlots() {
+	    return slots;
     }
 }

@@ -13,7 +13,7 @@ public class Whitespace extends AbstractAtom implements Token {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
+	public void toSource(StringBuffer sb) {
 		sb.append(this.text);
 	}
 

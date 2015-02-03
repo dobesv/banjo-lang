@@ -28,8 +28,8 @@ import fj.data.List;
  * Change input into an AST.
  */
 public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
+	private static final String DEFAULT_ID_PREFIX = "/temp/";
 	public final String sourceFile;
-	public final String idPrefix;
 	public final List<PartialOp> opStack;
 	public final SourceExpr operand;
 	public final SourceExpr result;
@@ -190,10 +190,9 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		}
 	}
 
-	public SourceCodeParser(String sourceFile, String idPrefix, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
+	public SourceCodeParser(String sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
 		super();
 		this.sourceFile = sourceFile;
-		this.idPrefix = idPrefix;
 		this.opStack = opStack;
 		this.operand = operand;
 		this.result = result;
@@ -201,7 +200,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	public SourceCodeParser(String sourceFile, String idPrefix) {
-		this(sourceFile, idPrefix, List.nil(), null, null, 0);
+		this(sourceFile, List.nil(), null, null, 0);
 	}
 
 	/**
@@ -209,7 +208,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	 * reporting errors.
 	 */
 	public SourceCodeParser(String sourceFile) {
-		this(sourceFile, "", List.nil(), null, null, 0);
+		this(sourceFile, List.nil(), null, null, 0);
 	}
 
 	/**
@@ -299,7 +298,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	private SourceCodeParser update(List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
-		return new SourceCodeParser(sourceFile, idPrefix, opStack, operand, result, operandIndentLevel);
+		return new SourceCodeParser(sourceFile, opStack, operand, result, operandIndentLevel);
 	}
 	private SourceCodeParser update(List<PartialOp> opStack, SourceExpr operand, int operandIndentLevel) {
 		return update(opStack, operand, result, operandIndentLevel);
@@ -342,7 +341,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 	@Override
 	public SourceCodeParser identifier(FileRange range, String text) {
-		return visitAtom(range, new Identifier(sfr(range), idPrefix + text));
+		return visitAtom(range, new Identifier(sfr(range), text));
 	}
 
 	@Override

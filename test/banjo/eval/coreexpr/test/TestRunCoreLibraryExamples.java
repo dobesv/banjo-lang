@@ -3,7 +3,6 @@ package banjo.eval.coreexpr.test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -11,18 +10,17 @@ import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
 import banjo.dom.core.ListLiteral;
-import banjo.dom.core.Method;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.Key;
 import banjo.eval.ProjectLoader;
 import banjo.eval.coreexpr.CoreExprEvaluator;
-import banjo.eval.coreexpr.EvalResult;
 import fj.data.List;
 
 public class TestRunCoreLibraryExamples {
-	Key EXAMPLES_KEY = new Identifier("examples");
+	Key EXAMPLES_KEY = new Identifier("usage examples");
 
 	static Boolean looksLikeExample(CoreExpr arg) {
 		return arg.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
@@ -68,10 +66,10 @@ public class TestRunCoreLibraryExamples {
 	Boolean testFails(CoreExpr x) {
 		System.out.println("Testing: "+x);
 
-		EvalResult result = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile()).evaluate(x);
-		final boolean working = !result.isFailure();
-		if(!working) System.out.println("Error: "+result.object);
-		final boolean success = working && result.isTruthy();
+		ObjectLiteral result = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile()).evaluate(x);
+		final boolean working = !CoreExprEvaluator.isFailure(result);
+		//if(!working) System.out.println("Error: "+result.object);
+		final boolean success = working && CoreExprEvaluator.isTruthy(result);
 		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x);
 		return ! success;
 	}
@@ -92,7 +90,7 @@ public class TestRunCoreLibraryExamples {
 						@Override
 						public List<CoreExpr> objectLiteral(ObjectLiteral objectLiteral) {
 							if(objectLiteral.isLambda()) {
-								Method m = objectLiteral.findMethod(Key.ANONYMOUS);
+								FunctionLiteral m = objectLiteral.findMethod(Key.ANONYMOUS);
 								if(m != null && m.getArgumentLists().isSingle() && m.getArgumentLists().head().isSingle() && m.getArgumentLists().head().head().compareTo(EXAMPLES_KEY) == 0) {
 									return ((ListLiteral)call.getArgumentLists().head().head()).getElements();
 								}
@@ -138,7 +136,9 @@ public class TestRunCoreLibraryExamples {
 			}
 		});
 	}
-	@Ignore public void testCoreLibraryExamplesPass() {
+
+	@Test
+	public void testCoreLibraryExamplesPass() {
 
 		List<CoreExpr> allExamples = List.join(ProjectLoader.loadBanjoPath()
 			.values()
@@ -147,7 +147,7 @@ public class TestRunCoreLibraryExamples {
 
 		assertFalse("Failed to find any examples in the core library.", allExamples.isEmpty());
 		final List<CoreExpr> failures = allExamples.filter(this::testFails);
-		System.out.println("Get "+failures.length()+" failures");
+		System.out.println("Found "+allExamples.length()+" examples, "+failures.length()+" failed");
 		assertTrue(failures.isEmpty());
 	}
 }

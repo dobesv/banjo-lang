@@ -3,7 +3,6 @@ package banjo.dom.core;
 import banjo.dom.BadExpr;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
@@ -18,14 +17,6 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	public T stringLiteral(StringLiteral n) {
-		return key(n);
-	}
-
-	/**
-	 * Called when visiting a subclass of Key and that subclass visit method has
-	 * not been overridden.
-	 */
-	public T key(Key key) {
 		return fallback();
 	}
 
@@ -36,7 +27,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	public T identifier(Identifier n) {
-		return key(n);
+		return fallback();
 	}
 
 	@Override
@@ -80,13 +71,13 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T anonymous() {
-		return fallback();
+	public T let(Let let) {
+	    return fallback();
 	}
 
 	@Override
-	public T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier) {
-		return fallback();
+	public T functionLiteral(FunctionLiteral f) {
+	    return fallback();
 	}
 
 }

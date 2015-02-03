@@ -2,6 +2,7 @@ package banjo.dom.core;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.P2;
 import fj.data.List;
 
 public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
@@ -17,8 +18,8 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> objectLiteral(List<SourceFileRange> ranges,
-			List<List<BadExpr>> methods) {
-		return List.join(methods);
+			List<P2<Identifier, List<BadExpr>>> slots) {
+		return List.join(slots.map(P2.__2()));
 	}
 
 	@Override
@@ -80,4 +81,9 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 		return object.append(name).append(List.join(List.join(argumentLists)));
 	}
 
+	@Override
+	public List<BadExpr> let(List<SourceFileRange> sourceFileRanges,
+	        List<P2<Key, List<BadExpr>>> bindings, List<BadExpr> body) {
+		return List.join(bindings.map(p -> p._2())).append(body);
+	}
 }

@@ -17,7 +17,8 @@ public interface CoreExprVisitor<T> extends ExprVisitor<T> {
 	T badIdentifier(BadIdentifier badIdentifier);
 	T inspect(Inspect inspect);
 	T extend(Extend extend);
-	T mixfixFunctionIdentifier(MixfixFunctionIdentifier mixfixFunctionIdentifier);
-	T anonymous();
+	T let(Let let);
+	T functionLiteral(FunctionLiteral f);
+	T slotReference(SlotReference slotReference);
 
 }

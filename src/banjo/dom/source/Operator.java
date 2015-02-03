@@ -94,7 +94,7 @@ public enum Operator {
 	private final Associativity associativity;
 	private final Position position;
 	private final String methodName;
-	private final Key methodNameKey;
+	private final Identifier methodNameKey;
 	private final OperatorType operatorType;
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
@@ -106,8 +106,8 @@ public enum Operator {
 		this.parenType = parenType;
 		this.associativity = associativity;
 		this.position = position;
-		this.methodName = parenType == ParenType.PARENS ? "" : methodName.replaceFirst("\\?$", "");
-		this.methodNameKey = parenType == ParenType.PARENS ? Key.ANONYMOUS : new Identifier(this.methodName);
+		this.methodName = parenType == ParenType.PARENS ? null : methodName.replaceFirst("\\?$", "");
+		this.methodNameKey = parenType == ParenType.PARENS ? null : new Identifier(this.methodName);
 	}
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
@@ -180,7 +180,7 @@ public enum Operator {
 		return null;
 	}
 
-	public static Operator fromMethodName(Key methodName, boolean infix) {
+	public static Operator fromMethodName(Identifier methodName, boolean infix) {
 		for(final Operator operator : values()) {
 			if(infix == operator.isInfix() && methodName.compareTo(operator.methodNameKey) == 0) {
 				return operator;
@@ -268,7 +268,7 @@ public enum Operator {
 		return this.methodName;
 	}
 
-	public Key getMethodNameKey() {
+	public Identifier getMethodIdentifier() {
 		return methodNameKey;
 	}
 

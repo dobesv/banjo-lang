@@ -8,11 +8,11 @@ import fj.data.List;
 
 public interface Expr extends Comparable<Expr> {
 
-	public void toSource(StringBuffer sb, String idPrefix);
+	public void toSource(StringBuffer sb);
 
-	public void toSource(StringBuffer sb, Precedence outerPrec, String idPrefix);
+	public void toSource(StringBuffer sb, Precedence outerPrec);
 
-	public String toSource(Precedence prec, String idPrefix);
+	public String toSource(Precedence prec);
 
 	public String toSource();
 

@@ -27,7 +27,7 @@ public class TestFunctionLiteralParser {
 			sb.append("(");
 			for(Key arg : func.getMethods().head().getArgumentLists().head()) {
 				if(sb.length() > 1) sb.append(", ");
-				arg.toSource(sb, "");
+				arg.toSource(sb);
 			}
 			sb.append(")");
 			assertEquals(sb.toString(), "("+expectedArgNames+")");

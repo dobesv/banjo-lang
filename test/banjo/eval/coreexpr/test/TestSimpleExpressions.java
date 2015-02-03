@@ -5,19 +5,25 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import banjo.dom.core.CoreExpr;
+import banjo.dom.core.ObjectLiteral;
 import banjo.eval.coreexpr.CoreExprEvaluator;
-import banjo.eval.coreexpr.EvalResult;
 
 public class TestSimpleExpressions {
 	public static boolean isTruthyExpr(String src) {
 		System.out.println("Source: "+src);
-		final EvalResult value = CoreExprEvaluator.eval(src);
-		System.out.println("Result: "+value.object.toSource());
-		return value.isTruthy();
+		final ObjectLiteral value = CoreExprEvaluator.eval(src);
+		if(CoreExprEvaluator.isFailure(value)) {
+			System.out.println("FAILURE");
+			return false;
+		} else {
+			System.out.println("Result: "+value.toSource());
+			return CoreExprEvaluator.isTruthy(value);
+		}
 	}
 
 	public static boolean isDefined(String src) {
-		return CoreExprEvaluator.eval(src).isFailure();
+		return !CoreExprEvaluator.isFailure(CoreExprEvaluator.eval(src));
 	}
 
 	@Test public void trueIsTruthy()     { assertTrue(isTruthyExpr("true")); }
@@ -33,5 +39,7 @@ public class TestSimpleExpressions {
 	@Test public void testNotFalseEqTrue() { assertTrue(isTruthyExpr("! false == true")); }
 	@Test public void testFalseEqNotTrue() { assertTrue(isTruthyExpr("false == ! true")); }
 	@Test public void testNotFalseEqNotFalse() { assertTrue(isTruthyExpr("! false == ! false")); }
+
+	@Test public void testRange22() { assertTrue(isTruthyExpr("[1, 2, 3, 4, 5].range(2, 2) == [3, 4]")); }
 
 }

@@ -21,7 +21,7 @@ import banjo.util.SourceNumber;
 import fj.data.List;
 
 
-public class NumberLiteral extends AbstractAtom implements Atom, Key {
+public class NumberLiteral extends AbstractAtom implements Atom {
 	private final Number number;
 	private final String suffix;
 
@@ -53,7 +53,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
+	public void toSource(StringBuffer sb) {
 		sb.append(this.toString());
 		sb.append(suffix);
 	}
@@ -130,10 +130,6 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), number, suffix);
 	}
 
-	@Override
-	public List<String> getParts() {
-		return List.single(number.toString());
-	}
 	public String getSuffix() {
 		return suffix;
 	}
@@ -163,10 +159,10 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 			BigInteger bi = (BigInteger)n;
 			int signum = bi.signum();
 			if(bi.equals(BigInteger.ZERO)) {
-				return new Identifier("0");
+				return Identifier.ZERO;
 			}
 			if(bi.equals(BigInteger.ONE)) {
-				return new Identifier("1");
+				return Identifier.ONE;
 			}
 
 			final boolean negative = signum == -1;
@@ -214,19 +210,19 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		} else if(n instanceof Double) {
 			double d = n.doubleValue();
 			if(d == 0) {
-				return new Identifier("0");
+				return Identifier.ZERO;
 			}
 			if(d == 1) {
-				return new Identifier("1");
+				return Identifier.ONE;
 			}
 			if(d == Double.NaN) {
-				return new Identifier("NaN");
+				return Identifier.NAN;
 			}
 			if(d == Double.NEGATIVE_INFINITY) {
-				return Call.unaryOp(new Identifier("∞"), Operator.NEGATE);
+				return Call.unaryOp(Identifier.INFINITY, Operator.NEGATE);
 			}
 			if(d == Double.POSITIVE_INFINITY) {
-				return new Identifier("∞");
+				return Identifier.INFINITY;
 			}
 			boolean negative = (d < 0);
 			if(negative) d = -d;
@@ -239,5 +235,10 @@ public class NumberLiteral extends AbstractAtom implements Atom, Key {
 		} else throw new Error("TODO: "+n.getClass().getSimpleName());
 		return ctor;
 	}
+
+	@Override
+    public Key withoutPrefix() {
+	    return this;
+    }
 
 }

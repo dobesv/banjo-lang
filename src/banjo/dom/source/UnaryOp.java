@@ -32,12 +32,12 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 		return visitor.unaryOp(getSourceFileRanges(), getOperator(), getOperatorRanges(), getOperand().acceptVisitor(visitor));
 	}
 	@Override
-	public void toSource(StringBuffer sb, String idPrefix) {
+	public void toSource(StringBuffer sb) {
 		final boolean paren = this.operator.isParen();
 		final boolean prefix = this.operator.isPrefix();
 		if(paren) sb.append(this.operator.getParenType().getStartChar());
 		else if(prefix) sb.append(this.operator.getOp());
-		this.operand.toSource(sb, paren?Precedence.lowest():getPrecedence(), idPrefix);
+		this.operand.toSource(sb, paren?Precedence.lowest():getPrecedence());
 		if(paren) sb.append(this.operator.getParenType().getEndChar());
 		else if(!prefix) sb.append(this.operator.getOp());
 	}
