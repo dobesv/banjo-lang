@@ -28,7 +28,7 @@ public class TestProjectLoader {
 
 	public TreeMap<Identifier, CoreExpr> bindings() {
 
-		TreeMap<Identifier, CoreExpr> bindings = ProjectLoader.loadBanjoPath();
+		TreeMap<Identifier, CoreExpr> bindings = (new ProjectLoader()).loadBanjoPath();
 		bindings.forEach(binding -> {
 			System.out.println("Binding: "+binding._1()+" -> "+binding._2());
 			binding._2().acceptVisitor(new CoreErrorGatherer()).forEach(e -> {

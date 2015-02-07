@@ -134,7 +134,7 @@ public class TestRunCoreLibraryExamples {
 	@Test
 	public void testCoreLibraryExamplesPass() {
 
-		List<CoreExpr> allExamples = List.join(ProjectLoader.loadBanjoPath()
+		List<CoreExpr> allExamples = List.join((new ProjectLoader()).loadBanjoPath()
 			.values()
 			.<List<CoreExpr>>map(this::findExamples));
 		System.out.println("Found "+allExamples.length()+" examples");

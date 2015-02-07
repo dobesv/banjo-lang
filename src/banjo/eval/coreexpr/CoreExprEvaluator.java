@@ -442,7 +442,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	}
 
 	public static CoreExprEvaluator forSourceFile(String sourceFilePath) {
-		return new CoreExprEvaluator(ProjectLoader.loadLocalAndLibraryBindings(sourceFilePath));
+		return new CoreExprEvaluator((new ProjectLoader()).loadLocalAndLibraryBindings(sourceFilePath));
 	}
 
 	public static CoreExpr eval(String src) {

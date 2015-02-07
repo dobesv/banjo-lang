@@ -14,7 +14,6 @@ import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
-import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Identifier;
@@ -26,7 +25,6 @@ import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceFileRange;
 import fj.P2;
 import fj.data.List;
-import fj.data.Stream;
 import fj.data.TreeMap;
 
 public class ProjectLoader {
@@ -37,7 +35,7 @@ public class ProjectLoader {
 	 * @param path
 	 * @return
 	 */
-	public static TreeMap<Identifier, CoreExpr> loadBinding(Path path) {
+	public TreeMap<Identifier, CoreExpr> loadBinding(Path path) {
 		String[] baseExt = path.getFileName().toString().split("\\.", 2);
 		String base = baseExt[0];
 		String ext = baseExt.length == 2 ? baseExt[1] : Files.isRegularFile(path) ? "txt" : "";
@@ -62,7 +60,7 @@ public class ProjectLoader {
 		return EMPTY_BINDINGS.set(key, value);
 	}
 
-	private static ObjectLiteral loadFolder(Path path) {
+	private ObjectLiteral loadFolder(Path path) {
 		final List<SourceFileRange> ranges = List.single(new SourceFileRange(path.getFileName().toString(), FileRange.EMPTY));
 		try {
 			return new ObjectLiteral(ranges,
@@ -78,7 +76,7 @@ public class ProjectLoader {
 		}
     }
 
-	private static CoreExpr loadSourceCode(Path path, final String filename) {
+	private CoreExpr loadSourceCode(Path path, final String filename) {
 	    CoreExpr value;
 	    try {
 	    	final SourceCodeParser parser = new SourceCodeParser(filename);
@@ -95,7 +93,7 @@ public class ProjectLoader {
 	    return value;
     }
 
-	private static CoreExpr loadText(Path path, final String filename) {
+	private CoreExpr loadText(Path path, final String filename) {
 	    CoreExpr value;
 	    try {
 	    	String text = new String(Files.readAllBytes(Paths.get("file")), StandardCharsets.UTF_8);
@@ -116,7 +114,7 @@ public class ProjectLoader {
 		}
 		return a;
 	}
-	public static TreeMap<Identifier, CoreExpr> loadBindings(String rootPath) {
+	public TreeMap<Identifier, CoreExpr> loadBindings(String rootPath) {
 		try {
 			return Files.list(Paths.get(rootPath))
 					.map(p -> loadBinding(p))
@@ -126,14 +124,14 @@ public class ProjectLoader {
 		}
 	}
 
-	public static TreeMap<Identifier, CoreExpr> loadBanjoPath() {
+	public TreeMap<Identifier, CoreExpr> loadBanjoPath() {
 		String path = System.getProperty("banjo.path");
 		if(path == null) path = System.getenv("BANJO_PATH");
 		if(path == null) return EMPTY_BINDINGS;
 		return loadImportedBindings(path);
 	}
 
-	public static TreeMap<Identifier, CoreExpr> loadImportedBindings(String searchPath) {
+	public TreeMap<Identifier, CoreExpr> loadImportedBindings(String searchPath) {
 		TreeMap<Identifier, CoreExpr> bindings = EMPTY_BINDINGS;
 		if(searchPath != null) {
 			for(String path: searchPath.split(File.pathSeparator)) {
@@ -145,7 +143,7 @@ public class ProjectLoader {
 		return bindings;
 	}
 
-	public static TreeMap<Identifier, CoreExpr> loadLocalBindings(String sourceFilePath) {
+	public TreeMap<Identifier, CoreExpr> loadLocalBindings(String sourceFilePath) {
 		if(sourceFilePath == null)
 			return EMPTY_BINDINGS;
 		Path p = Paths.get(sourceFilePath);
@@ -158,7 +156,7 @@ public class ProjectLoader {
 		return loadBindings(Paths.get(sourceFilePath).toString());
 	}
 
-	public static TreeMap<Identifier, CoreExpr> loadLocalAndLibraryBindings(String sourceFilePath) {
+	public TreeMap<Identifier, CoreExpr> loadLocalAndLibraryBindings(String sourceFilePath) {
 		return loadLocalBindings(sourceFilePath).union(loadBanjoPath());
 	}
 }
