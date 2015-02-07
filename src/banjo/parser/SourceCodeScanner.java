@@ -417,17 +417,18 @@ public class SourceCodeScanner {
 			return List.nil();
 		}
 		final int quoteType = cp;
-
-		final int leftColumn = in.getCurrentColumnNumber();
+		
+		int leftColumn = in.getCurrentColumnNumber();
 		this.buf.setLength(0);
 		List<T> errs = List.nil();
 		while((cp = in.read()) != -1) {
 			if(cp == quoteType)
 				break; // End of string
-			// Ignore whitespace with column <= the left column
+			// Ignore whitespace with column <= the left column if we are at the start of the line
 			if(cp == ' ' && in.getCurrentColumnNumber() <= leftColumn) {
 				continue;
-			}
+			} else leftColumn = Math.min(in.getCurrentColumnNumber(), leftColumn);
+
 			if(cp != '\\') {
 				this.buf.appendCodePoint(cp);
 				continue;

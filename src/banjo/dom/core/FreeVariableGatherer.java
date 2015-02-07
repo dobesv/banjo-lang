@@ -7,95 +7,87 @@ import fj.P2;
 import fj.data.List;
 import fj.data.Set;
 
-public class FreeVariableGatherer implements CoreExprAlgebra<Set<Key>> {
-    private static final Set<Key> LITERAL_DEPS = Set.set(Key.ORD, Identifier.DATA);
-	public static final Set<Key> EMPTY_KEY_SET = Set.empty(Key.ORD);
+public class FreeVariableGatherer implements CoreExprAlgebra<Set<Identifier>> {
+    private static final Set<Identifier> LITERAL_DEPS = Set.set(Identifier.ORD, Identifier.DATA);
+	public static final Set<Identifier> EMPTY_KEY_SET = Set.empty(Identifier.ORD);
 
 	@Override
-    public Set<Key> badExpr(List<SourceFileRange> ranges, String message,
+    public Set<Identifier> badExpr(List<SourceFileRange> ranges, String message,
             Object... args) {
 		return EMPTY_KEY_SET;
     }
 
-	private static Set<Key> flatten(List<Set<Key>> methods) {
-	    return Set.join(Key.ORD, Set.set(Ord.setOrd(Key.ORD), methods));
+	private static Set<Identifier> flatten(List<Set<Identifier>> methods) {
+	    return Set.join(Identifier.ORD, Set.set(Ord.setOrd(Identifier.ORD), methods));
     }
 
 	@Override
-    public Set<Key> objectLiteral(List<SourceFileRange> ranges,
-            List<Set<Key>> methods) {
-	    return flatten(methods);
+    public Set<Identifier> objectLiteral(List<SourceFileRange> ranges,
+            List<P2<Identifier, Set<Identifier>>> methods) {
+	    return flatten(methods.map(P2.__2()));
     }
 
 	@Override
-    public Set<Key> numberLiteral(List<SourceFileRange> ranges, Number value,
+    public Set<Identifier> numberLiteral(List<SourceFileRange> ranges, Number value,
             String suffix) {
 	    return LITERAL_DEPS;
     }
 
 	@Override
-    public Set<Key> stringLiteral(List<SourceFileRange> ranges, String text) {
+    public Set<Identifier> stringLiteral(List<SourceFileRange> ranges, String text) {
 	    return LITERAL_DEPS;
     }
 
 	@Override
-    public Set<Key> listLiteral(List<SourceFileRange> ranges,
-            List<Set<Key>> elements) {
+    public Set<Identifier> listLiteral(List<SourceFileRange> ranges,
+            List<Set<Identifier>> elements) {
 	    return flatten(elements);
     }
 
 	@Override
-    public Set<Key> call(List<SourceFileRange> ranges, Set<Key> object,
-            Set<Key> name, List<List<Set<Key>>> argumentLists,
-            boolean optional, boolean callNext) {
-	    return object.union(flatten(List.join(argumentLists)));
+    public Set<Identifier> call(List<SourceFileRange> ranges, Set<Identifier> object, List<Set<Identifier>> args) {
+	    return object.union(flatten(args));
     }
 
 	@Override
-    public Set<Key> extend(List<SourceFileRange> ranges, Set<Key> base,
-            Set<Key> extension) {
+    public Set<Identifier> extend(List<SourceFileRange> ranges, Set<Identifier> base,
+            Set<Identifier> extension) {
 	    return base.union(extension);
     }
 
 	@Override
-    public Set<Key> inspect(List<SourceFileRange> ranges, Set<Key> target) {
+    public Set<Identifier> inspect(List<SourceFileRange> ranges, Set<Identifier> target) {
 	    return target;
     }
 
 	@Override
-    public Set<Key> method(List<SourceFileRange> ranges, Set<Key> selfArg,
-            Set<Key> name, List<List<Set<Key>>> argumentLists,
-            Set<Key> precondition, Set<Key> body, Set<Key> postcondition) {
-		Set<Key> defs = selfArg.union(flatten(List.join(argumentLists)));
-		Set<Key> refs = precondition.union(body).union(postcondition);
+    public Set<Identifier> identifier(List<SourceFileRange> ranges, String id) {
+	    return Set.set(Identifier.ORD, new Identifier(id));
+    }
+
+	@Override
+    public Set<Identifier> let(List<SourceFileRange> sourceFileRanges,
+            List<P2<Identifier, Set<Identifier>>> bindings, Set<Identifier> body) {
+		Set<Identifier> defs = Set.set(Identifier.ORD, bindings.map(P2.__1()));
+		Set<Identifier> refs = flatten(bindings.map(P2.__2())).union(body);
+	    return refs.minus(defs);
+    }
+
+	public static Set<Identifier> freeVars(CoreExpr expr) {
+		return expr.acceptVisitor(new FreeVariableGatherer());
+	}
+
+	@Override
+    public Set<Identifier> functionLiteral(List<SourceFileRange> ranges,
+    		List<Identifier> args, Set<Identifier> body) {
+	    final Set<Identifier> defs = Set.set(Identifier.ORD, args);
+		Set<Identifier> refs = body;
 		return refs.minus(defs);
     }
 
 	@Override
-    public Set<Key> identifier(List<SourceFileRange> ranges, String id) {
-	    return Set.set(Key.ORD, new Identifier(id));
+    public Set<Identifier> slotReference(List<SourceFileRange> ranges,
+            Set<Identifier> object, Identifier slotName) {
+	    return object;
     }
-
-	@Override
-    public Set<Key> mixfixFunctionIdentifier(
-            List<SourceFileRange> sourceFileRanges, List<String> parts) {
-	    return Set.set(Key.ORD, new MixfixFunctionIdentifier(parts));
-    }
-
-	@Override
-    public Set<Key> anonymous() {
-	    return EMPTY_KEY_SET;
-    }
-
-	@Override
-    public Set<Key> let(List<SourceFileRange> sourceFileRanges,
-            List<P2<Key, Set<Key>>> bindings, Set<Key> body) {
-		Set<Key> defs = Set.set(Key.ORD, bindings.map(P2.__1()));
-		Set<Key> refs = flatten(bindings.map(P2.__2())).union(body);
-	    return refs.minus(defs);
-    }
-
-	public static Set<Key> freeVars(CoreExpr expr) {
-		return expr.acceptVisitor(new FreeVariableGatherer());
-	}
 }

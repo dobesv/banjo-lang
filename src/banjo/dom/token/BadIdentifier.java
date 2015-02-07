@@ -12,12 +12,12 @@ import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class BadIdentifier extends AbstractCoreExpr implements BadExpr {
+public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	public final String message;
 	public final String originalSource;
 
 	public BadIdentifier(List<SourceFileRange> ranges, String message, String originalSource) {
-		super(message.hashCode() + originalSource.hashCode(), ranges);
+		super(ranges, originalSource);
 		this.message = message;
 		this.originalSource = originalSource;
 	}
@@ -94,13 +94,4 @@ public class BadIdentifier extends AbstractCoreExpr implements BadExpr {
 		return visitor.badExpr(getSourceFileRanges(), message);
 	}
 
-	@Override
-	public List<String> getParts() {
-		return List.single(originalSource);
-	}
-
-	@Override
-	public Key withoutPrefix() {
-	    return this;
-	}
 }

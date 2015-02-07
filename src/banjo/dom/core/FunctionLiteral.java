@@ -51,13 +51,53 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public void toSource(final StringBuffer sb) {
-		sb.append('(');
-		int start = sb.length();
-		args.forEach(a -> (sb.length() > start ? sb.append(", ") : sb).append(a.toString()));
-		sb.append(") ↦ ");
-		body.toSource(Operator.FUNCTION.getRightPrecedence());
+		if(isSelector()) {
+			sb.append('.');
+			body.acceptVisitor(new BaseCoreExprVisitor<Void>() {
+				@Override
+				public Void fallback() {
+					throw new IllegalStateException();
+				}
 
+				@Override
+				public Void identifier(Identifier n) {
+					assert n.compareTo(args.head()) == 0;
+				    return null;
+				}
+				@Override
+				public Void call(Call n) {
+					n.target.acceptVisitor(this);
+					n.argsToSource(sb);
+					return null;
+				}
+
+				@Override
+				public Void slotReference(SlotReference slotReference) {
+					slotReference.object.acceptVisitor(this);
+					slotReference.slotName.toSource(sb);
+				    return null;
+				}
+			});
+		} else {
+			final boolean selfBound = hasSelfName();
+			CoreExpr _body;
+			if(selfBound) {
+				((Let)body).bindings.head()._1().toSource(sb);
+				_body = ((Let)body).body;
+			} else {
+				_body = body;
+			}
+			sb.append('(');
+			int start = sb.length();
+			args.forEach(a -> (sb.length() > start ? sb.append(", ") : sb).append(a.toString()));
+			sb.append(") ↦ ");
+			_body.toSource(sb, Operator.FUNCTION.getRightPrecedence());
+		}
 	}
+
+	private boolean hasSelfName() {
+	    return body instanceof Let && ((Let)body).bindings.isSingle() && ((Let)body).bindings.head()._2().compareTo(Identifier.__SELF) == 0;
+    }
 
 	public CoreExpr getBody() {
 		return this.body;
@@ -127,7 +167,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	/**
 	 * True if this function literal follows the form:
 	 *
-	 * <code> x -> x.something</code>
+	 * <code> _it -> _it.something</code>
 	 */
 	public boolean isSelector() {
 		if(!args.isSingle())
@@ -136,7 +176,11 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 			body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
 				@Override
 				public Boolean call(Call n) {
-					return n.object.compareTo(args.head()) == 0;
+					return n.target.compareTo(args.head()) == 0 || n.target.acceptVisitor(this);
+				}
+
+				public Boolean slotReference(SlotReference slotReference) {
+					return slotReference.object.compareTo(args.head()) == 0 || slotReference.object.acceptVisitor(this);
 				}
 
 				@Override
@@ -147,13 +191,18 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 		).orHead(P.p(Boolean.FALSE));
 	}
 
-
-	public static ObjectLiteral selector(Identifier name, CoreExpr ... args) {
-		return new FunctionLiteral(List.single(name), new Call(name, name, List.list(args))));
+	public static final Identifier _it = new Identifier("_it");
+	public static FunctionLiteral selector(Identifier name, CoreExpr ... args) {
+		return new FunctionLiteral(List.single(_it), Call.slot(_it, name, List.list(args)));
 	}
 
-	public static ObjectLiteral selector(String variant, CoreExpr ... args) {
-	    return selector(new Identifier(variant), args);
+	public static FunctionLiteral selector(String name, CoreExpr ... args) {
+	    return selector(new Identifier(name), args);
+    }
+
+	public void toSourceWithSelfName(StringBuffer sb, Identifier selfName) {
+		selfName.toSource(sb);
+		toSource(sb);
     }
 
 }

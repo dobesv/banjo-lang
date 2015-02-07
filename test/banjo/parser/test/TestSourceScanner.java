@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import banjo.dom.Expr;
 import banjo.dom.core.Call;
+import banjo.dom.core.Let;
 import banjo.dom.token.Comment;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.OperatorRef;
@@ -21,7 +22,7 @@ import fj.data.List;
 public class TestSourceScanner {
 	@Test
 	public void test1() {
-		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "((foo) -> baz)(bar bar)", Call.class,
+		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) => baz", Let.class,
 				new String[] {
 			"; comment\n",
 			"(", "foo", "=",	" ", "bar bar", ")", " ", "=>", "\n",

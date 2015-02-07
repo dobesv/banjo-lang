@@ -1,6 +1,7 @@
 package banjo.dom.core;
 
 import banjo.dom.BadExpr;
+import banjo.dom.token.Identifier;
 import banjo.parser.util.SourceFileRange;
 import fj.P2;
 import fj.data.List;
@@ -18,7 +19,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> objectLiteral(List<SourceFileRange> ranges,
-			List<P2<Identifier, List<BadExpr>>> slots) {
+	        List<P2<Identifier, List<BadExpr>>> slots) {
 		return List.join(slots.map(P2.__2()));
 	}
 
@@ -44,15 +45,6 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> method(List<SourceFileRange> ranges,
-			List<BadExpr> selfArg, List<BadExpr> name,
-			List<List<List<BadExpr>>> argumentLists,
-			List<BadExpr> precondition, List<BadExpr> body,
-			List<BadExpr> postcondition) {
-		return selfArg.append(name).append(List.join(List.join(argumentLists))).append(body).append(precondition).append(postcondition);
-	}
-
-	@Override
 	public List<BadExpr> numberLiteral(List<SourceFileRange> ranges, Number value, String suffix) {
 		return List.nil();
 	}
@@ -63,27 +55,26 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> mixfixFunctionIdentifier(
-			List<SourceFileRange> sourceFileRanges, List<String> parts) {
-		return List.nil();
-	}
-
-	@Override
-	public List<BadExpr> anonymous() {
-		return List.nil();
-	}
-
-	@Override
 	public List<BadExpr> call(List<SourceFileRange> ranges,
-			List<BadExpr> object, List<BadExpr> name,
-			List<List<List<BadExpr>>> argumentLists, boolean optional,
-			boolean callNext) {
-		return object.append(name).append(List.join(List.join(argumentLists)));
+	        List<BadExpr> function, List<List<BadExpr>> args) {
+	    return function.append(List.join(args));
 	}
 
 	@Override
 	public List<BadExpr> let(List<SourceFileRange> sourceFileRanges,
-	        List<P2<Key, List<BadExpr>>> bindings, List<BadExpr> body) {
+	        List<P2<Identifier, List<BadExpr>>> bindings, List<BadExpr> body) {
 		return List.join(bindings.map(p -> p._2())).append(body);
 	}
+
+	@Override
+    public List<BadExpr> functionLiteral(List<SourceFileRange> ranges,
+            List<Identifier> args, List<BadExpr> body) {
+	    return body;
+    }
+
+	@Override
+    public List<BadExpr> slotReference(List<SourceFileRange> ranges,
+            List<BadExpr> object, Identifier slotName) {
+	    return object;
+    }
 }

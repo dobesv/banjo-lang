@@ -17,6 +17,10 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	    this.slotName = slotName;
     }
 
+	public SlotReference(CoreExpr object, Identifier slotName) {
+		this(SourceFileRange.EMPTY_LIST, object, slotName);
+    }
+
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.slotReference(this);
@@ -29,9 +33,20 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		object.toSource(sb);
-		Operator.PROJECTION.toSource(sb);
-		slotName.toSource(sb);
+		Operator unaryOp = Operator.fromMethodName(slotName, false);
+		if(unaryOp != null) {
+			if(unaryOp.isPrefix()) {
+				unaryOp.toSource(sb);
+				object.toSource(sb, unaryOp.getLeftPrecedence());
+			} else {
+				object.toSource(sb, unaryOp.getRightPrecedence());
+				unaryOp.toSource(sb);
+			}
+		} else {
+			object.toSource(sb);
+			Operator.PROJECTION.toSource(sb);
+			slotName.toSource(sb);
+		}
 	}
 
 	@Override

@@ -80,4 +80,8 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	    return fallback();
 	}
 
+	@Override
+	public T slotReference(SlotReference slotReference) {
+	    return fallback();
+	}
 }

@@ -9,7 +9,7 @@ import fj.data.List;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.nil(), List.nil());
-	private final List<CoreExpr> elements;
+	public final List<CoreExpr> elements;
 
 	public ListLiteral(List<SourceFileRange> ranges, List<CoreExpr> elements) {
 		super(elements.hashCode()+ranges.hashCode(), ranges);
@@ -84,7 +84,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	public CoreExpr toConstructionExpression() {
 		CoreExpr result = Identifier.EMPTY_LIST;
 		for(CoreExpr elt : elements) {
-			result = new Call(Identifier.DATA, new Identifier("list"), ObjectLiteral.selector("nonempty", elt, result));
+			result = Call.slot(Identifier.DATA, "list", List.single(FunctionLiteral.selector("nonempty", elt, result)));
 		}
 		return result;
 	}

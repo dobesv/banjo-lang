@@ -1,24 +1,20 @@
 package banjo.dom.token;
 
 
-import static banjo.parser.util.Check.nonNull;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
-import banjo.dom.core.Extend;
 import banjo.dom.core.ListLiteral;
-import banjo.dom.core.ObjectLiteral;
-import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public class StringLiteral extends AbstractAtom implements Atom, Key {
+public class StringLiteral extends AbstractAtom implements Atom {
 	private final String string;
 
 	public StringLiteral(List<SourceFileRange> ranges, String string) {
@@ -48,7 +44,7 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 	}
 
 	public static String toSource(String text) {
-		return nonNull(toSource(text, new StringBuffer(text.length()+10)).toString());
+		return toSource(text, new StringBuffer(text.length()+10)).toString();
 	}
 
 	public static StringBuffer toSource(String text, StringBuffer sb) {
@@ -130,20 +126,11 @@ public class StringLiteral extends AbstractAtom implements Atom, Key {
 		return visitor.stringLiteral(getSourceFileRanges(), string);
 	}
 
-	@Override
-	public List<String> getParts() {
-		return List.single(string);
-	}
-
 	public CoreExpr toConstructionExpression() {
 		ListLiteral codePoints = new ListLiteral(
 				List.list(getString().codePoints().mapToObj(cp -> new NumberLiteral(cp)).toArray(CoreExpr[]::new))
 		);
-		return new Call(Identifier.DATA, new Identifier("string"), List.single(codePoints));
+		return Call.slot(Identifier.DATA, "string", List.single(codePoints));
 	}
 
-	@Override
-	public Key withoutPrefix() {
-	    return this;
-	}
 }

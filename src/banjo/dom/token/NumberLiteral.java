@@ -236,9 +236,4 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		return ctor;
 	}
 
-	@Override
-    public Key withoutPrefix() {
-	    return this;
-    }
-
 }

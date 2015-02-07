@@ -54,6 +54,6 @@ public class TestCallParser {
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
 		ParseTestUtils.test(source, expectedErrors, null, Call.class, expectedSource);
 		Call call = (Call)CoreExpr.fromString(source);
-		assertEquals(numArgs, call.getArgumentLists().head().length());
+		assertEquals(numArgs, call.args.length());
 	}
 }

@@ -6,12 +6,13 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.ObjectLiteral;
 
 public class TestSelectorParser {
 	public static void parse(String source, String expectedSource) {
-		test(source, 0, null, ObjectLiteral.class, expectedSource);
-		ObjectLiteral obj = (ObjectLiteral)CoreExpr.fromString(source);
+		test(source, 0, null, FunctionLiteral.class, expectedSource);
+		FunctionLiteral obj = (FunctionLiteral)CoreExpr.fromString(source);
 		assertTrue(obj.isSelector());
 	}
 

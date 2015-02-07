@@ -9,18 +9,20 @@ import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
-import banjo.dom.core.ListLiteral;
 import banjo.dom.core.FunctionLiteral;
+import banjo.dom.core.Let;
+import banjo.dom.core.ListLiteral;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.eval.ProjectLoader;
 import banjo.eval.coreexpr.CoreExprEvaluator;
+import fj.P2;
 import fj.data.List;
 
 public class TestRunCoreLibraryExamples {
-	Key EXAMPLES_KEY = new Identifier("usage examples");
+	Identifier EXAMPLES_KEY = new Identifier("usage examples");
 
 	static Boolean looksLikeExample(CoreExpr arg) {
 		return arg.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
@@ -31,7 +33,7 @@ public class TestRunCoreLibraryExamples {
 
 			@Override
 			public Boolean call(Call n) {
-				final Operator op = Operator.fromMethodName(n.getName(), true);
+				final Operator op = n.getBinaryOperator().toNull();
 				if(op == null) {
 					return false;
 				}
@@ -66,10 +68,11 @@ public class TestRunCoreLibraryExamples {
 	Boolean testFails(CoreExpr x) {
 		System.out.println("Testing: "+x);
 
-		ObjectLiteral result = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile()).evaluate(x);
-		final boolean working = !CoreExprEvaluator.isFailure(result);
+		final CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile());
+		CoreExpr result = evaluator.evaluate(x);
+		final boolean working = !evaluator.isFailure(result);
 		//if(!working) System.out.println("Error: "+result.object);
-		final boolean success = working && CoreExprEvaluator.isTruthy(result);
+		final boolean success = working && evaluator.isTruthy(result);
 		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x);
 		return ! success;
 	}
@@ -82,57 +85,48 @@ public class TestRunCoreLibraryExamples {
 
 			@Override
 			public List<CoreExpr> call(Call call) {
-				List<CoreExpr> examples;
-				if(call.getArgumentLists().isSingle()
-						&& call.getArgumentLists().head().isSingle()
-						&& looksLikeExamplesList(call.getArgumentLists().head().head())) {
-					examples = call.getObject().acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
-						@Override
-						public List<CoreExpr> objectLiteral(ObjectLiteral objectLiteral) {
-							if(objectLiteral.isLambda()) {
-								FunctionLiteral m = objectLiteral.findMethod(Key.ANONYMOUS);
-								if(m != null && m.getArgumentLists().isSingle() && m.getArgumentLists().head().isSingle() && m.getArgumentLists().head().head().compareTo(EXAMPLES_KEY) == 0) {
-									return ((ListLiteral)call.getArgumentLists().head().head()).getElements();
-								}
-							}
-							return fallback();
-						}
-
-						@Override
-						public List<CoreExpr> fallback() {
-							return List.nil();
-						}
-					});
-				} else {
-					examples = List.nil();
-				}
-				final List<CoreExpr> argExamples = List.<CoreExpr>join(
-							call.getAllArguments()
-							.<List<CoreExpr>>map(a -> a.acceptVisitor(this))
-				);
-				return examples
-						.append(call.getObject().acceptVisitor(this))
-						.append(argExamples);
+				return call.target.acceptVisitor(this).append(List.join(call.args.map(arg -> arg.acceptVisitor(this))));
 			}
 
 			@Override
 			public List<CoreExpr> listLiteral(
 					ListLiteral n) {
 				return List.join(n.getElements().<List<CoreExpr>>map(elt -> elt.acceptVisitor(this)));
+
 			}
 
+			public List<CoreExpr> slot(P2<Identifier,CoreExpr> slot) {
+				return slot._1().acceptVisitor(this);
+			}
 			@Override
 			public List<CoreExpr> objectLiteral(
 					ObjectLiteral n) {
-				final List<List<CoreExpr>> methodExamples = n.getMethods().<List<CoreExpr>>map(method ->
-					method.getBody().acceptVisitor(this)
-				);
+				final List<List<CoreExpr>> methodExamples = n.getSlots().<List<CoreExpr>>map(this::slot);
 				return List.<CoreExpr>join(methodExamples);
 			}
 
+			public List<CoreExpr> binding(P2<Identifier,CoreExpr> binding) {
+				if(binding._1().compareTo(EXAMPLES_KEY) == 0 && binding._2() instanceof ListLiteral)
+					return ((ListLiteral)binding._2()).getElements();
+				return binding._2().acceptVisitor(this);
+			}
+			@Override
+			public List<CoreExpr> let(Let let) {
+			    return List.join(let.bindings.map(this::binding));
+			}
 			@Override
 			public List<CoreExpr> extend(Extend n) {
 				return n.getBase().acceptVisitor(this).append(n.getExtension().acceptVisitor(this));
+			}
+
+			@Override
+			public List<CoreExpr> functionLiteral(FunctionLiteral f) {
+			    return f.body.acceptVisitor(this);
+			}
+
+			@Override
+			public List<CoreExpr> slotReference(SlotReference slotReference) {
+			    return slotReference.object.acceptVisitor(this);
 			}
 		});
 	}

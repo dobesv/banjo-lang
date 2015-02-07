@@ -18,6 +18,10 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		this(left.getSourceFileRanges().append(right.getSourceFileRanges()).append(operatorRanges).sort(SourceFileRange.ORD),
 				operator, operatorRanges, left, right);
 	}
+	public BinaryOp(Operator operator, SourceExpr left, SourceExpr right) {
+		this(left.getSourceFileRanges().append(right.getSourceFileRanges()).sort(SourceFileRange.ORD),
+				operator, SourceFileRange.EMPTY_LIST, left, right);
+	}
 	public SourceExpr getLeft() {
 		return this.left;
 	}

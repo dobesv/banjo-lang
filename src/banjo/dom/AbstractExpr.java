@@ -79,6 +79,8 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 
 	@Override
 	public int compareTo(Expr o) {
+		int cmp = getClass().getName().compareTo(o.getClass().getName());
+		if(cmp != 0) return cmp;
 		return ListUtil.compare(sourceFileRanges, nonNull(o).getSourceFileRanges());
 	}
 

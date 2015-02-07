@@ -9,12 +9,12 @@ import banjo.dom.core.Call;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.Extend;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Inspect;
 import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.MixfixFunctionIdentifier;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.SlotReference;
 import banjo.dom.source.BadSourceExpr;
 import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.BinaryOp;
@@ -25,7 +25,6 @@ import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
@@ -37,6 +36,7 @@ import fj.P;
 import fj.P2;
 import fj.P3;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 
@@ -65,8 +65,8 @@ public class SourceExprDesugarer {
 		}
 
 
-		<TT> DesugarResult<TT> mapValue(F2<SourceExprDesugarer,T,TT> f) {
-			return withValue(f.f(this, getValue()));
+		<TT> DesugarResult<TT> mapValue(F<T,TT> f) {
+			return withValue(f.f(getValue()));
 		}
 
 	}
@@ -85,12 +85,12 @@ public class SourceExprDesugarer {
 		return new DesugarResult<CoreExpr>(expr, sourceExpr);
 	}
 
-	protected DesugarResult<Key> withDesugared(SourceExpr sourceExpr, Key expr) {
-		return new DesugarResult<Key>(expr, sourceExpr);
+	protected DesugarResult<Identifier> withDesugared(SourceExpr sourceExpr, Identifier expr) {
+		return new DesugarResult<Identifier>(expr, sourceExpr);
 	}
 
-	protected DesugarResult<Key> withIdentifier(Key id) {
-		return new DesugarResult<Key>(id, null);
+	protected DesugarResult<Identifier> withIdentifier(Identifier id) {
+		return new DesugarResult<Identifier>(id, null);
 	}
 
 	protected DesugarResult<FunctionLiteral> withDesugared(FunctionLiteral method, SourceExpr methodSourceExpr) {
@@ -136,7 +136,7 @@ public class SourceExprDesugarer {
 	 * @param sourceOffset Source offset to the start of op
 	 */
 	protected DesugarResult<CoreExpr> projection(BinaryOp op, boolean callNext, boolean optional) {
-		return projection(op, op.getLeft(), op.getRight(), callNext, optional);
+		return projection(op, op.getLeft(), op.getRight());
 	}
 
 	/**
@@ -152,19 +152,17 @@ public class SourceExprDesugarer {
 	 * @param sourceExpr Root source expression for the projection.
 	 * @param objectExpr Left-hand side of the projection; the "base" object we're projecting from
 	 * @param projectionExpr Right-hand side of the projection
-	 * @param callNext TODO
-	 * @param optional TODO
 	 */
-	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr, boolean callNext, boolean optional) {
+	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr) {
 		final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
-		return objectDs.projection(sourceExpr, objectDs.getValue(), projectionExpr, callNext, optional);
+		return objectDs.projection(sourceExpr, objectDs.getValue(), projectionExpr);
 	}
 
-	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final CoreExpr objectCoreExpr, final SourceExpr projectionExpr, final boolean callNext, final boolean optional) {
+	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final CoreExpr objectCoreExpr, final SourceExpr projectionExpr) {
 		return nonNull(projectionExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
-			public DesugarResult<CoreExpr> key(Key key) {
-				return withDesugared(sourceExpr, new Call(sourceExpr.getSourceFileRanges(), objectCoreExpr, key, List.nil(), callNext, optional));
+			public DesugarResult<CoreExpr> identifier(Identifier id) {
+				return withDesugared(sourceExpr, new SlotReference(sourceExpr.getSourceFileRanges(), objectCoreExpr, id));
 			}
 
 			@Override
@@ -188,168 +186,61 @@ public class SourceExprDesugarer {
 	}
 
 	protected DesugarResult<CoreExpr> mapProjection(SourceExpr op, CoreExpr target,	SourceExpr projection, boolean callNext, boolean optional) {
-		final Key argName = new Identifier("//compiler/map projection/x");
-		final DesugarResult<CoreExpr> projectionDs = projection(op, (CoreExpr)argName, projection, callNext, optional);
+		final Identifier argName = new Identifier("//compiler/map projection/x");
+		final DesugarResult<CoreExpr> projectionDs = projection(op, (CoreExpr)argName, projection);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
-		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, new Call(NOT_FROM_SOURCE, target, new Identifier("map"), projectFuncDs.getValue()));
+		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, "map", projectFuncDs.getValue()));
 		return mapCallDs;
 	}
 
 	/**
 	 * Create a function object - an object with a single method with a special name and the given body.
 	 */
-	protected DesugarResult<CoreExpr> function(SourceExpr op, Key funArg, CoreExpr body) {
+	protected DesugarResult<CoreExpr> function(SourceExpr op, Identifier funArg, CoreExpr body) {
 		final FunctionLiteral applyMethod = FunctionLiteral.function(funArg, body);
-		return this.<CoreExpr>withValue(new ObjectLiteral(applyMethod));
-	}
-
-	protected DesugarResult<CoreExpr> call(final BinaryOp op) {
-		return call(op, Key.ANONYMOUS, List.nil());
+		return this.<CoreExpr>withValue(applyMethod);
 	}
 
 	protected DesugarResult<CoreExpr> pipeTo(final BinaryOp op) {
 		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
 		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
-		return withDesugared(op, new Call(op.getSourceFileRanges(), rightDs.getValue(), Key.ANONYMOUS, leftDs.getValue()));
+		return withDesugared(op, new Call(op.getSourceFileRanges(), rightDs.getValue(), List.single(leftDs.getValue())));
 	}
 
 	protected DesugarResult<CoreExpr> pipeFrom(final BinaryOp op) {
 		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
 		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
-		return withDesugared(op, new Call(op.getSourceFileRanges(), leftDs.getValue(), Key.ANONYMOUS, rightDs.getValue()));
+		return withDesugared(op, new Call(op.getSourceFileRanges(), leftDs.getValue(), List.single(rightDs.getValue())));
 	}
 
-	protected Key concatNameParts(Key prefix, Key suffix) {
-		List<SourceFileRange> ranges = suffix.getSourceFileRanges().append(prefix.getSourceFileRanges());
-		final List<String> suffixParts = suffix.getParts();
-		if(suffixParts.isEmpty())
-			return prefix;
-		final List<String> prefixParts = prefix.getParts();
-		if(prefixParts.isEmpty())
-			return suffix;
-		List<String> nameParts = prefixParts.append(suffixParts);
-		return new MixfixFunctionIdentifier(ranges, nameParts);
+	protected static Identifier concatNameParts(Identifier prefix, Identifier suffix) {
+		return new Identifier(prefix.getSourceFileRanges().append(suffix.getSourceFileRanges()), prefix.id + " _ " + suffix.id);
 	}
+	protected static Identifier concatNameParts(Identifier prefix, Option<Identifier> nameSuffix) {
+        return nameSuffix.map((suf) -> concatNameParts(prefix, suf)).orSome(prefix);
+    }
 
-	protected DesugarResult<CoreExpr> call(final BinaryOp op, final Key moreNames, final List<List<SourceExpr>> moreArgumentLists) {
-		return call(op, moreNames, moreArgumentLists, false, false);
-	}
-
-	protected DesugarResult<CoreExpr> call(final BinaryOp op, final Key moreNames, final List<List<SourceExpr>> moreArgumentLists, final boolean callNext, final boolean optional) {
+	protected DesugarResult<CoreExpr> call(final BinaryOp op) {
+		DesugarResult<CoreExpr> targetDs = expr(op.getLeft());
 		final List<SourceExpr> argSourceExprs = flattenCommas(op.getRight());
-		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-			@Override
-			public DesugarResult<CoreExpr> binaryOp(final BinaryOp calleeOp) {
-				// If there's a simple projection with an identifier then it's a direct method call
-				switch(calleeOp.getOperator()) {
-				case PROJECTION:
-				case OPT_PROJECTION:
-				case CALL_NEXT_METHOD:
-				case OPT_CALL_NEXT_METHOD:
-					return calleeOp.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-						@Override
-						public DesugarResult<CoreExpr> key(Key key) {
-							boolean actualCallNext = callNext || calleeOp.getOperator() == Operator.CALL_NEXT_METHOD || calleeOp.getOperator() == Operator.OPT_CALL_NEXT_METHOD;
-							boolean actualOptional = optional || calleeOp.getOperator() == Operator.OPT_PROJECTION || calleeOp.getOperator() == Operator.OPT_CALL_NEXT_METHOD;
-							return call(op, calleeOp.getLeft(), concatNameParts(key, moreNames), cons(argSourceExprs, moreArgumentLists), actualCallNext, actualOptional);
-						}
-
-						@Override
-						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-							return callFunction();
-						}
-					});
-				case MAP_PROJECTION:
-				case MAP_OPT_PROJECTION:
-					return calleeOp.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-						@Override
-						public DesugarResult<CoreExpr> key(Key key) {
-							return callMethod(op, moreNames, moreArgumentLists,
-									optional, argSourceExprs, calleeOp, key);
-						}
-
-						@Override
-						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-							return callFunction();
-						}
-					});
-
-				case JUXTAPOSITION:
-					return calleeOp.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-						public SourceExprDesugarer.DesugarResult<CoreExpr> key(final Key key) {
-							return nonNull(calleeOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-								public SourceExprDesugarer.DesugarResult<CoreExpr> binaryOp(BinaryOp calleeLeftOp) {
-									if(calleeLeftOp.getOperator() == Operator.CALL) {
-										return SourceExprDesugarer.this.call(
-												calleeLeftOp,
-												concatNameParts(key, moreNames),
-												cons(argSourceExprs, moreArgumentLists),
-												callNext,
-												optional
-										);
-									} else {
-										return callFunction();
-									}
-								}
-
-								public SourceExprDesugarer.DesugarResult<CoreExpr> fallback(SourceExpr other) {
-									return callFunction();
-								}
-							}));
-						}
-
-						public SourceExprDesugarer.DesugarResult<CoreExpr> fallback(SourceExpr other) {
-							return callFunction();
-						}
-					});
-				default:
-					return callFunction();
-				}
-			}
-
-			// Calling a function by name - be sure to put all the name parts together if there are
-			// more than.
-			@Override
-			public DesugarResult<CoreExpr> key(Key key) {
-				return call(
-						op,
-						(CoreExpr)concatNameParts(key, moreNames),
-						Key.ANONYMOUS,
-						cons(argSourceExprs, moreArgumentLists),
-						callNext,
-						optional);
-			}
-
-			@Override
-			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return callFunction();
-			}
-
-			public DesugarResult<CoreExpr> callFunction() {
-				return call(op, op.getLeft(), moreNames, cons(argSourceExprs, moreArgumentLists), callNext, optional);
-			}
-		}));
+		return targetDs.call(op, targetDs.getValue(), argSourceExprs);
 	}
 
-	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, SourceExpr object, final Key name, final List<List<SourceExpr>> argumentLists, boolean callNext, boolean optional) {
-		final DesugarResult<CoreExpr> objectDs = expr(object);
-		return objectDs.call(sourceExpr, objectDs.getValue(), name, argumentLists, callNext, optional);
-	}
+	protected DesugarResult<CoreExpr> call(final BinaryOp op, CoreExpr target, final List<SourceExpr> argSourceExprs) {
+	    final SourceExpr callSourceExpr = op;
+	    final SourceExpr argsSourceExpr = op.getRight();
+		return call(callSourceExpr, target, argsSourceExpr, argSourceExprs);
+    }
 
-	protected DesugarResult<CoreExpr> call(SourceExpr sourceExpr, CoreExpr object, final Key name, final List<List<SourceExpr>> argumentLists, boolean callNext, boolean optional) {
-		DesugarResult<List<List<CoreExpr>>> dsParts = desugarArgLists(argumentLists);
-		return dsParts.withDesugared(sourceExpr, new Call(sourceExpr.getSourceFileRanges(), object, name, dsParts.getValue(), callNext, optional));
-	}
-
-	private DesugarResult<List<List<CoreExpr>>> desugarArgLists(
-            final List<List<SourceExpr>> argumentLists) {
-	    DesugarResult<List<List<CoreExpr>>> dsParts = argumentLists.foldRight(new F2<List<SourceExpr>, DesugarResult<List<List<CoreExpr>>>, DesugarResult<List<List<CoreExpr>>>>() {
-			@Override
-			public DesugarResult<List<List<CoreExpr>>> f(List<SourceExpr> argSourceExprs, DesugarResult<List<List<CoreExpr>>> b) {
-				return b.desugarArgList(argSourceExprs, b.getValue());
-			}
-		}, withValue(List.nil()));
-	    return dsParts;
+	private DesugarResult<CoreExpr> call(final SourceExpr callSourceExpr,
+            CoreExpr target, final SourceExpr argsSourceExpr,
+            final List<SourceExpr> argSourceExprs) {
+	    return elements(
+				argsSourceExpr,
+				argSourceExprs,
+				null,
+				argsDs -> argsDs.withDesugared(callSourceExpr, new Call(callSourceExpr.getSourceFileRanges(), target, argsDs.getValue()))
+		);
     }
 
 	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, List<SourceExpr> list, Operator requireBullet) {
@@ -370,7 +261,7 @@ public class SourceExprDesugarer {
 	 * @param problems List to add problems to if they are found
 	 * @return A list of CoreExpr, each with offsetFromParent relative to the given sourceOffset
 	 */
-	private DesugarResult<CoreExpr> elements(SourceExpr sourceExpr, final List<SourceExpr> list, final Operator requireBullet, F<DesugarResult<List<CoreExpr>>, DesugarResult<CoreExpr>> cb) {
+	protected DesugarResult<CoreExpr> elements(SourceExpr sourceExpr, final List<SourceExpr> list, final Operator requireBullet, F<DesugarResult<List<CoreExpr>>, DesugarResult<CoreExpr>> cb) {
 
 		// First scan for table rows.  We accumulate rows until we find a table header.  If there are rows with no table header they'll fall out of this and get handled next.
 		final DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> rowsDs = list.foldRight(new F2<SourceExpr,DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>,DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>>() {
@@ -461,21 +352,19 @@ public class SourceExprDesugarer {
 		return objectLiteral(sourceExpr, fieldSourceExprs);
 	}
 	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, final List<SourceExpr> methodSourceExprs) {
-		final DesugarResult<List<FunctionLiteral>> methodsDs = methodSourceExprs.foldRight(new F2<SourceExpr,DesugarResult<List<FunctionLiteral>>,DesugarResult<List<FunctionLiteral>>>() {
+		final DesugarResult<List<P2<Identifier,CoreExpr>>> methodsDs = methodSourceExprs.foldRight(new F2<SourceExpr,DesugarResult<List<P2<Identifier,CoreExpr>>>,DesugarResult<List<P2<Identifier,CoreExpr>>>>() {
 			@Override
-			public DesugarResult<List<FunctionLiteral>> f(SourceExpr methodSourceExpr, DesugarResult<List<FunctionLiteral>> ds) {
-				if(ds == null) throw new NullPointerException();
-				final SourceExpr se = nonNull(methodSourceExpr);
-				return ds.addMethod(se, List.nil(), ds.getValue());
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> f(SourceExpr methodSourceExpr, DesugarResult<List<P2<Identifier,CoreExpr>>> ds) {
+				return ds.addMethod(methodSourceExpr, List.nil(), ds.getValue());
 			}
 		}, this.withValue(List.nil()));
 		return methodsDs.withDesugared(sourceExpr, new ObjectLiteral(sourceExpr.getSourceFileRanges(), methodsDs.getValue()));
 	}
 
-	protected DesugarResult<List<FunctionLiteral>> addMethod(final SourceExpr fieldSourceExpr, final List<SourceExpr> headings, final List<FunctionLiteral> fields) {
-		return nonNull(fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+	protected DesugarResult<List<P2<Identifier,CoreExpr>>> addMethod(final SourceExpr fieldSourceExpr, final List<SourceExpr> headings, final List<P2<Identifier,CoreExpr>> slots) {
+		return nonNull(fieldSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<Identifier,CoreExpr>>>>() {
 			@Override
-			public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp op) {
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
 				case ASSIGNMENT: return visitPair(op, Operator.ASSIGNMENT);
 				case EXTEND_METHOD: return visitPair(op, Operator.EXTEND);
@@ -491,39 +380,39 @@ public class SourceExprDesugarer {
 				}
 			}
 
-			private DesugarResult<List<FunctionLiteral>> visitPair(BinaryOp fieldOp, Operator combiningOp) {
+			private DesugarResult<List<P2<Identifier,CoreExpr>>> visitPair(BinaryOp fieldOp, Operator combiningOp) {
 				final SourceExpr left = fieldOp.getLeft();
 				final SourceExpr right = fieldOp.getRight();
 				return pair(left, right, combiningOp);
 			}
 
 			@Override
-			public DesugarResult<List<FunctionLiteral>> unaryOp(UnaryOp op) {
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> unaryOp(UnaryOp op) {
 				switch(op.getOperator()) {
 				case TABLE_HEADER: return visitTableHeader(op);
 				default: return fallback(op);
 				}
 			}
 
-			private DesugarResult<List<FunctionLiteral>> visitTableHeader(UnaryOp headerOp) {
+			private DesugarResult<List<P2<Identifier,CoreExpr>>> visitTableHeader(UnaryOp headerOp) {
 				throw new Error("Headings not supported ...");
 			}
 
 			@Override
-			public DesugarResult<List<FunctionLiteral>> key(Key key) {
-				return pair(key, key, Operator.ASSIGNMENT);
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> identifier(Identifier id) {
+				return pair(id, id, Operator.ASSIGNMENT);
 			}
 
-			private DesugarResult<List<FunctionLiteral>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
+			private DesugarResult<List<P2<Identifier,CoreExpr>>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
 				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
 				// TODO Apply combiningOp operator ...
-				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), FunctionLiteral.EMPTY_POSTCONDITION, fields);
+				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Identifier.TRUE, slots);
 			}
 
 
 			@Override
-			public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
-				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), FunctionLiteral.EMPTY_POSTCONDITION, fields);
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> fallback(SourceExpr other) {
+				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots);
 			}
 		}));
 	}
@@ -536,35 +425,45 @@ public class SourceExprDesugarer {
 		}
 	}
 
-	Key opMethodName(List<SourceFileRange> operatorRanges, Operator op) {
-		if(op == Operator.CALL) return Key.ANONYMOUS;
+	Identifier opMethodName(List<SourceFileRange> operatorRanges, Operator op) {
 		return new Identifier(operatorRanges, op.getMethodName());
 	}
-	Key opMethodName(Operator op) {
+	Identifier opMethodName(Operator op) {
 		return opMethodName(NOT_FROM_SOURCE, op);
 	}
-	protected DesugarResult<List<FunctionLiteral>> addMethod(final SourceExpr methodSourceExpr, final SourceExpr signatureSourceExpr, final CoreExpr body, final CoreExpr postcondition, final List<FunctionLiteral> methods) {
+	protected DesugarResult<List<P2<Identifier, CoreExpr>>> addMethod(final SourceExpr methodSourceExpr, final SourceExpr signatureSourceExpr, final CoreExpr body, final CoreExpr postcondition, final List<P2<Identifier,CoreExpr>> methods) {
 
-		final DesugarResult<List<FunctionLiteral>> result = signatureSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+		final DesugarResult<List<P2<Identifier, CoreExpr>>> result = method(
+                methodSourceExpr, signatureSourceExpr, body, postcondition
+        ).mapValue(methods::cons);
+		return result;
+	}
+
+	protected DesugarResult<P2<Identifier, CoreExpr>> method(
+            final SourceExpr methodSourceExpr,
+            final SourceExpr signatureSourceExpr,
+            final CoreExpr body,
+            final CoreExpr postcondition) {
+	    final DesugarResult<P2<Identifier,CoreExpr>> result = signatureSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier,CoreExpr>>>() {
 			@Override
-			public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp targetBOp) {
+			public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp targetBOp) {
 				switch(targetBOp.getOperator()) {
 				case MEMBER_OF: return methodWithGuarantee(targetBOp);
 				case CALL: return methodWithArgs(targetBOp);
 				case JUXTAPOSITION: return mixfixMethodPart(targetBOp); // a(b)c ... mixfix with no final argument list
-				case PROJECTION: return methodWithSelfNameAndNoArgsOrNoName(targetBOp); // self.(x) = ... or self.x = ...
+				case PROJECTION: return methodWithSelfNameAndNoArgs(targetBOp); // self.(x) = ... or self.x = ...
 				default: return fallback(targetBOp);
 				}
 			}
 
 
 			@Override
-			public DesugarResult<List<FunctionLiteral>> unaryOp(final UnaryOp targetOp) {
+			public DesugarResult<P2<Identifier,CoreExpr>> unaryOp(final UnaryOp targetOp) {
 				switch(targetOp.getOperator()) {
 				case PARENS:
-					return targetOp.getOperand().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+					return targetOp.getOperand().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier,CoreExpr>>>() {
 						@Override
-						public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp op) {
+						public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp op) {
 							switch(op.getOperator()) {
 							case COMMA:
 							case NEWLINE:
@@ -572,29 +471,30 @@ public class SourceExprDesugarer {
 								return fallback(op);
 							default:
 							}
-							final boolean selfOnRight = op.getOperator().isSelfOnRightMethodOperator();
-							final SourceExpr self = selfOnRight ? op.getRight(): op.getLeft();
-							final SourceExpr other = selfOnRight ? op.getLeft() : op.getRight();
-							final Key selfArg = expectIdentifier(self);
-							final DesugarResult<FunctionLiteral> methodDs = method(methodSourceExpr, op.getOperator(), other, selfArg, body);
-							return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+							boolean selfOnRight = op.getOperator().isSelfOnRightMethodOperator();
+							Option<SourceExpr> selfBinding = Option.some(selfOnRight ? op.getRight(): op.getLeft());
+							SourceExpr other = selfOnRight ? op.getLeft() : op.getRight();
+							Identifier name = opMethodName(op.getOperator());
+							return method(methodSourceExpr, op.getOperator(), other, selfBinding, body)
+									.mapValue((p) -> P.p(name, (CoreExpr)p._2()));
 						}
 
 						@Override
-						public DesugarResult<List<FunctionLiteral>> unaryOp(UnaryOp op) {
+						public DesugarResult<P2<Identifier,CoreExpr>> unaryOp(UnaryOp op) {
 							switch(op.getOperator()) {
 							case OBJECT_LITERAL:
 							case BRACKETS:
 								return fallback(op);
 							default:
 							}
-							final Key selfArg = expectIdentifier(op.getOperand());
-							final DesugarResult<FunctionLiteral> methodDs = method(methodSourceExpr, op.getOperator(), new EmptyExpr(), selfArg, body);
-							return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
+							SourceExpr selfBinding = op.getOperand();
+							return bindSelf(selfBinding, body).mapValue(bodyWithSelf -> P.p(op.getOperator().getMethodIdentifier(), bodyWithSelf));
 						}
 						@Override
-						public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
-							return parenMethod(targetOp, Key.ANONYMOUS);
+						public DesugarResult<P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
+							Identifier name = new Identifier("_");
+							CoreExpr body = new BadCoreExpr(other.getSourceFileRanges(), "Empty method signature");
+							return withValue(P.p(name, body));
 						}
 					});
 				default: return super.unaryOp(targetOp);
@@ -602,36 +502,10 @@ public class SourceExprDesugarer {
 
 			}
 
-			private DesugarResult<List<FunctionLiteral>> parenMethod(final UnaryOp signature, Key methodName) {
-				final DesugarResult<FunctionLiteral> methodDs = method(methodSourceExpr, methodName, signature.getOperand(), Key.ANONYMOUS, body);
-				return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
-			}
-
-			private DesugarResult<List<FunctionLiteral>> methodWithSelfNameAndNoArgsOrNoName(final BinaryOp signature) {
-				final Key selfName = expectIdentifier(signature.getLeft());
-				return nonNull(signature.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
-
-					@Override
-					public DesugarResult<List<FunctionLiteral>> unaryOp(UnaryOp signature2) {
-						switch(signature2.getOperator()) {
-						case PARENS: return specialMethod(signature2, Key.ANONYMOUS);
-						default: return fallback(signature2);
-						}
-					}
-
-					private DesugarResult<List<FunctionLiteral>> specialMethod(UnaryOp signature2, final Key methodName) {
-						final DesugarResult<FunctionLiteral> methodDs = method(methodSourceExpr, methodName, signature2.getOperand(), selfName, body);
-						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
-					}
-
-					@Override
-					public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr signature2) {
-						// self.x = ... means self.x() = ...
-						final Key name = expectIdentifier(signature2);
-						final DesugarResult<FunctionLiteral> methodDs = method(methodSourceExpr, name, List.nil(), selfName, body);
-						return methodDs.withValue(nonNull(methods.cons(methodDs.getValue())));
-					}
-				}));
+			private DesugarResult<P2<Identifier,CoreExpr>> methodWithSelfNameAndNoArgs(final BinaryOp signature) {
+				final Identifier selfBinding = expectIdentifier(signature.getLeft());
+				final Identifier name = expectIdentifier(signature);
+				return method(methodSourceExpr, name, List.nil(), Option.some(selfBinding), body);
 			}
 
 			/**
@@ -649,21 +523,21 @@ public class SourceExprDesugarer {
 			 *  JUXTAPOSITION
 			 * </pre>
 			 */
-			private DesugarResult<List<FunctionLiteral>> mixfixMethodPart(final BinaryOp juxtaposition) {
-				return juxtaposition.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+			private DesugarResult<P2<Identifier,CoreExpr>> mixfixMethodPart(final BinaryOp juxtaposition) {
+				return juxtaposition.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier,CoreExpr>>>() {
 					@Override
-					public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
+					public DesugarResult<P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
 						BadCoreExpr problem = new BadCoreExpr(juxtaposition.getSourceFileRanges(), "Invalid method signature");
-						return withValue(methods.snoc(FunctionLiteral.property(Key.ANONYMOUS, problem)));
+						return withValue(P.p(Identifier.UNDERSCORE, problem));
 					}
 
 					@Override
-					public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp op) {
+					public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp op) {
 						switch(op.getOperator()) {
 						case CALL: {
-							Key newNameSuffix = expectIdentifier(juxtaposition.getRight());
+							Identifier newNameSuffix = expectIdentifier(juxtaposition.getRight());
 							List<SourceExpr> newArgumentListsSuffix = List.nil();
-							return methodWithArgs(op, newNameSuffix, newArgumentListsSuffix, SourceExprDesugarer.this);
+							return methodWithArgs(op, Option.some(newNameSuffix), newArgumentListsSuffix, SourceExprDesugarer.this);
 						}
 						default:
 							return fallback(op);
@@ -675,19 +549,19 @@ public class SourceExprDesugarer {
 			/**
 			 * Desugar the field definition as a method that takes parameters.
 			 */
-			private DesugarResult<List<FunctionLiteral>> methodWithArgs(final BinaryOp call) {
-				return methodWithArgs(call, Key.ANONYMOUS, List.nil(), SourceExprDesugarer.this);
+			private DesugarResult<P2<Identifier,CoreExpr>> methodWithArgs(final BinaryOp call) {
+				return methodWithArgs(call, Option.none(), List.nil(), SourceExprDesugarer.this);
 			}
 
 			/**
 			 * Desugar the field definition as a method that takes parameters.
 			 */
-			private DesugarResult<List<FunctionLiteral>> methodWithArgs(final BinaryOp call, final Key nameSuffix, final List<SourceExpr> argumentListsSuffix, final SourceExprDesugarer ds) {
+			private DesugarResult<P2<Identifier,CoreExpr>> methodWithArgs(final BinaryOp call, final Option<Identifier> nameSuffix, final List<SourceExpr> argumentListsSuffix, final SourceExprDesugarer ds) {
 				final SourceExpr methodLeftExpr = call.getLeft();
 				final SourceExpr argsExpr = call.getRight();
-				return nonNull(methodLeftExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+				return nonNull(methodLeftExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier,CoreExpr>>>() {
 					@Override
-					public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp methodDefBOp) {
+					public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp methodDefBOp) {
 						switch(methodDefBOp.getOperator()) {
 						case PROJECTION: return projection(methodDefBOp);
 						case JUXTAPOSITION: return juxtaposition(methodDefBOp);
@@ -699,11 +573,11 @@ public class SourceExprDesugarer {
 					 * When we find a projection in the signature that means they are specifying a "self arg" - the name
 					 * of the receiver of the method call.
 					 */
-					private DesugarResult<List<FunctionLiteral>> projection(BinaryOp methodDefBOp) {
+					private DesugarResult<P2<Identifier,CoreExpr>> projection(BinaryOp methodDefBOp) {
 						final SourceExpr nameSourceExpr = methodDefBOp.getRight();
 						final SourceExpr selfNameSourceExpr = methodDefBOp.getLeft();
-						final Key selfName = expectIdentifier(selfNameSourceExpr);
-						return apply(nameSourceExpr, selfName, ds);
+						final SourceExpr selfBinding = selfNameSourceExpr;
+						return apply(nameSourceExpr, Option.some(selfBinding), ds);
 					}
 
 					/**
@@ -723,48 +597,48 @@ public class SourceExprDesugarer {
 					 *              CALL
 					 * </pre>
 					 */
-					private DesugarResult<List<FunctionLiteral>> juxtaposition(final BinaryOp methodDefBOp) {
+					private DesugarResult<P2<Identifier,CoreExpr>> juxtaposition(final BinaryOp methodDefBOp) {
 						// for a(b)c(d)
 						// argsExpr = (d)
 						// methodDefBOp.right = id(c)
 						// methodDefBOp.left = call(id(a),(b))
-						return methodDefBOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<FunctionLiteral>>>() {
+						return methodDefBOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier,CoreExpr>>>() {
 							@Override
-							public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
+							public DesugarResult<P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
 								BadCoreExpr problem = new BadCoreExpr(methodDefBOp.getSourceFileRanges(), "Invalid method signature");
-								return ds.withValue(methods.snoc(FunctionLiteral.property(Key.ANONYMOUS, problem)));
+								return ds.withValue(P.p(Identifier.UNDERSCORE, problem));
 							}
 
 							@Override
-							public DesugarResult<List<FunctionLiteral>> binaryOp(BinaryOp op) {
+							public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp op) {
 								switch(op.getOperator()) {
 								case CALL: {
-									Key key = expectIdentifier(methodDefBOp.getRight());
-									Key newNameSuffix = concatNameParts(key, nameSuffix);
+									Identifier key = expectIdentifier(methodDefBOp.getRight());
+									Identifier newNameSuffix = concatNameParts(key, nameSuffix);
 									List<SourceExpr> newArgumentListsSuffix = argumentListsSuffix.cons(argsExpr);
-									return methodWithArgs(op, newNameSuffix, newArgumentListsSuffix, ds);
+									return methodWithArgs(op, Option.some(newNameSuffix), newArgumentListsSuffix, ds);
 								}
 								default:
 									return fallback(op);
 								}
 							}
+
 						});
 					}
 
 
-					DesugarResult<List<FunctionLiteral>> apply(SourceExpr nameExpr, Key selfName, SourceExprDesugarer ds) {
-						final Key key = expectIdentifier(nameExpr);
-						final DesugarResult<FunctionLiteral> methodDs = ds.method(
+					DesugarResult<P2<Identifier,CoreExpr>> apply(SourceExpr nameExpr, Option<SourceExpr> selfBinding, SourceExprDesugarer ds) {
+						final Identifier key = expectIdentifier(nameExpr);
+						return ds.method(
 								methodSourceExpr,
 								concatNameParts(key, nameSuffix),
 								flattenArgumentLists(argumentListsSuffix.cons(argsExpr)),
-								selfName,
+								selfBinding,
 								body);
-						return methodDs.withValue(methods.cons(methodDs.getValue()));
 					}
 					@Override
-					public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
-						return apply(methodLeftExpr, Key.ANONYMOUS, SourceExprDesugarer.this);
+					public DesugarResult<P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
+						return apply(methodLeftExpr, Option.none(), SourceExprDesugarer.this);
 					}
 				}));
 			}
@@ -772,11 +646,11 @@ public class SourceExprDesugarer {
 			/**
 			 * Desugar the field as a method that doesn't take any parameters
 			 */
-			private DesugarResult<List<FunctionLiteral>> methodWithGuarantee(BinaryOp targetBOp) {
+			private DesugarResult<P2<Identifier,CoreExpr>> methodWithGuarantee(BinaryOp targetBOp) {
 				final SourceExpr newLvalueExpr = targetBOp.getLeft();
 				final DesugarResult<CoreExpr> newGuaranteeDs = expr(targetBOp.getRight());
 				final CoreExpr combinedGuarantee = composeGuarantees(postcondition, newGuaranteeDs.getValue());
-				return newGuaranteeDs.addMethod(methodSourceExpr, newLvalueExpr, body, combinedGuarantee, methods);
+				return newGuaranteeDs.method(methodSourceExpr, newLvalueExpr, body, combinedGuarantee);
 			}
 
 			/**
@@ -784,29 +658,28 @@ public class SourceExprDesugarer {
 			 * method.
 			 */
 			@Override
-			public DesugarResult<List<FunctionLiteral>> fallback(SourceExpr other) {
-				final Key key = expectIdentifier(signatureSourceExpr);
-				final FunctionLiteral method = FunctionLiteral.property(key, body);
-				return withValue(nonNull(methods.cons(method)));
+			public DesugarResult<P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
+				final Identifier key = expectIdentifier(signatureSourceExpr);
+				return withValue(P.p(key, body));
 			}
 		});
-		return nonNull(result);
-	}
+	    return result;
+    }
 
 	/**
 	 * Desugar something the MUST be an identifier.  If it's not an identifier, a placeholder
 	 * is returned - an instance of BadIdentifier - that can be used as an identifier to continue
 	 * with desugaring but which will be reported as an error.
 	 */
-	protected static Key expectIdentifier(final SourceExpr sourceExpr) {
-		return sourceExpr.acceptVisitor(new BaseSourceExprVisitor<Key>() {
+	protected static Identifier expectIdentifier(final SourceExpr sourceExpr) {
+		return sourceExpr.acceptVisitor(new BaseSourceExprVisitor<Identifier>() {
 			@Override
-			public Key key(Key key) {
+			public Identifier identifier(Identifier key) {
 				return key;
 			}
 
 			@Override
-			public Key fallback(SourceExpr other) {
+			public Identifier fallback(SourceExpr other) {
 				return new BadIdentifier(sourceExpr);
 			}
 		});
@@ -821,15 +694,15 @@ public class SourceExprDesugarer {
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee
 	 * @param newGuarantee New guarantee to add onto it
 	 * @param newGuaranteeSourceOffset Absolute source offset of the new guarantee
-	 * @return A new CoreExpr repreesnting the combined guarantee
+	 * @return A new CoreExpr representing the combined guarantee
 	 */
 	protected CoreExpr composeGuarantees(CoreExpr guarantee, CoreExpr newGuarantee) {
-		if(guarantee.equals(FunctionLiteral.EMPTY_POSTCONDITION)) {
+		if(guarantee.equals(Identifier.TRUE)) {
 			return newGuarantee;
-		} else if(newGuarantee.equals(FunctionLiteral.EMPTY_POSTCONDITION)) {
+		} else if(newGuarantee.equals(Identifier.TRUE)) {
 			return guarantee;
 		} else {
-			return Call.operator(guarantee, Operator.LOGICAL_AND, newGuarantee);
+			return Call.binaryOp(guarantee, Operator.LOGICAL_AND, newGuarantee);
 		}
 	}
 
@@ -844,17 +717,17 @@ public class SourceExprDesugarer {
 	 */
 	DesugarResult<CoreExpr> makeRow(SourceExpr sourceExpr, List<SourceExpr> headings) {
 		final List<SourceExpr> values = flattenCommas(stripParens(sourceExpr));
-		final DesugarResult<List<FunctionLiteral>> methodsDs = headings.zip(values).foldRight(new F2<P2<SourceExpr,SourceExpr>, DesugarResult<List<FunctionLiteral>>, DesugarResult<List<FunctionLiteral>>>() {
+		final DesugarResult<List<P2<Identifier,CoreExpr>>> methodsDs = headings.zip(values).foldRight(new F2<P2<SourceExpr,SourceExpr>, DesugarResult<List<P2<Identifier,CoreExpr>>>, DesugarResult<List<P2<Identifier,CoreExpr>>>>() {
 			@Override
-			public DesugarResult<List<FunctionLiteral>> f(
+			public DesugarResult<List<P2<Identifier,CoreExpr>>> f(
 					P2<SourceExpr, SourceExpr> p,
-					DesugarResult<List<FunctionLiteral>> ds) {
+					DesugarResult<List<P2<Identifier,CoreExpr>>> ds) {
 				if(p == null || ds == null) throw new NullPointerException();
 				final SourceExpr headingExpr = nonNull(p._1());
 				final SourceExpr cellSourceExpr = nonNull(p._2());
-				final List<FunctionLiteral> tailMethods = ds.getValue();
+				final List<P2<Identifier,CoreExpr>> tailMethods = ds.getValue();
 				final DesugarResult<CoreExpr> cellDs = ds.expr(cellSourceExpr);
-				return cellDs.addMethod(null, headingExpr, cellDs.getValue(), FunctionLiteral.EMPTY_POSTCONDITION, tailMethods);
+				return cellDs.addMethod(null, headingExpr, cellDs.getValue(), Identifier.TRUE, tailMethods);
 			}
 		}, this.withValue(List.nil()));
 
@@ -905,15 +778,17 @@ public class SourceExprDesugarer {
 		return nonNull(argsSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return functionLiteral(sourceExpr, argsSourceExpr, Key.ANONYMOUS, body);
+				return functionLiteral(sourceExpr, argsSourceExpr, body);
 			}
 
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(BinaryOp op) {
 				if(op.getOperator() == Operator.CALL) {
-					final Key selfName = expectIdentifier(op.getLeft());
+					final SourceExpr selfBinding = op.getLeft();
 					final SourceExpr args = op.getRight();
-					return functionLiteral(sourceExpr, args, selfName, body);
+					DesugarResult<CoreExpr> selfBoundDs = bindSelf(selfBinding, body);
+					final DesugarResult<CoreExpr> result = functionLiteral(sourceExpr, args, selfBoundDs.getValue());
+					return result;
 				} else {
 					return fallback(op);
 				}
@@ -921,10 +796,8 @@ public class SourceExprDesugarer {
 		}));
 	}
 
-	protected DesugarResult<CoreExpr> functionLiteral(SourceExpr sourceExpr, final SourceExpr argsSourceExpr,
-			final Key selfName, final CoreExpr body) {
-		final DesugarResult<FunctionLiteral> methodDs = method(sourceExpr, Key.ANONYMOUS, argsSourceExpr, selfName, body);
-		return methodDs.withValue((CoreExpr)new ObjectLiteral(NOT_FROM_SOURCE, methodDs.getValue()), sourceExpr);
+	protected DesugarResult<CoreExpr> functionLiteral(SourceExpr sourceExpr, final SourceExpr argsSourceExpr, final CoreExpr body) {
+		return functionLiteral(sourceExpr, argsSourceExpr, Option.none(), body);
 	}
 
 	/**
@@ -936,10 +809,10 @@ public class SourceExprDesugarer {
 	 * @param bodySourceOffset Absolute source offset of the function body expression
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee; use the same offset as sourceOffset if none specified
 	 */
-	protected DesugarResult<FunctionLiteral> method(final SourceExpr methodSourceExpr, final Key methodName, final SourceExpr args, final Key selfName, final CoreExpr body) {
-		return nonNull(args.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<FunctionLiteral>>() {
+	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr methodSourceExpr, final SourceExpr args, final Option<SourceExpr> selfBinding, final CoreExpr body) {
+		return args.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
-			public DesugarResult<FunctionLiteral> binaryOp(BinaryOp op) {
+			public DesugarResult<CoreExpr> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
 				case MEMBER_OF:
 					// (x,y):Guarantee = ...
@@ -949,20 +822,20 @@ public class SourceExprDesugarer {
 				}
 			}
 
-			private DesugarResult<FunctionLiteral> applyGuarantee(BinaryOp op) {
+			private DesugarResult<CoreExpr> applyGuarantee(BinaryOp op) {
 				final SourceExpr newArgs = op.getLeft();
 				final SourceExpr newGuaranteeSourceExpr = op.getRight();
 				final DesugarResult<CoreExpr> newGuaranteeDs = expr(newGuaranteeSourceExpr);
 				CoreExpr newBody = SourceExprDesugarer.this.applyGuarantee(body, op.getOperator(), newGuaranteeDs.getValue());
-				return newGuaranteeDs.method(methodSourceExpr, methodName, newArgs, selfName, newBody);
+				return newGuaranteeDs.functionLiteral(methodSourceExpr, newArgs, selfBinding, newBody);
 			}
 
 			@Override
-			public DesugarResult<FunctionLiteral> fallback(SourceExpr other) {
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
 				final List<SourceExpr> exprs = flattenCommas(stripParens(args));
-				return method(methodSourceExpr, methodName, single(exprs), selfName, body);
+				return method(methodSourceExpr, Identifier.UNDERSCORE, single(exprs), selfBinding, body).mapValue(P2.__2());
 			}
-		}));
+		});
 
 	}
 
@@ -974,71 +847,58 @@ public class SourceExprDesugarer {
 		return a.map(x -> flattenCommas(x));
 	}
 
-	public DesugarResult<FunctionLiteral> method(SourceExpr methodSourceExpr, Operator operator, SourceExpr other, Key selfArg, CoreExpr body) {
-		return method(methodSourceExpr, opMethodName(operator), other, selfArg, body);
+	public DesugarResult<P2<Identifier,CoreExpr>> method(SourceExpr methodSourceExpr, Operator operator, SourceExpr other, Option<SourceExpr> selfBinding, CoreExpr body) {
+		return functionLiteral(methodSourceExpr, other, selfBinding, body).mapValue(func -> P.p(operator.getMethodIdentifier(), func));
 	}
 
-	protected DesugarResult<FunctionLiteral> method(SourceExpr methodSourceExpr, final Key methodName, List<List<SourceExpr>> argumentListsSourceExprs, Key selfName, CoreExpr body) {
-		return method(methodSourceExpr, methodName, argumentListsSourceExprs, selfName, FunctionLiteral.EMPTY_PRECONDITION, body, FunctionLiteral.EMPTY_POSTCONDITION);
+	protected DesugarResult<P2<Identifier,CoreExpr>> method(SourceExpr methodSourceExpr, final Identifier methodName, List<List<SourceExpr>> argumentListsSourceExprs, Option<SourceExpr> selfBinding, CoreExpr body) {
+		return method(methodSourceExpr, methodName, argumentListsSourceExprs, selfBinding, Identifier.TRUE, body, Identifier.TRUE);
 	}
 
-	protected DesugarResult<FunctionLiteral> method(final SourceExpr methodSourceExpr, final Key methodName, List<List<SourceExpr>> argumentListsSourceExprs, Key selfName, CoreExpr precondition, CoreExpr currBody, CoreExpr postcondition) {
-		final DesugarResult<P3<CoreExpr,CoreExpr,List<List<Key>>>> argsDs = argumentListsSourceExprs.zipIndex().foldRight(new F2<P2<List<SourceExpr>,Integer>, DesugarResult<P3<CoreExpr,CoreExpr,List<List<Key>>>>, DesugarResult<P3<CoreExpr,CoreExpr,List<List<Key>>>>>() {
-			@Override
-			public DesugarResult<P3<CoreExpr,CoreExpr, List<List<Key>>>> f(
-					P2<List<SourceExpr>, Integer> a,
-					DesugarResult<P3<CoreExpr, CoreExpr, List<List<Key>>>> argumentListsDsState) {
-				if(a == null) throw new NullPointerException();
-				if(argumentListsDsState == null) throw new NullPointerException();
+	protected DesugarResult<P2<Identifier, CoreExpr>> method(final SourceExpr methodSourceExpr, final Identifier methodName, List<List<SourceExpr>> argumentListsSourceExprs, Option<SourceExpr> selfBinding, CoreExpr precondition, CoreExpr currBody, CoreExpr postcondition) {
+		final DesugarResult<CoreExpr> funcDs = argumentListsSourceExprs.zipIndex().foldRight(
+			(P2<List<SourceExpr>, Integer> a, DesugarResult<CoreExpr> argumentListsDsState) -> {
 				List<SourceExpr> argsListSourceExprs = a._1();
 				final int argListNumber = a._2();
-				P3<CoreExpr, CoreExpr, List<List<Key>>> s = argumentListsDsState.getValue();
-				CoreExpr tempPrecondition = s._1();
-				CoreExpr tempBody = s._2();
-				List<List<Key>> argLists = s._3();
-				DesugarResult<P3<CoreExpr,CoreExpr,List<Key>>> argListDs = argsListSourceExprs.zipIndex().foldRight(new F2<P2<SourceExpr,Integer>, DesugarResult<P3<CoreExpr,CoreExpr,List<Key>>>, DesugarResult<P3<CoreExpr,CoreExpr,List<Key>>>>() {
-					@Override
-					public DesugarResult<P3<CoreExpr,CoreExpr,List<Key>>> f(P2<SourceExpr,Integer> argExprWithIndex,
-							DesugarResult<P3<CoreExpr,CoreExpr,List<Key>>> argListDsState) {
-						if(argListDsState == null) throw new NullPointerException();
-						if(argExprWithIndex == null) throw new NullPointerException();
+				CoreExpr tempBody = argumentListsDsState.getValue();
+				DesugarResult<P3<CoreExpr,CoreExpr,List<Identifier>>> argListDs = argsListSourceExprs.zipIndex().foldRight(
+					(P2<SourceExpr,Integer> argExprWithIndex,
+						DesugarResult<P3<CoreExpr,CoreExpr,List<Identifier>>> argListDsState) -> {
 						final int argNumber = argExprWithIndex._2();
 						final SourceExpr argExpr = argExprWithIndex._1();
 						final int index = argExprWithIndex._2();
 
 						// Need another fold because there are multiple parameter lists.
 
-						CoreExpr precondition = argListDsState.getValue()._1();
+						CoreExpr _precondition = argListDsState.getValue()._1();
 						CoreExpr body = argListDsState.getValue()._2();
-						List<Key> paramList = argListDsState.getValue()._3();
-						final DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> paramDs = argListDsState.methodFormalArgument(
+						List<Identifier> paramList = argListDsState.getValue()._3();
+						final DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>> paramDs = argListDsState.methodFormalArgument(
 								methodSourceExpr,
 								paramList,
 								argExpr,
-								precondition,
+								_precondition,
 								body,
 								index,
 								argListNumber
 						);
 						return paramDs;
-					}
-				}, argumentListsDsState.withValue(P.p(tempPrecondition, tempBody, List.nil())));
+				}, argumentListsDsState.withValue(P.p(Identifier.TRUE, tempBody, List.nil())));
 
+				// TODO Precondition is not being used here ...
 				CoreExpr newPrecondition = argListDs.getValue()._1();
 				CoreExpr newBody = argListDs.getValue()._2();
-				return argListDs.withValue(P.p(newPrecondition, newBody, argLists.conss(argListDs.getValue()._3())));
-			}
-		}, this.withValue(P.p(precondition, currBody, List.nil())));
+				final List<Identifier> args = argListDs.getValue()._3();
+				FunctionLiteral func = new FunctionLiteral(args, newBody);
+				return argListDs.withValue((CoreExpr)func);
+		}, this.withValue(currBody));
 
-		final List<List<Key>> processedArgs = nonNull(argsDs.getValue()._3());
-		final CoreExpr newPrecondition = nonNull(argsDs.getValue()._1());
-		final CoreExpr newBody = nonNull(argsDs.getValue()._2());
-		List<SourceFileRange> methodSourceFileRanges = methodSourceExpr!=null ? methodSourceExpr.getSourceFileRanges() : NOT_FROM_SOURCE;
-		final FunctionLiteral method = new FunctionLiteral(methodSourceFileRanges, selfName, methodName, processedArgs, newPrecondition, newBody, postcondition);
-		if(methodSourceExpr != null)
-			return argsDs.withDesugared(method, methodSourceExpr);
-		else
-			return argsDs.withValue(method);
+		final Option<DesugarResult<CoreExpr>> temp = selfBinding.map(
+				(name) -> funcDs.bindSelf(name, funcDs.getValue())
+		);
+		DesugarResult<CoreExpr> funcWithSelfNameDs = temp.orSome(funcDs);
+
+		return funcWithSelfNameDs.mapValue((slotValue) -> P.p(methodName, slotValue));
 	}
 
 	/**
@@ -1049,143 +909,12 @@ public class SourceExprDesugarer {
 	 * @param index TODO
 	 * @return The result of the desugaring includes the new source mappings and the new method body
 	 */
-	public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> methodFormalArgument(final SourceExpr methodSourceExpr, final List<Key> paramList, final SourceExpr argExpr, final CoreExpr precondition, final CoreExpr body, final int index, final int index2) {
+	public DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>> methodFormalArgument(final SourceExpr methodSourceExpr, final List<Identifier> paramList, final SourceExpr argExpr, final CoreExpr precondition, final CoreExpr body, final int index, final int index2) {
 		final SourceExprDesugarer ds = SourceExprDesugarer.this;
-		return nonNull(argExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>>>() {
+		return nonNull(argExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>>>() {
 
 			@Override
-			public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> unaryOp(UnaryOp argOp) {
-				switch(argOp.getOperator()) {
-				case OBJECT_LITERAL: return unpackObject(argOp);
-				case BRACKETS: return unpackList(argOp);
-				case LAZY: return unpackLazy(argOp);
-				default: return fallback(argOp);
-				}
-			}
-
-			/**
-			 * If we find curly braces, we are pulling fields from a record.
-			 *
-			 * ({a,b,c=d}) -> body == (_abc) -> ((a,b,d) -> body)(_abc.a,_abc.b,_abc.c)
-			 *
-			 * Note how a pair causes a rename and the left side of the pair is what we pull from the record and
-			 * the right side of the pair is the resulting name of the parameter.  This is based on the idea that
-			 * if you wrote that expression in the scope of the body it would yield something like the original
-			 * record.
-			 */
-			public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> unpackObject(UnaryOp pattern) {
-				final SourceExpr field = pattern.getOperand();
-				final DesugarResult<List<P2<SourceExpr, SourceExpr>>> pairsDs = collectFields(ds, field, List.nil());
-				final P2<List<SourceExpr>, List<SourceExpr>> lists = List.unzip(pairsDs.getValue());
-				final List<SourceExpr> tempParams = lists._2();
-				final DesugarResult<FunctionLiteral> tempMethodDs = pairsDs.method(methodSourceExpr, Key.ANONYMOUS, single(tempParams), Key.ANONYMOUS, body);
-				FunctionLiteral tempMethod = tempMethodDs.getValue();
-				final Key objectTmpName = tempMethod.getArgumentLists().head().head();
-				final DesugarResult<List<CoreExpr>> argsDs = lists._1().foldRight(new F2<SourceExpr, DesugarResult<List<CoreExpr>>, DesugarResult<List<CoreExpr>>>() {
-
-					@Override
-					public DesugarResult<List<CoreExpr>> f(SourceExpr a, DesugarResult<List<CoreExpr>> b) {
-						if(a == null) throw new NullPointerException();
-						if(b == null) throw new NullPointerException();
-						DesugarResult<CoreExpr> projectionDs = b.projection(a, (SourceExpr)objectTmpName, a, false, false);
-						return projectionDs.withValue(b.getValue().cons(projectionDs.getValue()));
-					}
-
-				}, pairsDs.withValue(List.nil()));
-				List<CoreExpr> args = argsDs.getValue();
-				return wrapper(paramList, precondition, argsDs, tempMethod, objectTmpName, args);
-			}
-
-			public DesugarResult<List<P2<SourceExpr, SourceExpr>>> collectFields(final SourceExprDesugarer ds, final SourceExpr field, final List<P2<SourceExpr, SourceExpr>> currFields) {
-				return nonNull(field.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<SourceExpr, SourceExpr>>>>() {
-					/**
-					 *
-					 * @param argSourceExpr For x = y, this would be the expression for x
-					 * @param parameterPattern For x = y, this would be the expression for y
-					 * @return
-					 */
-					DesugarResult<List<P2<SourceExpr, SourceExpr>>> field(SourceExpr argSourceExpr, final SourceExpr parameterPattern) {
-						return ds.withValue(nonNull(currFields.cons(P.p(argSourceExpr, parameterPattern))));
-					}
-
-					@Override
-					public DesugarResult<List<P2<SourceExpr, SourceExpr>>> key(Key key) {
-						return field(key, key);
-					}
-
-					@Override
-					public DesugarResult<List<P2<SourceExpr, SourceExpr>>> binaryOp(BinaryOp op) {
-						switch(op.getOperator()) {
-						case ASSIGNMENT: {
-							// Field name = variable name
-							return field(op.getLeft(), op.getRight());
-						}
-						case COMMA:
-						case JUXTAPOSITION:
-						case NEWLINE: {
-							final DesugarResult<List<P2<SourceExpr, SourceExpr>>> rightDs = collectFields(ds, op.getRight(), currFields);
-							final DesugarResult<List<P2<SourceExpr, SourceExpr>>> leftDs = collectFields(rightDs, op.getLeft(), rightDs.getValue());
-							return leftDs;
-						}
-
-						default:
-							return fallback(op);
-						}
-					}
-
-					@Override
-					public DesugarResult<List<P2<SourceExpr, SourceExpr>>> fallback(SourceExpr op) {
-						// Unexpected whatever-it-is
-						return field(op, op);
-					}
-				}));
-			}
-
-			/**
-			 * If we find square brackets we are pulling elements from a sequence.
-			 *
-			 * { method([a,b,c,d]) = body }
-			 * becomes
-			 * { method(_abcd) = ((a,b,c,d) -> body)(_abcd[0], _abcd[1], _abcd[2], _abcd[3]) }
-			 */
-			public final DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> unpackList(UnaryOp pattern) {
-				final List<SourceExpr> tempParams = flattenCommas(pattern.getOperand());
-				if(tempParams.isEmpty()) {
-					// Actually more of a precondition
-					throw new UnsupportedOperationException("Not implemented");
-				} else {
-					final DesugarResult<FunctionLiteral> tempMethodDs = ds.method(methodSourceExpr, Key.ANONYMOUS, single(tempParams), Key.ANONYMOUS, body);
-					FunctionLiteral tempMethod = tempMethodDs.getValue();
-					final Key listTmpName = nonNull(tempMethod.getArgumentLists().head().head());
-					List<CoreExpr> args = List.nil();
-					for(int n=tempParams.length()-1; n >= 0; n--) {
-						args = args.cons(new Call(NOT_FROM_SOURCE, listTmpName, new Identifier("get"), new NumberLiteral(n)));
-					}
-					return wrapper(paramList, precondition, tempMethodDs, tempMethod, listTmpName, args);
-				}
-			}
-
-			private DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> wrapper(
-					final List<Key> paramList, final CoreExpr precondition,
-					final SourceExprDesugarer ds, FunctionLiteral tempMethod,
-					final Key paramName, List<CoreExpr> args) {
-				final ObjectLiteral func = new ObjectLiteral(tempMethod);
-				final Call newBody = Call.callFunction(func, args);
-				CoreExpr newPrecondition = composePreconditions(precondition, tempMethod.getPrecondition());
-				return ds.withValue(P.p(newPrecondition, (CoreExpr)newBody, cons(paramName, paramList)));
-			}
-
-			public final DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> unpackLazy(UnaryOp pattern) {
-				final List<SourceExpr> tempParams = List.single(pattern.getOperand());
-				final DesugarResult<FunctionLiteral> tempMethodDs = ds.method(methodSourceExpr, Key.ANONYMOUS, single(tempParams), Key.ANONYMOUS, body);
-				FunctionLiteral tempMethod = tempMethodDs.getValue();
-				final Key lazyTmpName = nonNull(tempMethod.getArgumentLists().head().head()); // We know the temp method should accept at least one parameter, I think
-				List<CoreExpr> args = List.single(Call.callFunction(lazyTmpName, List.nil()));
-				return wrapper(paramList, precondition, tempMethodDs, tempMethod, lazyTmpName, args);
-			}
-
-			@Override
-			public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> binaryOp(final BinaryOp argOp) {
+			public DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>> binaryOp(final BinaryOp argOp) {
 				switch(argOp.getOperator()) {
 				case MEMBER_OF:
 				case EQ:
@@ -1194,7 +923,7 @@ public class SourceExprDesugarer {
 				case LE:
 				case LT:
 				case NEQ:
-					final Key paramDecl = expectIdentifier(argOp.getLeft());
+					final Identifier paramDecl = expectIdentifier(argOp.getLeft());
 					final DesugarResult<CoreExpr> assertionDs = expr(argOp.getRight());
 					// Check parameter precondition
 					CoreExpr newPrecondition = insertContract(precondition, paramDecl, argOp.getOperator(), assertionDs.getValue());
@@ -1206,12 +935,15 @@ public class SourceExprDesugarer {
 			}
 
 			@Override
-			public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> key(Key key) {
+			public DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>> identifier(Identifier key) {
 				return ds.withValue(P.p(precondition, body, cons(key, paramList)));
 			}
 			@Override
-			public DesugarResult<P3<CoreExpr, CoreExpr, List<Key>>> fallback(SourceExpr other) {
-				return key(new BadIdentifier(other.getSourceFileRanges(), "Invalid argument specification", other.toSource()));
+			public DesugarResult<P3<CoreExpr, CoreExpr, List<Identifier>>> fallback(SourceExpr other) {
+				Identifier tempArgName = new Identifier("__"+index);
+				DesugarResult<List<P2<Identifier, CoreExpr>>> pairs = localVariableDef(other, tempArgName);
+				Let let = new Let(pairs.getValue(), body);
+				return pairs.withValue(P.p(precondition, let, paramList.cons(tempArgName)));
 			}
 		}));
 	}
@@ -1230,19 +962,19 @@ public class SourceExprDesugarer {
 	 * @param constraint
 	 * @return
 	 */
-	protected CoreExpr insertContract(CoreExpr currentPrecondition, Key parameterName,
+	protected CoreExpr insertContract(CoreExpr currentPrecondition, Identifier parameterName,
 			Operator operator, CoreExpr constraint) {
-		Call check = new Call(constraint.getSourceFileRanges(), parameterName, opMethodName(operator), constraint);
+		Call check = new Call(constraint.getSourceFileRanges(), new SlotReference(parameterName, opMethodName(operator)), List.single(constraint));
 		return composePreconditions(currentPrecondition, check);
 	}
 
 	private CoreExpr composePreconditions(CoreExpr a, CoreExpr b) {
-		if(a.equals(FunctionLiteral.EMPTY_PRECONDITION)) {
+		if(a.equals(Identifier.TRUE)) {
 			return b;
-		} else if(b.equals(FunctionLiteral.EMPTY_PRECONDITION)){
+		} else if(b.equals(Identifier.TRUE)){
 			return a;
 		} else {
-			return Call.operator(a, Operator.LOGICAL_AND, b);
+			return Call.binaryOp(a, Operator.LOGICAL_AND, b);
 		}
 	}
 
@@ -1286,29 +1018,30 @@ public class SourceExprDesugarer {
 	private List<SourceExpr> flattenCommas(final SourceExpr arg) {
 		return flattenList(arg, Operator.COMMA);
 	}
-	protected DesugarResult<CoreExpr> binaryOpToMethodCall(final BinaryOp op, boolean optional) {
+	protected DesugarResult<CoreExpr> binaryOpToCall(final BinaryOp op, boolean optional) {
 		final SourceExpr leftSourceExpr = op.getLeft();
 		final Operator operator = op.getOperator();
 		List<SourceFileRange> operatorRanges = op.getOperatorRanges();
 		final SourceExpr rightSourceExpr = op.getRight();
-		return binaryOpToMethodCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
+		return binaryOpToCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
 	}
 
-	protected DesugarResult<CoreExpr> binaryOpToMethodCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
+	protected DesugarResult<CoreExpr> binaryOpToCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
 		final DesugarResult<CoreExpr> leftDs = expr(leftSourceExpr);
 		final DesugarResult<CoreExpr> rightDs = leftDs.expr(rightSourceExpr);
-		return rightDs.withDesugared(op, binaryOpToMethodCall(op.getSourceFileRanges(), leftDs.getValue(), operator, operatorRanges, rightDs.getValue(), optional));
+		return rightDs.withDesugared(op, binaryOpToCall(op.getSourceFileRanges(), leftDs.getValue(), operator, operatorRanges, rightDs.getValue(), optional));
 	}
 
-	protected Call binaryOpToMethodCall(List<SourceFileRange> ranges, final CoreExpr leftCoreExpr, final Operator operator,	List<SourceFileRange> operatorRanges, final CoreExpr rightCoreExpr, boolean optional) {
+	protected Call binaryOpToCall(List<SourceFileRange> ranges, final CoreExpr leftCoreExpr, final Operator operator,	List<SourceFileRange> operatorRanges, final CoreExpr rightCoreExpr, boolean optional) {
 		final boolean rightAssoc = operator.isRightAssociative();
 		final CoreExpr target = rightAssoc?rightCoreExpr:leftCoreExpr;
 		final CoreExpr parameter = rightAssoc?leftCoreExpr:rightCoreExpr;
-		return new Call(ranges, target, opMethodName(operatorRanges, operator), optional, parameter);
+		final CoreExpr callTarget = operator == Operator.CALL? target : new SlotReference(target, opMethodName(operatorRanges, operator));
+		return new Call(ranges, callTarget, List.single(parameter));
 	}
 
 
-	protected DesugarResult<CoreExpr> lazyValue(SourceExpr sourceExpr, SourceExpr body) {
+	protected DesugarResult<CoreExpr> nullaryFunctionLiteral(SourceExpr sourceExpr, SourceExpr body) {
 		final DesugarResult<CoreExpr> bodyDs = expr(body);
 		return bodyDs.functionLiteral(sourceExpr, EmptyExpr.SYNTHETIC_INSTANCE, body, bodyDs.getValue());
 	}
@@ -1318,47 +1051,6 @@ public class SourceExprDesugarer {
 		final DesugarResult<CoreExpr> operandDs = expr(operandSourceExpr);
 		return operandDs.withDesugared(op, new ListLiteral(op.getSourceFileRanges(), single(operandDs.getValue())));
 	}
-
-//	private DesugarResult<CoreExpr> exprPair(final BinaryOp pairOp) {
-//		final DesugarResult<CoreExpr> bodyDs = expr(pairOp.getRight());
-//		return bodyDs.exprPair(pairOp, pairOp.getLeft(), pairOp.getRight(), bodyDs.getValue());
-//	}
-//
-//	public DesugarResult<CoreExpr> exprPair(final SourceExpr pairOp, final SourceExpr curr, final SourceExpr bodySourceExpr, final CoreExpr body) {
-//		return nonNull(curr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-//			@Override
-//			public DesugarResult<CoreExpr> binaryOp(BinaryOp leftOp) {
-//				switch(leftOp.getOperator()) {
-//				case MONAD_EXTRACT: return monadExtract(pairOp, bodySourceExpr, body, leftOp);
-//				case ASSIGNMENT: return let(pairOp, bodySourceExpr, body, leftOp);
-//
-//				default:
-//					return fallback(leftOp);
-//				}
-//			}
-//
-//			@Override
-//			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-//				return monadAndThen(pairOp, bodySourceExpr, body, other);
-//			}
-//
-//		}));
-//	}
-//
-//	/**
-//	 * In this case the left-hand expression isn't a kind of let so we don't have to introduce a new variable.  This
-//	 * is the "and then" monad operation, denoted ">>" in Haskell but we'll use ";" since ">>" is so bit-shifty.
-//	 * We have to make the next step lazy, too, to allow the monad to do control flow.
-//	 *
-//	 * x ; y == (x).";"(-> y)
-//	 */
-//	public DesugarResult<CoreExpr> monadAndThen(
-//			final SourceExpr pairOp, final SourceExpr bodySourceExpr,
-//			final CoreExpr body, SourceExpr other) {
-//		final DesugarResult<CoreExpr> rhsDs = expr(other);
-//		final DesugarResult<CoreExpr> contDs = rhsDs.functionLiteral(null, EmptyExpr.SYNTHETIC_INSTANCE, bodySourceExpr, body);
-//		return contDs.withDesugared(pairOp, new Call(pairOp.getSourceFileRanges(), rhsDs.getValue(), opMethodName(Operator.SEMICOLON), contDs.getValue()));
-//	}
 
 	protected DesugarResult<CoreExpr> listLiteral(SourceExpr sourceExpr, final SourceExpr elementsExpr) {
 		final List<SourceExpr> exprs = flattenCommas(elementsExpr);
@@ -1415,7 +1107,7 @@ public class SourceExprDesugarer {
 			case LOGICAL_AND:
 			case LOGICAL_OR:
 			case FALLBACK:
-				return binaryOpToMethodCall(op, false);
+				return binaryOpToCall(op, false);
 
 			case EXTEND:
 				return extend(op);
@@ -1435,7 +1127,7 @@ public class SourceExprDesugarer {
 			final SourceExpr operandSourceExpr = op.getOperand();
 			switch(op.getOperator()) {
 			case LIST_ELEMENT: return singletonListLiteral(op);
-			case LAZY: return lazyValue(op, op.getOperand());
+			case NULLARY_FUNCTION_LITERAL: return nullaryFunctionLiteral(op, op.getOperand());
 			case BRACKETS: return listLiteral(op, operandSourceExpr);
 			case OBJECT_LITERAL: return objectLiteral(op, operandSourceExpr);
 
@@ -1448,7 +1140,7 @@ public class SourceExprDesugarer {
 			case PLUS:
 			case NEGATE:
 			case ABSVALUE:
-				return unaryOpToMethodCall(op);
+				return unaryOpToSlotReference(op);
 
 			case INSPECT:
 				return inspect(op);
@@ -1512,12 +1204,6 @@ public class SourceExprDesugarer {
 		public DesugarResult<CoreExpr> badIdentifier(BadIdentifier badIdentifier) {
 			return withDesugared(badIdentifier, new BadCoreExpr(badIdentifier.getSourceFileRanges(), badIdentifier.getMessage()));
 		}
-
-		@Override
-        public DesugarResult<CoreExpr> mixfixFunctionIdentifier(
-                MixfixFunctionIdentifier id) {
-			return withDesugared(id, (CoreExpr)id);
-        }
 	}
 
 	public DesugarResult<CoreExpr> inspect(UnaryOp op) {
@@ -1525,22 +1211,14 @@ public class SourceExprDesugarer {
 		return exprDs.withDesugared(op, new Inspect(op.getSourceFileRanges(), exprDs.getValue()));
 	}
 
-	/**
-	 * A variant is a special kind of callback.  Using the special variant syntax will result
-	 * in an object that tries to call back, but treats it as a contract failure if the provided
-	 * object does not implement the specified method or has a contract failure for calling that
-	 * method:
-	 *
-	 * #<something> = { (x # y) = y.?<something> &&& y.<something> }
-	 */
 	public DesugarResult<CoreExpr> selector(UnaryOp op) {
-		final Identifier y = new Identifier("//compiler/selector/x");
+		final Identifier __tmp = Identifier.__TMP;
 		P3<CoreExpr,CoreExpr,SourceExprDesugarer> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprDesugarer>>() {
 			@Override
-			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> key(Key field) {
-				DesugarResult<CoreExpr> preDs = projection(op, (CoreExpr)y, field, false, true);
+			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> identifier(Identifier field) {
+				DesugarResult<CoreExpr> preDs = projection(op, (CoreExpr)__tmp, field);
 				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, (CoreExpr)y, field, false, false);
+				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, (CoreExpr)__tmp, field);
 				CoreExpr body = bodyDs.getValue();
 				return P.p(precondition, body, bodyDs);
 			}
@@ -1548,9 +1226,9 @@ public class SourceExprDesugarer {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprDesugarer> binaryOp(BinaryOp op) {
 				// Variant has arguments
-				DesugarResult<CoreExpr> preDs = desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.OPT_PROJECTION, op.getOperatorRanges(), y, op.getLeft()), op.getRight()));
+				DesugarResult<CoreExpr> preDs = desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.OPT_PROJECTION, op.getOperatorRanges(), __tmp, op.getLeft()), op.getRight()));
 				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.PROJECTION, op.getOperatorRanges(), y, op.getLeft()), op.getRight()));
+				DesugarResult<CoreExpr> bodyDs = preDs.desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.PROJECTION, op.getOperatorRanges(), __tmp, op.getLeft()), op.getRight()));
 				CoreExpr body = bodyDs.getValue();
 				return P.p(precondition, body, bodyDs);
 			}
@@ -1559,12 +1237,9 @@ public class SourceExprDesugarer {
 			public P3<CoreExpr, CoreExpr, SourceExprDesugarer> unaryOp(UnaryOp op) {
 				// Callback shorthand - .(x) == (f) -> f(x)
 				if(op.getOperator() == Operator.PARENS) {
-					DesugarResult<List<List<CoreExpr>>> argListsDs = desugarArgLists(single(flattenCommas(op.getOperand())));
-					List<List<CoreExpr>> argLists = argListsDs.getValue();
-
-					CoreExpr precondition = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, true);
-					CoreExpr body = new Call(op.getSourceFileRanges(), y, Key.ANONYMOUS, argLists, false, false);
-					return P.p(precondition, body, argListsDs);
+					CoreExpr precondition = Identifier.TRUE; // TODO
+					DesugarResult<CoreExpr> bodyDs = call(op, __tmp, op.getOperand(), flattenCommas(op.getOperand()));
+					return P.p(precondition, bodyDs.getValue(), bodyDs);
 				}
 			    return super.unaryOp(op);
 			}
@@ -1578,8 +1253,8 @@ public class SourceExprDesugarer {
 		SourceExprDesugarer ds = ps._3();
 		CoreExpr precondition = ps._1();
 		CoreExpr body = ps._2();
-		FunctionLiteral method = new FunctionLiteral(NOT_FROM_SOURCE, Key.ANONYMOUS, opMethodName(Operator.CALL), single(single((Key)y)), precondition , body, FunctionLiteral.EMPTY_POSTCONDITION);
-		return ds.withDesugared(op, new ObjectLiteral(method));
+		// TODO precondition!
+		return ds.withDesugared(op, new FunctionLiteral(single(__tmp), body));
 	}
 
 	public DesugarResult<CoreExpr> extend(BinaryOp op) {
@@ -1588,7 +1263,7 @@ public class SourceExprDesugarer {
 		return rightDs.withDesugared(op, new Extend(op.getSourceFileRanges(), leftDs.getValue(), rightDs.getValue()));
 	}
 
-	private DesugarResult<CoreExpr> let(final BinaryOp op) {
+	public DesugarResult<CoreExpr> let(final BinaryOp op) {
 		List<SourceExpr> namedValues = nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<List<SourceExpr>>() {
 			@Override
 			public List<SourceExpr> unaryOp(UnaryOp op) {
@@ -1604,40 +1279,44 @@ public class SourceExprDesugarer {
 			}
 		}));
 
-		return desugar(op.getRight()).mapValue((ds, body) ->
-			ds.let(op, namedValues, body)
-		);
+		final DesugarResult<CoreExpr> bodyDs = desugar(op.getRight());
+		return bodyDs.let(op, namedValues, bodyDs.getValue());
+
 	}
 
-	private CoreExpr let(final BinaryOp op, List<SourceExpr> namedValues, CoreExpr body) {
-	    return (CoreExpr)namedValues.foldRight((a, ds) ->
-	    	ds.mapValue((ds2,bindings) -> a.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Key,CoreExpr>>>() {
-	    			@Override
-	    			public DesugarResult<P2<Key,CoreExpr>> binaryOp(BinaryOp letOp) {
-	    				if(letOp.getOperator() == Operator.ASSIGNMENT) {
-	    					return ds2.let(letOp);
-	    				}
-	    				return fallback(letOp);
-	    			}
+	public DesugarResult<CoreExpr> let(final BinaryOp op, List<SourceExpr> namedValues, CoreExpr body) {
+	    final DesugarResult<List<P2<Identifier, CoreExpr>>> bindingsDs = namedValues.foldRight((a, ds) -> {
+	    	List<P2<Identifier,CoreExpr>> bindings = ds.getValue();
+	    	DesugarResult<List<P2<Identifier, CoreExpr>>> bindingDs = a.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<Identifier, CoreExpr>>>>() {
+    			@Override
+    			public DesugarResult<List<P2<Identifier, CoreExpr>>> binaryOp(BinaryOp letOp) {
+    				if(letOp.getOperator() == Operator.ASSIGNMENT) {
+    					return ds.assignment(letOp, letOp.getLeft(), letOp.getRight());
+    				}
+    				return fallback(letOp);
+    			}
 
-	    			@Override
-	    			public DesugarResult<P2<Key,CoreExpr>> fallback(SourceExpr other) {
-	    				BinaryOp letOp = new BinaryOp(other.getSourceFileRanges(), Operator.ASSIGNMENT, SourceFileRange.EMPTY_LIST, Key.ANONYMOUS, other);
-	    				return ds2.localVariableDef(op, letOp, new Identifier("//compiler/let/unnamed"));
-	    			}
+    			@Override
+    			public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr other) {
+    				//BinaryOp letOp = new BinaryOp(other.getSourceFileRanges(), Operator.ASSIGNMENT, SourceFileRange.EMPTY_LIST, Identifier.UNDERSCORE, other);
+    				return ds.localVariableDef(Identifier.UNDERSCORE, other);
+    			}
+    		});
+	    	return bindingDs.withValue(bindings.append(bindingDs.getValue()));
+	    }, withValue(List.<P2<Identifier,CoreExpr>>nil()));
 
-	    }).mapValue((ds3, binding) -> ds3.withValue(bindings.cons(binding)))), withValue(List.<P2<Key,CoreExpr>>nil()))
-	    .mapValue((ds, bindings) -> ds.withDesugared(op, new Let(op.getSourceFileRanges(), bindings, body)));
+		final List<P2<Identifier, CoreExpr>> bindings = bindingsDs.getValue();
+		return bindingsDs.withDesugared(op, new Let(op.getSourceFileRanges(), bindings, body));
     }
 
-	public DesugarResult<P2<Key, CoreExpr>> let(SourceExpr left, SourceExpr right) {
-		return left.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Key, CoreExpr>>>() {
+	public DesugarResult<List<P2<Identifier, CoreExpr>>> assignment(SourceExpr letOp, SourceExpr left, SourceExpr right) {
+		return left.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<Identifier, CoreExpr>>>>() {
 			@Override
-			public DesugarResult<P2<Key, CoreExpr>> binaryOp(BinaryOp op) {
+			public DesugarResult<List<P2<Identifier, CoreExpr>>> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
 				case JUXTAPOSITION:
 				case CALL: {
-					return localFunctionDef(op.getLeft(), op.getRight(), right);
+					return localFunctionDef(letOp, op.getLeft(), op.getRight(), right).mapValue(List::single);
 				}
 				default:
 					return fallback(op);
@@ -1645,72 +1324,78 @@ public class SourceExprDesugarer {
 			}
 
 			@Override
-			public DesugarResult<P2<Key, CoreExpr>> fallback(SourceExpr argPattern) {
+			public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr argPattern) {
 				return localVariableDef(left, right);
 			}
 
 		});
 	}
 
-	public DesugarResult<P2<Key, CoreExpr>> localVariableDef(
-			final SourceExpr left,
-			final SourceExpr right) {
+	public DesugarResult<List<P2<Identifier, CoreExpr>>> localVariableDef(
+			final SourceExpr lhs,
+			final SourceExpr value) {
 		// x = y, z == (x -> z)(y) == {(x) = z}(y)
-		Key name = expectIdentifier(left); // TODO Reimplement object unpacking :-(
-		return expr(right).mapValue((rhsDs, value) -> P.p(name, value));
-	}
-
-	public DesugarResult<P2<Key, CoreExpr>> localFunctionDef(SourceExpr name, SourceExpr args, SourceExpr body) {
-		return localFunctionDef(pairOp, bodySourceExpr, letOp, callOp, Key.ANONYMOUS, List.nil());
-	}
-
-	private DesugarResult<P2<Key, CoreExpr>> localFunctionDef(final SourceExpr name,
-            final SourceExpr body,
-            final Key name, final List<SourceExpr> argLists) {
-	    // f(x) = y -->  f = {f(x) = y}
-		return callOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Key,CoreExpr>>>() {
+		return lhs.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<Identifier, CoreExpr>>>>() {
 			@Override
-			public DesugarResult<P2<Key,CoreExpr>> fallback(SourceExpr other) {
-				return makeFunction();
-			}
-
-			private DesugarResult<P2<Key,CoreExpr>> makeFunction() {
-	            Key namePart = expectIdentifier(callOp.getLeft());
-        		final Key selfName = concatNameParts(namePart, name);
-        		List<List<SourceExpr>> argListLists = List.cons(callOp.getRight(), argLists).map(args -> flattenCommas(stripParens(args)));
-        		final DesugarResult<CoreExpr> rhsDs = expr(letOp.getRight()); // y
-        		final DesugarResult<FunctionLiteral> funcDs = rhsDs.method(pairOp, Key.ANONYMOUS, argListLists, selfName, FunctionLiteral.EMPTY_PRECONDITION, rhsDs.getValue(), FunctionLiteral.EMPTY_POSTCONDITION); // (x -> y)
-        		return funcDs.withValue(P.p(selfName, new ObjectLiteral(funcDs.getValue())));
-            }
-
-			@Override
-			public DesugarResult<P2<Key,CoreExpr>> binaryOp(BinaryOp op) {
-				if(op.getOperator() == Operator.JUXTAPOSITION) {
-					return juxtaposition(op);
+			public DesugarResult<List<P2<Identifier, CoreExpr>>> unaryOp(UnaryOp op) {
+				switch(op.getOperator()) {
+				case OBJECT_LITERAL:
+					return unpackObject(op);
+				default:
+				    return fallback(op);
 				}
-			    return super.binaryOp(op);
+			}
+			private DesugarResult<List<P2<Identifier, CoreExpr>>> unpackObject(UnaryOp op) {
+				List<SourceExpr> slotBindings = flattenCommas(op.getOperand());
+				return slotBindings.foldRight(
+					this::unpackSlot,
+					withValue(List.<P2<Identifier, CoreExpr>>nil())
+				);
+            }
+			private DesugarResult<List<P2<Identifier, CoreExpr>>> unpackSlot(SourceExpr slot, DesugarResult<List<P2<Identifier, CoreExpr>>> ds) {
+				return slot.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<P2<Identifier, CoreExpr>>>>() {
+					@Override
+					public DesugarResult<List<P2<Identifier, CoreExpr>>> identifier(Identifier identifier) {
+						BinaryOp projection = new BinaryOp(Operator.PROJECTION, value, identifier);
+						DesugarResult<CoreExpr> projectionDs = expr(projection);
+						P2<Identifier, CoreExpr> pair = P.p(identifier, projectionDs.getValue());
+					    return projectionDs.withValue(ds.getValue().cons(pair));
+					}
+
+					@Override
+					public DesugarResult<List<P2<Identifier, CoreExpr>>> binaryOp(BinaryOp op) {
+						switch(op.getOperator()) {
+						case ASSIGNMENT:
+							return ds.localVariableDef(op.getRight(), new BinaryOp(Operator.PROJECTION, value, op.getLeft())).mapValue(vars -> vars.append(ds.getValue()));
+						default:
+						    return super.binaryOp(op);
+						}
+					}
+
+					@Override
+					public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr other) {
+					    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier / lvalue"))));
+					}
+				});
+			}
+			@Override
+			public DesugarResult<List<P2<Identifier, CoreExpr>>> identifier(Identifier name) {
+				final DesugarResult<CoreExpr> valueDs = expr(value);
+				return valueDs.withValue(List.single(P.p(name, valueDs.getValue())));
 			}
 
-			private DesugarResult<P2<Key,CoreExpr>> juxtaposition(BinaryOp juxtapositionOp) {
-				Key namePart = expectIdentifier(juxtapositionOp.getRight());
-	            return juxtapositionOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Key,CoreExpr>>>() {
-	            	@Override
-	            	public DesugarResult<P2<Key,CoreExpr>> fallback(SourceExpr other) {
-	            		return makeFunction();
-	            	}
-
-	            	@Override
-	            	public DesugarResult<P2<Key,CoreExpr>> binaryOp(BinaryOp op2) {
-	            		if(op2.getOperator() == Operator.CALL) {
-	            			return localFunctionDef(pairOp, bodySourceExpr, letOp, op2, concatNameParts(namePart, name), List.cons(callOp.getRight(), argLists));
-	            		}
-	            	    return super.binaryOp(op2);
-	            	}
-	            });
-            }
+			@Override
+			public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr other) {
+			    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier / lvalue"))));
+			}
 		});
-    }
+	}
 
+	public DesugarResult<P2<Identifier, CoreExpr>> localFunctionDef(SourceExpr letOp, SourceExpr name, SourceExpr args, SourceExpr body) {
+		DesugarResult<CoreExpr> bodyDs = expr(body);
+		DesugarResult<CoreExpr> valueDs = bodyDs.functionLiteral(letOp, args, body, bodyDs.getValue());
+		return valueDs.withValue(P.p(expectIdentifier(name), valueDs.getValue()));
+	}
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {
 		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			private DesugarResult<CoreExpr> nonCallJuxtaposition() {
@@ -1730,11 +1415,13 @@ public class SourceExprDesugarer {
 							return nonCallJuxtaposition();
 						}
 
-						public SourceExprDesugarer.DesugarResult<CoreExpr> key(Key keyOnRight) {
+						public SourceExprDesugarer.DesugarResult<CoreExpr> identifier(Identifier keyOnRight) {
 							Operator leftOp = opLeft.getOperator();
 							boolean callNext = leftOp == Operator.CALL_NEXT_METHOD || leftOp == Operator.OPT_CALL_NEXT_METHOD;
 							boolean optional = leftOp == Operator.OPT_PROJECTION || leftOp == Operator.OPT_CALL_NEXT_METHOD;
-							return call(opLeft, keyOnRight, single(List.nil()), callNext, optional);
+							assert callNext == false;
+							assert optional == false;
+							return call(opLeft, keyOnRight, List.nil());
 						}
 					});
 				} else {
@@ -1744,39 +1431,17 @@ public class SourceExprDesugarer {
 		}));
 	}
 
-	public DesugarResult<CoreExpr> callMethod(final BinaryOp op,
-			final Key moreNames,
-			final List<List<SourceExpr>> moreArgumentLists,
-			final boolean optional, final List<SourceExpr> argSourceExprs,
-			final BinaryOp calleeOp, Key key) {
-		boolean actualOptional = optional || calleeOp.getOperator() == Operator.MAP_OPT_PROJECTION;
-		final Key argName = new Identifier("//compiler/map projection/."+key.toSource());
-		final DesugarResult<CoreExpr> projectionDs = call(op, (CoreExpr)argName, concatNameParts(key, moreNames), cons(argSourceExprs, moreArgumentLists), false, actualOptional);
-		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
-		final DesugarResult<CoreExpr> targetDs = projectFuncDs.expr(calleeOp.getLeft());
-		CoreExpr target = targetDs.getValue();
-		CoreExpr projectionFunc = projectFuncDs.getValue();
-		final DesugarResult<CoreExpr> mapCallDs = targetDs.withDesugared(op, new Call(NOT_FROM_SOURCE, target, new Identifier("map"), projectionFunc));
-		return mapCallDs;
-	}
 
-	public DesugarResult<List<List<CoreExpr>>> desugarArgList(
-            List<SourceExpr> argSourceExprs, List<List<CoreExpr>> list) {
-	    if(argSourceExprs == null) throw new NullPointerException();
-	    final DesugarResult<List<CoreExpr>> dsArgs = argSourceExprs.foldRight(new F2<SourceExpr, DesugarResult<List<CoreExpr>>, DesugarResult<List<CoreExpr>>>() {
-	    	@Override
-	    	public DesugarResult<List<CoreExpr>> f(SourceExpr argSourceExpr, DesugarResult<List<CoreExpr>> a) {
-	    		final DesugarResult<CoreExpr> argDs = nonNull(a).expr(nonNull(argSourceExpr));
-	    		return argDs.withValue(cons(argDs.getValue(), nonNull(a).getValue()));
-	    	}
-	    }, withValue(List.nil()));
-
-	    return dsArgs.withValue(cons(dsArgs.getValue(), list));
+	private DesugarResult<CoreExpr> unaryOpToSlotReference(final UnaryOp op) {
+	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
+	    return operandCoreExpr.withDesugared(op, new SlotReference(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
     }
 
-	private DesugarResult<CoreExpr> unaryOpToMethodCall(final UnaryOp op) {
-	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
-	    return operandCoreExpr.withDesugared(op, new Call(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
+	/**
+	 * Bind to self - basically <code>(lhs = __self) => body</code>
+	 */
+	protected DesugarResult<CoreExpr> bindSelf(SourceExpr selfBinding, final CoreExpr body) {
+		return localVariableDef(selfBinding, Identifier.__SELF).mapValue(pairs -> new Let(pairs, body));
     }
 
 

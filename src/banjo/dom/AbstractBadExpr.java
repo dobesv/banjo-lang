@@ -33,10 +33,6 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		sb.append(")");
 	}
 
-	public void toSource(StringBuffer sb) {
-		toSource(sb);
-	}
-
 	@Override
 	public Precedence getPrecedence() {
 		return Precedence.SUFFIX;

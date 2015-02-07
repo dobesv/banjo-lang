@@ -199,10 +199,6 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		this.operandIndentLevel = operandIndentLevel;
 	}
 
-	public SourceCodeParser(String sourceFile, String idPrefix) {
-		this(sourceFile, List.nil(), null, null, 0);
-	}
-
 	/**
 	 * Construct a parser with the given string as the source file name to use when
 	 * reporting errors.

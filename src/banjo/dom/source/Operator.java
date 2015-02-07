@@ -4,7 +4,6 @@ import static banjo.dom.Consts.CODEPOINT_NONE;
 import static banjo.parser.util.Check.nonNull;
 import banjo.dom.ParenType;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 
 public enum Operator {
 	// Nullary operator
@@ -16,7 +15,7 @@ public enum Operator {
 	COMPLEMENT("~", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	NOT("!", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	LIST_ELEMENT("*", 0x2022, OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
-	LAZY("->", 0x21a6, OperatorType.BUILTIN, Position.PREFIX, Precedence.FUNCTION),
+	NULLARY_FUNCTION_LITERAL("->", 0x21a6, OperatorType.BUILTIN, Position.PREFIX, Precedence.FUNCTION),
 	TABLE_HEADER("#::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	TABLE_ROW(":::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
@@ -86,16 +85,16 @@ public enum Operator {
 
 	public static enum Associativity { LEFT, RIGHT, NA; }
 	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
-	private final String op;
-	private final int codePoint; // -1 if no special unicode character
-	private final Precedence leftPrecedence; // For binary operators only
-	private final Precedence precedence;
-	private final ParenType parenType; // nullable
-	private final Associativity associativity;
-	private final Position position;
-	private final String methodName;
-	private final Identifier methodNameKey;
-	private final OperatorType operatorType;
+	public final String op;
+	public final int codePoint; // -1 if no special unicode character
+	public final Precedence leftPrecedence; // For binary operators only
+	public final Precedence precedence;
+	public final ParenType parenType; // nullable
+	public final Associativity associativity;
+	public final Position position;
+	public final String methodName;
+	public final Identifier methodNameKey;
+	public final OperatorType operatorType;
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
 		this.op = op;

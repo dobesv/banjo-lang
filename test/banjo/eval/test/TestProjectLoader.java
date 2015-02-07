@@ -9,7 +9,7 @@ import banjo.dom.BadExpr;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
+import banjo.dom.token.Identifier;
 import banjo.eval.ProjectLoader;
 import fj.data.List;
 import fj.data.TreeMap;
@@ -26,9 +26,9 @@ public class TestProjectLoader {
 
 	@Test public void testNoProblems() { assertEquals(0, problems().length()); }
 
-	public TreeMap<Key, CoreExpr> bindings() {
+	public TreeMap<Identifier, CoreExpr> bindings() {
 
-		TreeMap<Key, CoreExpr> bindings = ProjectLoader.loadBanjoPath();
+		TreeMap<Identifier, CoreExpr> bindings = ProjectLoader.loadBanjoPath();
 		bindings.forEach(binding -> {
 			System.out.println("Binding: "+binding._1()+" -> "+binding._2());
 			binding._2().acceptVisitor(new CoreErrorGatherer()).forEach(e -> {
@@ -47,7 +47,7 @@ public class TestProjectLoader {
 	}
 
 	private void assertDefined(final String id) {
-		final TreeMap<Key, CoreExpr> bindings = bindings();
+		final TreeMap<Identifier, CoreExpr> bindings = bindings();
 		assertTrue(bindings.contains(new Identifier(id)));
 		List<BadExpr> problems = bindings.get(new Identifier(id)).some().acceptVisitor(new CoreErrorGatherer());
 		assertTrue("Binding has "+problems.length()+" errors", problems.isEmpty());

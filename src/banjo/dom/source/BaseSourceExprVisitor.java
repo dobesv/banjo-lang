@@ -1,9 +1,7 @@
 package banjo.dom.source;
 
-import banjo.dom.core.MixfixFunctionIdentifier;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Key;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
@@ -14,16 +12,12 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 
 	@Override
 	public T stringLiteral(StringLiteral stringLiteral) {
-		return key(stringLiteral);
-	}
-
-	public T key(Key key) {
-		return fallback(key);
+		return fallback(stringLiteral);
 	}
 
 	@Override
 	public T numberLiteral(NumberLiteral numberLiteral) {
-		return key(numberLiteral);
+		return fallback(numberLiteral);
 	}
 
 	public T token(SourceExpr token) {
@@ -32,12 +26,7 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 
 	@Override
 	public T identifier(Identifier identifier) {
-		return key(identifier);
-	}
-
-	@Override
-	public T mixfixFunctionIdentifier(MixfixFunctionIdentifier id) {
-	    return key(id);
+		return fallback(identifier);
 	}
 
 	@Override
@@ -69,5 +58,4 @@ public abstract class BaseSourceExprVisitor<T> implements SourceExprVisitor<T> {
 	public T emptyExpr(EmptyExpr emptyExpr) {
 		return fallback(emptyExpr);
 	}
-
 }

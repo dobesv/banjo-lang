@@ -12,7 +12,7 @@ import fj.data.List;
  * The metadata is a map from a method name to that method's metadata.
  */
 public class Inspect extends AbstractCoreExpr implements CoreExpr {
-	private final CoreExpr target;
+	public final CoreExpr target;
 
 	public CoreExpr getTarget() {
 		return this.target;

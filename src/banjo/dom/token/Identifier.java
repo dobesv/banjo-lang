@@ -17,16 +17,19 @@ import fj.data.List;
 
 public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Ord<Identifier> ORD = ExprOrd.exprOrd();
-	public static final Identifier ZERO = new Identifier("/0");
-	public static final Identifier ONE = new Identifier("/1");
-	public static final Identifier NAN = new Identifier("/NaN");
-	public static final Identifier EMPTY_STRING = new Identifier("/\"\"");
-	public static final Identifier EMPTY_LIST = new Identifier("/[]");
+	public static final Identifier ZERO = new Identifier("0");
+	public static final Identifier ONE = new Identifier("1");
+	public static final Identifier NAN = new Identifier("NaN");
+	public static final Identifier EMPTY_STRING = new Identifier("\"\"");
+	public static final Identifier EMPTY_LIST = new Identifier("[]");
 	public static final Identifier ENVIRONMENT = new Identifier("ε");
-	public static final Identifier TRUE = new Identifier("/true");
-	public static final Identifier FALSE = new Identifier("/false");
-	public static final Identifier DATA = new Identifier("/data");
-	public static final Identifier INFINITY = new Identifier("/∞");
+	public static final Identifier TRUE = new Identifier("true");
+	public static final Identifier FALSE = new Identifier("false");
+	public static final Identifier DATA = new Identifier("data");
+	public static final Identifier INFINITY = new Identifier("∞");
+	public static final Identifier UNDERSCORE = new Identifier("_");
+	public static final Identifier __SELF = new Identifier("__self");
+	public static final Identifier __TMP = new Identifier("__tmp");
 
 	public final String id;
 
