@@ -7,6 +7,7 @@ import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
@@ -134,4 +135,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 
+	public List<Identifier> slotsReferencedButNeverDefined() {
+		Set<String> definedSlots = Set.set(Ord.stringOrd, slotDefs.map(Identifier::getId));
+		return slotRefs.filter(name -> !definedSlots.member(name.id));
+	}
 }
