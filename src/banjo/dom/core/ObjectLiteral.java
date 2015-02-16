@@ -128,9 +128,15 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 			if(first) first = false;
 			else sb.append(", ");
 			if(unaryOperatorSlotToSource(sb, name, value) ||
-					binaryOperatorSlotToSource(sb, name, value))
+					binaryOperatorSlotToSource(sb, name, value) ||
+					methodSlotToSource(sb, name, value, Option.none()))
 				continue;
 
+			if(isSelfBinding(value)) {
+				((Let)value).bindings.head()._1().toSource(sb);
+				sb.append(".");
+				value = ((Let)value).body;
+			}
 			name.toSource(sb);
 			if(name.compareTo(value) != 0) {
 				sb.append(" = ");
@@ -139,6 +145,29 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		}
 		sb.append('}');
 	}
+
+	public boolean methodSlotToSource(StringBuffer sb, Identifier name, CoreExpr value, Option<Identifier> selfBinding) {
+		if(isSelfBinding(value)) {
+			return methodSlotToSource(sb, name, ((Let)value).body, Option.some(((Let)value).bindings.head()._1()));
+		}
+
+		if(value instanceof FunctionLiteral) {
+			FunctionLiteral f = (FunctionLiteral) value;
+			selfBinding.forEach(x -> { x.toSource(sb); sb.append('.'); });
+			name.toSource(sb);
+			sb.append('(');
+			int start = sb.length();
+			f.args.forEach(a -> { if(sb.length() > start) sb.append(", "); a.toSource(sb); });
+			sb.append(") = ");
+			f.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
+			return true;
+		}
+	    return false;
+    }
+
+	protected static boolean isSelfBinding(CoreExpr value) {
+	    return value instanceof Let && ((Let)value).bindings.isSingle() && ((Let)value).bindings.head()._2().compareTo(Identifier.__SELF) == 0;
+    }
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {

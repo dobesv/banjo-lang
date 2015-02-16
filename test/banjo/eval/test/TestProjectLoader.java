@@ -19,8 +19,7 @@ public class TestProjectLoader {
 	@Test public void testOneDefined() { assertDefined("1"); }
 	@Test public void testTrueDefined() { assertDefined("true"); }
 	@Test public void testFalseDefined() { assertDefined("false"); }
-	@Test public void testStringsDefined() { assertDefined("strings"); }
-	@Test public void testListsDefined() { assertDefined("lists"); }
+	@Test public void testDataDefined() { assertDefined("data"); }
 	@Test public void testEmptyListDefined() { assertDefined("[]"); }
 	@Test public void testEmptyStringDefined() { assertDefined("''"); }
 
@@ -48,7 +47,7 @@ public class TestProjectLoader {
 
 	private void assertDefined(final String id) {
 		final TreeMap<Identifier, CoreExpr> bindings = bindings();
-		assertTrue(bindings.contains(new Identifier(id)));
+		assertTrue("No binding found for "+id, bindings.contains(new Identifier(id)));
 		List<BadExpr> problems = bindings.get(new Identifier(id)).some().acceptVisitor(new CoreErrorGatherer());
 		assertTrue("Binding has "+problems.length()+" errors", problems.isEmpty());
 	}

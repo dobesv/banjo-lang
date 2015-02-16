@@ -1,6 +1,9 @@
 package banjo.dom.core;
 
+import fj.P;
+import fj.Unit;
 import fj.data.List;
+import fj.data.Option;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
@@ -33,20 +36,25 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		Operator unaryOp = Operator.fromMethodName(slotName, false);
-		if(unaryOp != null) {
-			if(unaryOp.isPrefix()) {
+		getUnaryOperator().map(unaryOp -> {
+			if(unaryOp.isParen()) {
+				sb.append(unaryOp.getParenType().getStartChar());
+				object.toSource(sb, unaryOp.getLeftPrecedence());
+				sb.append(unaryOp.getParenType().getEndChar());
+			} else if(unaryOp.isPrefix()) {
 				unaryOp.toSource(sb);
 				object.toSource(sb, unaryOp.getLeftPrecedence());
 			} else {
 				object.toSource(sb, unaryOp.getRightPrecedence());
 				unaryOp.toSource(sb);
 			}
-		} else {
+			return Unit.unit();
+		}).orSome(P.lazy(u -> {
 			object.toSource(sb);
 			Operator.PROJECTION.toSource(sb);
 			slotName.toSource(sb);
-		}
+			return Unit.unit();
+		}));
 	}
 
 	@Override
@@ -74,6 +82,14 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	    } else if (!slotName.equals(other.slotName))
 		    return false;
 	    return true;
+    }
+
+	public Option<Operator> getBinaryOperator() {
+	    return Option.fromNull(Operator.fromMethodName(slotName, true));
+	}
+
+	public Option<Operator> getUnaryOperator() {
+	    return Option.fromNull(Operator.fromMethodName(slotName, false));
     }
 
 

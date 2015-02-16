@@ -37,9 +37,10 @@ public class TestCallParser {
 	@Test public void testJuxtaposition9() { call("a.b {foo=1} (bar)", "a.b({foo = 1})(bar)", 1); }
 	@Test public void testJuxtaposition10() { call("a.b {foo=1} {bar}", "a.b({foo = 1})({bar})", 1); }
 
-	@Test public void testMixfixFunc1() { call ("a(1)b(2)c(3)", "a(1)b(2)c(3)", 1); }
-	@Test public void testMixfixFunc2() { call ("a 1 b 2 c 3", "a(1)b(2)c(3)", 1); }
-	@Test public void testMixfixMethod1() { call ("x.a(1)b(2)c(3)", "x.a(1)b(2)c(3)", 1); }
+	@Test public void testMixfixFunc1() { call ("a(1)b(2)c(3)", "a _ b _ c(1)(2)(3)", 1); }
+	@Ignore @Test public void testMixfixFunc2() { call ("a 1 b 2 c 3", "a _ b _ c(1)(2)(3)", 1); }
+	@Test public void testMixfixFunc3() { call ("if(x) then(y) else(z)", "if _ then _ else(x)(y)(z)", 1); }
+	@Test public void testMixfixMethod1() { call ("x.a(1)b(2)c(3)", "x.a _ b _ c(1)(2)(3)", 1); }
 
 	@Test public void testPipeTo() { call("x |> y", "y(x)", 1); }
 	@Test public void testPipeFrom() { call("x <| y", "x(y)", 1); }

@@ -5,7 +5,7 @@ import static banjo.parser.test.ParseTestUtils.test;
 import org.junit.Test;
 
 public class TestLetParser {
-	private static final String HELLO_WORLD_NORMALIZED = "((hello) -> hello)(\"world\")";
+	private static final String HELLO_WORLD_NORMALIZED = "(hello = \"world\") => hello";
 
 	@Test public void oneLine()         { test("( hello = \"world\" ) => hello", HELLO_WORLD_NORMALIZED); }
 	@Test public void twoLine1()         { test("(hello = \"world\"\n)=>hello", HELLO_WORLD_NORMALIZED); }
@@ -14,23 +14,22 @@ public class TestLetParser {
 //	@Test public void badBackdent()     { test("   (hello = \"world\") =>\nhello", 1, ExpectedOperator.class, null, null); } // Backdent here should be reported as an error
 //	@Test public void badIndent()       { test(" (hello = \"world\")\n   => hello", 1, ExpectedOperator.class, null, null); } // Indent here should be reported as an error
 
-	@Test public void foo1() { test("(a = foo) => a", "((a) -> a)(foo)"); }
-	@Test public void foo2() { test("(a = b) => c", "((a) -> c)(b)"); }
-	@Test public void foo3() { test("(a = foo\n) => a", "((a) -> a)(foo)"); }
-	@Test public void foo5() { test("(\n a = foo\n b = bar\n) => a\n", "((a) -> ((b) -> a)(bar))(foo)"); }
+	@Test public void foo1() { test("(a = foo) => a", "(a = foo) => a"); }
+	@Test public void foo2() { test("(a = b) => c", "(a = b) => c"); }
+	@Test public void foo3() { test("(a = foo\n) => a", "(a = foo) => a"); }
+	@Test public void foo5() { test("(\n a = foo\n b = bar\n) => a\n", "(b = bar, a = foo) => a"); }
 
-	@Test public void f1() { test("(f(x) = x) => f(0)", "((f) -> f(0))(f(x) -> x)"); }
-	@Test public void f2() { test("(f(x,y) = x) => f(1,2)", "((f) -> f(1, 2))(f(x, y) -> x)"); }
-	@Test public void f3() { test("(f() = x) => f()", "((f) -> f())(f() -> x)"); }
+	@Test public void f1() { test("(f(x) = x) => f(0)", "(f = (x) ↦ x) => f(0)"); }
+	@Test public void f2() { test("(f(x,y) = x) => f(1,2)", "(f = (x, y) ↦ x) => f(1, 2)"); }
+	@Test public void f3() { test("(f() = x) => f()", "(f = () ↦ x) => f()"); }
 
-	@Test public void mixfix1() { test("(f(x)g(y) = x + y) => f(1)g(2)", "((f()g) -> f(1)g(2))(f(x)g(y) -> x + y)"); }
+	@Test public void mixfix1() { test("(f(x)g(y) = x + y) => f(1)g(2)", "(f _ g = (x) ↦ (y) ↦ x + y) => f _ g(1)(2)"); }
 
-	@Test public void multiline1() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
-	@Test public void multiline2() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc) -> bar)(\"foo\")}"); }
-	@Test public void multiline3() { test("{\n  x = (\n    doc='foo'\n    examples=[]\n  ) => bar\n}", "{x = ((doc) -> ((examples) -> bar)([]))(\"foo\")}"); }
+	@Test public void multiline1() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc = \"foo\") => bar)}"); }
+	@Test public void multiline2() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc = \"foo\") => bar)}"); }
+	@Test public void multiline3() { test("{\n  x = (\n    doc='foo'\n    examples=[]\n  ) => bar\n}", "{x = ((examples = [], doc = \"foo\") => bar)}"); }
 
-	@Test public void testDocString() { test("{ x = (\"bla\") => true }", "{x = ((_) -> true)(\"bla\")}"); }
-	@Test public void testEgVar() { test("{ x = (\"e.g.\" = \"bla\") => true }", "{x = ((\"e.g.\") -> true)(\"bla\")}"); }
+	@Test public void testDocString() { test("{ x = (\"bla\") => true }", "{x = ((_ = \"bla\") => true)}"); }
 
 
 }

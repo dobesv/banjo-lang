@@ -1,10 +1,12 @@
 package banjo.dom.core;
 
+import banjo.dom.BadExpr;
 import banjo.dom.token.Identifier;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
 import fj.P2;
+import fj.data.Either;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
@@ -61,7 +63,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
             List<P2<Identifier, DefRefAnalyser>> slots) {
 	    DefRefAnalyser x = unionList(slots.map(P2.__2()));
 	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P2.__1()));
-	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs);
+	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs).defs(List.single(Identifier.__SELF));
     }
 
 	@Override
@@ -112,12 +114,11 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	private DefRefAnalyser defs(List<Identifier> newNames) {
 		TreeMap<String, Identifier> bindings = TreeMap.treeMap(Ord.stringOrd, newNames.map(name -> P.p(name.id, name)));
-
-
-	    List<P2<Identifier, Identifier>> newRefs = this.localRefs.append(
-	    		Option.somes(this.unresolvedLocalRefs.map(ref -> bindings.get(ref.id).map(def -> P.p(ref, def))))
-		);
-		List<Identifier> newFreeVars = this.unresolvedLocalRefs.filter(name -> ! bindings.contains(name.id));
+	    final List<Either<Identifier,P2<Identifier,Identifier>>> boundVars = this.unresolvedLocalRefs.map(
+	    		ref -> bindings.get(ref.id).map(def -> P.p(ref, def)).toEither(ref)
+	    );
+		List<P2<Identifier, Identifier>> newRefs = this.localRefs.append(Either.rights(boundVars));
+		List<Identifier> newFreeVars = Either.lefts(boundVars);
 		List<Identifier> newDefs = this.localDefs.append(newNames);
 	    return new DefRefAnalyser(newFreeVars, newRefs, newDefs, this.slotRefs, this.slotRefs);
     }
@@ -125,7 +126,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	@Override
     public DefRefAnalyser functionLiteral(List<SourceFileRange> ranges,
             List<Identifier> args, DefRefAnalyser body) {
-	    return body.defs(args);
+	    return body.defs(args.cons(Identifier.__SELF));
     }
 
 	@Override
@@ -139,4 +140,37 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 		Set<String> definedSlots = Set.set(Ord.stringOrd, slotDefs.map(Identifier::getId));
 		return slotRefs.filter(name -> !definedSlots.member(name.id));
 	}
+
+	public List<BadExpr> getProblems() {
+		List<BadExpr> freeVars = this.unresolvedLocalRefs.map(name -> unboundIdentifier(name));
+		List<BadExpr> freeSlots = this.slotsReferencedButNeverDefined().map(name -> slotDefNotMatchingAnyRef(name));
+		return freeVars.append(freeSlots);
+	}
+
+	protected BadCoreExpr slotDefNotMatchingAnyRef(Identifier name) {
+	    return new BadCoreExpr(name.getSourceFileRanges(), "There are no slots defined with name '%s'", name.id);
+    }
+
+	protected BadCoreExpr unboundIdentifier(Identifier name) {
+	    return new BadCoreExpr(name.getSourceFileRanges(), "Unbound identifier '%s'", name.id);
+    }
+
+	public static List<BadExpr> problems(CoreExpr ast) {
+	    return ast.acceptVisitor(new DefRefAnalyser()).getProblems();
+    }
+
+	/**
+	 * Return a list of def/ref related problems in the given AST, using the given
+	 * bindings as the top-level bindings.  The idea is that we are only interested
+	 * in problems in the given AST yet we also need the information from the other
+	 * bindings to determine whether or not there are errors.
+	 *
+	 * @param ast
+	 * @param bindings
+	 * @return
+	 */
+	public static List<BadExpr> problems(CoreExpr ast, TreeMap<Identifier, CoreExpr> bindings) {
+		// TODO ... actually only return problems from the given AST
+		return problems(new Let(bindings.toStream().toList(), ast));
+    }
 }

@@ -33,27 +33,18 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public void toSource(final StringBuffer sb) {
-		if(getBinaryOperator().map(op -> {
+		getBinaryOperator().map(op -> {
 			((SlotReference)target).object.toSource(sb, op.getLeftPrecedence());
 			sb.append(' ');
 			op.toSource(sb);
 			sb.append(' ');
 			args.head().toSource(sb, op.getRightPrecedence());
 			return op;
-		}).orElse(P.lazy(u -> getUnaryOperator().map(op -> {
-			if(op.isParen()) {
-				sb.append(op.parenType.getStartChar());
-				((SlotReference)target).object.toSource(sb, op.getRightPrecedence());
-				sb.append(op.parenType.getEndChar());
-			} else {
-				op.toSource(sb);
-				((SlotReference)target).object.toSource(sb, op.getRightPrecedence());
-			}
-			return op;
-		}))).isNone()) {
+		}).orSome(P.lazy(u -> {
 			target.toSource(sb, Operator.CALL.getLeftPrecedence());
 			argsToSource(sb);
-		}
+			return Operator.CALL;
+		}));
 	}
 
 	public boolean isBinaryOp() {
@@ -66,17 +57,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	    if(!(target instanceof SlotReference))
 	    	return Option.none();
 		SlotReference slotRef = (SlotReference)target;
-		Operator op = Operator.fromMethodName(slotRef.slotName, true);
-	    return Option.fromNull(op);
-    }
-	public Option<Operator> getUnaryOperator() {
-	    if(!args.isEmpty())
-	    	return Option.none();
-	    if(!(target instanceof SlotReference))
-	    	return Option.none();
-		SlotReference slotRef = (SlotReference)target;
-		Operator op = Operator.fromMethodName(slotRef.slotName, false);
-	    return Option.fromNull(op);
+		return slotRef.getBinaryOperator();
     }
 	public void argsToSource(final StringBuffer sb) {
 	    sb.append('(');

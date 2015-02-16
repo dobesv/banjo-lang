@@ -5,6 +5,7 @@ import static fj.data.List.cons;
 import static fj.data.List.single;
 import banjo.dom.BadExpr;
 import banjo.dom.core.BadCoreExpr;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
@@ -504,7 +505,7 @@ public class SourceExprDesugarer {
 
 			private DesugarResult<P2<Identifier,CoreExpr>> methodWithSelfNameAndNoArgs(final BinaryOp signature) {
 				final Identifier selfBinding = expectIdentifier(signature.getLeft());
-				final Identifier name = expectIdentifier(signature);
+				final Identifier name = expectIdentifier(signature.getRight());
 				return method(methodSourceExpr, name, List.nil(), Option.some(selfBinding), body);
 			}
 
@@ -770,15 +771,15 @@ public class SourceExprDesugarer {
 		final DesugarResult<CoreExpr> bodyDs = expr(sourceExpr.getRight());
 		final CoreExpr body = bodyDs.getValue();
 		final SourceExpr argsSourceExpr = sourceExpr.getLeft();
-		return bodyDs.functionLiteral(sourceExpr, argsSourceExpr, sourceExpr.getRight(), body);
+		return bodyDs.functionLiteral(sourceExpr, argsSourceExpr, body);
 	}
 
 	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr sourceExpr,
-			final SourceExpr argsSourceExpr, final SourceExpr bodySourceExpr, final CoreExpr body) {
-		return nonNull(argsSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			final SourceExpr argsSourceExpr, final CoreExpr body) {
+		return argsSourceExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return functionLiteral(sourceExpr, argsSourceExpr, body);
+				return functionLiteral(sourceExpr, argsSourceExpr, Option.none(), body);
 			}
 
 			@Override
@@ -793,11 +794,7 @@ public class SourceExprDesugarer {
 					return fallback(op);
 				}
 			}
-		}));
-	}
-
-	protected DesugarResult<CoreExpr> functionLiteral(SourceExpr sourceExpr, final SourceExpr argsSourceExpr, final CoreExpr body) {
-		return functionLiteral(sourceExpr, argsSourceExpr, Option.none(), body);
+		});
 	}
 
 	/**
@@ -1043,7 +1040,7 @@ public class SourceExprDesugarer {
 
 	protected DesugarResult<CoreExpr> nullaryFunctionLiteral(SourceExpr sourceExpr, SourceExpr body) {
 		final DesugarResult<CoreExpr> bodyDs = expr(body);
-		return bodyDs.functionLiteral(sourceExpr, EmptyExpr.SYNTHETIC_INSTANCE, body, bodyDs.getValue());
+		return bodyDs.functionLiteral(sourceExpr, EmptyExpr.SYNTHETIC_INSTANCE, bodyDs.getValue());
 	}
 
 	protected DesugarResult<CoreExpr> singletonListLiteral(UnaryOp op) {
@@ -1393,11 +1390,52 @@ public class SourceExprDesugarer {
 
 	public DesugarResult<P2<Identifier, CoreExpr>> localFunctionDef(SourceExpr letOp, SourceExpr name, SourceExpr args, SourceExpr body) {
 		DesugarResult<CoreExpr> bodyDs = expr(body);
-		DesugarResult<CoreExpr> valueDs = bodyDs.functionLiteral(letOp, args, body, bodyDs.getValue());
-		return valueDs.withValue(P.p(expectIdentifier(name), valueDs.getValue()));
+		return bodyDs.localFunctionDef(letOp, name, args, bodyDs.getValue());
 	}
+
+	public DesugarResult<P2<Identifier, CoreExpr>> localFunctionDef(SourceExpr letOp, SourceExpr name, SourceExpr args, CoreExpr body) {
+		DesugarResult<CoreExpr> valueDs = functionLiteral(letOp, args, body);
+		CoreExpr func = valueDs.getValue();
+		return localFunctionDef(letOp, name, func);
+	}
+
+	protected DesugarResult<P2<Identifier, CoreExpr>> localFunctionDef(SourceExpr letOp, SourceExpr name, CoreExpr func) {
+	    return name.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier, CoreExpr>>>() {
+			@Override
+			public DesugarResult<P2<Identifier, CoreExpr>> binaryOp(BinaryOp op) {
+				if(op.getOperator() == Operator.JUXTAPOSITION) {
+					Identifier rightName = expectIdentifier(op.getRight());
+					return op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<Identifier, CoreExpr>>>() {
+						@Override
+						public DesugarResult<P2<Identifier, CoreExpr>> binaryOp(BinaryOp leftOp) {
+							if(leftOp.getOperator() == Operator.CALL) {
+								return localFunctionDef(letOp, leftOp.getLeft(), leftOp.getRight(), func)
+										.mapValue(p -> p.map1(leftName -> concatNameParts(leftName, rightName)));
+							}
+							return fallback(leftOp);
+						}
+
+						@Override
+						public DesugarResult<P2<Identifier, CoreExpr>> fallback(SourceExpr other) {
+						    return withValue(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected function signature part")));
+						}
+					});
+				}
+			    return fallback(op);
+			}
+			@Override
+			public DesugarResult<P2<Identifier, CoreExpr>> identifier(
+			        Identifier identifier) {
+				return withValue(P.p(identifier, func));
+			}
+
+			public SourceExprDesugarer.DesugarResult<fj.P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
+				return identifier(expectIdentifier(other));
+			}
+		});
+    }
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {
-		return nonNull(op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+		return op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			private DesugarResult<CoreExpr> nonCallJuxtaposition() {
 				return SourceExprDesugarer.this.call(op);
 			}
@@ -1408,7 +1446,7 @@ public class SourceExprDesugarer {
 			}
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(final BinaryOp opLeft) {
-				if(opLeft.getOperator() == Operator.CALL || opLeft.getOperator() == Operator.CALL_NEXT_METHOD) {
+				if(opLeft.getOperator() == Operator.CALL) {
 					return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 						@Override
 						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
@@ -1421,14 +1459,43 @@ public class SourceExprDesugarer {
 							boolean optional = leftOp == Operator.OPT_PROJECTION || leftOp == Operator.OPT_CALL_NEXT_METHOD;
 							assert callNext == false;
 							assert optional == false;
-							return call(opLeft, keyOnRight, List.nil());
+							//return call(opLeft, keyOnRight, List.nil());
+							DesugarResult<CoreExpr> leftCall = call(opLeft);
+							return leftCall.mapValue(call -> addNamePartToCall(call, keyOnRight));
 						}
+
+						private CoreExpr addNamePartToCall(CoreExpr value, Identifier keyOnRight) {
+	                        return value.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
+	                        	@Override
+	                        	public CoreExpr call(Call n) {
+	                        		CoreExpr newTarget = addNamePartToCall(n.target, keyOnRight);
+	                        		if(newTarget != n.target)
+	                        			return new Call(n.getSourceFileRanges(), newTarget, n.args);
+	                        	    return super.call(n);
+	                        	}
+
+	                        	@Override
+	                        	public CoreExpr identifier(Identifier n) {
+	                        	    return concatNameParts(n, keyOnRight);
+	                        	}
+
+	                        	@Override
+	                        	public CoreExpr slotReference(SlotReference n) {
+	                        	    return new SlotReference(n.getSourceFileRanges(), n.object, concatNameParts(n.slotName, keyOnRight));
+	                        	}
+
+	                        	@Override
+	                        	public CoreExpr fallback() {
+	                        	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
+	                        	}
+							});
+                        }
 					});
 				} else {
-					return super.binaryOp(op);
+					return nonCallJuxtaposition();
 				}
 			}
-		}));
+		});
 	}
 
 

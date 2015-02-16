@@ -378,11 +378,10 @@ public class ParserReader extends Reader {
 	 *                 If it does support marks, it should never invalidate the mark
 	 *                 no matter how many characters are read.  This calls mark() immediately
 	 *                 to allow "seeking" within the stream.
-	 * @param filename Name of the file to report in the file location information attached to tokens
 	 * @param fileSize Total length of the file
 	 * @throws IOException If there's a problem getting the length of the file
 	 */
-	public ParserReader(Reader delegate, String filename, int fileSize) throws IOException {
+	public ParserReader(Reader delegate, int fileSize) throws IOException {
 		if(fileSize < 0) throw new IllegalArgumentException("Negative fileSize");
 		if(!delegate.markSupported()) {
 			delegate = new BufferedReader(delegate, fileSize);
@@ -422,7 +421,7 @@ public class ParserReader extends Reader {
 	 */
 	public static ParserReader fromString(String filename, String body) {
 		try {
-			return new ParserReader(new StringReader(body), filename, body.length());
+			return new ParserReader(new StringReader(body), body.length());
 		} catch (final IOException e) {
 			throw new Error(e);
 		}
@@ -442,7 +441,7 @@ public class ParserReader extends Reader {
 	 */
 	public static ParserReader fromSubstring(String filename, String body, int beginIndex, int endIndex) {
 		try {
-			final ParserReader reader = new ParserReader(new StringReader(body), filename, endIndex);
+			final ParserReader reader = new ParserReader(new StringReader(body), endIndex);
 			reader.skip(beginIndex);
 			return reader;
 		} catch (final IOException e) {

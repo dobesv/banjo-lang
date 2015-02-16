@@ -8,7 +8,9 @@ import banjo.parser.util.ExprOrd;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
+import fj.P2;
 import fj.data.List;
+import fj.data.Option;
 
 public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
@@ -79,22 +81,25 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				}
 			});
 		} else {
-			final boolean selfBound = hasSelfName();
-			CoreExpr _body;
-			if(selfBound) {
-				((Let)body).bindings.head()._1().toSource(sb);
-				_body = ((Let)body).body;
-			} else {
-				_body = body;
-			}
+			P2<Option<Identifier>, CoreExpr> selfSplit = checkSelfName();
+			selfSplit._1().forEach(x -> x.toSource(sb));
 			sb.append('(');
 			int start = sb.length();
-			args.forEach(a -> (sb.length() > start ? sb.append(", ") : sb).append(a.toString()));
+			args.forEach(a -> { if(sb.length() > start) sb.append(", "); a.toSource(sb); });
 			sb.append(") ↦ ");
-			_body.toSource(sb, Operator.FUNCTION.getRightPrecedence());
+			selfSplit._2().toSource(sb, Operator.FUNCTION.getRightPrecedence());
 		}
 	}
 
+	public P2<Option<Identifier>, CoreExpr> checkSelfName() {
+		final boolean selfBound = hasSelfName();
+		CoreExpr _body;
+		if(selfBound) {
+			return P.p(Option.some(((Let)body).bindings.head()._1()), ((Let)body).body);
+		} else {
+			return P.p(Option.none(), body);
+		}
+	}
 	private boolean hasSelfName() {
 	    return body instanceof Let && ((Let)body).bindings.isSingle() && ((Let)body).bindings.head()._2().compareTo(Identifier.__SELF) == 0;
     }
