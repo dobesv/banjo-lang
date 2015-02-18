@@ -535,6 +535,8 @@ public class SourceExprDesugarer {
 					@Override
 					public DesugarResult<P2<Identifier,CoreExpr>> binaryOp(BinaryOp op) {
 						switch(op.getOperator()) {
+						case NEWLINE:
+						case JUXTAPOSITION:
 						case CALL: {
 							Identifier newNameSuffix = expectIdentifier(juxtaposition.getRight());
 							List<SourceExpr> newArgumentListsSuffix = List.nil();
