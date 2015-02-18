@@ -15,13 +15,13 @@ import fj.data.List;
 import fj.data.TreeMap;
 
 public class TestProjectLoader {
-	@Test public void testZeroDefined() { assertDefined("0"); }
-	@Test public void testOneDefined() { assertDefined("1"); }
-	@Test public void testTrueDefined() { assertDefined("true"); }
-	@Test public void testFalseDefined() { assertDefined("false"); }
-	@Test public void testDataDefined() { assertDefined("data"); }
-	@Test public void testEmptyListDefined() { assertDefined("[]"); }
-	@Test public void testEmptyStringDefined() { assertDefined("''"); }
+	@Test public void testZeroDefined() { assertDefined(Identifier.ZERO.id); }
+	@Test public void testOneDefined() { assertDefined(Identifier.ONE.id); }
+	@Test public void testTrueDefined() { assertDefined(Identifier.TRUE.id); }
+	@Test public void testFalseDefined() { assertDefined(Identifier.FALSE.id); }
+	@Test public void testDataDefined() { assertDefined(Identifier.DATA.id); }
+	@Test public void testEmptyListDefined() { assertDefined(Identifier.EMPTY_LIST.id); }
+	@Test public void testEmptyStringDefined() { assertDefined(Identifier.EMPTY_STRING.id); }
 
 	@Test public void testNoProblems() { assertEquals(0, problems().length()); }
 
