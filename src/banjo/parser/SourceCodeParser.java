@@ -252,7 +252,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		if(this.opStack.isEmpty()) return false;
 		final PartialOp first = this.opStack.head();
 		final int indentLevel = first.indentLevel;
-		return !first.isParen();
+		return !first.isParen() && first.getOperator() != Operator.NEWLINE;
 		//return column < indentLevel || (!first.isParen() && column == indentLevel);
 	}
 
@@ -264,7 +264,8 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 	}
 
 	SourceCodeParser pushNewline(FileRange range) {
-		return pushPartialBinaryOp(Operator.NEWLINE, FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range), "\n");
+		return applyOperatorPrecedenceToStack(Operator.NEWLINE)
+				.pushPartialBinaryOp(Operator.NEWLINE, FileRange.between(operand.getSourceFileRanges().last().getFileRange(), range), "\n");
 	}
 
 	/**

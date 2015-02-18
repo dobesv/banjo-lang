@@ -63,13 +63,14 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 			sb.append(this.operator.getParenType().getStartChar());
 			this.right.toFullyParenthesizedSource(sb);
 			sb.append(this.operator.getParenType().getEndChar());
+		} else {
+			sb.append(' ');
+			this.operator.toSource(sb);
+			sb.append(' ');
+			if(this.right.getPrecedence() != Precedence.ATOM) sb.append('(');
+			this.right.toFullyParenthesizedSource(sb);
+			if(this.right.getPrecedence() != Precedence.ATOM) sb.append(')');
 		}
-		sb.append(' ');
-		this.operator.toSource(sb);
-		sb.append(' ');
-		if(this.right.getPrecedence() != Precedence.ATOM) sb.append('(');
-		this.right.toFullyParenthesizedSource(sb);
-		if(this.right.getPrecedence() != Precedence.ATOM) sb.append(')');
 	}
 
 	@Override

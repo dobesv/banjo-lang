@@ -223,7 +223,7 @@ public class SourceExprDesugarer {
 
 	protected DesugarResult<CoreExpr> call(final BinaryOp op) {
 		DesugarResult<CoreExpr> targetDs = expr(op.getLeft());
-		final List<SourceExpr> argSourceExprs = flattenCommas(op.getRight());
+		final List<SourceExpr> argSourceExprs = op.getOperator() == Operator.CALL ? flattenCommas(op.getRight()) : List.single(op.getRight());
 		return targetDs.call(op, targetDs.getValue(), argSourceExprs);
 	}
 
@@ -990,7 +990,7 @@ public class SourceExprDesugarer {
 
 			@Override
 			public List<SourceExpr> binaryOp(BinaryOp op) {
-				if(op.getOperator() == sep || op.getOperator() == Operator.NEWLINE || op.getOperator() == Operator.JUXTAPOSITION) {
+				if(op.getOperator() == sep || op.getOperator() == Operator.NEWLINE) {
 
 					final List<SourceExpr> left = flattenList(op.getLeft(), sep);
 
@@ -1110,6 +1110,7 @@ public class SourceExprDesugarer {
 				return extend(op);
 
 			case JUXTAPOSITION:
+			case NEWLINE:
 				return juxtaposition(op);
 
 			case LET:

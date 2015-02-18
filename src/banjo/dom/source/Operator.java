@@ -24,7 +24,7 @@ public enum Operator {
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	SELECTOR(".", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
+	SELECTOR(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
