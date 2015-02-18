@@ -130,7 +130,7 @@ public class StringLiteral extends AbstractAtom implements Atom {
 		ListLiteral codePoints = new ListLiteral(
 				List.list(getString().codePoints().mapToObj(cp -> new NumberLiteral(cp)).toArray(CoreExpr[]::new))
 		);
-		return Call.slot(Identifier.DATA, "string", List.single(codePoints));
+		return Call.slot(Identifier.EMPTY_STRING, "with code points", List.single(codePoints));
 	}
 
 }
