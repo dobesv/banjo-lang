@@ -11,13 +11,14 @@ The design goals of this programming language are:
     * Jump to definition
     * Refactoring
   2. Output to multiple target languages/platforms
-    * JS/HTML5 for simple web / 2D games
-    * C++ backend for performance intensive games
+    * C++ / native output for mobile / desktop platforms
+    * JS/HTML5 for web deployment
   3. Dynamic programming
     * Parser / compiler / interpreter as part of the standard library
     * Compiled code with interpreter hooks so "native" functions are accessible from the interpreter
     * Homoiconic language - compile/load time self-modifying code
-    * Live code reload - modify the game in front of your eyes
+    * Live code reload - modify the game while playing it
+    * Game rewind / playback - The game can be run in a deterministic mode that records inputs so you can rewind the game and "try again"
   4. Modularity and code re-use
     * Compose modules, objects, and functions in different ways
     * Row polymorphism
