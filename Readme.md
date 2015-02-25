@@ -1,7 +1,7 @@
 
 Banjo is an experimental programming language for cross-platform development, particularly for video games.
 
-It's not unlike Monkey or haXe in its intended use, but with a different programming language design.
+It's not unlike Monkey, SkookumScript, or haXe in its intended use, but with a different programming language design.
 
 The design goals of this programming language are:
 
@@ -21,7 +21,7 @@ The design goals of this programming language are:
   4. Modularity and code re-use
     * Compose modules, objects, and functions in different ways
     * Row polymorphism
-    * Structural typing 
+    * Structural typing
 
 The degree to which these goals are achieved is still to be determined, and these goals are still subject to change without notice.
 
