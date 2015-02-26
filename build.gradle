@@ -42,6 +42,8 @@ sourceSets {
 	}
 }
 
+compileJava.options.encoding = 'UTF-8'
+
 jar {
 	version project.version
 	baseName "banjo.banjo-lang"
