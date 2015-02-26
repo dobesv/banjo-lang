@@ -1,19 +1,18 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.StringLiteral;
-import banjo.parser.util.ExprOrd;
+import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
-import fj.F;
 import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
@@ -21,7 +20,8 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final List<FunctionLiteral> EMPTY_METHOD_LIST = List.nil();
 	public final List<P2<Identifier,CoreExpr>> slots;
 
-	public static final Ord<FunctionLiteral> ORD = ExprOrd.<FunctionLiteral>exprOrd();
+	public static final Ord<List<P2<Identifier,CoreExpr>>> SLOTS_ORD = Ord.listOrd(Ord.p2Ord(Identifier.ORD, CoreExpr.coreExprOrd));
+	public static final Ord<ObjectLiteral> ORD = SLOTS_ORD.comap((ObjectLiteral x) -> x.slots);
 
 	public ObjectLiteral() {
 		this(List.nil());
@@ -58,7 +58,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		CoreExpr body;
 		if(value instanceof Let) {
 			Let let = (Let) value;
-			if(!(let.bindings.isSingle() && let.bindings.head()._2().compareTo(Identifier.__SELF) == 0))
+			if(!(let.bindings.isSingle() && let.bindings.head()._2().eql(Identifier.__SELF)))
 				return false;
 			selfBinding = let.bindings.head()._1();
 			body = let.body;
@@ -87,7 +87,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		CoreExpr body;
 		if(value instanceof Let) {
 			Let let = (Let) value;
-			if(!(let.bindings.isSingle() && let.bindings.head()._2().compareTo(Identifier.__SELF) == 0))
+			if(!(let.bindings.isSingle() && let.bindings.head()._2().eql(Identifier.__SELF)))
 				return false;
 			selfBinding = let.bindings.head()._1();
 			body = let.body;
@@ -138,7 +138,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 				value = ((Let)value).body;
 			}
 			name.toSource(sb);
-			if(name.compareTo(value) != 0) {
+			if(!name.eql(value)) {
 				sb.append(" = ");
 				value.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
 			}
@@ -166,43 +166,12 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
     }
 
 	protected static boolean isSelfBinding(CoreExpr value) {
-	    return value instanceof Let && ((Let)value).bindings.isSingle() && ((Let)value).bindings.head()._2().compareTo(Identifier.__SELF) == 0;
+	    return value instanceof Let && ((Let)value).bindings.isSingle() && coreExprOrd.eq(((Let)value).bindings.head()._2(), Identifier.__SELF);
     }
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.objectLiteral(this);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!super.equals(obj))
-			return false;
-		if (!(obj instanceof ObjectLiteral))
-			return false;
-		final ObjectLiteral other = (ObjectLiteral) obj;
-		if (!this.slots.equals(other.slots))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(this == o)
-			return 0;
-		if(o == null)
-			return -1;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final ObjectLiteral other = (ObjectLiteral) o;
-			cmp = Ord.listOrd(Ord.p2Ord(Identifier.ORD, CoreExpr.ORD)).compare(this.slots, other.slots).toInt();
-			if(cmp == 0) cmp = super.compareTo(other);
-		}
-		return cmp;
 	}
 
 	@Override
@@ -223,7 +192,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	private List<CoreExpr> findMethods(Identifier name) {
-	    return slots.filter(s -> name.compareTo(s._1()) == 0).map(P2.__2()).reverse();
+	    return slots.filter(s -> name.eql(s._1())).map(P2.__2()).reverse();
     }
 
 	public ObjectLiteral withSlots(List<P2<Identifier,CoreExpr>> newSlots) {
@@ -236,6 +205,10 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	    return slots;
     }
 
+	public TreeMap<Identifier,CoreExpr> slotMap() {
+		return TreeMap.treeMap(Identifier.ORD, slots);
+	}
+
 	public static P2<Identifier, CoreExpr> slot(String name, CoreExpr value) {
 	    return P.p(new Identifier(name), value);
     }
@@ -247,4 +220,9 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static P2<Identifier, CoreExpr> slot(String name, int value) {
 	    return slot(name, new NumberLiteral(value));
     }
+
+	@Override
+	public String toString() {
+		return "{"+ListUtil.insertCommas(slots.map(P2.__1()))+"}";
+	}
 }

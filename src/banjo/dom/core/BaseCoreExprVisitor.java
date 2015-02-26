@@ -46,7 +46,7 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T badExpr(BadExpr badExpr) {
+	public T badExpr(BadCoreExpr badExpr) {
 		return fallback();
 	}
 

@@ -103,4 +103,14 @@ public class ListUtil {
 		});
 	}
 
+	/**
+	 * Convert each element into a string, using its toString() method, and join the resulting
+	 * strings with a comma.
+	 */
+	public static <T> String insertCommas(Iterable<T> list) {
+		StringBuffer sb = new StringBuffer();
+		insertCommas(sb, list, x -> sb.append(x.toString()));
+		return sb.toString();
+	}
+
 }

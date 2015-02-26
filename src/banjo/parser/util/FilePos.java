@@ -1,7 +1,11 @@
 package banjo.parser.util;
 
+import fj.Ord;
+import fj.Ordering;
+
 
 public final class FilePos {
+	public static final Ord<FilePos> ORD = Ord.ord((a) -> (b) -> Ordering.fromInt(b.offset-a.offset));
 	/** Absolute file position in characters; this is the count of characters coming BEFORE this position */
 	public final int offset;
 	/** Line number in the file.  This is the count of line feeds coming before this line, plus 1 for this line (the first line is 1) */

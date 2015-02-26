@@ -14,7 +14,7 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.EMPTY_LIST);
 
 	public EmptyExpr(List<SourceFileRange> ranges) {
-		super(733512, ranges);
+		super(ranges);
 	}
 	public EmptyExpr(SourceFileRange range) {
 		this(List.single(range));

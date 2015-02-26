@@ -2,9 +2,14 @@ package banjo.dom.source;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
+	public static final Ord<UnaryOp> ORD = Ord.chain(
+			Operator.ORD.comap(x -> x.operator),
+			sourceExprOrd.comap(x -> x.operand)
+	);
 	private final SourceExpr operand;
 
 	public UnaryOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr operand) {

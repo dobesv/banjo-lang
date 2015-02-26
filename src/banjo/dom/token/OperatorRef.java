@@ -8,16 +8,19 @@ import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class OperatorRef extends AbstractAtom implements Atom {
 
 	public static final OperatorRef NONE = null;
 
+	public static final Ord<OperatorRef> ORD = Ord.stringOrd.comap((OperatorRef opRef) -> opRef.op);
+
 	private final String op;
 
 	public OperatorRef(List<SourceFileRange> ranges, String op) {
-		super(op.hashCode(), ranges);
+		super(ranges);
 		this.op = op;
 	}
 
@@ -52,33 +55,6 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
 		return parser.operator(getSourceFileRanges().head().getFileRange(), op);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!(obj instanceof OperatorRef))
-			return false;
-		if (!super.equals(obj))
-			return false;
-		final OperatorRef other = (OperatorRef) obj;
-		if (!this.op.equals(other.op))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(this == o)
-			return 0;
-		if(o == null) return -1;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final OperatorRef other = (OperatorRef) o;
-			if(cmp == 0) cmp = this.op.compareTo(other.op);
-		}
-		return cmp;
 	}
 
 	@Override

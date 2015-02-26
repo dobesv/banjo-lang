@@ -80,7 +80,7 @@ public class FreeVariableGatherer implements CoreExprAlgebra<Set<Identifier>> {
 	@Override
     public Set<Identifier> functionLiteral(List<SourceFileRange> ranges,
     		List<Identifier> args, Set<Identifier> body) {
-	    final Set<Identifier> defs = Set.set(Identifier.ORD, args);
+	    final Set<Identifier> defs = Set.set(Identifier.ORD, args).insert(Identifier.__SELF); // Functions bind their args plus __self (referring to the function itself)
 		Set<Identifier> refs = body;
 		return refs.minus(defs);
     }
@@ -88,6 +88,6 @@ public class FreeVariableGatherer implements CoreExprAlgebra<Set<Identifier>> {
 	@Override
     public Set<Identifier> slotReference(List<SourceFileRange> ranges,
             Set<Identifier> object, Identifier slotName) {
-	    return object;
+	    return object.delete(Identifier.__SELF); // Slot references bind __self
     }
 }

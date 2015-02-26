@@ -3,9 +3,12 @@ package banjo.parser.util;
 import fj.Ord;
 import fj.data.List;
 
-public class SourceFileRange implements Comparable<SourceFileRange> {
+public class SourceFileRange {
 	public static final List<SourceFileRange> EMPTY_LIST = List.nil();
-	public static final Ord<SourceFileRange> ORD = Ord.<SourceFileRange>comparableOrd();
+	public static final Ord<SourceFileRange> ORD = Ord.ord(
+			(a) -> (b) -> a.sourceFile.equals(b.sourceFile) ? FileRange.ORD.compare(a.fileRange, b.fileRange) : Ord.stringOrd.compare(a.sourceFile, b.sourceFile)
+	);
+	public static final Ord<List<SourceFileRange>> LIST_ORD = Ord.listOrd(SourceFileRange.ORD);
 
 	final String sourceFile;
 	final FileRange fileRange;
@@ -19,33 +22,6 @@ public class SourceFileRange implements Comparable<SourceFileRange> {
 	}
 	public FileRange getFileRange() {
 		return this.fileRange;
-	}
-	@Override
-	public int hashCode() {
-		return this.fileRange.hashCode() ^ this.sourceFile.hashCode();
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!(obj instanceof SourceFileRange))
-			return false;
-		final SourceFileRange other = (SourceFileRange) obj;
-		if (!this.fileRange.equals(other.fileRange))
-			return false;
-		if (!this.sourceFile.equals(other.sourceFile))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(SourceFileRange o) {
-		if(o == null) return -1;
-		int cmp = this.sourceFile.compareTo(o.sourceFile);
-		if(cmp == 0) cmp = this.fileRange.compareTo(o.fileRange);
-		return cmp;
 	}
 
 	@Override

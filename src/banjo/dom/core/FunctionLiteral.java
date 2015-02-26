@@ -1,10 +1,9 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
-import banjo.parser.util.ExprOrd;
+import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
@@ -14,11 +13,13 @@ import fj.data.Option;
 
 public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
-	private static final Ord<List<Identifier>> ARGS_ORD = Ord.listOrd(Identifier.ORD);
 	public final List<Identifier> args;
 	public final CoreExpr body;
 
-	public static final Ord<FunctionLiteral> ORD = ExprOrd.<FunctionLiteral>exprOrd();
+
+	private static final Ord<FunctionLiteral> _argsOrd = Identifier.LIST_ORD.comap((FunctionLiteral f) -> f.args);
+	private static final Ord<FunctionLiteral> _bodyOrd = CoreExpr.coreExprOrd.comap((FunctionLiteral f) -> f.body);
+	public static final Ord<FunctionLiteral> functionLiteralOrd = Ord.chain(_argsOrd, _bodyOrd);
 
 	/**
 	 *
@@ -46,9 +47,32 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public String toString() {
-		final StringBuffer sb = new StringBuffer();
-		toSource(sb);
-		return sb.toString();
+		if(isSelector()) {
+			return "." + body.acceptVisitor(new BaseCoreExprVisitor<String>() {
+				@Override
+				public String fallback() {
+					throw new IllegalStateException();
+				}
+
+				@Override
+				public String identifier(Identifier n) {
+				    return "";
+				}
+				@Override
+				public String call(Call n) {
+					return n.target.acceptVisitor(this) + n.argsToString();
+				}
+
+				@Override
+				public String slotReference(SlotReference slotReference) {
+					return slotReference.object.acceptVisitor(this) +
+							slotReference.slotName.toString();
+				}
+			});
+		} else {
+			P2<Option<Identifier>, CoreExpr> selfSplit = checkSelfName();
+			return selfSplit._1().map(x -> x.toString()).orSome("")+"("+ListUtil.insertCommas(args)+") ↦ "+selfSplit._2().toString();
+		}
 	}
 
 	@Override
@@ -63,7 +87,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 				@Override
 				public Void identifier(Identifier n) {
-					assert n.compareTo(args.head()) == 0;
+					assert n.eql(args.head());
 				    return null;
 				}
 				@Override
@@ -84,8 +108,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 			P2<Option<Identifier>, CoreExpr> selfSplit = checkSelfName();
 			selfSplit._1().forEach(x -> x.toSource(sb));
 			sb.append('(');
-			int start = sb.length();
-			args.forEach(a -> { if(sb.length() > start) sb.append(", "); a.toSource(sb); });
+			ListUtil.insertCommas(sb, args, a -> a.toSource(sb, Precedence.COMMA));
 			sb.append(") ↦ ");
 			selfSplit._2().toSource(sb, Operator.FUNCTION.getRightPrecedence());
 		}
@@ -101,25 +124,11 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 		}
 	}
 	private boolean hasSelfName() {
-	    return body instanceof Let && ((Let)body).bindings.isSingle() && ((Let)body).bindings.head()._2().compareTo(Identifier.__SELF) == 0;
+	    return body instanceof Let && ((Let)body).bindings.isSingle() && ((Let)body).bindings.head()._2().eql(Identifier.__SELF);
     }
 
 	public CoreExpr getBody() {
 		return this.body;
-	}
-
-
-
-	@Override
-	public int compareTo(Expr o) {
-		if(o == null) return -1;
-		int cmp = super.compareTo(o);
-		if(cmp == 0) {
-			FunctionLiteral other = (FunctionLiteral) o;
-			if(cmp == 0) cmp = ARGS_ORD.compare(args, other.args).toInt();
-			if(cmp == 0) cmp = this.body.compareTo(other.body);
-		}
-		return cmp;
 	}
 
 	@Override
@@ -147,28 +156,6 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	    return new FunctionLiteral(getSourceFileRanges(), args, body);
     }
 
-	@Override
-    public boolean equals(Object obj) {
-	    if (this == obj)
-		    return true;
-	    if (!super.equals(obj))
-		    return false;
-	    if (!(obj instanceof FunctionLiteral))
-		    return false;
-	    FunctionLiteral other = (FunctionLiteral) obj;
-	    if (args == null) {
-		    if (other.args != null)
-			    return false;
-	    } else if (!args.equals(other.args))
-		    return false;
-	    if (body == null) {
-		    if (other.body != null)
-			    return false;
-	    } else if (!body.equals(other.body))
-		    return false;
-	    return true;
-    }
-
 	/**
 	 * True if this function literal follows the form:
 	 *
@@ -181,11 +168,11 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 			body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
 				@Override
 				public Boolean call(Call n) {
-					return n.target.compareTo(args.head()) == 0 || n.target.acceptVisitor(this);
+					return n.target.eql(args.head()) || n.target.acceptVisitor(this);
 				}
 
 				public Boolean slotReference(SlotReference slotReference) {
-					return slotReference.object.compareTo(args.head()) == 0 || slotReference.object.acceptVisitor(this);
+					return slotReference.object.eql(args.head()) || slotReference.object.acceptVisitor(this);
 				}
 
 				@Override

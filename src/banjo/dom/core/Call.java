@@ -1,6 +1,5 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
@@ -8,12 +7,14 @@ import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
-import fj.Unit;
 import fj.data.List;
 import fj.data.Option;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
-
+	public static final Ord<Call> callOrd = Ord.chain(
+		CoreExpr.coreExprOrd.comap(call -> call.target),
+		CoreExpr.listOfCoreExprOrd.comap(call -> call.args)
+	);
 	public final CoreExpr target;
 	public final List<CoreExpr> args;
 
@@ -64,42 +65,16 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		ListUtil.insertCommas(sb, args, e -> e.toSource(sb, Operator.COMMA.getPrecedence()));
 		sb.append(')');
     }
+	public String argsToString() {
+		return "(" + ListUtil.insertCommas(args) + ")";
+	}
+	public String toString() {
+		return getBinaryOperator().map(op -> target + " " + op.getOp() + " " + args.head().toString()).orSome(target+argsToString());
+	}
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.call(this);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!(obj instanceof Call))
-			return false;
-		if (!super.equals(obj))
-			return false;
-		final Call other = (Call) obj;
-		if (!this.target.equals(other.target))
-			return false;
-		if (!target.equals(other.target))
-			return false;
-		if (!args.equals(other.args))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(o == null) throw new NullPointerException();
-		if(this == o)
-			return 0;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final Call other = (Call) o;
-			if(cmp == 0) cmp = this.target.compareTo(other.target);
-			if(cmp == 0) cmp = Ord.listOrd(CoreExpr.ORD).compare(args, other.args).toInt();
-		}
-		return cmp;
 	}
 
 	@Override

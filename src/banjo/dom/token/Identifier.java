@@ -2,21 +2,20 @@ package banjo.dom.token;
 
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
-import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.SourceCodeScanner;
-import banjo.parser.util.ExprOrd;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
 
 public class Identifier extends AbstractAtom implements Atom, Token {
-	public static final Ord<Identifier> ORD = ExprOrd.exprOrd();
+	public static final Ord<Identifier> ORD = Ord.stringOrd.comap(x -> x.id);
+	public static final Ord<List<Identifier>> LIST_ORD = Ord.listOrd(ORD);
+
 	public static final Identifier ZERO = new Identifier("0");
 	public static final Identifier ONE = new Identifier("1");
 	public static final Identifier NAN = new Identifier("NaN");
@@ -30,11 +29,12 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier UNDERSCORE = new Identifier("_");
 	public static final Identifier __SELF = new Identifier("__self");
 	public static final Identifier __TMP = new Identifier("__tmp");
+	public static final Identifier USAGE_EXAMPLES = new Identifier("usage examples");
 
 	public final String id;
 
 	public Identifier(List<SourceFileRange> ranges, String id) {
-		super(id.hashCode() + ranges.hashCode(), ranges);
+		super(ranges);
 		this.id = id;
 	}
 
@@ -85,33 +85,6 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.identifier(this);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if(obj == null)
-			return false;
-		if (!super.equals(obj))
-			return false;
-		final Identifier other = (Identifier) obj;
-		if (other == null || !this.id.equals(other.id))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(o == null) return -1;
-		if(this == o)
-			return 0;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final Identifier other = (Identifier) o;
-			if(cmp == 0) cmp = this.id.compareTo(other.id);
-		}
-		return cmp;
 	}
 
 	@Override

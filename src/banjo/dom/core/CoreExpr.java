@@ -1,36 +1,110 @@
 package banjo.dom.core;
 
 import banjo.desugar.SourceExprDesugarer;
+import banjo.dom.AbstractBadExpr;
 import banjo.dom.Expr;
 import banjo.dom.source.SourceExpr;
-import fj.F;
+import banjo.dom.token.BadIdentifier;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
+import fj.F2Functions;
 import fj.Ord;
 import fj.Ordering;
+import fj.data.List;
 
 /**
  * Core expressions are the ones that may be emitted by the desugaring process.
  */
 public interface CoreExpr extends Expr {
+
+
+	public static Ordering _cmp(CoreExpr a1, CoreExpr a2) {
+		return a1.acceptVisitor(new CoreExprVisitor<Ordering>() {
+			@Override
+			public Ordering badExpr(BadCoreExpr badExpr) {
+			    return AbstractBadExpr.ORD.compare(badExpr, (BadCoreExpr)a2);
+			}
+			@Override
+			public Ordering badIdentifier(BadIdentifier badIdentifier) {
+			    return BadIdentifier.ORD.compare(badIdentifier, (BadIdentifier)a2);
+			}
+			@Override
+			public Ordering call(Call call) {
+			    return Call.callOrd.compare(call,  (Call)a2);
+			}
+			@Override
+			public Ordering extend(Extend extend) {
+			    return Extend.extendOrd.compare(extend, (Extend)a2);
+			}
+
+			@Override
+			public Ordering functionLiteral(FunctionLiteral f) {
+			    return FunctionLiteral.functionLiteralOrd.compare(f, (FunctionLiteral)a2);
+			}
+
+			@Override
+			public Ordering identifier(Identifier identifier) {
+			    return Identifier.ORD.compare(identifier, (Identifier)a2);
+			}
+
+			@Override
+			public Ordering inspect(Inspect inspect) {
+			    return Inspect.ORD.compare(inspect, (Inspect)a2);
+			}
+
+			@Override
+			public Ordering let(Let let) {
+			    return Let.ORD.compare(let, (Let)a2);
+			}
+
+			@Override
+			public Ordering listLiteral(ListLiteral listLiteral) {
+			    return ListLiteral.ORD.compare(listLiteral, (ListLiteral)a2);
+			}
+
+			@Override
+			public Ordering numberLiteral(NumberLiteral numberLiteral) {
+			    return NumberLiteral.ORD.compare(numberLiteral, (NumberLiteral)a2);
+			}
+
+			@Override
+			public Ordering objectLiteral(ObjectLiteral objectLiteral) {
+			    return ObjectLiteral.ORD.compare(objectLiteral, (ObjectLiteral)a2);
+			}
+
+			@Override
+			public Ordering operator(OperatorRef operatorRef) {
+			    return OperatorRef.ORD.compare(operatorRef, (OperatorRef)a2);
+			}
+
+			@Override
+			public Ordering slotReference(SlotReference slotReference) {
+			    return SlotReference.ORD.compare(slotReference, (SlotReference)a2);
+			}
+			@Override
+            public Ordering stringLiteral(StringLiteral stringLiteral) {
+                return StringLiteral.ORD.compare(stringLiteral, (StringLiteral)a2);
+            }
+		});
+	}
+
+	public static final Ord<CoreExpr> _coreExprsOfSameClassOrd = Ord.ord(F2Functions.curry(CoreExpr::_cmp));
+
+
 	/**
-	 * We are using the visitor pattern, not instanceof, to check the type of an expression.
+	 * Visitor pattern
 	 */
 	<T> T acceptVisitor(CoreExprVisitor<T> visitor);
 
+	/**
+	 * Object algebra pattern (kind of a bottom-up visitor pattern)
+	 */
 	<T> T acceptVisitor(CoreExprAlgebra<T> visitor);
 
-	public static final Ord<CoreExpr> ORD = Ord.ord(new F<CoreExpr, F<CoreExpr, Ordering>>() {
-		@Override
-		public F<CoreExpr, Ordering> f(final CoreExpr a1) {
-			return new F<CoreExpr, Ordering>() {
-				@Override
-				public Ordering f(final CoreExpr a2) {
-					if(a1 == null || a2 == null) throw new NullPointerException();
-					final int x = a1.compareTo(a2);
-					return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-				}
-			};
-		}
-	});
+	public static final Ord<CoreExpr> coreExprOrd = Ord.chain(CLASS_NAME_ORD, _coreExprsOfSameClassOrd);
+	public static final Ord<List<CoreExpr>> listOfCoreExprOrd = Ord.listOrd(CoreExpr.coreExprOrd);
 
 	/**
 	 * Parse a string to a CoreExpr
@@ -38,4 +112,12 @@ public interface CoreExpr extends Expr {
 	public static CoreExpr fromString(String src) {
 		return new SourceExprDesugarer().desugar(SourceExpr.fromString(src)).getValue();
 	}
+
+	/**
+	 * True if this CoreExpr is the same as the other, ignoring source file location.
+	 */
+	default boolean eql(CoreExpr other) {
+		return coreExprOrd.eq(this, other);
+	}
+
 }

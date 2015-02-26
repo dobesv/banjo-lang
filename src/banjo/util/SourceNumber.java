@@ -1,7 +1,7 @@
 package banjo.util;
 
 
-public class SourceNumber extends Number implements Comparable<SourceNumber> {
+public class SourceNumber extends Number {
 	private static final long serialVersionUID = 707462831817160057L;
 
 	private final Number value;
@@ -46,20 +46,5 @@ public class SourceNumber extends Number implements Comparable<SourceNumber> {
 
 	public String getText() {
 		return text;
-	}
-
-	@Override
-	public int compareTo(SourceNumber o) {
-		if(o == null) return -1;
-		return Calculator.INSTANCE.compare(value, o.value).toInt();
-	}
-
-	public boolean equals(Object o) {
-		if(o == null) return false;
-		if(this == o) return true;
-		if(o instanceof SourceNumber) {
-			return compareTo((SourceNumber)o) == 0;
-		}
-		return false;
 	}
 }

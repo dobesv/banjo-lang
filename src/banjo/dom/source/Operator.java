@@ -2,6 +2,7 @@ package banjo.dom.source;
 
 import static banjo.dom.Consts.CODEPOINT_NONE;
 import static banjo.parser.util.Check.nonNull;
+import fj.Ord;
 import banjo.dom.ParenType;
 import banjo.dom.token.Identifier;
 
@@ -19,12 +20,12 @@ public enum Operator {
 	TABLE_HEADER("#::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	TABLE_ROW(":::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
-	BRACKETS(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
+	LIST_LITERAL(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	SELECTOR(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
+	SELECTOR(".", OperatorType.BUILTIN, Precedence.SUFFIX, Position.PREFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
@@ -82,6 +83,8 @@ public enum Operator {
 	// Special case operators
 	INVALID("~~~INVALID~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM),
 	MISSING("~~~MISSING~~~", OperatorType.BUILTIN, Position.NA, Precedence.ATOM); // Newline and indent
+
+	public static final Ord<Operator> ORD = Ord.<Operator>comparableOrd();
 
 	public static enum Associativity { LEFT, RIGHT, NA; }
 	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
@@ -172,7 +175,7 @@ public enum Operator {
 
 	public static Operator fromMethodName(String methodName, boolean infix) {
 		for(final Operator operator : values()) {
-			if(infix == operator.isInfix() && methodName.equals(operator.methodName)) {
+			if(infix == operator.isInfix() && operator.methodName != null && methodName.equals(operator.methodName)) {
 				return operator;
 			}
 		}
@@ -181,7 +184,7 @@ public enum Operator {
 
 	public static Operator fromMethodName(Identifier methodName, boolean infix) {
 		for(final Operator operator : values()) {
-			if(infix == operator.isInfix() && methodName.compareTo(operator.methodNameKey) == 0) {
+			if(infix == operator.isInfix() && operator.methodNameKey != null && methodName.eql(operator.methodNameKey)) {
 				return operator;
 			}
 		}

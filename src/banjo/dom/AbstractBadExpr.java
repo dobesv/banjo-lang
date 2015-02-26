@@ -6,9 +6,16 @@ import banjo.dom.core.ExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
+import fj.Ordering;
 import fj.data.List;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
+	public static final Ord<Object[]> ARGS_ORD = Ord.ord((a) -> (b) -> Ordering.fromInt(AbstractBadExpr.compareArgs(a, b)));
+	public static final Ord<AbstractBadExpr> ORD = Ord.chain(
+		Ord.stringOrd.comap((AbstractBadExpr x) -> x.messageTemplate),
+		ARGS_ORD.comap((AbstractBadExpr x) -> x.args)
+	);
 
 	private final String messageTemplate;
 	private final Object[] args;
@@ -18,7 +25,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	}
 
 	public AbstractBadExpr(List<SourceFileRange> ranges, String message, Object ... args) {
-		super(message.hashCode(), ranges);
+		super(ranges);
 		this.messageTemplate = message;
 		this.args = args;
 	}
@@ -52,52 +59,19 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
 	}
 
-	public <T> T acceptVisitor(ExprVisitor<T> visitor) {
-		return visitor.badExpr(this);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null || !super.equals(obj))
-			return false;
-		if (!obj.getClass().equals(this.getClass()))
-			return false;
-		if(obj.hashCode() != this.hashCode())
-			return false;
-		final AbstractBadExpr other = (AbstractBadExpr) obj;
-		if (!this.messageTemplate.equals(other.messageTemplate))
-			return false;
-		if(!Arrays.equals(this.args, other.args))
-			return false;
-		return true;
-	}
-
 	@SuppressWarnings("unchecked")
-	@Override
-	public int compareTo(Expr o) {
-		if(o == null) throw new NullPointerException();
-		if(this == o)
-			return 0;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final AbstractBadExpr other = (AbstractBadExpr) o;
-			if(cmp == 0) cmp = this.messageTemplate.compareTo(other.messageTemplate);
-			if(cmp == 0) cmp = Integer.compare(this.args.length, other.args.length);
-			if(cmp == 0) {
-				for(int i=0; i < this.args.length; i++) {
-					cmp = this.args[i].getClass().getName().compareTo(other.args[i].getClass().getName());
-					if(cmp == 0) {
-						if(this.args[i] instanceof Comparable)
-							cmp = ((Comparable<Object>)this.args[i]).compareTo(other.args[i]);
-						else
-							cmp = String.valueOf(this.args[i]).compareTo(String.valueOf(other.args[i]));
-					}
-				}
-			}
-		}
-		return cmp;
-	}
+    public static int compareArgs(final Object[] args1, Object[] args2) {
+	    for(int i=0; i < args1.length; i++) {
+			int cmp = args1[i].getClass().getName().compareTo(args2[i].getClass().getName());
+	    	if(cmp != 0)
+	    		return cmp;
+
+    		if(args1[i] instanceof Comparable)
+    			cmp = ((Comparable<Object>)args1[i]).compareTo(args2[i]);
+    		else
+    			cmp = String.valueOf(args1[i]).compareTo(String.valueOf(args2[i]));
+	    }
+	    return 0;
+    }
 
 }

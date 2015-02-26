@@ -10,9 +10,14 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
+	public static final Ord<BadIdentifier> ORD = Ord.chain(
+				Ord.stringOrd.comap((BadIdentifier x) -> x.message),
+				Ord.stringOrd.comap((BadIdentifier x) -> x.originalSource)
+	);
 	public final String message;
 	public final String originalSource;
 
@@ -43,30 +48,6 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	@Override
 	public Precedence getPrecedence() {
 		return Precedence.ATOM;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(o == null) return -1;
-		if(this == o)
-			return 0;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final BadIdentifier other = (BadIdentifier) o;
-			if(cmp == 0) cmp = this.getMessage().compareTo(other.getMessage());
-			if(cmp == 0) cmp = this.originalSource.compareTo(other.originalSource);
-			if(cmp == 0) cmp = super.compareTo(o);
-		}
-		return cmp;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if(obj == this) return true;
-		if(obj == null || !(obj instanceof BadIdentifier)) return false;
-		if(!super.equals(obj)) return false;
-		final BadIdentifier x = (BadIdentifier) obj;
-		return x.message.equals(this.message) && x.originalSource.equals(this.originalSource);
 	}
 
 	@Override

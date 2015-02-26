@@ -1,5 +1,6 @@
 package banjo.dom.core;
 
+import fj.Ord;
 import fj.P;
 import fj.Unit;
 import fj.data.List;
@@ -10,6 +11,10 @@ import banjo.dom.token.Identifier;
 import banjo.parser.util.SourceFileRange;
 
 public class SlotReference extends AbstractCoreExpr implements CoreExpr {
+	public static final Ord<SlotReference> ORD = Ord.chain(
+			CoreExpr.coreExprOrd.comap((SlotReference x) -> x.object),
+			Identifier.ORD.comap((SlotReference x) -> x.slotName)
+	);
 	public final CoreExpr object;
 	public final Identifier slotName;
 
@@ -58,31 +63,18 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public Precedence getPrecedence() {
-		return Operator.PROJECTION.getPrecedence();
+	public String toString() {
+		return getUnaryOperator().map(op ->
+			op.isParen() ? op.getParenType().getStartChar()+object.toString()+op.getParenType().getEndChar() :
+			op.isPrefix() ? op.getOp() + object.toString() :
+			object.toString() + op.getOp()
+		).orSome(P.lazy(u -> object.toString() + Operator.PROJECTION.getOp()+slotName.toString()));
 	}
 
 	@Override
-    public boolean equals(Object obj) {
-	    if (this == obj)
-		    return true;
-	    if (!super.equals(obj))
-		    return false;
-	    if (!(obj instanceof SlotReference))
-		    return false;
-	    SlotReference other = (SlotReference) obj;
-	    if (object == null) {
-		    if (other.object != null)
-			    return false;
-	    } else if (!object.equals(other.object))
-		    return false;
-	    if (slotName == null) {
-		    if (other.slotName != null)
-			    return false;
-	    } else if (!slotName.equals(other.slotName))
-		    return false;
-	    return true;
-    }
+	public Precedence getPrecedence() {
+		return Operator.PROJECTION.getPrecedence();
+	}
 
 	public Option<Operator> getBinaryOperator() {
 	    return Option.fromNull(Operator.fromMethodName(slotName, true));

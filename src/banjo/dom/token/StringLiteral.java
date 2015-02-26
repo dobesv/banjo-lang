@@ -12,13 +12,15 @@ import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class StringLiteral extends AbstractAtom implements Atom {
+	public static final Ord<StringLiteral> ORD = Ord.stringOrd.comap((StringLiteral x) -> x.string);
 	private final String string;
 
 	public StringLiteral(List<SourceFileRange> ranges, String string) {
-		super(string.hashCode(), ranges);
+		super(ranges);
 		this.string = string;
 	}
 
@@ -80,35 +82,6 @@ public class StringLiteral extends AbstractAtom implements Atom {
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
 		return parser.stringLiteral(getSourceFileRanges().head().getFileRange(), string);
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!super.equals(obj))
-			return false;
-		if (!(obj instanceof StringLiteral))
-			return false;
-		final StringLiteral other = (StringLiteral) obj;
-		if (!this.string.equals(other.string))
-			return false;
-		return true;
-	}
-
-	@Override
-	public int compareTo(Expr o) {
-		if(this == o)
-			return 0;
-		if(o == null) return -1;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final StringLiteral other = (StringLiteral) o;
-			if(cmp == 0) cmp = this.string.compareTo(other.string);
-		}
-		return cmp;
 	}
 
 	@Override

@@ -22,7 +22,7 @@ public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return super.acceptVisitor(visitor);
+		return visitor.badExpr(this);
 	}
 
 	@Override

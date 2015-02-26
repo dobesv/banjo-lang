@@ -18,10 +18,15 @@ import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
 import banjo.util.SourceNumber;
+import fj.Ord;
 import fj.data.List;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom {
+	public static final Ord<NumberLiteral> ORD = Ord.chain(
+			Ord.stringOrd.comap((NumberLiteral n) -> n.number.toString()),
+			Ord.stringOrd.comap((NumberLiteral n) -> n.suffix)
+	);
 	private final Number number;
 	private final String suffix;
 
@@ -29,7 +34,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		this(List.single(sfr), number, suffix);
 	}
 	public NumberLiteral(List<SourceFileRange> ranges, Number number, String suffix) {
-		super(number.hashCode() ^ suffix.hashCode(), ranges);
+		super(ranges);
 		this.number = number;
 		this.suffix = suffix;
 	}
@@ -81,27 +86,6 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		})).booleanValue();
 	}
 
-	@Override
-	public int compareTo(Expr o) {
-		if(this == o)
-			return 0;
-		if(o == null) return -1;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final NumberLiteral other = (NumberLiteral) o;
-			if(cmp == 0) cmp = number.getClass().getName().compareTo(other.number.getClass().getName());
-			if(cmp == 0) cmp = suffix.compareTo(other.suffix);
-			if(cmp == 0) {
-				if(number instanceof SourceNumber) return ((SourceNumber)number).compareTo((SourceNumber)other.number);
-				if(number instanceof BigDecimal) return ((BigDecimal)number).compareTo((BigDecimal)other.number);
-				if(number instanceof BigInteger) return ((BigInteger)number).compareTo((BigInteger)other.number);
-				if(number instanceof Long) return ((Long)number).compareTo((Long)other.number);
-				if(number instanceof Integer) return ((Integer)number).compareTo((Integer)other.number);
-			}
-		}
-		return cmp;
-	}
-
 	static Number negateNumber(Number num) {
 		if(num instanceof BigDecimal) return nonNull(((BigDecimal)num).negate());
 		if(num instanceof BigInteger) return nonNull(((BigInteger)num).negate());
@@ -134,23 +118,6 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		return suffix;
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (!super.equals(obj))
-			return false;
-		if (!(obj instanceof NumberLiteral))
-			return false;
-		NumberLiteral other = (NumberLiteral) obj;
-		if (!number.equals(other.number))
-			return false;
-		if (!suffix.equals(other.suffix))
-			return false;
-		return true;
-	}
 	public CoreExpr toConstructionExpression() {
 		CoreExpr ctor;
 		Number n = getNumber();
@@ -174,8 +141,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 			// 2 = 1 + 1
 			boolean odd = bi.testBit(0);
 			NumberLiteral half = new NumberLiteral(bi.shiftRight(1));
-			ctor = Call.binaryOp(half, Operator.PLUS, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			ctor = Call.binaryOp(half, Operator.ADD, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
 			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Integer) {
 			int i = n.intValue();
@@ -189,8 +156,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 			if(negative) i = -i;
 			boolean odd = (i&1) == 1;
 			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = Call.binaryOp(half, Operator.PLUS, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			ctor = Call.binaryOp(half, Operator.ADD, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
 			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Long) {
 			long i = n.longValue();
@@ -204,8 +171,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 			if(negative) i = -i;
 			boolean odd = (i&1) == 1;
 			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = Call.binaryOp(half, Operator.PLUS, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.PLUS, new Identifier("1"));
+			ctor = Call.binaryOp(half, Operator.ADD, half);
+			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
 			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
 		} else if(n instanceof Double) {
 			double d = n.doubleValue();

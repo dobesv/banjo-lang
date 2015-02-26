@@ -12,6 +12,7 @@ import org.junit.Test;
 import fj.P2;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunctionLiteral;
+import banjo.dom.core.Let;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.BadSourceExpr;
 import banjo.dom.token.Identifier;
@@ -81,5 +82,19 @@ public class TestObjectLiteralParser {
 
 	@Test public void tooManyCloseCurlies() {
 		test("{ a = { b = c } } }", 1, BadSourceExpr.class, ObjectLiteral.class, "{a = {b = c}}");
+	}
+
+	@Test public void methodSelfName() {
+		ObjectLiteral obj = (ObjectLiteral) CoreExpr.fromString("{x.y(z) = z}");
+		assertEquals(1, obj.slots.length());
+		assertTrue(obj.slots.head()._1().eql(new Identifier("y")));
+		Let let = (Let) obj.slots.head()._2();
+		assertEquals(1, let.bindings.length());
+		assertTrue(let.bindings.head()._1().eql(new Identifier("x")));
+		assertTrue(let.bindings.head()._2().eql(Identifier.__SELF));
+		FunctionLiteral func = (FunctionLiteral) let.body;
+		assertTrue(func.body.eql(new Identifier("z")));
+		assertEquals(1, func.args.length());
+		assertTrue(func.args.head().eql(new Identifier("z")));
 	}
 }

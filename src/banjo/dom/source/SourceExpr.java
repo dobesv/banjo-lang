@@ -2,12 +2,15 @@ package banjo.dom.source;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.Comparator;
 
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
+import banjo.dom.token.BadIdentifier;
+import banjo.dom.token.Identifier;
+import banjo.dom.token.NumberLiteral;
+import banjo.dom.token.OperatorRef;
+import banjo.dom.token.StringLiteral;
 import banjo.parser.SourceCodeParser;
-import fj.F;
 import fj.Ord;
 import fj.Ordering;
 import fj.data.List;
@@ -20,26 +23,57 @@ public interface SourceExpr extends Expr, SourceNode {
 	<T> T acceptVisitor(SourceExprVisitor<T> visitor);
 	<T> T acceptVisitor(SourceExprAlgebra<T> visitor);
 
-	public static final Ord<SourceExpr> ORD = Ord.ord(new F<SourceExpr, F<SourceExpr, Ordering>>() {
-		@Override
-		public F<SourceExpr, Ordering> f(final SourceExpr a1) {
-			return new F<SourceExpr, Ordering>() {
-				
-				@Override
-				public Ordering f(final SourceExpr a2) {
-					final int x = a1 == a2 ? 0 : a1 == null ? 1 : a2 == null ? -1 : a1.compareTo(a2);
-					return x < 0 ? Ordering.LT : x == 0 ? Ordering.EQ : Ordering.GT;
-				}
-			};
-		}
-	});
+	public static final Ord<SourceExpr> _sourceExprsOfSameClassOrd = Ord.ord((a) -> (b) ->
+		a.acceptVisitor(new SourceExprVisitor<Ordering>() {
 
-	public static final Comparator<SourceExpr> COMPARATOR = new Comparator<SourceExpr>() {
-		@Override
-		public int compare(SourceExpr o1, SourceExpr o2) {
-			return o1==o2?0:o1==null?1:o2==null?-1:o1.compareTo(o2);
-		}
-	};
+			@Override
+            public Ordering stringLiteral(StringLiteral stringLiteral) {
+	            return StringLiteral.ORD.compare(stringLiteral, (StringLiteral)b);
+            }
+
+			@Override
+            public Ordering numberLiteral(NumberLiteral numberLiteral) {
+	            return NumberLiteral.ORD.compare(numberLiteral, (NumberLiteral)b);
+            }
+
+			@Override
+            public Ordering identifier(Identifier identifier) {
+	            return Identifier.ORD.compare(identifier, (Identifier)b);
+            }
+
+			@Override
+            public Ordering operator(OperatorRef operatorRef) {
+	            return OperatorRef.ORD.compare(operatorRef, (OperatorRef)b);
+            }
+
+			@Override
+            public Ordering binaryOp(BinaryOp binaryOp) {
+	            return BinaryOp.ORD.compare(binaryOp, (BinaryOp)b);
+            }
+
+			@Override
+            public Ordering unaryOp(UnaryOp unaryOp) {
+	            return UnaryOp.ORD.compare(unaryOp, (UnaryOp)b);
+            }
+
+			@Override
+            public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+	            return BadSourceExpr.ORD.compare(badSourceExpr, (BadSourceExpr)b);
+            }
+
+			@Override
+            public Ordering emptyExpr(EmptyExpr emptyExpr) {
+	            return Ordering.EQ;
+            }
+
+			@Override
+            public Ordering badIdentifier(BadIdentifier badIdentifier) {
+	            return BadIdentifier.ORD.compare(badIdentifier, (BadIdentifier)b);
+            }
+
+		})
+	);
+	public static final Ord<SourceExpr> sourceExprOrd = Ord.chain(CLASS_NAME_ORD, _sourceExprsOfSameClassOrd);
 
 	String toFullyParenthesizedSource();
 

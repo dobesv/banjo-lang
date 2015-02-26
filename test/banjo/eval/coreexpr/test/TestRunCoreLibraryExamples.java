@@ -106,7 +106,7 @@ public class TestRunCoreLibraryExamples {
 			}
 
 			public List<CoreExpr> binding(P2<Identifier,CoreExpr> binding) {
-				if(binding._1().compareTo(EXAMPLES_KEY) == 0 && binding._2() instanceof ListLiteral)
+				if(binding._1().eql(EXAMPLES_KEY) && binding._2() instanceof ListLiteral)
 					return ((ListLiteral)binding._2()).getElements();
 				return binding._2().acceptVisitor(this);
 			}

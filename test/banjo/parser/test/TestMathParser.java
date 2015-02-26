@@ -51,6 +51,7 @@ public class TestMathParser {
 
 	@Test public void parenMultiline1() { test("{\n  x = (\n    doc = \"bla\"\n  ) => bloo(\n    1, 2, 3\n  )\n}", "{x = ((doc = \"bla\") => bloo(1, 2, 3))}"); }
 
+	@Test public void negateCallResult() { test("-abs(x)", "-abs(x)"); }
 
 	public void unaries(String src) {
 		test(src, "+-~1");

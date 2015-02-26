@@ -4,9 +4,14 @@ import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
+	protected static final Ord<Extend> extendOrd = Ord.chain(
+			CoreExpr.coreExprOrd.comap((e) -> e.base),
+			CoreExpr.coreExprOrd.comap((e) -> e.extension)
+	);
 	private final CoreExpr base;
 	private final CoreExpr extension;
 
@@ -37,23 +42,13 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public Precedence getPrecedence() {
-		return Operator.EXTEND.getPrecedence();
+	public String toString() {
+		return base.toString() + " " + Operator.EXTEND.getOp() + " " + extension.toString();
 	}
 
 	@Override
-	public int compareTo(Expr o) {
-		if(this == o)
-			return 0;
-		if(o == null) return -1;
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp == 0) {
-			final Extend other = (Extend) o;
-			if(cmp == 0) cmp = this.base.compareTo(other.base);
-			if(cmp == 0) cmp = this.extension.compareTo(other.extension);
-			if(cmp == 0) cmp = super.compareTo(o);
-		}
-		return cmp;
+	public Precedence getPrecedence() {
+		return Operator.EXTEND.getPrecedence();
 	}
 
 	@Override
@@ -70,23 +65,6 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	public CoreExpr getExtension() {
 		return this.extension;
 	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (!(obj instanceof Extend))
-			return false;
-		if (!super.equals(obj))
-			return false;
-		final Extend other = (Extend) obj;
-		if (!this.base.equals(other.base))
-			return false;
-		if (!this.extension.equals(other.extension))
-			return false;
-		return true;
-	}
-
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {

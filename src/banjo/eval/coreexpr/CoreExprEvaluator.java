@@ -23,6 +23,7 @@ import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import banjo.eval.ProjectLoader;
 import banjo.parser.util.SourceFileRange;
+import fj.F;
 import fj.F0;
 import fj.P;
 import fj.P2;
@@ -42,7 +43,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	public static final TreeMap<Identifier, CoreExpr> EMPTY_BINDINGS = TreeMap.empty(Identifier.ORD);
 
 	// Cache.  The cache keys and values must not have free variables!
-	private TreeMap<CoreExpr,CoreExpr> cache = TreeMap.empty(CoreExpr.ORD);
+	private TreeMap<CoreExpr,CoreExpr> cache = TreeMap.empty(CoreExpr.coreExprOrd);
 
 	CoreExprEvaluator(CoreExprEvaluator parent,
 			TreeMap<Identifier, CoreExpr> bindings) {
@@ -72,7 +73,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	}
 
 	@Override
-	public CoreExpr badExpr(BadExpr badExpr) {
+	public CoreExpr badExpr(BadCoreExpr badExpr) {
 		return (BadCoreExpr) badExpr;
 	}
 
@@ -110,7 +111,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	}
 	public CoreExpr useCache(CoreExpr e, F0<CoreExpr> gen) {
 		CoreExpr cacheKey = bind(e);
-		return cache.get(cacheKey).orSome(P.lazy(gen));
+		return cache.get(cacheKey).orSome(P.lazy(u -> updateCache(cacheKey, gen.f())));
 	}
 
 	@Override
@@ -120,14 +121,14 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 
 	private CoreExpr call(CoreExpr targetExpr, List<CoreExpr> args, List<SourceFileRange> sourceFileRanges) throws Error {
 		// Force the target to an irreducible form
-		CoreExpr target = targetExpr.acceptVisitor(this);
-		if(isFailure(target))
-			return target;
+		CoreExpr target = force(targetExpr);
 
 
 		FunctionLiteral func = getCallable(targetExpr).toNull();
 
 		if (func == null) {
+			if(isFailure(target))
+				return target;
 			return failure("target is not a function",
 					new ObjectLiteral(List.list(
 							ObjectLiteral.slot("target", targetExpr),
@@ -140,9 +141,9 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 		List<CoreExpr> matchedArgs = args.append(func.args.drop(args.length()).map(name -> failure("missing argument", name.id))).take(func.args.length());
 		List<P2<Identifier, CoreExpr>> newBindings =
 				func.args.zip(matchedArgs).append(bindings.toStream().toList())
-				.cons(P.p(Identifier.__SELF, target)); // Functions that don't already have __self bound to an object will get themselves as __self
+				.cons(P.p(Identifier.__SELF, target)); // Functions get themselves as __self in a call, slots get the target object as __self; they must alias __self pronto
 
-		return new Let(newBindings, func.body);
+		return bind(func.body, newBindings);
     }
 
 	private Option<FunctionLiteral> getCallable(CoreExpr target) {
@@ -198,7 +199,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	    	}
 
 			@Override
-            public Option<FunctionLiteral> badExpr(BadExpr badExpr) {
+            public Option<FunctionLiteral> badExpr(BadCoreExpr badExpr) {
 	    	    return Option.none();
             }
 
@@ -226,11 +227,11 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 		});
     }
 
-	private Option<CoreExpr> getSlot(CoreExpr object, Identifier slotName) {
+	private Option<CoreExpr> getSlot(CoreExpr object, Identifier slotName, F<CoreExpr,CoreExpr> f) {
 		CoreExprEvaluator evalVisitor = this;
 		return object.acceptVisitor(new CoreExprVisitor<Option<CoreExpr>>() {
 			@Override
-			public Option<CoreExpr> badExpr(BadExpr badExpr) {
+			public Option<CoreExpr> badExpr(BadCoreExpr badExpr) {
 			    return Option.some((BadCoreExpr)badExpr);
 			}
 
@@ -240,7 +241,11 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 			}
 
 			private Option<CoreExpr> reducible(CoreExpr n) {
-	            return n.acceptVisitor(evalVisitor).acceptVisitor(this);
+	            final CoreExpr e = n.acceptVisitor(evalVisitor);
+	            if(e.eql(n) && !isFailure(e)) {
+	            	throw new Error("Evaluation was a no-op ? " + n.acceptVisitor(evalVisitor));
+	            }
+				return e.acceptVisitor(this);
             }
 
 			@Override
@@ -295,7 +300,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 
 			@Override
             public Option<CoreExpr> objectLiteral(ObjectLiteral objectLiteral) {
-				return objectLiteral.findMethod(slotName);
+				return objectLiteral.findMethod(slotName).map(f);
             }
 
 			@Override
@@ -329,9 +334,18 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
     }
 
 	private CoreExpr lookup(Identifier id) {
-	    return this.bindings.get(id)
-				.orElse(P.lazy(u -> Option.fromNull(parent).map(p -> p.identifier(id))))
-	    		.orSome(P.lazy(u -> failure("unbound identifier", id.toString())));
+	    return getBinding(id)
+	    		.orSome(P.lazy(u -> unboundIdentifier(id)));
+    }
+
+	protected CoreExpr unboundIdentifier(Identifier id) {
+	    return failure("unbound identifier", id.toString());
+    }
+
+	protected Option<CoreExpr> getBinding(Identifier id) {
+		final Option<CoreExpr> binding = this.bindings.get(id);
+		if(parent != null) return binding.orElse(P.lazy(u -> parent.getBinding(id)));
+		else return binding;
     }
 
 	@Override
@@ -364,23 +378,39 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	 * If the let would be empty, this returns the original expression as-is.
 	 */
 	public CoreExpr bind(CoreExpr e) {
+		if(e instanceof Identifier) {
+			return e.acceptVisitor(this);
+		}
 		Set<Identifier> vars = FreeVariableGatherer.freeVars(e);
 		return bind(e, vars);
 	}
 
 	private CoreExpr bind(CoreExpr e, Set<Identifier> vars) {
-		if(parent != null)
-			e = parent.bind(e, vars);
 	    final Stream<Option<P2<Identifier,CoreExpr>>> optBindings = vars
 				.toStream()
-				.map(k -> this.bindings.get(k).map(v -> P.p(k, v)));
+				.map(this::getBindingPair);
 		final List<P2<Identifier,CoreExpr>> newBindings = optBindings
 				.filter(Option.isSome_())
 				.map(o -> o.some())
 				.toList();
-		if(newBindings.isEmpty())
+		return bind(e, newBindings);
+    }
+
+	protected CoreExpr bind(CoreExpr e, final List<P2<Identifier, CoreExpr>> newBindings) {
+	    if(newBindings.isEmpty())
 			return e;
+		if(e instanceof Let) {
+			return ((Let)e).addBindings(newBindings);
+		}
 		return new Let(newBindings, e);
+    }
+
+	protected CoreExpr bind(CoreExpr e, Identifier name, CoreExpr value) {
+		return bind(e, List.single(P.p(name, value)));
+	}
+
+	protected Option<P2<Identifier, CoreExpr>> getBindingPair(Identifier k) {
+	    return getBinding(k).map(v -> P.p(k, v));
     }
 
 	/**
@@ -404,13 +434,14 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	@SuppressWarnings("unchecked")
     @Override
 	public CoreExpr slotReference(final SlotReference ref) {
+		CoreExpr object = force(ref.object);
 		return useCache(ref,
-				() -> getSlot(ref.object, ref.slotName)
-				.map(slotValue -> (CoreExpr)new Let(ref.getSourceFileRanges(), List.single(P.p(Identifier.__SELF, bind(ref.object))), slotValue))
-				.orSome(P.lazy(u -> failure("no such slot", new ObjectLiteral(List.<P2<Identifier,CoreExpr>>list(
+				() -> getSlot(object, ref.slotName, slotValue -> bind(bind(slotValue), Identifier.__SELF, bind(object)))
+				      .orSome(P.lazy(u -> failure("no such slot", new ObjectLiteral(List.<P2<Identifier,CoreExpr>>list(
 						ObjectLiteral.slot("slot name", ref.slotName.toString()),
-						ObjectLiteral.slot("object", ref.object)
-				))))));
+						ObjectLiteral.slot("object", object)
+				      )))))
+		);
 	}
 
 	@Override
@@ -424,11 +455,11 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 
 	@Override
     public CoreExpr let(Let let) {
-		return let.body.acceptVisitor(new CoreExprEvaluator(this, EMPTY_BINDINGS.union(let.bindings)));
+		return let.body.acceptVisitor(new CoreExprEvaluator(this, EMPTY_BINDINGS.union(let.bindings.map(P2.map2_(this::bind)))));
     }
 
 	public boolean isFailure(CoreExpr target) {
-		return getSlot(target, FAILURE_PROPERTY_ID).isSome();
+		return getSlot(target, FAILURE_PROPERTY_ID, x -> FAILURE_PROPERTY_ID).isSome();
 	}
 
 	/**
@@ -467,13 +498,20 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 		return f.withBody(bind(f.body, freeVars));
     }
 
+	public Stream<P2<Identifier, CoreExpr>> allBindings() {
+		if(parent == null) {
+			return bindings.toStream();
+		} else {
+			return parent.allBindings().append(bindings.toStream());
+		}
+	}
 	/**
 	 * Replace all expressions that match a binding in this environment
 	 * with their identifier.  Helps to compact a source tree prior
 	 * to printing it.
 	 */
 	public CoreExpr simplify(CoreExpr value) {
-		TreeMap<CoreExpr, Identifier> revMap = TreeMap.treeMap(CoreExpr.ORD, bindings.toStream().map(P2.swap_()).toList());
+		TreeMap<CoreExpr, Identifier> revMap = TreeMap.treeMap(CoreExpr.coreExprOrd, getRootEnvironment().bindings.toStream().map(P2.swap_()).toList());
 
 	    return _simplify(value, revMap);
     }
@@ -487,7 +525,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	    	}
 
 			@Override
-            public CoreExpr badExpr(BadExpr badExpr) {
+            public CoreExpr badExpr(BadCoreExpr badExpr) {
 	            return (BadCoreExpr)badExpr;
             }
 
@@ -546,7 +584,8 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	            Let newLet = new Let(let.getSourceFileRanges(),
 	            		let.bindings
 	            		.map(p -> P.p(p._1(), simplifyChild(p._2())))
-	            		.filter(p -> p._1().compareTo(p._2()) != 0)
+	            		.filter(p -> !p._1().eql(p._2()))
+	            		.filter(p -> !p._1().eql(Identifier.UNDERSCORE) && !p._1().eql(Identifier.USAGE_EXAMPLES))
 	            		, simplifyChild(let.body));
 	            if(newLet.bindings.isEmpty())
 	            	return newLet.body;
@@ -569,7 +608,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	public boolean isReducible(CoreExpr e) {
 		return e.acceptVisitor(new CoreExprVisitor<Boolean>() {
 			@Override
-			public Boolean badExpr(BadExpr badExpr) {
+			public Boolean badExpr(BadCoreExpr badExpr) {
 			    return false;
 			}
 
@@ -644,12 +683,9 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 	 * a call or slot reference.
 	 */
 	public CoreExpr force(CoreExpr e) {
-		while(isReducible(e)) {
-			CoreExpr e2 = e.acceptVisitor(this);
-			if(e2 == e)
-				return e2;
-			e = e2;
+		if(isReducible(e)) {
+			return force(e.acceptVisitor(this));
 		}
-		return e;
+		return bind(e);
 	}
 }

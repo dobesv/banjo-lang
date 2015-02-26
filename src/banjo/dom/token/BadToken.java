@@ -1,16 +1,14 @@
 package banjo.dom.token;
 
-import banjo.parser.util.AbstractCachedHashCode;
 import banjo.parser.util.FileRange;
 
 
-public class BadToken extends AbstractCachedHashCode implements Token {
+public class BadToken implements Token {
 	private final FileRange fileRange;
 	private final String text;
 	private final String message;
 
 	public BadToken(FileRange fileRange, String text, String message) {
-		super(text.hashCode() + message.hashCode());
 		this.fileRange = fileRange;
 		this.text = text;
 		this.message = message;
@@ -36,15 +34,6 @@ public class BadToken extends AbstractCachedHashCode implements Token {
 
 	public String getMessage() {
 		return this.message;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if(obj == this) return true;
-		if(obj == null || !(obj instanceof BadToken)) return false;
-		if(obj.hashCode() != this.hashCode()) return false;
-		final BadToken x = (BadToken) obj;
-		return x.message.equals(this.message) && x.text.equals(this.text) && fileRange.equals(x.fileRange);
 	}
 
 	@Override

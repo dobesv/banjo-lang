@@ -7,7 +7,7 @@ public enum Precedence {
 	SELECTOR,
 	SUFFIX, // array index, member access, function/method call
 	JUXTAPOSITION,
-	UNARY_PREFIX, // +, -, ~
+	UNARY_PREFIX, // +, -, ~, .
 	MULDIV, // *, /, %
 	ADDSUB, // +, -
 	BITSHIFT, // <<, >>, >>>

@@ -6,7 +6,8 @@ import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 
-public interface CoreExprVisitor<T> extends ExprVisitor<T> {
+public interface CoreExprVisitor<T> {
+	T badExpr(BadCoreExpr badExpr);
 	T stringLiteral(StringLiteral stringLiteral);
 	T numberLiteral(NumberLiteral numberLiteral);
 	T identifier(Identifier identifier);

@@ -72,7 +72,7 @@ public class SourceExprDesugarer {
 
 	}
 	public static final TreeMap<SourceFileRange, Set<BadExpr>> EMPTY_ERROR_MAP = TreeMap.empty(SourceFileRange.ORD);
-	static final fj.data.Set<SourceExpr> EMPTY_SOURCE_EXPR_SET = fj.data.Set.empty(SourceExpr.ORD);
+	static final fj.data.Set<SourceExpr> EMPTY_SOURCE_EXPR_SET = fj.data.Set.empty(SourceExpr.sourceExprOrd);
 
 	<TT> DesugarResult<TT> withValue(TT result) {
 		return withValue(result, null);
@@ -245,12 +245,7 @@ public class SourceExprDesugarer {
     }
 
 	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, List<SourceExpr> list, Operator requireBullet) {
-		return elements(sourceExpr, list, requireBullet, new F<DesugarResult<List<CoreExpr>>,DesugarResult<CoreExpr>>() {
-			@Override
-			public DesugarResult<CoreExpr> f(DesugarResult<List<CoreExpr>> ds) {
-				return nonNull(ds).withDesugared(sourceExpr, new ListLiteral(sourceExpr.getSourceFileRanges(), nonNull(ds).getValue()));
-			}
-		});
+		return elements(sourceExpr, list, requireBullet, (ds) -> ds.withDesugared(sourceExpr, new ListLiteral(sourceExpr.getSourceFileRanges(), ds.getValue())));
 	}
 
 	/**
@@ -265,16 +260,10 @@ public class SourceExprDesugarer {
 	protected DesugarResult<CoreExpr> elements(SourceExpr sourceExpr, final List<SourceExpr> list, final Operator requireBullet, F<DesugarResult<List<CoreExpr>>, DesugarResult<CoreExpr>> cb) {
 
 		// First scan for table rows.  We accumulate rows until we find a table header.  If there are rows with no table header they'll fall out of this and get handled next.
-		final DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> rowsDs = list.foldRight(new F2<SourceExpr,DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>,DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>>() {
-
-			@Override
-			public DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> f(
-					SourceExpr e,
-					final DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> ds) {
-				if(ds == null) throw new NullPointerException();
+		final DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> rowsDs = list.foldRight((e, ds) -> {
 				final List<SourceExpr> unprocessedRows = ds.getValue()._1();
 				final List<CoreExpr> processedRows = nonNull(ds.getValue()._2());
-				return nonNull(nonNull(e).acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>>() {
+				return e.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>>>() {
 					@Override
 					public DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> unaryOp(UnaryOp op) {
 						if(op.getOperator() == Operator.TABLE_HEADER) {
@@ -300,20 +289,13 @@ public class SourceExprDesugarer {
 					public DesugarResult<P2<List<SourceExpr>, List<CoreExpr>>> fallback(SourceExpr other) {
 						return ds.withValue(P.p(ds.getValue()._1().cons(other), ds.getValue()._2()));
 					}
-				}));
-			}
-
+				});
 		}, this.withValue(P.p(List.nil(), List.nil())));
 
 		// Now the remaining "unprocessed rows" are the ones with no table header, so handle those ones next
 		final List<SourceExpr> unprocessedElts = rowsDs.getValue()._1();
-		final DesugarResult<List<CoreExpr>> eltsDs = unprocessedElts.foldRight(new F2<SourceExpr,DesugarResult<List<CoreExpr>>, DesugarResult<List<CoreExpr>>>() {
-
-			@Override
-			public DesugarResult<List<CoreExpr>> f(SourceExpr e,
-					final DesugarResult<List<CoreExpr>> ds) {
-				if(ds == null) throw new NullPointerException();
-				return nonNull(nonNull(e).acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<CoreExpr>>>() {
+		final DesugarResult<List<CoreExpr>> eltsDs = unprocessedElts.foldRight((e, ds) ->
+				e.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<List<CoreExpr>>>() {
 					@Override
 					public DesugarResult<List<CoreExpr>> unaryOp(UnaryOp op) {
 						if(requireBullet != null) {
@@ -342,10 +324,9 @@ public class SourceExprDesugarer {
 						}
 						return visitElement(other);
 					}
-				}));
-			}
-		}, rowsDs.withValue(nonNull(rowsDs.getValue()._2())));
-		return nonNull(cb.f(eltsDs));
+				}),
+		rowsDs.withValue(nonNull(rowsDs.getValue()._2())));
+		return cb.f(eltsDs);
 	}
 
 	private DesugarResult<CoreExpr> objectLiteral(SourceExpr sourceExpr, SourceExpr methodExprs) {
@@ -484,7 +465,7 @@ public class SourceExprDesugarer {
 						public DesugarResult<P2<Identifier,CoreExpr>> unaryOp(UnaryOp op) {
 							switch(op.getOperator()) {
 							case OBJECT_LITERAL:
-							case BRACKETS:
+							case LIST_LITERAL:
 								return fallback(op);
 							default:
 							}
@@ -1128,7 +1109,7 @@ public class SourceExprDesugarer {
 			switch(op.getOperator()) {
 			case LIST_ELEMENT: return singletonListLiteral(op);
 			case NULLARY_FUNCTION_LITERAL: return nullaryFunctionLiteral(op, op.getOperand());
-			case BRACKETS: return listLiteral(op, operandSourceExpr);
+			case LIST_LITERAL: return listLiteral(op, operandSourceExpr);
 			case OBJECT_LITERAL: return objectLiteral(op, operandSourceExpr);
 
 			case PARENS:

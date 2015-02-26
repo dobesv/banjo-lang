@@ -1,11 +1,14 @@
 package banjo.parser.util;
 
 import static banjo.parser.util.Check.nonNull;
+import fj.Ord;
 
 
-public final class FileRange implements Comparable<FileRange> {
+public final class FileRange {
 	public static final FileRange EMPTY = new FileRange(FilePos.START, FilePos.START);
-
+	public static final Ord<FileRange> ORD = Ord.ord((a) -> (b) ->
+		a.start.equals(b.start) ? FilePos.ORD.compare(a.end, b.end) : FilePos.ORD.compare(a.start, b.start)
+	);
 	private final FilePos start;
 	private final FilePos end;
 	public FileRange(FilePos start, FilePos end) {
@@ -39,29 +42,6 @@ public final class FileRange implements Comparable<FileRange> {
 
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + getEnd().hashCode();
-		result = prime * result + getStart().hashCode();
-		return result;
-	}
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		final FileRange other = (FileRange) obj;
-		if (!this.end.equals(other.end))
-			return false;
-		if (!getStart().equals(other.getStart()))
-			return false;
-		return true;
-	}
 	public boolean startsBefore(FileRange tail) {
 		return getStart().before(tail.getStart());
 	}
@@ -138,14 +118,6 @@ public final class FileRange implements Comparable<FileRange> {
 
 	public FileRange headRange() {
 		return new FileRange(this.start, this.start);
-	}
-
-	@Override
-	public int compareTo(FileRange o) {
-		if(o == null) throw new NullPointerException();
-		int cmp = Integer.compare(getStartOffset(), o.getStartOffset());
-		if(cmp == 0) cmp = Integer.compare(getEndOffset(), o.getEndOffset());
-		return cmp;
 	}
 
 	public OffsetLength toOffsetLength() {

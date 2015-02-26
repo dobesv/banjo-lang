@@ -2,9 +2,18 @@ package banjo.dom.source;
 
 import banjo.dom.BadExpr;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.data.List;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
+	public static final Ord<BinaryOp> _leftRightOrd = Ord.chain(
+			sourceExprOrd.comap((BinaryOp x) -> x.left),
+			sourceExprOrd.comap((BinaryOp x) -> x.right)
+	);
+	public static final Ord<BinaryOp> ORD = Ord.chain(
+			AbstractOp.<BinaryOp>_operatorOrd(),
+			_leftRightOrd
+	);
 	private final SourceExpr left;
 	private final SourceExpr right;
 

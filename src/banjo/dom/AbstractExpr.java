@@ -2,20 +2,14 @@ package banjo.dom;
 
 
 import static banjo.parser.util.Check.nonNull;
-
-
-
 import banjo.dom.source.Precedence;
-import banjo.parser.util.AbstractCachedHashCode;
-import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
 
-public abstract class AbstractExpr extends AbstractCachedHashCode implements Expr {
+public abstract class AbstractExpr implements Expr {
 	final List<SourceFileRange> sourceFileRanges;
 
-	public AbstractExpr(int hashCode, List<SourceFileRange> sourceFileRanges) {
-		super(hashCode);
+	public AbstractExpr(List<SourceFileRange> sourceFileRanges) {
 		this.sourceFileRanges = sourceFileRanges;
 	}
 
@@ -77,19 +71,4 @@ public abstract class AbstractExpr extends AbstractCachedHashCode implements Exp
 		return newValue;
 	}
 
-	@Override
-	public int compareTo(Expr o) {
-		int cmp = getClass().getName().compareTo(o.getClass().getName());
-		if(cmp != 0) return cmp;
-		return ListUtil.compare(sourceFileRanges, nonNull(o).getSourceFileRanges());
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return obj == this || (
-				super.equals(obj) &&
-				(obj instanceof Expr) &&
-				this.sourceFileRanges.equals(((Expr)obj).getSourceFileRanges())
-				);
-	}
 }
