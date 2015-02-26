@@ -489,7 +489,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<CoreExpr> {
 		final CoreExpr checkResult = evaluate(evaluate(
 			Call.binaryOp(result, Operator.LOGICAL_AND, truthyMarker)
 		));
-		return checkResult.equals(truthyMarker);
+		return checkResult == truthyMarker;
     }
 
 	@Override
