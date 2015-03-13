@@ -114,8 +114,24 @@ public enum Operator {
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
 		this(op, codePoint, operatorType, parenType, position, associativity, leftPrecedence, precedence,
-				(position==Position.PREFIX || associativity==Associativity.RIGHT) && !op.endsWith(":") ? op+":" : op);
+				defaultOpMethodName(op, position, associativity));
 	}
+
+	private static String defaultOpMethodName(String op, Position position,
+            Associativity associativity) {
+		if(op.startsWith("_ ") || op.endsWith(" _"))
+			return op;
+		switch(position) {
+		case PREFIX:
+			return "_ "+op;
+		case SUFFIX:
+			return op+" _";
+		case INFIX:
+			return "_ "+op+" _";
+		default:
+			return null;
+		}
+    }
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
 		this(op, codePoint, operatorType, parenType, position, associativity, precedence, precedence);
