@@ -12,7 +12,6 @@ import java.util.List;
 
 import java.util.function.Consumer;
 
-import fj.F;
 import fj.Ord;
 
 public class ListUtil {

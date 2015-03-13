@@ -1,6 +1,5 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
@@ -72,13 +71,22 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 	    return new Let(List.single(P.p(name, value)), body);
     }
 
-	public CoreExpr addBindings(List<P2<Identifier, CoreExpr>> newBindings) {
-	    return new Let(getSourceFileRanges(), bindings.append(newBindings), body);
+	public CoreExpr plus(List<P2<Identifier, CoreExpr>> newBindings) {
+	    return new Let(getSourceFileRanges(), newBindings.append(bindings), body);
     }
 
 	@Override
 	public String toString() {
 	    return "("+ListUtil.insertCommas(bindings.map(P2.__1()).map(s -> s+" = ..."))+") "+Operator.LET.getOp()+" "+body;
+	}
+
+	/**
+	 * Create a Let if bindings is not empty; else, return the body unchanged.
+	 */
+	public static CoreExpr let(final List<P2<Identifier, CoreExpr>> bindings, CoreExpr body) {
+	    if(bindings.isEmpty())
+			return body;
+		return new Let(bindings, body);
 	}
 
 }

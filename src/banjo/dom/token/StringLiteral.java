@@ -2,7 +2,6 @@ package banjo.dom.token;
 
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
@@ -55,10 +54,11 @@ public class StringLiteral extends AbstractAtom implements Atom {
 			final int cp = text.codePointAt(i);
 			if(cp > Character.MAX_VALUE) i++; // Pair
 			switch(cp) {
-			case '\n': sb.append("\n"); break;
-			case '\r': sb.append("\r"); break;
-			case '\t': sb.append("\t"); break;
-			case '\f': sb.append("\f"); break;
+			case '\n': sb.append("\\n"); break;
+			case '\r': sb.append("\\r"); break;
+			case '\t': sb.append("\\t"); break;
+			case '\f': sb.append("\\f"); break;
+			case '\\': sb.append("\\\\"); break;
 			case '"': sb.append("\\\""); break;
 			default:
 				sb.appendCodePoint(cp);

@@ -7,7 +7,6 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 import fj.F2Functions;
 import fj.Ord;
@@ -21,6 +20,7 @@ public interface CoreExpr extends Expr {
 
 
 	public static Ordering _cmp(CoreExpr a1, CoreExpr a2) {
+		if(a1 == a2) return Ordering.EQ;
 		return a1.acceptVisitor(new CoreExprVisitor<Ordering>() {
 			@Override
 			public Ordering badExpr(BadCoreExpr badExpr) {
@@ -72,11 +72,6 @@ public interface CoreExpr extends Expr {
 			@Override
 			public Ordering objectLiteral(ObjectLiteral objectLiteral) {
 			    return ObjectLiteral.ORD.compare(objectLiteral, (ObjectLiteral)a2);
-			}
-
-			@Override
-			public Ordering operator(OperatorRef operatorRef) {
-			    return OperatorRef.ORD.compare(operatorRef, (OperatorRef)a2);
 			}
 
 			@Override

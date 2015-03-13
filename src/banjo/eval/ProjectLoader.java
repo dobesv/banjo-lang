@@ -3,7 +3,6 @@ package banjo.eval;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
@@ -11,8 +10,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CharsetDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,7 +18,6 @@ import java.util.stream.Stream;
 import banjo.desugar.SourceExprDesugarer;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.CoreExpr;
-import banjo.dom.core.Extend;
 import banjo.dom.core.ObjectLiteral;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.token.Identifier;
@@ -31,19 +27,19 @@ import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
 import banjo.parser.util.ParserReader;
 import banjo.parser.util.SourceFileRange;
+import fj.P;
 import fj.P2;
 import fj.data.List;
-import fj.data.TreeMap;
 
 public class ProjectLoader {
-	public static final TreeMap<Identifier, CoreExpr> EMPTY_BINDINGS = TreeMap.empty(Identifier.ORD);
+	public static final List<P2<Identifier, CoreExpr>> EMPTY_BINDINGS = List.nil();
 
 	/**
 	 * Load a single binding
 	 * @param path
 	 * @return
 	 */
-	public TreeMap<Identifier, CoreExpr> loadBinding(Path path) {
+	public List<P2<Identifier, CoreExpr>> loadBinding(Path path) {
 		String[] baseExt = path.getFileName().toString().split("\\.", 2);
 		String base = baseExt[0];
 		String ext = baseExt.length == 2 ? baseExt[1] : isRegularFile(path) ? "txt" : "";
@@ -65,7 +61,7 @@ public class ProjectLoader {
 				return EMPTY_BINDINGS;
 			}
 		} else return EMPTY_BINDINGS;
-		return EMPTY_BINDINGS.set(key, value);
+		return List.single(P.p(key, value));
 	}
 
 	protected boolean isDirectory(Path path) {
@@ -150,18 +146,15 @@ public class ProjectLoader {
 	    return sb.toString();
     }
 
-	public static TreeMap<Identifier, CoreExpr> mergeBindings(TreeMap<Identifier, CoreExpr> a, TreeMap<Identifier, CoreExpr> b) {
-		for(P2<Identifier, CoreExpr> bb : b) {
-			// TODO Object properties inside the values should probably also be merged, somehow, (i.e. subfolders)
-			a = a.set(bb._1(), a.get(bb._1()).map(ab -> (CoreExpr)new Extend(ab, bb._2())).orSome(bb._2()));
-		}
-		return a;
+	public static List<P2<Identifier, CoreExpr>> mergeBindings(List<P2<Identifier, CoreExpr>> a, List<P2<Identifier, CoreExpr>> b) {
+		// TODO merge objects with the same name
+		return a.append(b);
 	}
-	public TreeMap<Identifier, CoreExpr> loadBindings(String rootPath) {
+	public List<P2<Identifier, CoreExpr>> loadBindings(String rootPath) {
 		return loadBindings(Paths.get(rootPath));
 	}
 
-	protected TreeMap<Identifier, CoreExpr> loadBindings(final Path root) {
+	protected List<P2<Identifier, CoreExpr>> loadBindings(final Path root) {
 	    try {
 			return listFilesInFolder(root)
 					.map(p -> loadBinding(p))
@@ -171,7 +164,7 @@ public class ProjectLoader {
 		}
     }
 
-	public TreeMap<Identifier, CoreExpr> loadBanjoPath() {
+	public List<P2<Identifier, CoreExpr>> loadBanjoPath() {
 		String path = getBanjoPathFromEnvironment();
 		if(path == null) return EMPTY_BINDINGS;
 		return loadImportedBindings(path);
@@ -183,8 +176,8 @@ public class ProjectLoader {
 	    return path;
     }
 
-	public TreeMap<Identifier, CoreExpr> loadImportedBindings(String searchPath) {
-		TreeMap<Identifier, CoreExpr> bindings = EMPTY_BINDINGS;
+	public List<P2<Identifier, CoreExpr>> loadImportedBindings(String searchPath) {
+		List<P2<Identifier, CoreExpr>> bindings = EMPTY_BINDINGS;
 		if(searchPath != null) {
 			for(String path: searchPath.split(File.pathSeparator)) {
 				if(path.isEmpty())
@@ -195,14 +188,14 @@ public class ProjectLoader {
 		return bindings;
 	}
 
-	public TreeMap<Identifier, CoreExpr> loadLocalBindings(String sourceFilePath) {
+	public List<P2<Identifier, CoreExpr>> loadLocalBindings(String sourceFilePath) {
 		if(sourceFilePath == null)
 			return EMPTY_BINDINGS;
 		Path path = Paths.get(sourceFilePath);
 		return loadLocalBindings(path.getParent());
 	}
 
-	protected TreeMap<Identifier, CoreExpr> loadLocalBindings(final Path path) {
+	protected List<P2<Identifier, CoreExpr>> loadLocalBindings(final Path path) {
 		if(path == null)
 			return EMPTY_BINDINGS;
 		Path tryPath = path;
@@ -219,7 +212,7 @@ public class ProjectLoader {
 	    return Files.exists(p);
     }
 
-	public TreeMap<Identifier, CoreExpr> loadLocalAndLibraryBindings(String sourceFilePath) {
-		return loadLocalBindings(sourceFilePath).union(loadBanjoPath());
+	public List<P2<Identifier, CoreExpr>> loadLocalAndLibraryBindings(String sourceFilePath) {
+		return loadBanjoPath().append(loadLocalBindings(sourceFilePath));
 	}
 }

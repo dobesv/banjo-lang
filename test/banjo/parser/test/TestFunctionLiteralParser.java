@@ -6,8 +6,6 @@ import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.Let;
-import banjo.dom.core.ObjectLiteral;
 import banjo.dom.token.Identifier;
 
 

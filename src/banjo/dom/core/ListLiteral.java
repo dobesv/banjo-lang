@@ -1,10 +1,7 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
-import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
-import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;

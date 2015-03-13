@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;

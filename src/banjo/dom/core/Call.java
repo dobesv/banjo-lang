@@ -69,7 +69,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		return "(" + ListUtil.insertCommas(args) + ")";
 	}
 	public String toString() {
-		return getBinaryOperator().map(op -> target + " " + op.getOp() + " " + args.head().toString()).orSome(target+argsToString());
+		return getBinaryOperator().map(op -> ((SlotReference)target).object + " " + op.getOp() + " " + args.head().toString()).orSome(target+argsToString());
 	}
 
 	@Override

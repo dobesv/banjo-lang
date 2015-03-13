@@ -3,7 +3,6 @@ package banjo.dom;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
 import fj.Ord;
-import fj.Ordering;
 import fj.data.List;
 
 

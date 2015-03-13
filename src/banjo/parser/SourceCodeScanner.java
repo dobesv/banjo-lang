@@ -248,8 +248,13 @@ public class SourceCodeScanner {
 	 * @return The number of contiguous whitespace characters found
 	 */
 	public static int scanIdentifierStart(String in, int start, int end) {
-		if(start < end && isIdentifierStart(in.codePointAt(start)))
-			return 1 + scanIdentifierPart(in, start+1, end);
+		if(start >= end)
+			return 0;
+		final int cp = in.codePointAt(start);
+		final int n = ((start + 1) < end && cp == '\\') ? 2 :
+			isIdentifierStart(cp) ? 1 : 0;
+		if(n > 0)
+			return n + scanIdentifierPart(in, start+n, end);
 		return 0;
 	}
 
@@ -263,6 +268,7 @@ public class SourceCodeScanner {
 	public static int scanIdentifierPart(String in, int start, int end) {
 		for(int endOffset = start; endOffset < end; ) {
 			final int cp = in.codePointAt(endOffset);
+			// TODO Handle spaces-in-names feature
 			if(!isIdentifierPart(cp))
 				return endOffset-start;
 			endOffset += Character.charCount(cp);
@@ -417,7 +423,7 @@ public class SourceCodeScanner {
 			return List.nil();
 		}
 		final int quoteType = cp;
-		
+
 		int leftColumn = in.getCurrentColumnNumber();
 		this.buf.setLength(0);
 		List<T> errs = List.nil();

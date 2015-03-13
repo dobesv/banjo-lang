@@ -9,10 +9,9 @@ import banjo.dom.BadExpr;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.token.Identifier;
-import banjo.dom.token.Identifier;
 import banjo.eval.ProjectLoader;
+import fj.P2;
 import fj.data.List;
-import fj.data.TreeMap;
 
 public class TestProjectLoader {
 	@Test public void testZeroDefined() { assertDefined(Identifier.ZERO.id); }
@@ -25,9 +24,9 @@ public class TestProjectLoader {
 
 	@Test public void testNoProblems() { assertEquals(0, problems().length()); }
 
-	public TreeMap<Identifier, CoreExpr> bindings() {
+	public List<P2<Identifier, CoreExpr>> bindings() {
 
-		TreeMap<Identifier, CoreExpr> bindings = (new ProjectLoader()).loadBanjoPath();
+		List<P2<Identifier, CoreExpr>> bindings = (new ProjectLoader()).loadBanjoPath();
 		bindings.forEach(binding -> {
 			System.out.println("Binding: "+binding._1()+" -> "+binding._2());
 			binding._2().acceptVisitor(new CoreErrorGatherer()).forEach(e -> {
@@ -40,15 +39,16 @@ public class TestProjectLoader {
 	}
 
 	public List<BadExpr> problems() {
-		final List<CoreExpr> allRootExprs = bindings().values();
+		final List<CoreExpr> allRootExprs = bindings().map(P2.__2());
 		final List<List<BadExpr>> problemLists = allRootExprs.<List<BadExpr>>map(CoreErrorGatherer::problems);
 		return List.join(problemLists);
 	}
 
 	private void assertDefined(final String id) {
-		final TreeMap<Identifier, CoreExpr> bindings = bindings();
-		assertTrue("No binding found for "+id, bindings.contains(new Identifier(id)));
-		List<BadExpr> problems = bindings.get(new Identifier(id)).some().acceptVisitor(new CoreErrorGatherer());
+		final List<P2<Identifier, CoreExpr>> bindings = bindings();
+		List<P2<Identifier, CoreExpr>> bindingsForId = bindings.filter(e -> e._1().id.equals(id));
+		assertTrue("No binding found for "+id, bindingsForId.isNotEmpty());
+		List<BadExpr> problems = bindingsForId.head()._2().acceptVisitor(new CoreErrorGatherer());
 		assertTrue("Binding has "+problems.length()+" errors", problems.isEmpty());
 	}
 }

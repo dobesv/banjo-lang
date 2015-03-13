@@ -1,6 +1,5 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
@@ -12,8 +11,8 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 			CoreExpr.coreExprOrd.comap((e) -> e.base),
 			CoreExpr.coreExprOrd.comap((e) -> e.extension)
 	);
-	private final CoreExpr base;
-	private final CoreExpr extension;
+	public final CoreExpr base;
+	public final CoreExpr extension;
 
 	public Extend(List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
 		super(base.hashCode() ^ extension.hashCode(), ranges);

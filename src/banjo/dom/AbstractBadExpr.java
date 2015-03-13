@@ -1,8 +1,5 @@
 package banjo.dom;
 
-import java.util.Arrays;
-
-import banjo.dom.core.ExprVisitor;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.StringLiteral;
 import banjo.parser.util.SourceFileRange;

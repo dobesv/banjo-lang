@@ -1,6 +1,5 @@
 package banjo.dom.core;
 
-import banjo.dom.Expr;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;

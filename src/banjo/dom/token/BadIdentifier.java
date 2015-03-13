@@ -1,8 +1,6 @@
 package banjo.dom.token;
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
-import banjo.dom.core.AbstractCoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;

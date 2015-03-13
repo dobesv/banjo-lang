@@ -1,10 +1,8 @@
 package banjo.dom.core;
 
-import banjo.dom.BadExpr;
 import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
-import banjo.dom.token.OperatorRef;
 import banjo.dom.token.StringLiteral;
 
 /**
@@ -52,11 +50,6 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 
 	@Override
 	public T badIdentifier(BadIdentifier n) {
-		return fallback();
-	}
-
-	@Override
-	public T operator(OperatorRef n) {
 		return fallback();
 	}
 

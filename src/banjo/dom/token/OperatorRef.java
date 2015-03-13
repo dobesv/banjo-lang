@@ -1,7 +1,6 @@
 package banjo.dom.token;
 
 import banjo.dom.BadExpr;
-import banjo.dom.Expr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
@@ -44,7 +43,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-		return visitor.operator(this);
+		throw new Error("OperatorRef is not really a CoreExpr");
 	}
 
 	@Override

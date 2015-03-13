@@ -7,7 +7,6 @@ import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.ObjectLiteral;
 
 public class TestSelectorParser {
 	public static void parse(String source, String expectedSource) {

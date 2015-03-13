@@ -8,7 +8,6 @@ import fj.P;
 import fj.P2;
 import fj.data.Either;
 import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 

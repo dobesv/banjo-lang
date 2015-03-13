@@ -223,6 +223,6 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public String toString() {
-		return "{"+ListUtil.insertCommas(slots.map(P2.__1()))+"}";
+		return "{"+ListUtil.insertCommas(slots.map(slot -> slot._1().id + " = ..."))+"}";
 	}
 }

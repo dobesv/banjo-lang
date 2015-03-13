@@ -37,6 +37,9 @@ public class TestSimpleExpressions {
 	@Test public void notTrueEqNotTrue()       { assertTruthyExpr(("! true == ! true")); }
 	@Test public void notTrueEqFalse()       { assertTruthyExpr(("! true == false")); }
 	@Test public void trueEqNotFalse()       { assertTruthyExpr(("true == ! false")); }
+	@Test public void trueAndTrue()       { assertTruthyExpr(("true && true")); }
+	@Test public void trueAndNotFalse()       { assertTruthyExpr(("true && !false")); }
+	@Test public void falseOrTrue()       { assertTruthyExpr(("false || true")); }
 
 	@Test public void falseIsNotTruthy() { assertFalse(isTruthyExpr("false")); }
 	@Test public void falseEqFalse()     { assertTruthyExpr(("false == false")); }
@@ -59,6 +62,11 @@ public class TestSimpleExpressions {
 	}
 
 	@Test public void emptyListEqualsEmptyList() { assertTruthyExpr("[] == []"); }
+	@Test public void singleListEqualsItself1() { assertTruthyExpr("[true] == [true]"); }
+	@Test public void singleListEqualsItself2() { assertTruthyExpr("[false] == [false]"); }
+	@Test public void singleListNotEqualsEmptyList1() { assertTruthyExpr("[false] != []"); }
+	@Test public void singleListNotEqualsEmptyList2() { assertTruthyExpr("[] != [false]"); }
+	@Test public void emptyListIsEmpty() { assertTruthyExpr("[].is empty"); }
 
 	@Test public void zeroIsZero() { assertTruthyExpr(("0 . is zero")); }
 	@Test public void eq0() { assertTruthyExpr(("0 == 0")); }
