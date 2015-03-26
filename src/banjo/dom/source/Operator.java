@@ -1,10 +1,13 @@
 package banjo.dom.source;
 
 import static banjo.dom.Consts.CODEPOINT_NONE;
-import static banjo.parser.util.Check.nonNull;
-import fj.Ord;
+import static java.util.Objects.requireNonNull;
+
+import java.util.Objects;
+
 import banjo.dom.ParenType;
 import banjo.dom.token.Identifier;
+import fj.Ord;
 
 public enum Operator {
 	// Nullary operator
@@ -22,10 +25,11 @@ public enum Operator {
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
 	LIST_LITERAL(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
-	RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
+	//RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	SELECTOR(".", OperatorType.BUILTIN, Precedence.SUFFIX, Position.PREFIX),
+	BASE_FUNCTION("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
@@ -34,8 +38,8 @@ public enum Operator {
 	OPT_PROJECTION(".?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_OPT_PROJECTION("*.?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-	CALL_NEXT_METHOD(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-	OPT_CALL_NEXT_METHOD(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
+	BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
+	OPT_BASE_SLOT(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
 	POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	MUL("*", 0x00D7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
@@ -100,16 +104,16 @@ public enum Operator {
 	public final OperatorType operatorType;
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
-		this.op = op;
+		this.op = requireNonNull(op);
 		this.codePoint = codePoint;
-		this.operatorType = operatorType;
-		this.leftPrecedence = leftPrecedence;
-		this.precedence = precedence;
+		this.operatorType = requireNonNull(operatorType);
+		this.leftPrecedence = requireNonNull(leftPrecedence);
+		this.precedence = requireNonNull(precedence);
 		this.parenType = parenType;
-		this.associativity = associativity;
-		this.position = position;
-		this.methodName = parenType == ParenType.PARENS ? null : methodName.replaceFirst("\\?$", "");
-		this.methodNameKey = parenType == ParenType.PARENS ? null : new Identifier(this.methodName);
+		this.associativity = requireNonNull(associativity);
+		this.position = requireNonNull(position);
+		this.methodName = parenType == ParenType.PARENS || methodName == null? null : methodName.replaceFirst("\\?$", "");
+		this.methodNameKey = this.methodName == null ? null : new Identifier(this.methodName);
 	}
 
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
@@ -224,7 +228,7 @@ public enum Operator {
 	 * with a paren.
 	 */
 	public ParenType getParenType() {
-		return nonNull(this.parenType);
+		return Objects.requireNonNull(this.parenType);
 	}
 
 	/**

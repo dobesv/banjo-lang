@@ -14,6 +14,7 @@ import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.Slot;
 import banjo.dom.source.BadSourceExpr;
 import banjo.dom.token.Identifier;
 
@@ -54,14 +55,14 @@ public class TestObjectLiteralParser {
 		parse(source, "{a = 1, b = 2, c = 3}");
 		final ObjectLiteral node = (ObjectLiteral) CoreExpr.fromString(source);
 		final String[] expectedNames = {"a","b","c"};
-		final Iterator<P2<Identifier,CoreExpr>> eltIt = node.getSlots().iterator();
+		final Iterator<Slot> eltIt = node.getSlots().iterator();
 		final long[] expectedValues = {1,2,3};
 		for(int i=0; i < expectedValues.length; i++) {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
-			final P2<Identifier,CoreExpr> actualBinding = eltIt.next();
-			CoreExpr actualValue = actualBinding._2();
-			Identifier actualName = actualBinding._1();
+			final Slot actualBinding = eltIt.next();
+			CoreExpr actualValue = actualBinding.value;
+			Identifier actualName = actualBinding.name;
 			assertEquals(expectedNames[i], actualName.toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue);
 		}
@@ -87,12 +88,9 @@ public class TestObjectLiteralParser {
 	@Test public void methodSelfName() {
 		ObjectLiteral obj = (ObjectLiteral) CoreExpr.fromString("{x.y(z) = z}");
 		assertEquals(1, obj.slots.length());
-		assertTrue(obj.slots.head()._1().eql(new Identifier("y")));
-		Let let = (Let) obj.slots.head()._2();
-		assertEquals(1, let.bindings.length());
-		assertTrue(let.bindings.head()._1().eql(new Identifier("x")));
-		assertTrue(let.bindings.head()._2().eql(Identifier.__SELF));
-		FunctionLiteral func = (FunctionLiteral) let.body;
+		assertTrue(obj.slots.head().name.eql(new Identifier("y")));
+		assertTrue(obj.slots.head().selfBinding.some().eql(new Identifier("x")));
+		FunctionLiteral func = (FunctionLiteral) obj.slots.head().value;
 		assertTrue(func.body.eql(new Identifier("z")));
 		assertEquals(1, func.args.length());
 		assertTrue(func.args.head().eql(new Identifier("z")));

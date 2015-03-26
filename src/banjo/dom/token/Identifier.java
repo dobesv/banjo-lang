@@ -1,8 +1,8 @@
 package banjo.dom.token;
 
 
+import static java.util.Objects.requireNonNull;
 import banjo.dom.BadExpr;
-import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Precedence;
@@ -28,16 +28,14 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier DATA = new Identifier("data");
 	public static final Identifier INFINITY = new Identifier("∞");
 	public static final Identifier UNDERSCORE = new Identifier("_");
-	public static final Identifier __SELF = new Identifier("__self");
 	public static final Identifier __TMP = new Identifier("__tmp");
 	public static final Identifier USAGE_EXAMPLES = new Identifier("usage examples");
-	public static final Identifier __REC_LET = new Identifier("__rec_let");
 
 	public final String id;
 
 	public Identifier(List<SourceFileRange> ranges, String id) {
 		super(ranges);
-		this.id = id;
+		this.id = requireNonNull(id);
 	}
 
 	public Identifier(SourceFileRange range, String id) {

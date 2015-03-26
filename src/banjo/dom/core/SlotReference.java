@@ -17,14 +17,20 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	);
 	public final CoreExpr object;
 	public final Identifier slotName;
+	public boolean base;
+
+	public SlotReference(List<SourceFileRange> sourceFileRanges,
+            CoreExpr object, Identifier slotName, boolean base) {
+	    super(sourceFileRanges.hashCode() + object.hashCode() + slotName.hashCode() + Boolean.hashCode(base), sourceFileRanges);
+	    this.object = object;
+	    this.slotName = slotName;
+	    this.base = base;
+    }
 
 	public SlotReference(List<SourceFileRange> sourceFileRanges,
             CoreExpr object, Identifier slotName) {
-	    super(sourceFileRanges.hashCode() + object.hashCode() + slotName.hashCode(), sourceFileRanges);
-	    this.object = object;
-	    this.slotName = slotName;
-    }
-
+		this(sourceFileRanges, object, slotName, false);
+	}
 	public SlotReference(CoreExpr object, Identifier slotName) {
 		this(SourceFileRange.EMPTY_LIST, object, slotName);
     }
@@ -56,7 +62,7 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 			return Unit.unit();
 		}).orSome(P.lazy(u -> {
 			object.toSource(sb);
-			Operator.PROJECTION.toSource(sb);
+			(base ? Operator.BASE_SLOT : Operator.PROJECTION).toSource(sb);
 			slotName.toSource(sb);
 			return Unit.unit();
 		}));
@@ -81,6 +87,7 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public Option<Operator> getUnaryOperator() {
+		if(base) return Option.none();
 	    return Option.fromNull(Operator.fromMethodName(slotName, false));
     }
 

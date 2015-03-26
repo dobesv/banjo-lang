@@ -1,5 +1,6 @@
 package banjo.parser.util;
 
+import static java.util.Objects.requireNonNull;
 import fj.Ord;
 import fj.data.List;
 
@@ -14,8 +15,8 @@ public class SourceFileRange {
 	final FileRange fileRange;
 	public SourceFileRange(String sourceFile, FileRange fileRange) {
 		super();
-		this.sourceFile = sourceFile;
-		this.fileRange = fileRange;
+		this.sourceFile = requireNonNull(sourceFile);
+		this.fileRange = requireNonNull(fileRange);
 	}
 	public String getSourceFile() {
 		return this.sourceFile;

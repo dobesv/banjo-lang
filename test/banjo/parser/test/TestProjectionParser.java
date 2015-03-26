@@ -9,6 +9,10 @@ import banjo.dom.core.SlotReference;
 public class TestProjectionParser {
 
 	@Test public void aDotB() { ParseTestUtils.test("a.b", SlotReference.class); }
+	@Test public void aDotBDotC() { ParseTestUtils.test("a.b.c", SlotReference.class); }
+	@Test public void aColonB() { ParseTestUtils.test("a:b", SlotReference.class); }
+	@Test public void aColonBDotC() { ParseTestUtils.test("a:b.c", SlotReference.class); }
+
 	// @Test public void aProjectB() { ParseTestUtils.test("a.{b}", "a.{b}", Call.class); }
 	// @Test public void aProjectBNewline() { ParseTestUtils.test("a.\n | b", "a.{b}", Call.class); }
 	// @Test public void aProjectBC() { ParseTestUtils.test("a.{b,c}", "a.{b, c}", Call.class); }

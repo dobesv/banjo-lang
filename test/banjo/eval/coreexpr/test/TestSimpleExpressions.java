@@ -6,20 +6,20 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
+import banjo.eval.EvalUtil;
 import banjo.eval.coreexpr.CoreExprEvaluator;
 
 public class TestSimpleExpressions {
 	CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
 	public boolean isTruthyExpr(String src) {
 		System.out.println("Source: "+src);
-		final CoreExpr value = evaluator.evaluate(CoreExpr.fromString(src));
-		if(evaluator.isFailure(value)) {
-			System.out.println("FAILURE");
+		final Object value = EvalUtil.force(evaluator.evaluate(CoreExpr.fromString(src)));
+		if(!EvalUtil.isDefined(value)) {
+			System.out.println("FAILURE: "+value);
 			return false;
 		} else {
-			CoreExpr simplified = evaluator.simplify(value);
-			System.out.println("Result: "+simplified.toSource());
-			return evaluator.isTruthy(value);
+			System.out.println("Result: "+EvalUtil.toString(value));
+			return EvalUtil.isTruthy(value);
 		}
 	}
 
@@ -28,7 +28,7 @@ public class TestSimpleExpressions {
 	}
 
 	public boolean isDefined(String src) {
-		return !evaluator.isFailure(CoreExprEvaluator.eval(src));
+		return EvalUtil.isDefined(CoreExprEvaluator.eval(src));
 	}
 
 	@Test public void trueIsTruthy()     { assertTruthyExpr(("true")); }

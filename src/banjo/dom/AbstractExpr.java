@@ -1,7 +1,8 @@
 package banjo.dom;
 
 
-import static banjo.parser.util.Check.nonNull;
+import java.util.Objects;
+
 import banjo.dom.source.Precedence;
 import banjo.parser.util.SourceFileRange;
 import fj.data.List;
@@ -10,6 +11,7 @@ public abstract class AbstractExpr implements Expr {
 	final List<SourceFileRange> sourceFileRanges;
 
 	public AbstractExpr(List<SourceFileRange> sourceFileRanges) {
+		if(sourceFileRanges == null) throw new NullPointerException();
 		this.sourceFileRanges = sourceFileRanges;
 	}
 
@@ -64,7 +66,8 @@ public abstract class AbstractExpr implements Expr {
 	protected <T extends Expr> T optTransform(T opt, ExprTransformer transformer) {
 		if(opt == null)
 			return opt;
-		final T value = nonNull(opt);
+		final T value1 = opt;
+		final T value = Objects.requireNonNull(value1);
 		final T newValue = transformer.transform(value);
 		if(value == newValue)
 			return opt;

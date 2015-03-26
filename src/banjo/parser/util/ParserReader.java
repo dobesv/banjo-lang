@@ -1,7 +1,5 @@
 package banjo.parser.util;
 
-import static banjo.parser.util.Check.nonNull;
-
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
@@ -12,6 +10,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -479,7 +478,7 @@ public class ParserReader extends Reader {
 		final Matcher m = matcher(re);
 		if(m.lookingAt() && m.end() > m.start()) {
 			// Position just at the end of the token that was matched
-			final String text = nonNull(m.group());
+			final String text = Objects.requireNonNull(m.group());
 			seek(start);
 			skip(m.end());
 			return text;

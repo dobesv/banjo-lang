@@ -19,11 +19,11 @@ public class TestLetParser {
 	@Test public void foo3() { test("(a = foo\n) => a", "(a = foo) => a"); }
 	@Test public void foo5() { test("(\n a = foo\n b = bar\n) => a\n", "(b = bar, a = foo) => a"); }
 
-	@Test public void f1() { test("(f(x) = x) => f(0)", "(f = (x) ↦ x) => f(0)"); }
-	@Test public void f2() { test("(f(x,y) = x) => f(1,2)", "(f = (x, y) ↦ x) => f(1, 2)"); }
-	@Test public void f3() { test("(f() = x) => f()", "(f = () ↦ x) => f()"); }
+	@Test public void f1() { test("(f(x) = x) => f(0)", "(f(x) = x) => f(0)"); }
+	@Test public void f2() { test("(f(x,y) = x) => f(1,2)", "(f(x, y) = x) => f(1, 2)"); }
+	@Test public void f3() { test("(f() = x) => f()", "(f() = x) => f()"); }
 
-	@Test public void mixfix1() { test("(f(x)g(y) = x + y) => f(1)g(2)", "(f _ g = (x) ↦ (y) ↦ x + y) => f _ g(1)(2)"); }
+	@Test public void mixfix1() { test("(f(x)g(y) = x + y) => f(1)g(2)", "(f _ g(x) = (y) ↦ x + y) => f _ g(1)(2)"); }
 
 	@Test public void multiline1() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc = \"foo\") => bar)}"); }
 	@Test public void multiline2() { test("{\n  x = (\n    doc='foo'\n  ) => bar\n}", "{x = ((doc = \"foo\") => bar)}"); }

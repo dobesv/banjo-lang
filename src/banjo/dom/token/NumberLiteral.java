@@ -1,9 +1,10 @@
 package banjo.dom.token;
 
-import static banjo.parser.util.Check.nonNull;
+import static java.util.Objects.requireNonNull;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Objects;
 
 import banjo.dom.BadExpr;
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -34,8 +35,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	}
 	public NumberLiteral(List<SourceFileRange> ranges, Number number, String suffix) {
 		super(ranges);
-		this.number = number;
-		this.suffix = suffix;
+		this.number = requireNonNull(number);
+		this.suffix = requireNonNull(suffix);
 	}
 
 	public NumberLiteral(Number n) {
@@ -48,7 +49,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public String toString() {
-		return nonNull(this.number.toString()+this.suffix);
+		return Objects.requireNonNull(this.number.toString()+this.suffix);
 	}
 
 	@Override
@@ -73,7 +74,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	}
 
 	public static boolean isNumberLiteral(CoreExpr x) {
-		return nonNull(x.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
+		return Objects.requireNonNull(x.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
 			@Override
 			public Boolean numberLiteral(NumberLiteral n) {
 				return true;
@@ -86,8 +87,10 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	}
 
 	static Number negateNumber(Number num) {
-		if(num instanceof BigDecimal) return nonNull(((BigDecimal)num).negate());
-		if(num instanceof BigInteger) return nonNull(((BigInteger)num).negate());
+		if(num instanceof BigDecimal)
+	        return Objects.requireNonNull(((BigDecimal)num).negate());
+		if(num instanceof BigInteger)
+	        return Objects.requireNonNull(((BigInteger)num).negate());
 		if(num instanceof Long) return new Long(-((Long)num).longValue());
 		if(num instanceof Integer) return new Integer(-((Integer)num).intValue());
 		throw new Error("Unexpected number subclass: "+num.getClass());

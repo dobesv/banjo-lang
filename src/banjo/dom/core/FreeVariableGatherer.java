@@ -42,8 +42,11 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 	}
 
 	public Set<Identifier> analyse(List<CoreExpr> exprs) {
-		return Set.iterableSet(Identifier.ORD, exprs.map(this::analyse).foldLeft((a,b) -> a.union(b), EMPTY_IDENTIFIER_SET));
+		return union(exprs.map(this::analyse));
 	}
+	public static Set<Identifier> union(final List<Set<Identifier>> freeVarsList) {
+	    return Set.iterableSet(Identifier.ORD, freeVarsList.foldLeft((a,b) -> a.union(b), EMPTY_IDENTIFIER_SET));
+    }
 	public Set<Identifier> useCache(CoreExpr e, F0<Set<Identifier>> gen) {
 		Set<Identifier> res = cache.get(e);
 		if(res == null) {
@@ -65,9 +68,14 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
     public Set<Identifier> call(Call call) {
 	    return analyse(call.args.cons(call.target));
     }
+
+	public Set<Identifier> slot(Slot slot) {
+		Set<Identifier> freeVars = analyse(slot.value);
+		return slot.selfBinding.map(selfBinding -> freeVars.delete(selfBinding)).orSome(freeVars);
+	}
 	@Override
     public Set<Identifier> objectLiteral(ObjectLiteral objectLiteral) {
-	    return analyse(objectLiteral.slots.map(P2.__2())).delete(Identifier.__SELF); // "__self" always defined in a slot
+	    return union(objectLiteral.slots.map(this::slot));
     }
 	@Override
     public Set<Identifier> listLiteral(ListLiteral listLiteral) {
@@ -90,11 +98,11 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 	    final List<CoreExpr> bindingsPlusBody = let.bindings.map(P2.__2()).cons(let.body);
 		final Set<Identifier> bindingsPlusBodyFreeVars = analyse(bindingsPlusBody);
 		final Set<Identifier> boundNames = Set.set(Identifier.ORD, let.bindings.map(P2.__1()));
-		return bindingsPlusBodyFreeVars.minus(boundNames).delete(Identifier.__REC_LET);
+		return bindingsPlusBodyFreeVars.minus(boundNames);
     }
 	@Override
     public Set<Identifier> functionLiteral(FunctionLiteral f) {
-	    return analyse(f.body).minus(Set.set(Identifier.ORD, f.args)).delete(Identifier.__SELF); // "__self" always defined in a function
+	    return analyse(f.body).minus(Set.set(Identifier.ORD, f.args)); // "__self" always defined in a function
     }
 	@Override
     public Set<Identifier> slotReference(SlotReference slotReference) {

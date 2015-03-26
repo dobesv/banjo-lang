@@ -8,8 +8,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import banjo.desugar.SourceExprDesugarer;
-import banjo.desugar.SourceExprDesugarer.DesugarResult;
+import banjo.desugar.SourceExprToCoreExpr;
+import banjo.desugar.SourceExprToCoreExpr.DesugarResult;
 import banjo.dom.BadExpr;
 import banjo.dom.Expr;
 import banjo.dom.core.BaseCoreExprVisitor;
@@ -44,7 +44,7 @@ public class ParseTestUtils {
 			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
 			int errCount = parseErrors(expectedErrorClass, parseTree);
 			if(errCount == 0) {
-				final SourceExprDesugarer desugarer = new SourceExprDesugarer();
+				final SourceExprToCoreExpr desugarer = new SourceExprToCoreExpr();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));

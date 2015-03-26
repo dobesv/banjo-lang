@@ -20,4 +20,10 @@ public class TestPatterns {
 	// {x.y.z = foo} should be roughly equivalent to {x = {y = {z = foo}}}
 	//@Test public void testUnpackObjWithAliasedProjection() { test("{x.y.z = foo}", ""); }
 	//@Test public void testUnpackObjWithAliasedCall() { test("{x(1) = foo}", ""); }
+
+	@Test public void testUnpackSelfObject1() { test("{ {x}.x squared = x*x }", "{__tmp.x squared = ((x = __tmp.x) => x * x)}"); }
+	@Test public void testUnpackSelfObject2() { test("{ {x, y}.x plus y = x+y }", "{__tmp.x plus y = ((x = __tmp.x, y = __tmp.y) => x + y)}"); }
+
+	@Test public void testUnpackSelfFn1() { test("{x}(y) ↦ x*y", "__tmp(y) ↦ ((x = __tmp.x) => x * y)"); }
+
 }

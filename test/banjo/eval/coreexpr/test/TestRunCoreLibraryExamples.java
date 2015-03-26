@@ -13,9 +13,11 @@ import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.Let;
 import banjo.dom.core.ListLiteral;
 import banjo.dom.core.ObjectLiteral;
+import banjo.dom.core.Slot;
 import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
+import banjo.eval.EvalUtil;
 import banjo.eval.ProjectLoader;
 import banjo.eval.coreexpr.CoreExprEvaluator;
 import fj.P2;
@@ -69,11 +71,11 @@ public class TestRunCoreLibraryExamples {
 		System.out.println("Testing: "+x);
 
 		final CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile());
-		CoreExpr result = evaluator.evaluate(x);
-		final boolean working = !evaluator.isFailure(result);
+		Object result = evaluator.evaluate(x);
+		final boolean working = EvalUtil.isDefined(result);
 		//if(!working) System.out.println("Error: "+result.object);
-		final boolean success = working && evaluator.isTruthy(result);
-		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x);
+		final boolean success = working && EvalUtil.isTruthy(result);
+		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x+" --> "+EvalUtil.toString(result));
 		return ! success;
 	}
 	private List<CoreExpr> findExamples(CoreExpr base) {
@@ -95,12 +97,11 @@ public class TestRunCoreLibraryExamples {
 
 			}
 
-			public List<CoreExpr> slot(P2<Identifier,CoreExpr> slot) {
-				return slot._1().acceptVisitor(this);
+			public List<CoreExpr> slot(Slot slot) {
+				return slot.value.acceptVisitor(this);
 			}
 			@Override
-			public List<CoreExpr> objectLiteral(
-					ObjectLiteral n) {
+			public List<CoreExpr> objectLiteral(ObjectLiteral n) {
 				final List<List<CoreExpr>> methodExamples = n.getSlots().<List<CoreExpr>>map(this::slot);
 				return List.<CoreExpr>join(methodExamples);
 			}

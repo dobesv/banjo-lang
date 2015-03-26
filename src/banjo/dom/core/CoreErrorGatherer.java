@@ -4,7 +4,9 @@ import banjo.dom.BadExpr;
 import banjo.dom.token.Identifier;
 import banjo.parser.util.SourceFileRange;
 import fj.P2;
+import fj.P3;
 import fj.data.List;
+import fj.data.Option;
 
 public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	public static final CoreErrorGatherer INSTANCE = new CoreErrorGatherer();
@@ -19,8 +21,12 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
 	public List<BadExpr> objectLiteral(List<SourceFileRange> ranges,
-	        List<P2<Identifier, List<BadExpr>>> slots) {
-		return List.join(slots.map(P2.__2()));
+	        List<P3<Identifier, Option<Identifier>, List<BadExpr>>> slots) {
+		return List.join(slots.map(
+				p -> p._1().acceptVisitor(this)
+					.append(p._2().map(i -> i.acceptVisitor(this)).orSome(List.nil()))
+					.append(p._3())
+		));
 	}
 
 	@Override
@@ -63,18 +69,18 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	@Override
 	public List<BadExpr> let(List<SourceFileRange> sourceFileRanges,
 	        List<P2<Identifier, List<BadExpr>>> bindings, List<BadExpr> body) {
-		return List.join(bindings.map(p -> p._2())).append(body);
+		return List.join(bindings.map(p -> p._1().acceptVisitor(this).append(p._2()))).append(body);
 	}
 
 	@Override
     public List<BadExpr> functionLiteral(List<SourceFileRange> ranges,
-            List<Identifier> args, List<BadExpr> body) {
-	    return body;
+            List<Identifier> args, List<BadExpr> body, Option<Identifier> recursiveBindingName) {
+	    return body.append(recursiveBindingName.map(n -> n.acceptVisitor(this)).orSome(List.nil()));
     }
 
 	@Override
     public List<BadExpr> slotReference(List<SourceFileRange> ranges,
             List<BadExpr> object, Identifier slotName) {
-	    return object;
+	    return object.append(slotName.acceptVisitor(this));
     }
 }

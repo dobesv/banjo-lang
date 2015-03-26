@@ -1,15 +1,10 @@
 package banjo.parser.util;
 
-import static banjo.parser.util.Check.nonNull;
-
-
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
-
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import fj.Ord;
@@ -23,7 +18,8 @@ public class ListUtil {
 	@SafeVarargs
 	public static <T> List<T> concat(List<T> a, List<T> ... suffixes) {
 		if(suffixes.length == 0) {
-			if(a.size() == 1) return nonNull(Collections.singletonList(a.get(0)));
+			if(a.size() == 1)
+	            return Objects.requireNonNull(Collections.singletonList(a.get(0)));
 			return new ArrayList<T>(a);
 		}
 
@@ -32,7 +28,7 @@ public class ListUtil {
 			count += b.size();
 		}
 		if(count == 0)
-			return nonNull(Collections.<T>emptyList());
+	        return Objects.requireNonNull(Collections.<T>emptyList());
 		final ArrayList<T> result = new ArrayList<T>(count);
 		result.addAll(a);
 		for(final List<T> b : suffixes) {
@@ -43,7 +39,7 @@ public class ListUtil {
 
 	public static <T> List<T> append(List<T> head, T tail) {
 		if(head.isEmpty())
-			return nonNull(Collections.singletonList(tail));
+	        return Objects.requireNonNull(Collections.singletonList(tail));
 		final int count = head.size() + 1;
 		final ArrayList<T> result = new ArrayList<>(count);
 		result.addAll(head);
@@ -53,7 +49,7 @@ public class ListUtil {
 
 	public static <T> List<T> prepend(T head, List<T> tail) {
 		if(tail.isEmpty())
-			return nonNull(Collections.<T>singletonList(head));
+	        return Objects.requireNonNull(Collections.<T>singletonList(head));
 		final int count = tail.size() + 1;
 		final ArrayList<T> result = new ArrayList<>(count);
 		result.add(head);

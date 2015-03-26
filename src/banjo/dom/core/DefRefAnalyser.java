@@ -6,8 +6,10 @@ import banjo.parser.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
 import fj.P2;
+import fj.P3;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 
@@ -59,10 +61,10 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser objectLiteral(List<SourceFileRange> ranges,
-            List<P2<Identifier, DefRefAnalyser>> slots) {
-	    DefRefAnalyser x = unionList(slots.map(P2.__2()));
-	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P2.__1()));
-	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs).defs(List.single(Identifier.__SELF));
+            List<P3<Identifier, Option<Identifier>, DefRefAnalyser>> slots) {
+	    DefRefAnalyser x = unionList(slots.map(p -> p._3().defs(p._2().toList())));
+	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P3.__1()));
+	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs);
     }
 
 	@Override
@@ -124,8 +126,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser functionLiteral(List<SourceFileRange> ranges,
-            List<Identifier> args, DefRefAnalyser body) {
-	    return body.defs(args.cons(Identifier.__SELF));
+            List<Identifier> args, DefRefAnalyser body, Option<Identifier> recursiveBindingName) {
+	    return body.defs(args.append(recursiveBindingName.toList()));
     }
 
 	@Override
@@ -168,8 +170,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	 * @param bindings
 	 * @return
 	 */
-	public static List<BadExpr> problems(CoreExpr ast, TreeMap<Identifier, CoreExpr> bindings) {
+	public static List<BadExpr> problems(CoreExpr ast, List<P2<Identifier, CoreExpr>> bindings) {
 		// TODO ... actually only return problems from the given AST
-		return problems(new Let(bindings.toStream().toList(), ast));
+		return problems(new Let(bindings, ast));
     }
 }

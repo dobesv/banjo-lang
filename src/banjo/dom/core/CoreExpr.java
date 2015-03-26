@@ -1,6 +1,6 @@
 package banjo.dom.core;
 
-import banjo.desugar.SourceExprDesugarer;
+import banjo.desugar.SourceExprToCoreExpr;
 import banjo.dom.AbstractBadExpr;
 import banjo.dom.Expr;
 import banjo.dom.source.SourceExpr;
@@ -105,7 +105,7 @@ public interface CoreExpr extends Expr {
 	 * Parse a string to a CoreExpr
 	 */
 	public static CoreExpr fromString(String src) {
-		return new SourceExprDesugarer().desugar(SourceExpr.fromString(src)).getValue();
+		return new SourceExprToCoreExpr().desugar(SourceExpr.fromString(src)).getValue();
 	}
 
 	/**

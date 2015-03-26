@@ -1,6 +1,7 @@
 package banjo.parser.util;
 
-import static banjo.parser.util.Check.nonNull;
+import java.util.Objects;
+
 import fj.Ord;
 
 
@@ -54,7 +55,7 @@ public final class FileRange {
 			sb.append(" to ");
 			sb.append(this.end.toString(this.start));
 		}
-		return nonNull(sb.toString());
+		return Objects.requireNonNull(sb.toString());
 	}
 	public FilePos getStart() {
 		return this.start;

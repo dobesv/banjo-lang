@@ -42,9 +42,21 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 			int start = sb.length();
 			for(P2<Identifier, CoreExpr> binding : bindings) {
 				if(sb.length() != start) sb.append(", ");
-				binding._1().toSource(sb);
-				sb.append(" = ");
-				binding._2().toSource(sb, Precedence.COMMA);
+				final Identifier name = binding._1();
+				final CoreExpr value = binding._2();
+				// Local function def ?
+				name.toSource(sb);
+				if(value instanceof FunctionLiteral &&
+						((FunctionLiteral)value).recursiveBindingName.map(name::equals).orSome(false)) {
+					FunctionLiteral func = (FunctionLiteral)value;
+					sb.append('(');
+					ListUtil.insertCommas(sb, func.args, a -> a.toSource(sb, Precedence.COMMA));
+					sb.append(") = ");
+					func.body.toSource(sb, Operator.FUNCTION.getRightPrecedence());
+				} else {
+					sb.append(" = ");
+					value.toSource(sb, Precedence.COMMA);
+				}
 			}
 			sb.append(") => ");
 			body.toSource(sb, Operator.LET.getRightPrecedence());

@@ -16,7 +16,7 @@ import fj.data.List;
 
 public class StringLiteral extends AbstractAtom implements Atom {
 	public static final Ord<StringLiteral> ORD = Ord.stringOrd.comap((StringLiteral x) -> x.string);
-	private final String string;
+	public final String string;
 
 	public StringLiteral(List<SourceFileRange> ranges, String string) {
 		super(ranges);

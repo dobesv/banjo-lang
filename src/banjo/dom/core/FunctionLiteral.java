@@ -1,5 +1,6 @@
 package banjo.dom.core;
 
+import static java.util.Objects.requireNonNull;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
 import banjo.dom.token.Identifier;
@@ -15,6 +16,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	public final List<Identifier> args;
 	public final CoreExpr body;
+	public final Option<Identifier> recursiveBindingName;
 
 
 	private static final Ord<FunctionLiteral> _argsOrd = Identifier.LIST_ORD.comap((FunctionLiteral f) -> f.args);
@@ -31,18 +33,19 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	 * @param body Method body expression
 	 * @param postcondition Expression that checks postconditions on the result of the body expression
 	 */
-	public FunctionLiteral(List<SourceFileRange> ranges, List<Identifier> args, CoreExpr body) {
+	public FunctionLiteral(List<SourceFileRange> ranges, List<Identifier> args, CoreExpr body, Option<Identifier> recursiveBindingName) {
 		super(ranges.hashCode() + (31 * args.hashCode()) + (97 * body.hashCode()), ranges);
-		this.args = args;
-		this.body = body;
+		this.args = requireNonNull(args);
+		this.body = requireNonNull(body);
+		this.recursiveBindingName = requireNonNull(recursiveBindingName);
 	}
 
 	public FunctionLiteral(List<Identifier> args, CoreExpr body) {
-		this(List.nil(), args, body);
+		this(List.nil(), args, body, Option.none());
     }
 
 	public FunctionLiteral(Identifier arg, CoreExpr body) {
-		this(List.nil(), List.single(arg), body);
+		this(List.nil(), List.single(arg), body, Option.none());
     }
 
 	@Override
@@ -70,7 +73,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				}
 			});
 		} else {
-			P2<Option<Identifier>, CoreExpr> selfSplit = checkSelfName();
+			P2<Option<Identifier>, CoreExpr> selfSplit = checkRecursiveBinding();
 			return selfSplit._1().map(x -> x.toString()).orSome("")+"("+ListUtil.insertCommas(args)+") ↦ "+selfSplit._2().toString();
 		}
 	}
@@ -105,7 +108,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				}
 			});
 		} else {
-			P2<Option<Identifier>, CoreExpr> selfSplit = checkSelfName();
+			P2<Option<Identifier>, CoreExpr> selfSplit = checkRecursiveBinding();
 			selfSplit._1().forEach(x -> x.toSource(sb));
 			sb.append('(');
 			ListUtil.insertCommas(sb, args, a -> a.toSource(sb, Precedence.COMMA));
@@ -114,18 +117,9 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 		}
 	}
 
-	public P2<Option<Identifier>, CoreExpr> checkSelfName() {
-		final boolean selfBound = hasSelfName();
-		CoreExpr _body;
-		if(selfBound) {
-			return P.p(Option.some(((Let)body).bindings.head()._1()), ((Let)body).body);
-		} else {
-			return P.p(Option.none(), body);
-		}
+	public P2<Option<Identifier>, CoreExpr> checkRecursiveBinding() {
+		return P.p(recursiveBindingName, body);
 	}
-	private boolean hasSelfName() {
-	    return body instanceof Let && ((Let)body).bindings.isSingle() && ((Let)body).bindings.head()._2().eql(Identifier.__SELF);
-    }
 
 	public CoreExpr getBody() {
 		return this.body;
@@ -143,17 +137,17 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.functionLiteral(getSourceFileRanges(), args, body.acceptVisitor(visitor));
+		return visitor.functionLiteral(getSourceFileRanges(), args, body.acceptVisitor(visitor), recursiveBindingName);
 	}
 
 	public static FunctionLiteral function(Identifier arg, CoreExpr body) {
-		return new FunctionLiteral(SourceFileRange.EMPTY_LIST, List.single(arg), body);
+		return new FunctionLiteral(SourceFileRange.EMPTY_LIST, List.single(arg), body, null);
 	}
 
 	public FunctionLiteral withBody(CoreExpr body) {
 		if(body == this.body)
 			return this;
-	    return new FunctionLiteral(getSourceFileRanges(), args, body);
+	    return new FunctionLiteral(getSourceFileRanges(), args, body, null);
     }
 
 	/**
@@ -162,7 +156,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	 * <code> _it -> _it.something</code>
 	 */
 	public boolean isSelector() {
-		if(!args.isSingle())
+		if(!args.isSingle() || recursiveBindingName.isSome())
 			return false;
 		return args.map(a ->
 			body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
