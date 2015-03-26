@@ -21,4 +21,5 @@ public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T let(List<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
 	T functionLiteral(List<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> recursiveBindingName);
 	T slotReference(List<SourceFileRange> ranges, T object, Identifier slotName);
+	T baseFunctionRef(List<SourceFileRange> sourceFileRanges, Identifier name);
 }

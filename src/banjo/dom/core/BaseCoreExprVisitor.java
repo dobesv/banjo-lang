@@ -77,4 +77,9 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	public T slotReference(SlotReference slotReference) {
 	    return fallback();
 	}
+
+	@Override
+	public T baseFunctionRef(BaseFunctionRef baseFunctionRef) {
+	    return fallback();
+	}
 }

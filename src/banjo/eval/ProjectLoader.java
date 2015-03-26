@@ -13,6 +13,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.stream.Stream;
 
 import banjo.desugar.SourceExprToCoreExpr;
@@ -98,8 +100,29 @@ public class ProjectLoader {
 		}
     }
 
+	/**
+	 * List files in a folder.  The files are sorted with directories first, then in alphabetic case-insensitive order.
+	 */
 	public Stream<Path> listFilesInFolder(Path path) throws IOException {
-	    return Files.list(path);
+	    return Files.list(path).sorted(new Comparator<Path>() {
+	    	@Override
+	    	public int compare(Path o1, Path o2) {
+	    		int cmp = -Boolean.compare(Files.isDirectory(o1), Files.isDirectory(o2));
+	    		if(cmp != 0) return cmp;
+
+	    		for(Iterator<Path> i1 = o1.iterator(), i2 = o2.iterator(); i1.hasNext() || i2.hasNext(); ) {
+	    			if(!i1.hasNext()) return 1; // i2 has more elements
+	    			if(!i2.hasNext()) return -1; // i1 has more elements
+	    			final String s1 = i1.next().toString();
+					final String s2 = i2.next().toString();
+					cmp = s1.compareToIgnoreCase(s2);
+	    			if(cmp != 0) return cmp;
+	    			cmp = s1.compareTo(s2);
+	    			if(cmp != 0) return cmp;
+	    		}
+	    		return cmp;
+	    	}
+		});
     }
 
 	public CoreExpr loadSourceCode(Path path) {

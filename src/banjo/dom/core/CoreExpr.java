@@ -82,6 +82,10 @@ public interface CoreExpr extends Expr {
             public Ordering stringLiteral(StringLiteral stringLiteral) {
                 return StringLiteral.ORD.compare(stringLiteral, (StringLiteral)a2);
             }
+			@Override
+			public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
+			    return BaseFunctionRef.ORD.compare(baseFunctionRef, (BaseFunctionRef)a2);
+			}
 		});
 	}
 

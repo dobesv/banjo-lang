@@ -2,14 +2,13 @@ package banjo.desugar;
 
 import static fj.data.List.cons;
 import static fj.data.List.single;
-import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
-import banjo.desugar.SourceExprToCoreExpr.DesugarResult;
 import banjo.dom.BadExpr;
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.BaseFunctionRef;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
@@ -1237,7 +1236,7 @@ public class SourceExprToCoreExpr {
 
 	public DesugarResult<CoreExpr> baseFunction(UnaryOp op) {
 		Identifier functionName = expectIdentifier(op.getOperand());
-	    return withDesugared(op, (CoreExpr)new Identifier("^"+functionName));
+	    return withDesugared(op, new BaseFunctionRef(op.getSourceFileRanges(), functionName));
     }
 
 	public DesugarResult<CoreExpr> selector(UnaryOp op) {

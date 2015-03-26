@@ -19,4 +19,5 @@ public interface CoreExprVisitor<T> {
 	T let(Let let);
 	T functionLiteral(FunctionLiteral f);
 	T slotReference(SlotReference slotReference);
+	T baseFunctionRef(BaseFunctionRef baseFunctionRef);
 }

@@ -109,5 +109,9 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 	    return analyse(slotReference.object);
     }
 
-
+	@Override
+	public Set<Identifier> baseFunctionRef(BaseFunctionRef baseFunctionRef) {
+		// TODO We should actually report an error if the definition isn't a function self-reference
+	    return analyse(baseFunctionRef.name);
+	}
 }

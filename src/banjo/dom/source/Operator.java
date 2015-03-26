@@ -33,7 +33,7 @@ public enum Operator {
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
-	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION),
+	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	OPT_PROJECTION(".?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
@@ -78,7 +78,7 @@ public enum Operator {
 
 	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 
-	LET("=>", 0x21D2, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR, Precedence.COND, Associativity.NA),
+	LET("=>", 0x21D2, OperatorType.BUILTIN, Position.INFIX, Precedence.LET, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
 	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 

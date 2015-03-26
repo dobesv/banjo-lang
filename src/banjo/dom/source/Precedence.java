@@ -20,12 +20,14 @@ public enum Precedence {
 	MATCH, // #, #?
 	LAZY_AND, // &&
 	LAZY_OR, // ||
+	LET, // =>
 	ALTERNATIVE, // |||
 	TERNARY, // ? :
 	COLON, // Key/value pair
 	BULLET, // Bullets list
 	FUNCTION, // ->
-	ASSIGNMENT, // let, =, +=, *=, ...
+	EXTEND, // @
+	ASSIGNMENT, // =, +=, *=, ...
 	COND, // '=>' implication / cond
 	COMMA, // ',' "sequence operator"
 	SEMICOLON; // ';' "sequence operator"

@@ -83,4 +83,10 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
             List<BadExpr> object, Identifier slotName) {
 	    return object.append(slotName.acceptVisitor(this));
     }
+
+	@Override
+	public List<BadExpr> baseFunctionRef(
+	        List<SourceFileRange> sourceFileRanges, Identifier name) {
+	    return name.acceptVisitor(this);
+	}
 }

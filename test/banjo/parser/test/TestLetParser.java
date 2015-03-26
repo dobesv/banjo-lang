@@ -31,5 +31,6 @@ public class TestLetParser {
 
 	@Test public void testDocString() { test("{ x = (\"bla\") => true }", "{x = ((_ = \"bla\") => true)}"); }
 
-
+	@Test public void noParensDocString1() { test("\"bla\" => true", "(_ = \"bla\") => true"); }
+	@Test public void noParensDocString2() { test("\"bla\" =>\ntrue", "(_ = \"bla\") => true"); }
 }

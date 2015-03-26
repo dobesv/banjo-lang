@@ -16,7 +16,7 @@ public class TestSimpleExpressions {
 		final Object value = EvalUtil.force(evaluator.evaluate(CoreExpr.fromString(src)));
 		if(!EvalUtil.isDefined(value)) {
 			System.out.println("FAILURE: "+value);
-			return false;
+			throw new AssertionError("FAILURE: "+value, (value instanceof Throwable) ? (Throwable) value : null);
 		} else {
 			System.out.println("Result: "+EvalUtil.toString(value));
 			return EvalUtil.isTruthy(value);

@@ -131,6 +131,12 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
+	public DefRefAnalyser baseFunctionRef(
+	        List<SourceFileRange> sourceFileRanges, Identifier name) {
+	    return name.acceptVisitor(this);
+	}
+
+	@Override
     public DefRefAnalyser slotReference(List<SourceFileRange> ranges, DefRefAnalyser object, Identifier slotName) {
 		List<Identifier> slotRefs = object.slotRefs.snoc(slotName);
 		return new DefRefAnalyser(object.unresolvedLocalRefs, object.localRefs, object.localDefs, slotRefs, object.slotDefs);

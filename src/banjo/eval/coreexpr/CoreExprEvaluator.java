@@ -2,6 +2,7 @@ package banjo.eval.coreexpr;
 
 import static java.util.Objects.requireNonNull;
 import banjo.dom.core.BadCoreExpr;
+import banjo.dom.core.BaseFunctionRef;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.CoreExprVisitor;
@@ -111,8 +112,23 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 				.orSome(P.lazy(u -> unboundIdentifier(id)));
     }
 
+	@Override
+	public Object baseFunctionRef(BaseFunctionRef baseFunctionRef) {
+	    final Identifier id = baseFunctionRef.name;
+		final Option<Binding> binding = getBinding(id);
+		if(binding.isNone())
+			return unboundIdentifier(id);
+		return binding.filter(b -> b.baseFunction != null)
+	    		.map(b -> b.baseFunction)
+	    		.orSome(P.lazy(u -> notAFunctionSelfName(id)));
+	}
+
 	protected Object unboundIdentifier(Identifier id) {
 	    return FunctionInstance.addTrace(new IllegalStateException(String.format("Unknown variable '%s'", id.id)), id);
+    }
+
+	protected Object notAFunctionSelfName(Identifier id) {
+	    return FunctionInstance.addTrace(new IllegalStateException(String.format("Variable '%s' is not a function's self-recursive name", id.id)), id);
     }
 
 	protected Option<Binding> getBinding(Identifier id) {
