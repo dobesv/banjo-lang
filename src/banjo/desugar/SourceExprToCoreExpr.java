@@ -25,6 +25,7 @@ import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.BinaryOp;
 import banjo.dom.source.EmptyExpr;
 import banjo.dom.source.Operator;
+import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.source.UnaryOp;
@@ -245,7 +246,7 @@ public class SourceExprToCoreExpr {
 	}
 
 	protected static Identifier concatNameParts(Identifier prefix, Identifier suffix) {
-		return new Identifier(prefix.getSourceFileRanges().append(suffix.getSourceFileRanges()), prefix.id + " _ " + suffix.id);
+		return new Identifier(prefix.getSourceFileRanges().append(suffix.getSourceFileRanges()), (prefix.id + " _ " + suffix.id).trim());
 	}
 	protected static Identifier concatNameParts(Identifier prefix, Option<Identifier> nameSuffix) {
         return nameSuffix.map((suf) -> concatNameParts(prefix, suf)).orSome(prefix);
@@ -533,6 +534,18 @@ public class SourceExprToCoreExpr {
 			 * CALL   c
 			 *   \    /
 			 *  JUXTAPOSITION
+			 * </pre>
+			 *
+			 * ex:
+			 *
+			 * <pre>
+			 * (b) c (d)
+			 *
+			 * (UNARY PAREN)    c
+			 *            \    /
+			 *            JUXTAPOSITION    d
+			 *                       \    /
+			 *                        CALL
 			 * </pre>
 			 */
 			private DesugarResult<Slot> mixfixMethodPart(final BinaryOp juxtaposition) {
@@ -1133,8 +1146,10 @@ public class SourceExprToCoreExpr {
 				return extend(op);
 
 			case JUXTAPOSITION:
-			case NEWLINE:
 				return juxtaposition(op);
+
+			case NEWLINE:
+				return call(op);
 
 			case LET:
 				return let(op);
@@ -1472,66 +1487,107 @@ public class SourceExprToCoreExpr {
 
 
 	private DesugarResult<CoreExpr> juxtaposition(final BinaryOp op) {
-		return op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-			private DesugarResult<CoreExpr> nonCallJuxtaposition() {
+		return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			private DesugarResult<CoreExpr> nonMixfixCall() {
 				return SourceExprToCoreExpr.this.call(op);
 			}
 
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return nonCallJuxtaposition();
+				return nonMixfixCall();
 			}
-			@Override
-			public DesugarResult<CoreExpr> binaryOp(final BinaryOp opLeft) {
-				if(opLeft.getOperator() == Operator.CALL) {
-					return op.getRight().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
-						@Override
-						public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-							return nonCallJuxtaposition();
+
+			public SourceExprToCoreExpr.DesugarResult<CoreExpr> identifier(Identifier keyOnRight) {
+				return op.getLeft().acceptVisitor(new SourceExprVisitor<DesugarResult<CoreExpr>>() {
+					private DesugarResult<CoreExpr> makeMixfixCall(final BinaryOp opLeft) {
+		                return call(opLeft).mapValue(call -> addNamePartToCall(call, keyOnRight));
+		            }
+
+					@Override
+					public DesugarResult<CoreExpr> unaryOp(UnaryOp opLeft) {
+						if(opLeft.getOperator() == Operator.PARENS) {
+							return infixNameJuxtaposition(opLeft);
 						}
+					    return nonMixfixCall();
+					}
 
-						public SourceExprToCoreExpr.DesugarResult<CoreExpr> identifier(Identifier keyOnRight) {
-							Operator leftOp = opLeft.getOperator();
-							boolean callNext = leftOp == Operator.BASE_SLOT || leftOp == Operator.OPT_BASE_SLOT;
-							boolean optional = leftOp == Operator.OPT_PROJECTION || leftOp == Operator.OPT_BASE_SLOT;
-							assert callNext == false;
-							assert optional == false;
-							//return call(opLeft, keyOnRight, List.nil());
-							DesugarResult<CoreExpr> leftCall = call(opLeft);
-							return leftCall.mapValue(call -> addNamePartToCall(call, keyOnRight));
+					private DesugarResult<CoreExpr> infixNameJuxtaposition(SourceExpr arg) {
+	                    return binaryOp(new BinaryOp(Operator.CALL, new Identifier(""), arg));
+                    }
+
+					@Override
+					public DesugarResult<CoreExpr> binaryOp(final BinaryOp opLeft) {
+						if(opLeft.getOperator() == Operator.CALL || opLeft.getOperator() == Operator.JUXTAPOSITION) {
+							return makeMixfixCall(opLeft);
+						} else {
+							return nonMixfixCall();
 						}
+					}
 
-						private CoreExpr addNamePartToCall(CoreExpr value, Identifier keyOnRight) {
-	                        return value.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
-	                        	@Override
-	                        	public CoreExpr call(Call n) {
-	                        		CoreExpr newTarget = addNamePartToCall(n.target, keyOnRight);
-	                        		if(newTarget != n.target)
-	                        			return new Call(n.getSourceFileRanges(), newTarget, n.args);
-	                        	    return super.call(n);
-	                        	}
+					@Override
+                    public DesugarResult<CoreExpr> stringLiteral(StringLiteral x) {
+	                    return infixNameJuxtaposition(x);
+                    }
 
-	                        	@Override
-	                        	public CoreExpr identifier(Identifier n) {
-	                        	    return concatNameParts(n, keyOnRight);
-	                        	}
+					@Override
+                    public DesugarResult<CoreExpr> numberLiteral(NumberLiteral x) {
+	                    return infixNameJuxtaposition(x);
+                    }
 
-	                        	@Override
-	                        	public CoreExpr slotReference(SlotReference n) {
-	                        	    return new SlotReference(n.getSourceFileRanges(), n.object, concatNameParts(n.slotName, keyOnRight));
-	                        	}
+					@Override
+                    public DesugarResult<CoreExpr> identifier(Identifier identifier) {
+						return nonMixfixCall();
+                    }
 
-	                        	@Override
-	                        	public CoreExpr fallback() {
-	                        	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
-	                        	}
-							});
-                        }
-					});
-				} else {
-					return nonCallJuxtaposition();
-				}
+					@Override
+                    public DesugarResult<CoreExpr> operator(OperatorRef operatorRef) {
+						return nonMixfixCall();
+                    }
+
+					@Override
+                    public DesugarResult<CoreExpr> badSourceExpr(BadSourceExpr badSourceExpr) {
+						return nonMixfixCall();
+                    }
+
+					@Override
+                    public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
+	                    return expr(op.getRight()); // Not sure if this is even possible, but just in case ...
+                    }
+
+					@Override
+                    public DesugarResult<CoreExpr> badIdentifier(BadIdentifier badIdentifier) {
+	                    return nonMixfixCall();
+                    }
+
+				});
 			}
+			private CoreExpr addNamePartToCall(CoreExpr value, Identifier keyOnRight) {
+                return value.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
+                	@Override
+                	public CoreExpr call(Call n) {
+                		CoreExpr newTarget = addNamePartToCall(n.target, keyOnRight);
+                		if(newTarget != n.target)
+                			return new Call(n.getSourceFileRanges(), newTarget, n.args);
+                	    return super.call(n);
+                	}
+
+                	@Override
+                	public CoreExpr identifier(Identifier n) {
+                	    return concatNameParts(n, keyOnRight);
+                	}
+
+                	@Override
+                	public CoreExpr slotReference(SlotReference n) {
+                	    return new SlotReference(n.getSourceFileRanges(), n.object, concatNameParts(n.slotName, keyOnRight));
+                	}
+
+                	@Override
+                	public CoreExpr fallback() {
+                	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
+                	}
+				});
+            }
+
 		});
 	}
 
