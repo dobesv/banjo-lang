@@ -7,6 +7,8 @@ import java.math.BigInteger;
 
 
 
+
+
 import banjo.dom.token.TokenVisitor;
 import banjo.parser.util.FilePos;
 import banjo.parser.util.FileRange;
@@ -659,28 +661,46 @@ public class SourceCodeScanner {
 				isInteger = true;
 			}
 		}
+
+		final String text = in.readStringFrom(this.tokenStartPos);
 		final int scale = digitsRightOfDecimalPoint - exp; // TODO Check for overflow on the scale; we might have to restrict scale to 32 bits
 		Number number;
-		if(intValBig == null) {
+		try {
 			if(negative) {
 				intValLong = -intValLong;
+				if(intValBig != null) intValBig = intValBig.negate();
 			}
-			if(isInteger) {
-				number = Long.valueOf(intValLong);
+			if("L".equalsIgnoreCase(suffix) || "i64".equalsIgnoreCase(suffix)) {
+				if(!isInteger) throw new ArithmeticException("Integer constant has decimal point: "+text);
+				number = intValBig == null ? intValLong : intValBig.longValueExact();
+			} else if("i".equalsIgnoreCase(suffix) || "i32".equalsIgnoreCase(suffix)) {
+				if(!isInteger) throw new ArithmeticException("Integer constant has decimal point: "+text);
+				number = intValBig == null ? Math.toIntExact(intValLong) : intValBig.intValueExact();
+			} else if("f".equalsIgnoreCase(suffix) || "f32".equalsIgnoreCase(suffix)) {
+				number = (intValBig == null ? BigDecimal.valueOf(intValLong, scale) : new BigDecimal(intValBig, scale)).floatValue();
+				if(!Float.isFinite(number.floatValue()))
+					throw new ArithmeticException("Number too large for float: "+text);
+			} else if("d".equalsIgnoreCase(suffix) || "f64".equalsIgnoreCase(suffix)) {
+				number = (intValBig == null ? BigDecimal.valueOf(intValLong, scale) : new BigDecimal(intValBig, scale)).doubleValue();
+				if(!Double.isFinite(number.doubleValue()))
+					throw new ArithmeticException("Number too large for double: "+text);
+			} else if(intValBig == null) {
+				if(isInteger) {
+					number = Long.valueOf(intValLong);
+				} else {
+					number = BigDecimal.valueOf(intValLong, scale);
+				}
 			} else {
-				number = BigDecimal.valueOf(intValLong, scale);
+				if(isInteger) {
+					number = intValBig;
+				} else {
+					number = new BigDecimal(intValBig, scale);
+				}
 			}
-		} else {
-			if(negative) {
-				intValBig = intValBig.negate();
-			}
-			if(isInteger) {
-				number = intValBig;
-			} else {
-				number = new BigDecimal(intValBig, scale);
-			}
+		} catch(ArithmeticException e) {
+			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), e.getMessage());
+			number = Long.valueOf(0);
 		}
-		final String text = in.readStringFrom(this.tokenStartPos);
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
 		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, number), suffix));
 	}
