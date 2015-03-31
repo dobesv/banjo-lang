@@ -34,7 +34,9 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	public SlotReference(CoreExpr object, Identifier slotName) {
 		this(SourceFileRange.EMPTY_LIST, object, slotName);
     }
-
+	public SlotReference(CoreExpr object, Identifier slotName, boolean base) {
+		this(SourceFileRange.EMPTY_LIST, object, slotName, base);
+	}
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.slotReference(this);
