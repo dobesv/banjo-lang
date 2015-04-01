@@ -93,5 +93,9 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	    return Option.fromNull(Operator.fromMethodName(slotName, false));
     }
 
+	public static CoreExpr base(Identifier selfBinding, Identifier name) {
+	    return new SlotReference(selfBinding, name, true);
+    }
+
 
 }

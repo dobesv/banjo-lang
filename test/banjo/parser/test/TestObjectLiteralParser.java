@@ -48,8 +48,8 @@ public class TestObjectLiteralParser {
 
 	@Test public void specialCharsKeys() { parse("{a b=1,b\\.c=2,\\-f=3}\n", "{a b = 1, b\\.c = 2, \\-f = 3}"); }
 
-	//	@Test public void table1() { parse("{\n#::a,b,c\nabc:(1,2,3)\n}", "{abc = {a = 1, b = 2, c = 3}}"); }
-	//	@Test public void table2() { parse("{\n#::a,b\n\"12\":(1,2)\n\"34\":(3,4)\n\"56\":(5,6)\n}\n", "{\"12\" = {a = 1, b = 2}, \"34\" = {a = 3, b = 4}, \"56\" = {a = 5, b = 6}}"); }
+	@Test public void slotExt1() { parse("{a @= b}", "{__tmp.a = __tmp:a @ b}"); }
+
 
 	private void abc(String source, int expectedErrorCount) {
 		parse(source, "{a = 1, b = 2, c = 3}");

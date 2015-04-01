@@ -38,12 +38,13 @@ public class TestCallParser {
 	@Test public void testJuxtaposition10() { call("a.b {foo=1} {bar}", "a.b({foo = 1})({bar})", 1); }
 
 	@Test public void testMixfixFunc1() { call ("a(1)b(2)c(3)", "a _ b _ c(1)(2)(3)", 1); }
-	@Ignore @Test public void testMixfixFunc2() { call ("a 1 b 2 c 3", "a _ b _ c(1)(2)(3)", 1); }
+	@Test public void testMixfixFunc2() { call ("a 1 b 2 c 3", "a _ b _ c(1)(2)(3)", 1); }
 	@Test public void testMixfixFunc3() { call ("if(x) then(y) else(z)", "if _ then _ else(x)(y)(z)", 1); }
 	@Test public void testMixfixFunc4() { call ("if(x) then(y) else\n(z)", "if _ then _ else(x)(y)(z)", 1); }
 	@Test public void testMixfixFunc5() { call ("if(x) then(y) else\nz", "if _ then _ else(x)(y)(z)", 1); }
 	@Test public void testMixfixFunc6() { call ("if(x) then(y) else\nif(xx) then (yy) else\nzz", "if _ then _ else(x)(y)(if _ then _ else(xx)(yy)(zz))", 1); }
 	@Test public void testMixfixMethod1() { call ("x.a(1)b(2)c(3)", "x.a _ b _ c(1)(2)(3)", 1); }
+	@Test public void testMixfixEmptyPrefix() { call ("(foo) is an instance of (bar)", "_ is an instance of(foo)(bar)", 1); }
 
 	@Test public void testPipeTo() { call("x |> y", "y(x)", 1); }
 	@Test public void testPipeFrom() { call("x <| y", "x(y)", 1); }

@@ -63,6 +63,19 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 		}
 	}
 
+	public static class InvalidProjection extends BadSourceExpr {
+
+		public InvalidProjection(List<SourceFileRange> ranges, String message,
+                Object... args) {
+	        super(ranges, message, args);
+        }
+
+		public InvalidProjection(SourceFileRange sfr, String message) {
+	        super(sfr, message);
+        }
+
+	}
+
 	protected BadSourceExpr(List<SourceFileRange> ranges, String message, Object ... args) {
 		super(ranges, message, args);
 	}

@@ -181,17 +181,20 @@ public class SourceExprToCoreExpr {
 	 * @param optional TODO
 	 */
 	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr, boolean base, boolean optional) {
-		final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
-		return objectDs.projection(sourceExpr, objectDs.getValue(), projectionExpr, base, optional);
-	}
-
-	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final CoreExpr objectCoreExpr, final SourceExpr projectionExpr, boolean base, boolean optional) {
 		return projectionExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> identifier(Identifier id) {
-				return slotReference(sourceExpr, objectCoreExpr, id, base);
+				final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
+				return objectDs.slotReference(sourceExpr, objectDs.getValue(), id, base);
 			}
 
+			@Override
+			public DesugarResult<CoreExpr> unaryOp(UnaryOp op) {
+				if(op.getOperator() == Operator.OBJECT_LITERAL) {
+					return objectLiteralProjection(sourceExpr, objectExpr, flattenCommas(op.getOperand()));
+				}
+			    return super.unaryOp(op);
+			}
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
 				return withDesugared(sourceExpr, new BadCoreExpr(sourceExpr.getSourceFileRanges(), "Expected identifier after '.'"));
@@ -199,6 +202,63 @@ public class SourceExprToCoreExpr {
 
 		});
 	}
+
+	/**
+	 * Desugaring like:
+	 *
+	 * <ul>
+	 * <li><code>a.{b} == {b = a.b}</code></li>
+	 * <li><code>a.{b, c} == {b = a.b, c=a.c}</code></li>
+	 * <li><code>a.{b=c} == {b = a.c}</code></li>
+	 * <li><code>a.{b=c, d=c} == {b = a.c, d = a.c}</code></li>
+	 * </ul>
+	 *
+	 */
+	protected DesugarResult<CoreExpr> objectLiteralProjection(SourceExpr sourceExpr, SourceExpr objectExpr, List<SourceExpr> projections) {
+		final BaseSourceExprVisitor<SourceExpr> fieldVisitor = new BaseSourceExprVisitor<SourceExpr>() {
+			@Override
+			public SourceExpr fallback(SourceExpr other) {
+			    return new BadSourceExpr.InvalidProjection(other.getSourceFileRanges(), "Expected projection like x or x = y");
+			}
+
+			@Override
+			public SourceExpr identifier(Identifier identifier) {
+				// Translate `obj.{x}` to `{x = obj.x}`
+				return mapping(identifier, identifier, identifier);
+			}
+
+			@Override
+			public SourceExpr binaryOp(BinaryOp op) {
+				if(op.getOperator() == Operator.ASSIGNMENT) {
+					// Translate `obj.{x = y}` to `{x = obj.y}`
+					return mapping(op, op.getLeft(), op.getRight());
+				} else {
+				    return new BadSourceExpr.InvalidProjection(op.getSourceFileRanges(), "Expected assignment");
+				}
+			}
+
+			private SourceExpr mapping(SourceExpr op,
+                    final SourceExpr left, final SourceExpr right) {
+				SourceExpr rightSide = right.acceptVisitor(new BaseSourceExprVisitor<SourceExpr>() {
+					@Override
+					public SourceExpr fallback(SourceExpr other) {
+					    return new BinaryOp(Operator.PROJECTION, objectExpr, other);
+					}
+
+					@Override
+					public SourceExpr binaryOp(BinaryOp op) {
+						if(op.getOperator().isInfix() &&
+								op.getOperator().isLeftAssociative()) {
+							return new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), op.getLeft().acceptVisitor(this), op.getRight());
+						}
+					    return super.binaryOp(op);
+					}
+				});
+	            return new BinaryOp(op.getSourceFileRanges(), Operator.ASSIGNMENT, List.nil(), left, rightSide);
+            }
+		};
+		return objectLiteral(sourceExpr, projections.map(p -> p.acceptVisitor(fieldVisitor)));
+    }
 
 	protected DesugarResult<CoreExpr> slotReference(final SourceExpr sourceExpr,
             final CoreExpr targetObjectExpr, Identifier slotName, boolean base) {
@@ -219,7 +279,7 @@ public class SourceExprToCoreExpr {
 
 	protected DesugarResult<CoreExpr> mapProjection(SourceExpr op, CoreExpr target,	SourceExpr projection, boolean callNext, boolean optional) {
 		final Identifier argName = new Identifier("//compiler/map projection/x");
-		final DesugarResult<CoreExpr> projectionDs = projection(op, (CoreExpr)argName, projection, false, optional);
+		final DesugarResult<CoreExpr> projectionDs = projection(op, argName, projection, false, optional);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
 		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, "map", projectFuncDs.getValue()));
 		return mapCallDs;
@@ -419,13 +479,13 @@ public class SourceExprToCoreExpr {
 			private DesugarResult<List<Slot>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
 				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
 				// TODO Apply combiningOp operator ...
-				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Identifier.TRUE, slots);
+				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Identifier.TRUE, slots, combiningOp);
 			}
 
 
 			@Override
 			public DesugarResult<List<Slot>> fallback(SourceExpr other) {
-				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots);
+				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots, null);
 			}
 		}));
 	}
@@ -444,11 +504,19 @@ public class SourceExprToCoreExpr {
 	Identifier opMethodName(Operator op) {
 		return opMethodName(NOT_FROM_SOURCE, op);
 	}
-	protected DesugarResult<List<Slot>> addMethod(final SourceExpr methodSourceExpr, final SourceExpr signatureSourceExpr, final CoreExpr body, final CoreExpr postcondition, final List<Slot> methods) {
 
+	protected Slot applyCombiningOp(Slot slot, Operator combiningOp) {
+		if(combiningOp == null)
+			return slot;
+		Identifier selfBinding = slot.selfBinding.orSome(Identifier.__TMP);
+		CoreExpr newValue = Call.binaryOp(SlotReference.base(selfBinding, slot.name), combiningOp, slot.value);
+		return new Slot(slot.name, Option.some(selfBinding), newValue);
+	}
+
+	protected DesugarResult<List<Slot>> addMethod(final SourceExpr methodSourceExpr, final SourceExpr signatureSourceExpr, final CoreExpr body, final CoreExpr postcondition, final List<Slot> methods, Operator combiningOp) {
 		final DesugarResult<List<Slot>> result = method(
                 methodSourceExpr, signatureSourceExpr, body, postcondition
-        ).mapValue(methods::cons);
+        ).mapValue(slot -> applyCombiningOp(slot, combiningOp)).mapValue(methods::cons);
 		return result;
 	}
 
@@ -755,7 +823,7 @@ public class SourceExprToCoreExpr {
 				final SourceExpr cellSourceExpr = Objects.requireNonNull(p._2());
 				final List<Slot> tailMethods = ds.getValue();
 				final DesugarResult<CoreExpr> cellDs = ds.expr(cellSourceExpr);
-				return cellDs.addMethod(null, headingExpr, cellDs.getValue(), Identifier.TRUE, tailMethods);
+				return cellDs.addMethod(null, headingExpr, cellDs.getValue(), Identifier.TRUE, tailMethods, null);
 			}
 		}, this.withValue(List.nil()));
 
@@ -1259,9 +1327,9 @@ public class SourceExprToCoreExpr {
 		P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprToCoreExpr>>() {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> identifier(Identifier field) {
-				DesugarResult<CoreExpr> preDs = projection(op, (CoreExpr)__tmp, field, false, false);
+				DesugarResult<CoreExpr> preDs = projection(op, __tmp, field, false, false);
 				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, (CoreExpr)__tmp, field, false, false);
+				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, __tmp, field, false, false);
 				CoreExpr body = bodyDs.getValue();
 				return P.p(precondition, body, bodyDs);
 			}

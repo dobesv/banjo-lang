@@ -141,13 +141,13 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static FunctionLiteral function(Identifier arg, CoreExpr body) {
-		return new FunctionLiteral(SourceFileRange.EMPTY_LIST, List.single(arg), body, null);
+		return new FunctionLiteral(SourceFileRange.EMPTY_LIST, List.single(arg), body, Option.none());
 	}
 
 	public FunctionLiteral withBody(CoreExpr body) {
 		if(body == this.body)
 			return this;
-	    return new FunctionLiteral(getSourceFileRanges(), args, body, null);
+	    return new FunctionLiteral(getSourceFileRanges(), args, body, Option.none());
     }
 
 	/**
