@@ -3,6 +3,7 @@ package banjo.dom.source;
 import static banjo.dom.Consts.CODEPOINT_NONE;
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import banjo.dom.ParenType;
@@ -10,16 +11,13 @@ import banjo.dom.token.Identifier;
 import fj.Ord;
 
 public enum Operator {
-	// Nullary operator
-	EMPTY("", OperatorType.BUILTIN, Position.NA, Precedence.ATOM),
-
 	// Unary operators
 	PLUS("+", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	NEGATE("-", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	COMPLEMENT("~", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
-	NOT("!", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
-	LIST_ELEMENT("*", 0x2022, OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
-	NULLARY_FUNCTION_LITERAL("->", 0x21a6, OperatorType.BUILTIN, Position.PREFIX, Precedence.FUNCTION),
+	NOT("¬ !", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
+	LIST_ELEMENT("• *",OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
+	NULLARY_FUNCTION_LITERAL("↦ ->", OperatorType.BUILTIN, Position.PREFIX, Precedence.FUNCTION),
 	TABLE_HEADER("#::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	TABLE_ROW(":::", OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
@@ -28,56 +26,58 @@ public enum Operator {
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
 	SELECTOR(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
-	BASE_FUNCTION("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
+	BASE_FUNCTION("↑ ^", OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
-	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
+	EXTEND("Φ @", OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	OPT_BASE_SLOT(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
 	POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
-	MUL("*", 0x00D7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
-	DIV("/", 0x00F7, OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
+	MUL("× *", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
+	DIV("÷ /", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	ADD("+", OperatorType.METHOD, Position.INFIX, Precedence.ADDSUB),
 	SUB("-", OperatorType.METHOD, Position.INFIX, Precedence.ADDSUB),
 	GT(">", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
-	GE(">=", 0x2265, OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
+	GE("≥ >=", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
 	LT("<", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
-	LE("<=", 0x2264, OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
+	LE("≤ <=", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
-	NEQ("!=", 0x2260, OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
+	NEQ("≠ !=", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
-	MEMBER_OF("<++", 0x2208, OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
-	INTERSECT("&", 0x2229, OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
-	XOR("><", 0x22BB, OperatorType.METHOD, Position.INFIX, Precedence.XOR),
-	UNION("|", 0x222A, OperatorType.METHOD, Position.INFIX, Precedence.UNION),
-	LOGICAL_AND("&&", 0x2227, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
-	LOGICAL_OR("||", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
-	FALLBACK("?:", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+	MEMBER_OF("∈ <++", OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
+	INTERSECT("∩ &", OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
+	XOR("⊻ ><", OperatorType.METHOD, Position.INFIX, Precedence.XOR),
+	UNION("∪ |", OperatorType.METHOD, Position.INFIX, Precedence.UNION),
+	LOGICAL_AND("∧ &&", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_AND),
+	LOGICAL_OR("∨ ||", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+	FALLBACK("?:", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 
-	PIPE_TO("|>", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
-	PIPE_FROM("<|", 0x2228, OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+	PIPE_TO("|>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
+	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_RIGHT(">>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 
-	PRECONDITION("&&&", 0x2227, OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
-	FUNCTION("->", 0x21A6, OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
+	PRECONDITION("&&&", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
+	FUNCTION("↦ ->", OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
-	EXTEND_METHOD("@=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	EXTEND_METHOD("Φ= @=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 	ADD_METHOD("+=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 	SUB_METHOD("-=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	MUL_METHOD("*=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	DIVID_METHOD("/=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	UNION_METHOD("|=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	AND_METHOD("&&=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
-	OR_METHOD("||=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	MUL_METHOD("×= *=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	DIVID_METHOD("÷= /=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	UNION_METHOD("∪= |=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	AND_METHOD("∧= &&=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
+	OR_METHOD("∨= ||=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 
-	MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
+	// MONAD_EXTRACT("<-", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 
-	LET("=>", 0x21D2, OperatorType.BUILTIN, Position.INFIX, Precedence.LET, Precedence.COND, Associativity.NA),
+	LET("⇒ =>", OperatorType.BUILTIN, Position.INFIX, Precedence.LET, Precedence.COND, Associativity.NA),
 	COMMA(",", OperatorType.BUILTIN, Position.INFIX, Precedence.COMMA, Associativity.RIGHT),
-	NEWLINE("(nl)", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
+	NEWLINE("(nl) \n", OperatorType.BUILTIN, Position.INFIX, Precedence.SEMICOLON, Associativity.RIGHT),
 
 	JUXTAPOSITION("~~~JUXTAPOSITION~~~", OperatorType.BUILTIN, Position.INFIX, Precedence.JUXTAPOSITION, Precedence.SUFFIX, Associativity.LEFT),
 
@@ -89,9 +89,6 @@ public enum Operator {
 
 	public static enum Associativity { LEFT, RIGHT, NA; }
 	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
-	public final String op;
-	public final String unicodeOp;
-	public final int codePoint; // -1 if no special unicode character
 	public final Precedence leftPrecedence; // For binary operators only
 	public final Precedence precedence;
 	public final ParenType parenType; // nullable
@@ -100,11 +97,10 @@ public enum Operator {
 	public final String methodName;
 	public final Identifier methodNameKey;
 	public final OperatorType operatorType;
+	public final String[] ops;
 
-	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
-		this.op = requireNonNull(op);
-		this.codePoint = codePoint;
-		this.unicodeOp = codePoint > 0 ? String.copyValueOf(Character.toChars(codePoint)) : op;
+	Operator(String ops, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
+		this.ops = ops.split(" ");
 		this.operatorType = requireNonNull(operatorType);
 		this.leftPrecedence = requireNonNull(leftPrecedence);
 		this.precedence = requireNonNull(precedence);
@@ -115,15 +111,14 @@ public enum Operator {
 		this.methodNameKey = this.methodName == null ? null : new Identifier(this.methodName);
 	}
 
-	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
-		this(op, codePoint, operatorType, parenType, position, associativity, leftPrecedence, precedence,
-				defaultOpMethodName(op, position, associativity));
+	Operator(String ops, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
+		this(ops, operatorType, parenType, position, associativity, leftPrecedence, precedence,
+				defaultOpMethodName(ops, position, associativity));
 	}
 
-	private static String defaultOpMethodName(String op, Position position,
+	private static String defaultOpMethodName(String ops, Position position,
             Associativity associativity) {
-		if(op.startsWith("_ ") || op.endsWith(" _"))
-			return op;
+		String op = ops.split(" ", 2)[0];
 		switch(position) {
 		case PREFIX:
 			return "_ "+op;
@@ -136,16 +131,6 @@ public enum Operator {
 		}
     }
 
-	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence precedence) {
-		this(op, codePoint, operatorType, parenType, position, associativity, precedence, precedence);
-	}
-	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Precedence p) {
-		this(op, codePoint, operatorType, parenType, position, Associativity.NA, p);
-	}
-	Operator(String op, int codePoint, OperatorType operatorType, Position position, Precedence p) {
-		this(op, codePoint, operatorType, null, position, defaultAssociativity(position), p);
-	}
-
 	public static Associativity defaultAssociativity(Position position) {
 		switch(position) {
 		case PREFIX: return Associativity.RIGHT;
@@ -155,26 +140,20 @@ public enum Operator {
 		}
 	}
 
-	Operator(String op, OperatorType operatorType, Position position, Precedence p) {
-		this(op, CODEPOINT_NONE, operatorType, position, p);
+	Operator(String ops, OperatorType operatorType, Position position, Precedence p) {
+		this(ops, operatorType, position, p, defaultAssociativity(position));
 	}
-	Operator(String op, int cp, OperatorType operatorType, Position position, Precedence p, Associativity associativity) {
-		this(op, cp, operatorType, null, position, associativity, p);
+	Operator(String ops, OperatorType operatorType, Position position, Precedence precedence, Associativity associativity) {
+		this(ops, operatorType, position, precedence, precedence, associativity);
 	}
-	Operator(String op, OperatorType operatorType, Position position, Precedence p, Associativity associativity) {
-		this(op, CODEPOINT_NONE, operatorType, position, p, associativity);
+	Operator(String ops, OperatorType operatorType, Position position, Precedence left, Precedence p, Associativity associativity) {
+		this(ops, operatorType, null, position, associativity, left, p);
 	}
-	Operator(String op, int cp, OperatorType operatorType, Position position, Precedence left, Precedence p, Associativity associativity) {
-		this(op, cp, operatorType, null, position, associativity, left, p);
-	}
-	Operator(String op, OperatorType operatorType, Position position, Precedence left, Precedence p, Associativity associativity) {
-		this(op, CODEPOINT_NONE, operatorType, position, left, p, associativity);
-	}
-	Operator(String op, int codePoint, OperatorType operatorType, Precedence p, Associativity associativity) {
-		this(op, codePoint, operatorType, null, Position.INFIX, associativity, p);
+	Operator(String ops, OperatorType operatorType, Precedence p, Associativity associativity) {
+		this(ops, operatorType, null, Position.INFIX, associativity, p, p);
 	}
 	Operator(ParenType parenType, OperatorType operatorType, Position position) {
-		this(parenType.getEmptyPairString(), CODEPOINT_NONE, operatorType, parenType, position, defaultAssociativity(position), Precedence.SUFFIX);
+		this(parenType.getEmptyPairString(), operatorType, parenType, position, defaultAssociativity(position), Precedence.SUFFIX, Precedence.SUFFIX);
 	}
 
 	public static Operator fromOp(String op, Position pos) {
@@ -185,7 +164,7 @@ public enum Operator {
 			if(operator.isParen() && op.length() == 1) {
 				if(operator.getParenType().getStartChar() == op.charAt(0))
 					return operator;
-			} else if(op.equals(operator.getOp()) || op.equals(operator.unicodeOp)) {
+			} else for(String tryOp : operator.ops) if(op.equals(tryOp)) {
 				return operator;
 			}
 		}
@@ -218,9 +197,7 @@ public enum Operator {
 		}
 		return null;
 	}
-	public int getCodePoint() {
-		return this.codePoint;
-	}
+
 
 	/**
 	 * Get the type of paren this operator is associated with.  Fails if this is not associated
@@ -251,11 +228,11 @@ public enum Operator {
 
 
 	Operator(String op, OperatorType operatorType, Precedence precedence, Position position) {
-		this(op, CODEPOINT_NONE, operatorType, position, precedence);
+		this(op, operatorType, position, precedence);
 	}
 
 	public String getOp() {
-		return this.op;
+		return this.ops[0];
 	}
 
 	public Precedence getLeftPrecedence() {
@@ -282,8 +259,7 @@ public enum Operator {
 	}
 
 	public void toSource(StringBuffer sb) {
-		if(codePoint > 0) sb.appendCodePoint(codePoint);
-		else sb.append(getOp());
+		sb.append(ops[0]);
 	}
 
 	public String getMethodName() {
