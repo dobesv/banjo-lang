@@ -25,19 +25,16 @@ public enum Operator {
 	PARENS(ParenType.PARENS, OperatorType.BUILTIN, Position.PREFIX),
 	LIST_LITERAL(ParenType.BRACKETS, OperatorType.BUILTIN, Position.PREFIX),
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
-	//RETURN("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.ASSIGNMENT), // Basically a unary parenthesis
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	SELECTOR(".", OperatorType.BUILTIN, Precedence.SUFFIX, Position.PREFIX),
+	SELECTOR(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
 	BASE_FUNCTION("^", 0x2191, OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
 	EXTEND("@", 0x03A6, OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-	OPT_PROJECTION(".?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-	MAP_OPT_PROJECTION("*.?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	OPT_BASE_SLOT(":?", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
@@ -93,6 +90,7 @@ public enum Operator {
 	public static enum Associativity { LEFT, RIGHT, NA; }
 	public static enum Position { PREFIX, INFIX, SUFFIX, NA }
 	public final String op;
+	public final String unicodeOp;
 	public final int codePoint; // -1 if no special unicode character
 	public final Precedence leftPrecedence; // For binary operators only
 	public final Precedence precedence;
@@ -106,6 +104,7 @@ public enum Operator {
 	Operator(String op, int codePoint, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence, String methodName) {
 		this.op = requireNonNull(op);
 		this.codePoint = codePoint;
+		this.unicodeOp = codePoint > 0 ? String.copyValueOf(Character.toChars(codePoint)) : op;
 		this.operatorType = requireNonNull(operatorType);
 		this.leftPrecedence = requireNonNull(leftPrecedence);
 		this.precedence = requireNonNull(precedence);
@@ -186,7 +185,7 @@ public enum Operator {
 			if(operator.isParen() && op.length() == 1) {
 				if(operator.getParenType().getStartChar() == op.charAt(0))
 					return operator;
-			} else if(op.equals(operator.getOp()) || (operator.codePoint > 0 && op.length()==1 && op.codePointAt(0) == operator.codePoint)) {
+			} else if(op.equals(operator.getOp()) || op.equals(operator.unicodeOp)) {
 				return operator;
 			}
 		}
@@ -283,7 +282,8 @@ public enum Operator {
 	}
 
 	public void toSource(StringBuffer sb) {
-		sb.append(getOp());
+		if(codePoint > 0) sb.appendCodePoint(codePoint);
+		else sb.append(getOp());
 	}
 
 	public String getMethodName() {

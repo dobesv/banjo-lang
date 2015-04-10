@@ -166,6 +166,7 @@ public class SourceCodeScanner {
 	public String matchOperator(ParserReader in) throws IOException {
 		final int first = in.read();
 		switch(first) {
+		case '.': return ".";
 		case ',': return ",";
 		case ';': return ";";
 		case '(': return "(";

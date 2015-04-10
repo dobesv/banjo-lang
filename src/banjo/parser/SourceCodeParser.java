@@ -55,7 +55,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		 * Create a node for a non-parentheses operator with a right-hand expression.
 		 */
 		public SourceExpr rhs(SourceExpr rightOperand) {
-			final List<SourceFileRange> ranges = this.ranges.append(rightOperand.getSourceFileRanges());
+			final List<SourceFileRange> ranges = SourceFileRange.append(this.ranges, rightOperand.getSourceFileRanges());
 			return _rhs(rightOperand, ranges, this.operatorExpr.getSourceFileRanges());
 		}
 
@@ -63,7 +63,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		 * Create a node for a parenthesized expression.
 		 */
 		public SourceExpr closeParen(SourceExpr rightOperand, FileRange closeParenRange) {
-			final List<SourceFileRange> operatorRanges = this.operatorExpr.getSourceFileRanges().snoc(sfr(closeParenRange));
+			final List<SourceFileRange> operatorRanges = SourceFileRange.snoc(this.operatorExpr.getSourceFileRanges(), sfr(closeParenRange));
 			final List<SourceFileRange> ranges = this.ranges.snoc(sfr(closeParenRange));
 			return _rhs(rightOperand, ranges, operatorRanges);
 		}
@@ -351,6 +351,29 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		if(cp != null) {
 			return cp;
 		}
+
+		// Operator after . is automatically promoted to an identifier for the binary version
+		if(opStack.isNotEmpty()) {
+			final Operator topOp = opStack.head().getOperator();
+			switch(topOp) {
+			case PROJECTION:
+			case SELECTOR:
+			case BASE_SLOT:
+				// Try for an operator method - where operators change meaning based on position,
+				// favor binary over unary, and prefix over suffix.  People who want to reference
+				// those other methods will have to use backslashes.
+				for(Position p : new Position[] {Position.INFIX, Position.PREFIX, Position.SUFFIX}) {
+					Operator oper = Operator.fromOp(op, p);
+					if(oper != null && oper.getMethodName() != null)
+						return identifier(range, oper.getMethodName());
+				}
+				break;
+			default:
+				// Not application for other operators
+				break;
+			}
+		}
+
 		if(operand != null) {
 			// We have an operand, so this is either a suffix or infix operator applying to that operand.
 			SourceCodeParser suf = suffixOperator(range, op);
