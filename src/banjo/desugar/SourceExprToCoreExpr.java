@@ -239,21 +239,8 @@ public class SourceExprToCoreExpr {
 
 			private SourceExpr mapping(SourceExpr op,
                     final SourceExpr left, final SourceExpr right) {
-				SourceExpr rightSide = right.acceptVisitor(new BaseSourceExprVisitor<SourceExpr>() {
-					@Override
-					public SourceExpr fallback(SourceExpr other) {
-					    return new BinaryOp(Operator.PROJECTION, objectExpr, other);
-					}
-
-					@Override
-					public SourceExpr binaryOp(BinaryOp op) {
-						if(op.getOperator().isInfix() &&
-								op.getOperator().isLeftAssociative()) {
-							return new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), op.getLeft().acceptVisitor(this), op.getRight());
-						}
-					    return super.binaryOp(op);
-					}
-				});
+				SourceExpr rightSide = insertProjectionTargetOnLeft(objectExpr,
+                        right, Operator.PROJECTION);
 	            return new BinaryOp(op.getSourceFileRanges(), Operator.ASSIGNMENT, List.nil(), left, rightSide);
             }
 		};
@@ -506,7 +493,7 @@ public class SourceExprToCoreExpr {
 	}
 
 	protected Slot applyCombiningOp(Slot slot, Operator combiningOp) {
-		if(combiningOp == null)
+		if(combiningOp == null || combiningOp == Operator.ASSIGNMENT)
 			return slot;
 		Identifier selfBinding = slot.selfBinding.orSome(Identifier.__TMP);
 		CoreExpr newValue = Call.binaryOp(SlotReference.base(selfBinding, slot.name), combiningOp, slot.value);
@@ -1183,10 +1170,7 @@ public class SourceExprToCoreExpr {
 			case OPT_BASE_SLOT: return projection(op, true, true);
 			case FUNCTION: return functionLiteral(op);
 			case PROJECTION: return projection(op, false, false);
-			case OPT_PROJECTION: return projection(op, false, true);
 			case MAP_PROJECTION: return mapProjection(op, false, false);
-			case MAP_OPT_PROJECTION: return mapProjection(op, false, true);
-
 
 			// Normal operators are translated into a method call
 			case GT:
@@ -1327,7 +1311,7 @@ public class SourceExprToCoreExpr {
 		P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprToCoreExpr>>() {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> identifier(Identifier field) {
-				DesugarResult<CoreExpr> preDs = projection(op, __tmp, field, false, false);
+				DesugarResult<CoreExpr> preDs = projection(op, __tmp, field, false, true);
 				CoreExpr precondition = preDs.getValue();
 				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, __tmp, field, false, false);
 				CoreExpr body = bodyDs.getValue();
@@ -1337,11 +1321,22 @@ public class SourceExprToCoreExpr {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> binaryOp(BinaryOp op) {
 				// Variant has arguments
-				DesugarResult<CoreExpr> preDs = desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.OPT_PROJECTION, op.getOperatorRanges(), __tmp, op.getLeft()), op.getRight()));
-				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.desugar(new BinaryOp(op.getOperator(), op.getOperatorRanges(), new BinaryOp(Operator.PROJECTION, op.getOperatorRanges(), __tmp, op.getLeft()), op.getRight()));
+
+//				DesugarResult<CoreExpr> preDs = desugar(new BinaryOp(
+//						op.getOperator(),
+//						op.getOperatorRanges(),
+//						insertProjectionTargetOnLeft(__tmp, op.getLeft(), Operator.OPT_PROJECTION),
+//						op.getRight()
+//				));
+//				CoreExpr precondition = preDs.getValue();
+				DesugarResult<CoreExpr> bodyDs = desugar(new BinaryOp(
+						op.getOperator(),
+						op.getOperatorRanges(),
+						insertProjectionTargetOnLeft(__tmp, op.getLeft(), Operator.PROJECTION),
+						op.getRight()
+				));
 				CoreExpr body = bodyDs.getValue();
-				return P.p(precondition, body, bodyDs);
+				return P.p(Identifier.TRUE, body, bodyDs);
 			}
 
 			@Override
@@ -1694,5 +1689,25 @@ public class SourceExprToCoreExpr {
 		}
 		return bindSelf(selfBinding.some(), body);
 	}
+
+	private SourceExpr insertProjectionTargetOnLeft(SourceExpr objectExpr,
+            final SourceExpr right, Operator projectionType) {
+	    SourceExpr rightSide = right.acceptVisitor(new BaseSourceExprVisitor<SourceExpr>() {
+	    	@Override
+	    	public SourceExpr fallback(SourceExpr other) {
+	    	    return new BinaryOp(Operator.PROJECTION, objectExpr, other);
+	    	}
+
+	    	@Override
+	    	public SourceExpr binaryOp(BinaryOp op) {
+	    		if(op.getOperator().isInfix() &&
+	    				op.getOperator().isLeftAssociative()) {
+	    			return new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), op.getLeft().acceptVisitor(this), op.getRight());
+	    		}
+	    	    return super.binaryOp(op);
+	    	}
+	    });
+	    return rightSide;
+    }
 
 }
