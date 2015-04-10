@@ -352,27 +352,6 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 			return cp;
 		}
 
-		// Operator after . is automatically promoted to an identifier for the binary version
-		if(opStack.isNotEmpty()) {
-			final Operator topOp = opStack.head().getOperator();
-			switch(topOp) {
-			case PROJECTION:
-			case SELECTOR:
-			case BASE_SLOT:
-				// Try for an operator method - where operators change meaning based on position,
-				// favor binary over unary, and prefix over suffix.  People who want to reference
-				// those other methods will have to use backslashes.
-				for(Position p : new Position[] {Position.INFIX, Position.PREFIX, Position.SUFFIX}) {
-					Operator oper = Operator.fromOp(op, p);
-					if(oper != null && oper.getMethodName() != null)
-						return identifier(range, oper.getMethodName());
-				}
-				break;
-			default:
-				// Not application for other operators
-				break;
-			}
-		}
 
 		if(operand != null) {
 			// We have an operand, so this is either a suffix or infix operator applying to that operand.
@@ -383,6 +362,27 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 			if(infix != null) return infix;
 
 		} else {
+			// Operator after . is automatically promoted to an identifier for the binary version
+			if(opStack.isNotEmpty()) {
+				final Operator topOp = opStack.head().getOperator();
+				switch(topOp) {
+				case PROJECTION:
+				case SELECTOR:
+				case BASE_SLOT:
+					// Try for an operator method - where operators change meaning based on position,
+					// favor binary over unary, and prefix over suffix.  People who want to reference
+					// those other methods will have to use backslashes.
+					for(Position p : new Position[] {Position.INFIX, Position.PREFIX, Position.SUFFIX}) {
+						Operator oper = Operator.fromOp(op, p);
+						if(oper != null && oper.getMethodName() != null && !oper.isParen())
+							return identifier(range, oper.getMethodName());
+					}
+					break;
+				default:
+					// Not application for other operators
+					break;
+				}
+			}
 			SourceCodeParser prefix = prefixOperator(range, op);
 			if(prefix != null) return prefix;
 		}
