@@ -41,8 +41,8 @@ public class TestFunctionLiteralParser {
 	@Test public void testSelfName1() { testParse("s(a)↦a", 0, 0, "s", "a", "a"); } // Unary function, with parens and "self name"
 	@Test public void testSelfName2() { testParse("s()↦s", 0, 0, "s", "", "s"); } // Nullary function, with parens and "self name"
 
-	@Test public void testUnpackObjectNoParens() { testParse("{a,b}↦a", 0, 1, null, "__0", "((a = __0.a, b = __0.b) => a)"); }
+	@Test public void testUnpackObjectNoParens() { testParse("{a,b}↦a", 0, 1, null, "__0", "((a = __0.a, b = __0.b) ⇒ a)"); }
 
-	@Test public void testUnpackObjectNested() { testParse("({character, list, boolean={true, false}}) -> a", 0, 1, "__0", "((character = __0.character, list = __0.list, true = __0.boolean.true, false = __0.boolean.false) => a)"); }
+	@Test public void testUnpackObjectNested() { testParse("({character, list, boolean={true, false}}) -> a", 0, 1, "__0", "((character = __0.character, list = __0.list, true = __0.boolean.true, false = __0.boolean.false) ⇒ a)"); }
 
 }

@@ -24,7 +24,7 @@ public class TestSelectorParser {
 	@Test public void testOpMinus() { parse(".-(7)", "._ \\- _(7)"); }
 	@Test public void testOpTimesJuxta() { parse(".* 7", "._ \\× _(7)"); }
 	@Test public void testOpDivJuxta() { parse("./ 7", "._ \\÷ _(7)"); }
-	@Test public void testOpNot() { parse(".!", "._ \\!"); }
+	@Test public void testOpNot() { parse(".!", "._ \\¬"); }
 	@Test public void testOpInv() { parse(".~", "._ \\~"); }
 
 }

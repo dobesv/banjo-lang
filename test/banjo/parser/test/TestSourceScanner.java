@@ -21,7 +21,7 @@ import fj.data.List;
 public class TestSourceScanner {
 	@Test
 	public void test1() {
-		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) => baz", Let.class,
+		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) ⇒ baz", Let.class,
 				new String[] {
 			"; comment\n",
 			"(", "foo", "=",	" ", "bar bar", ")", " ", "=>", "\n",
