@@ -12,8 +12,6 @@ import banjo.parser.util.FileRange;
 
 public class TestParseErrors {
 
-	@Test public void testMissingOperator1() { test("a b", ExpectedOperator.class, 1, 2); }
-
 	private static void test(String source, Class<ExpectedOperator> expectedErrorClass, int errorStart, int errorEnd) {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		SourceExpr parsed = SourceExpr.fromString(source);
