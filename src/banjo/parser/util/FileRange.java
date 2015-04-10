@@ -3,6 +3,7 @@ package banjo.parser.util;
 import java.util.Objects;
 
 import fj.Ord;
+import fj.data.List;
 
 
 public final class FileRange {
@@ -132,4 +133,17 @@ public final class FileRange {
 	}
 
 
+	public static List<FileRange> snoc(List<FileRange> ranges, FileRange range) {
+		if(ranges.isNotEmpty()) {
+			FileRange head = ranges.head();
+			List<FileRange> tail = ranges.tail();
+			if(tail.isEmpty() && head.getEndOffset() == range.getStartOffset()) {
+				return List.single(head.extend(range));
+			} else {
+				return List.cons(head, snoc(tail, range));
+			}
+		} else {
+			return List.single(range);
+		}
+	}
 }

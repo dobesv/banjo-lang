@@ -45,4 +45,23 @@ public class SourceFileRange {
 	public int getEndLine() {
 		return this.fileRange.getEndLine();
 	}
+
+	public static List<SourceFileRange> snoc(List<SourceFileRange> ranges, SourceFileRange range) {
+		if(ranges.isNotEmpty()) {
+			final SourceFileRange head = ranges.head();
+			final List<SourceFileRange> tail = ranges.tail();
+			if(tail.isEmpty() && head.sourceFile.equals(range.sourceFile) && head.fileRange.getEndOffset() == range.fileRange.getStartOffset()) {
+				return List.single(head.extend(range));
+			} else {
+				return List.cons(head, snoc(tail, range));
+			}
+		} else {
+			return List.single(range);
+		}
+	}
+	public static List<SourceFileRange> append(List<SourceFileRange> a, List<SourceFileRange> b) {
+		if(b.isEmpty()) return a;
+		if(a.isEmpty()) return b;
+		return b.foldRight((range, ranges) -> snoc(ranges, range), a);
+    }
 }
