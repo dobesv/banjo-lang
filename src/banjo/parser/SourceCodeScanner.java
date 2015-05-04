@@ -190,10 +190,10 @@ public class SourceCodeScanner {
 
 		final int second = in.read();
 		if(!isOperatorChar(second)) {
-			//			if((first == '+' || first == '-') && Character.isDigit(second)) {
-			//				in.seek(this.tokenStartPos);
-			//				return null;
-			//			}
+			if((first == '+' || first == '-') && Character.isDigit(second)) {
+				in.seek(this.tokenStartPos);
+				return null;
+			}
 			in.unread(); // unread the second character
 			return String.copyValueOf(Character.toChars(first));
 		}
@@ -209,10 +209,6 @@ public class SourceCodeScanner {
 			}
 			this.buf.appendCodePoint(cp);
 		}
-		if(this.buf.length() == 1 && (first == '+' || first == '-') && Character.isDigit(in.peek())) {
-			in.unread();
-			return null;
-		}
 		return this.buf.toString();
 	}
 	public static boolean isWhitespaceChar(int codePoint) {
@@ -220,7 +216,7 @@ public class SourceCodeScanner {
 	}
 	public <T extends TokenVisitor<T>> List<T> comment(ParserReader in, TokenVisitor<T> visitor) throws IOException {
 		int cp = in.read();
-		if(cp == ';') {
+		if(cp == '#') {
 			skipToEndOfLine(in);
 		} else {
 			// Not a comment, and thus also not whitespace any more
@@ -573,6 +569,7 @@ public class SourceCodeScanner {
 		long intValLong = 0;
 		BigInteger intValBig=null;
 		BigInteger radixBig=null;
+		int expType=-1;
 		for(;;) {
 			if(cp == '.') {
 				if(radix != 10) {
@@ -594,12 +591,15 @@ public class SourceCodeScanner {
 			} else if(digits > 0 && cp == '_') {
 				// Allow underscore to "break up" long numbers, like in Java
 				cp = in.read();
-			} else if(radix==10 && (cp == 'e' || cp == 'E')) {
-				// Can't start a number with an exponent
+			} else if(radix==10 && (cp == 'e' || cp == 'E' || cp == 'f' || cp == 'd')) {
+				// Can't start a number with an exponent marker
 				if(!isNumber) {
 					in.seek(this.tokenStartPos);
 					return List.nil();
 				}
+				expType = cp;
+
+				in.getCurrentPosition(this.afterDigits);
 				cp = in.read();
 				final boolean negexp = cp == '-';
 				if(negexp || cp == '+')
@@ -608,11 +608,11 @@ public class SourceCodeScanner {
 					if(cp == '_' && expDigits > 0) {
 						cp = in.read();
 					}
-					final int digitValue = Character.digit(cp, 10); // Always base 10
+					final int digitValue = Character.digit(cp, 10); // Always base 10 because d, e, and f are hex digits
 					if(digitValue == -1) {
 						break;
 					}
-					exp = exp * 10 + digitValue;
+					exp = (exp * 10) + digitValue;
 					in.getCurrentPosition(this.afterDigits);
 					cp = in.read();
 				}
@@ -648,10 +648,6 @@ public class SourceCodeScanner {
 		// Back out the last character we read, it's not part of the number
 		in.seek(this.afterDigits);
 
-		// However, if the number is followed on immediately by an identifier, it's a unit or something like that
-		String suffix = matchID(in);
-		if(suffix == null) suffix = "";
-
 		final int digitsRightOfDecimalPoint = digits - digitsLeftOfDecimalPoint;
 		if(!isInteger && digits == digitsLeftOfDecimalPoint) {
 			if(!isNumber) {
@@ -671,21 +667,7 @@ public class SourceCodeScanner {
 				intValLong = -intValLong;
 				if(intValBig != null) intValBig = intValBig.negate();
 			}
-			if("L".equalsIgnoreCase(suffix) || "i64".equalsIgnoreCase(suffix)) {
-				if(!isInteger) throw new ArithmeticException("Integer constant has decimal point: "+text);
-				number = intValBig == null ? intValLong : intValBig.longValueExact();
-			} else if("i".equalsIgnoreCase(suffix) || "i32".equalsIgnoreCase(suffix)) {
-				if(!isInteger) throw new ArithmeticException("Integer constant has decimal point: "+text);
-				number = intValBig == null ? Math.toIntExact(intValLong) : intValBig.intValueExact();
-			} else if("f".equalsIgnoreCase(suffix) || "f32".equalsIgnoreCase(suffix)) {
-				number = (intValBig == null ? BigDecimal.valueOf(intValLong, scale) : new BigDecimal(intValBig, scale)).floatValue();
-				if(!Float.isFinite(number.floatValue()))
-					throw new ArithmeticException("Number too large for float: "+text);
-			} else if("d".equalsIgnoreCase(suffix) || "f64".equalsIgnoreCase(suffix)) {
-				number = (intValBig == null ? BigDecimal.valueOf(intValLong, scale) : new BigDecimal(intValBig, scale)).doubleValue();
-				if(!Double.isFinite(number.doubleValue()))
-					throw new ArithmeticException("Number too large for double: "+text);
-			} else if(intValBig == null) {
+			if(intValBig == null) {
 				if(isInteger) {
 					number = Long.valueOf(intValLong);
 				} else {
@@ -698,12 +680,23 @@ public class SourceCodeScanner {
 					number = new BigDecimal(intValBig, scale);
 				}
 			}
+			if(expType == 'f') {
+				final float floatValue = number.floatValue();
+				if(!Float.isFinite(floatValue))
+					throw new ArithmeticException("Number too large for float: "+text);
+				number = floatValue;
+			} else if(expType == 'd') {
+				final double doubleValue = number.doubleValue();
+				if(!Double.isFinite(doubleValue))
+					throw new ArithmeticException("Number too large for double: "+text);
+				number = doubleValue;
+			}
 		} catch(ArithmeticException e) {
 			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), e.getMessage());
 			number = Long.valueOf(0);
 		}
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, number), suffix));
+		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, number)));
 	}
 
 	/**
