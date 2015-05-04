@@ -140,7 +140,6 @@ public class SourceCodeScanner {
 	public static final boolean isOperatorChar(int codePoint) {
 		switch(codePoint) {
 		case ',':
-		case ';':
 		case '"':
 		case '\'':
 		case '_':
@@ -173,14 +172,10 @@ public class SourceCodeScanner {
 		case ')': return ")";
 		case '[': return "[";
 		case ']': return "]";
-		case '{': {
-			// Special case for "{+}"
-			//			if(in.startsWith("+}"))
-			//				return "{+}";
-			return "{";
-		}
+		case '{': return "{";
 		case '}': return "}";
 		}
+
 		if(!isOperatorChar(first)) {
 			in.unread();
 			return null;
@@ -189,11 +184,11 @@ public class SourceCodeScanner {
 		in.getPreviousPosition(this.tokenStartPos);
 
 		final int second = in.read();
+		if((first == '+' || first == '-' || first == '.') && Character.isDigit(second)) {
+			in.seek(this.tokenStartPos);
+			return null;
+		}
 		if(!isOperatorChar(second)) {
-			if((first == '+' || first == '-') && Character.isDigit(second)) {
-				in.seek(this.tokenStartPos);
-				return null;
-			}
 			in.unread(); // unread the second character
 			return String.copyValueOf(Character.toChars(first));
 		}
