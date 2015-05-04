@@ -333,8 +333,8 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 		return visitAtom(range, new StringLiteral(sfr(range), token));
 	}
 	@Override
-	public SourceCodeParser numberLiteral(FileRange range, Number number, String suffix) {
-		return visitAtom(range, new NumberLiteral(sfr(range), number, suffix));
+	public SourceCodeParser numberLiteral(FileRange range, Number number) {
+		return visitAtom(range, new NumberLiteral(sfr(range), number));
 	}
 	@Override
 	public SourceCodeParser identifier(FileRange range, String text) {

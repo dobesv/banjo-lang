@@ -23,24 +23,20 @@ import fj.data.List;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom {
-	public static final Ord<NumberLiteral> ORD = Ord.chain(
-			Ord.stringOrd.comap((NumberLiteral n) -> n.number.toString()),
-			Ord.stringOrd.comap((NumberLiteral n) -> n.suffix)
-	);
-	private final Number number;
-	private final String suffix;
+	public static final Ord<NumberLiteral> ORD = Ord.stringOrd.comap((NumberLiteral n) -> n.number.toString());
 
-	public NumberLiteral(SourceFileRange sfr, Number number, String suffix) {
-		this(List.single(sfr), number, suffix);
+	private final Number number;
+
+	public NumberLiteral(SourceFileRange sfr, Number number) {
+		this(List.single(sfr), number);
 	}
-	public NumberLiteral(List<SourceFileRange> ranges, Number number, String suffix) {
+	public NumberLiteral(List<SourceFileRange> ranges, Number number) {
 		super(ranges);
 		this.number = requireNonNull(number);
-		this.suffix = requireNonNull(suffix);
 	}
 
 	public NumberLiteral(Number n) {
-		this(List.nil(), n, "");
+		this(List.nil(), n);
 	}
 
 	public Number getNumber() {
@@ -49,7 +45,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public String toString() {
-		return Objects.requireNonNull(this.number.toString()+this.suffix);
+		return Objects.requireNonNull(this.number.toString());
 	}
 
 	@Override
@@ -60,7 +56,6 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append(this.toString());
-		sb.append(suffix);
 	}
 
 	@Override
@@ -103,21 +98,17 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number, suffix);
+		return visitor.numberLiteral(getSourceFileRanges(), number);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number, suffix);
+		return visitor.numberLiteral(getSourceFileRanges(), number);
 	}
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), number, suffix);
-	}
-
-	public String getSuffix() {
-		return suffix;
+		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), number);
 	}
 
 	public CoreExpr toConstructionExpression() {

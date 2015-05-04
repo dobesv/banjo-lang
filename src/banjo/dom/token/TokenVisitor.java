@@ -4,7 +4,7 @@ import banjo.parser.util.FileRange;
 
 public interface TokenVisitor<T> {
 	T stringLiteral(FileRange range, String string);
-	T numberLiteral(FileRange range, Number number, String suffix);
+	T numberLiteral(FileRange range, Number number);
 	T identifier(FileRange range, String id);
 	T operator(FileRange range, String op);
 	T whitespace(FileRange range, String text);

@@ -21,7 +21,7 @@ public interface TokenFold<T> {
 
 		@Override
 		public T numberLiteral(T state, FileRange range, Number number, String suffix) {
-			return state.numberLiteral(range, number, suffix);
+			return state.numberLiteral(range, number);
 		}
 
 		@Override

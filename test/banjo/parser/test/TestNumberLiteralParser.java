@@ -2,9 +2,11 @@ package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 
 import org.junit.Test;
 
@@ -14,6 +16,7 @@ import banjo.dom.source.SourceExpr;
 import banjo.dom.source.UnaryOp;
 import banjo.dom.token.NumberLiteral;
 import banjo.parser.SourceCodeParser;
+import banjo.util.SourceNumber;
 
 public class TestNumberLiteralParser {
 
@@ -93,31 +96,38 @@ public class TestNumberLiteralParser {
 	public void decimals() throws IOException {
 		testDecimal("0");
 		testDecimal("1");
-		//testDecimal("-1.234567");
+		testDecimal("-1.234567");
 		testDecimal("1234.45667");
-		//testDecimal("-1234.4567");
+		testDecimal("-1234.4567");
 		testDecimal("123411111111111111111111111.45667891234586789");
-		//testDecimal("-1234567891234758.111111111111111111111114567");
-		testDecimal("1.23445667891234586789e4321", "1.23445667891234586789e4321");
-		testDecimal("1.23445667891234586789E+4321");
-		//testDecimal("-1.2345678912347584567E+4321234");
-		testDecimal("1.234e10", "1.234e10");
-		testDecimal("123.4e4", "123.4e4");
-		testDecimal("1.234e-10", "1.234e-10");
-		testDecimal("123.4e-4", "123.4e-4");
-		//testDecimal(".001", "0.001");
-		//testDecimal(".1", "0.1");
+		testDecimal("-1234567891234758.111111111111111111111114567");
+		testDecimal("1.23445667891234586789e4321", "1.23445667891234586789E+4321");
+		testDecimal("1.23445667891234586789e+4321", "1.23445667891234586789E+4321");
+		testDecimal("-1.2345678912347584567E+4321234");
+		testDecimal("1.234e10", "1.234E+10", BigDecimal.class);
+		testDecimal("123.4e4", "1.234E+6", BigDecimal.class);
+		testDecimal("1.234e-10", "1.234E-10", BigDecimal.class);
+		testDecimal("123.4e-4", "0.01234", BigDecimal.class);
+		testDecimal(".001", "0.001");
+		testDecimal(".1", "0.1");
 		testDecimal("1.000000000000000000000001");
-		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123_411_111_111_111_111_111_111_111.45667891234586789");
-		//testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
+		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789", BigDecimal.class);
+		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
+		testDecimal("1f", "1.0", Float.class);
+		testDecimal("-1f", "-1.0", Float.class);
 	}
 
 	private void testDecimal(String inStr) throws IOException {
 		testDecimal(inStr,inStr);
 	}
 	private void testDecimal(String inStr, String outStr) throws IOException {
+		testDecimal(inStr, outStr, Number.class);
+	}
+	private void testDecimal(String inStr, String outStr, Class<? extends Number> clazz) throws IOException {
 		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 		final NumberLiteral node = (NumberLiteral) CoreExpr.fromString(inStr);
-		assertEquals(outStr, node.getNumber().toString());
+		final Number num = ((SourceNumber)node.getNumber()).getValue();
+		assertEquals(outStr, num.toString());
+		assertTrue("Expecting instance of "+clazz+", got "+num.getClass()+" "+num, clazz.isInstance(num));
 	}
 }

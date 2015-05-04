@@ -41,7 +41,7 @@ public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> numberLiteral(List<SourceFileRange> sourceFileRanges, Number number, String suffix) {
+	public List<BadExpr> numberLiteral(List<SourceFileRange> sourceFileRanges, Number number) {
 		return List.nil();
 	}
 

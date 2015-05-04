@@ -37,8 +37,8 @@ public class TokenCollector implements TokenVisitor<TokenCollector> {
 		return token(new StringLiteral(sfr(range), string));
 	}
 	@Override
-	public TokenCollector numberLiteral(FileRange range, Number number, String suffix) {
-		return token(new NumberLiteral(sfr(range), number, suffix));
+	public TokenCollector numberLiteral(FileRange range, Number number) {
+		return token(new NumberLiteral(sfr(range), number));
 	}
 	@Override
 	public TokenCollector identifier(FileRange range, String id) {
