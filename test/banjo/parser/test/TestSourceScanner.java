@@ -21,9 +21,9 @@ import fj.data.List;
 public class TestSourceScanner {
 	@Test
 	public void test1() {
-		testTokenizer("; comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) ⇒ baz", Let.class,
+		testTokenizer("# comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) ⇒ baz", Let.class,
 				new String[] {
-			"; comment\n",
+			"# comment\n",
 			"(", "foo", "=",	" ", "bar bar", ")", " ", "=>", "\n",
 			"baz", "\n"
 		}, new Class<?>[] {
@@ -55,10 +55,10 @@ public class TestSourceScanner {
 	@Test public void testTokenStream2() { testScanner("a + b + c + d", 0, 1, "id"); }
 	@Test public void testTokenStream3() { testScanner("a + b + c + d", 1, 2, "ws"); }
 	@Test public void testTokenStream4() { testScanner("a + b + c + d", 2, 3, "op"); }
-	@Test public void testTokenStream5() { testScanner("; foo", 0, 5, "com"); }
+	@Test public void testTokenStream5() { testScanner("# foo", 0, 5, "com"); }
 	@Ignore // TODO: Do we need to support scanning partial lines?
 	@Test public void testTokenStream6() { testScanner("/* foo */", 1, 5, "com"); }
-	@Test public void testTokenStream7() { testScanner(";  foo  \n   a", 0, 13, "com", "ws", "id"); }
+	@Test public void testTokenStream7() { testScanner("#  foo  \n   a", 0, 13, "com", "ws", "id"); }
 	@Test public void testTokenStream8() { testScanner("a?,b?", 0, 5, "id", "op", "op", "id", "op"); }
 
 }

@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.math.BigDecimal;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.dom.BadExpr;
@@ -50,7 +51,7 @@ public class TestNumberLiteralParser {
 	}
 
 	@Test
-	public void ints() throws IOException {
+	public void ints() {
 		testInt(0);
 		testInt(1);
 		//testInt(-1);
@@ -60,7 +61,7 @@ public class TestNumberLiteralParser {
 		//testInt(Integer.MIN_VALUE);
 	}
 
-	private void testInt(int n) throws IOException {
+	private void testInt(int n) {
 		final String dec = String.valueOf(n);
 		final String hex = "0x"+Integer.toHexString(n);
 		assertEquals(n, parseNumber(dec).getNumber().intValue());
@@ -68,7 +69,7 @@ public class TestNumberLiteralParser {
 	}
 
 	@Test
-	public void longs() throws IOException {
+	public void longs() {
 		testLong(0);
 		testLong(1);
 		//testLong(-1);
@@ -80,20 +81,20 @@ public class TestNumberLiteralParser {
 		//testLong(Long.MIN_VALUE);
 	}
 
-	private void testLong(long n) throws IOException {
+	private void testLong(long n) {
 		final String dec = String.valueOf(n);
 		final String hex = "0x"+Long.toHexString(n);
 		assertEquals(n, parseNumber(dec).getNumber().longValue());
 		assertEquals(n, parseNumber(hex).getNumber().longValue());
 	}
 
-	public NumberLiteral parseNumber(String inStr) throws IOException {
+	public NumberLiteral parseNumber(String inStr) {
 		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 		return (NumberLiteral) CoreExpr.fromString(inStr);
 	}
 
 	@Test
-	public void decimals() throws IOException {
+	public void decimals() {
 		testDecimal("0");
 		testDecimal("1");
 		testDecimal("-1.234567");
@@ -101,6 +102,9 @@ public class TestNumberLiteralParser {
 		testDecimal("-1234.4567");
 		testDecimal("123411111111111111111111111.45667891234586789");
 		testDecimal("-1234567891234758.111111111111111111111114567");
+	}
+
+	@Test public void exponents() {
 		testDecimal("1.23445667891234586789e4321", "1.23445667891234586789E+4321");
 		testDecimal("1.23445667891234586789e+4321", "1.23445667891234586789E+4321");
 		testDecimal("-1.2345678912347584567E+4321234");
@@ -108,22 +112,35 @@ public class TestNumberLiteralParser {
 		testDecimal("123.4e4", "1.234E+6", BigDecimal.class);
 		testDecimal("1.234e-10", "1.234E-10", BigDecimal.class);
 		testDecimal("123.4e-4", "0.01234", BigDecimal.class);
-		testDecimal(".001", "0.001");
-		testDecimal(".1", "0.1");
-		testDecimal("1.000000000000000000000001");
-		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789", BigDecimal.class);
-		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
-		testDecimal("1f", "1.0", Float.class);
-		testDecimal("-1f", "-1.0", Float.class);
 	}
 
-	private void testDecimal(String inStr) throws IOException {
+	@Test public void bigDecimalPrecision() {
+		testDecimal("1.000000000000000000000001");
+	}
+
+	@Test public void floatLiteral() {
+		testDecimal("1f", "1.0", Float.class);
+		testDecimal("-1f", "-1.0", Float.class);
+
+	}
+
+	@Test public void underscoresInDecimal() {
+		testDecimal("123_411_111_111_111_111_111_111_111.45667891234586789", "123411111111111111111111111.45667891234586789", BigDecimal.class);
+		testDecimal("-1_234_567_891_234_758.111_111_111_111_111_111_111_114_567", "-1234567891234758.111111111111111111111114567");
+	}
+
+	@Test public void leadingDecimalPoint() {
+		testDecimal(".001", "0.001");
+		testDecimal(".1", "0.1");
+	}
+
+	private void testDecimal(String inStr) {
 		testDecimal(inStr,inStr);
 	}
-	private void testDecimal(String inStr, String outStr) throws IOException {
+	private void testDecimal(String inStr, String outStr) {
 		testDecimal(inStr, outStr, Number.class);
 	}
-	private void testDecimal(String inStr, String outStr, Class<? extends Number> clazz) throws IOException {
+	private void testDecimal(String inStr, String outStr, Class<? extends Number> clazz) {
 		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 		final NumberLiteral node = (NumberLiteral) CoreExpr.fromString(inStr);
 		final Number num = ((SourceNumber)node.getNumber()).getValue();
