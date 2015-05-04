@@ -11,7 +11,7 @@ import fj.data.Option;
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T objectLiteral(List<SourceFileRange> ranges, List<P3<Identifier, Option<Identifier>, T>> slots);
-	T numberLiteral(List<SourceFileRange> ranges, Number value, String suffix);
+	T numberLiteral(List<SourceFileRange> ranges, Number value);
 	T stringLiteral(List<SourceFileRange> ranges, String text);
 	T listLiteral(List<SourceFileRange> ranges, List<T> elements);
 	T call(List<SourceFileRange> ranges, T function, List<T> args);

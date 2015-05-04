@@ -69,7 +69,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser numberLiteral(List<SourceFileRange> ranges,
-            Number value, String suffix) {
+            Number value) {
 	    return EMPTY;
     }
 

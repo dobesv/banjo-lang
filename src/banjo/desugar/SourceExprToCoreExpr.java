@@ -25,7 +25,6 @@ import banjo.dom.source.BaseSourceExprVisitor;
 import banjo.dom.source.BinaryOp;
 import banjo.dom.source.EmptyExpr;
 import banjo.dom.source.Operator;
-import banjo.dom.source.Precedence;
 import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.dom.source.UnaryOp;
@@ -138,11 +137,10 @@ public class SourceExprToCoreExpr {
 	 * @see Projection
 	 * @param op BinaryOp describing the projection (having PROJECTION as its operator)
 	 * @param base TODO
-	 * @param optional TODO
 	 * @param sourceOffset Source offset to the start of op
 	 */
-	protected DesugarResult<CoreExpr> projection(BinaryOp op, boolean base, boolean optional) {
-		return projection(op, op.getLeft(), op.getRight(), base, optional);
+	protected DesugarResult<CoreExpr> projection(BinaryOp op, boolean base) {
+		return projection(op, op.getLeft(), op.getRight(), base);
 	}
 
 	/**
@@ -160,8 +158,7 @@ public class SourceExprToCoreExpr {
 	 * @param projectionExpr Right-hand side of the projection
 	 */
 	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr) {
-	    return projection(sourceExpr, objectExpr, projectionExpr, false,
-	    		false);
+	    return projection(sourceExpr, objectExpr, projectionExpr, false);
 	}
 
 	/**
@@ -178,9 +175,8 @@ public class SourceExprToCoreExpr {
 	 * @param objectExpr Left-hand side of the projection; the "base" object we're projecting from
 	 * @param projectionExpr Right-hand side of the projection
 	 * @param base TODO
-	 * @param optional TODO
 	 */
-	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr, boolean base, boolean optional) {
+	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr, boolean base) {
 		return projectionExpr.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> identifier(Identifier id) {
@@ -266,7 +262,7 @@ public class SourceExprToCoreExpr {
 
 	protected DesugarResult<CoreExpr> mapProjection(SourceExpr op, CoreExpr target,	SourceExpr projection, boolean callNext, boolean optional) {
 		final Identifier argName = new Identifier("//compiler/map projection/x");
-		final DesugarResult<CoreExpr> projectionDs = projection(op, argName, projection, false, optional);
+		final DesugarResult<CoreExpr> projectionDs = projection(op, argName, projection, false);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
 		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, "map", projectFuncDs.getValue()));
 		return mapCallDs;
@@ -1163,13 +1159,14 @@ public class SourceExprToCoreExpr {
 			case CALL: return call(op);
 			case PIPE_TO: return pipeTo(op);
 			case PIPE_FROM: return pipeFrom(op);
+			case FUNCTION_COMPOSITION_LEFT: return functionCompositionLeft(op);
+			case FUNCTION_COMPOSITION_RIGHT: return functionCompositionRight(op);
 
 			// '.' and variants with NO parameters.  When there's a call, these are
 			// checked for specially inside of call().
-			case BASE_SLOT: return projection(op, true, false);
-			case OPT_BASE_SLOT: return projection(op, true, true);
+			case BASE_SLOT: return projection(op, true);
 			case FUNCTION: return functionLiteral(op);
-			case PROJECTION: return projection(op, false, false);
+			case PROJECTION: return projection(op, false);
 			case MAP_PROJECTION: return mapProjection(op, false, false);
 
 			// Normal operators are translated into a method call
@@ -1301,6 +1298,33 @@ public class SourceExprToCoreExpr {
 		return exprDs.withDesugared(op, new Inspect(op.getSourceFileRanges(), exprDs.getValue()));
 	}
 
+	/**
+	 * a >> b = ((...) -> b(a(...)))
+	 */
+	public DesugarResult<CoreExpr> functionCompositionRight(BinaryOp op) {
+	    return functionComposition(op, op.getLeft(), op.getRight());
+    }
+
+	/**
+	 * a << b = ((...) -> a(b(...)))
+	 */
+	public DesugarResult<CoreExpr> functionCompositionLeft(BinaryOp op) {
+	    return functionComposition(op, op.getRight(), op.getLeft());
+    }
+
+
+	/**
+	 * Chain a mapping
+	 *
+	 * second << first = combine args((argtuple) -> second(argtuple(first)))
+	 *
+	 */
+	private DesugarResult<CoreExpr> functionComposition(BinaryOp op, SourceExpr first, SourceExpr second) {
+		final DesugarResult<CoreExpr> firstDs = expr(first);
+		final DesugarResult<CoreExpr> secondDs = firstDs.expr(second);
+		return secondDs.withDesugared(op, new Call(Operator.FUNCTION_COMPOSITION_LEFT.getMethodIdentifier(), List.list(firstDs.getValue(), secondDs.getValue())));
+    }
+
 	public DesugarResult<CoreExpr> baseFunction(UnaryOp op) {
 		Identifier functionName = expectIdentifier(op.getOperand());
 	    return withDesugared(op, new BaseFunctionRef(op.getSourceFileRanges(), functionName));
@@ -1311,9 +1335,9 @@ public class SourceExprToCoreExpr {
 		P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,SourceExprToCoreExpr>>() {
 			@Override
 			public P3<CoreExpr,CoreExpr,SourceExprToCoreExpr> identifier(Identifier field) {
-				DesugarResult<CoreExpr> preDs = projection(op, __tmp, field, false, true);
+				DesugarResult<CoreExpr> preDs = projection(op, __tmp, field, false);
 				CoreExpr precondition = preDs.getValue();
-				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, __tmp, field, false, false);
+				DesugarResult<CoreExpr> bodyDs = preDs.projection(op, __tmp, field, false);
 				CoreExpr body = bodyDs.getValue();
 				return P.p(precondition, body, bodyDs);
 			}
