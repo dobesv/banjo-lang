@@ -40,7 +40,7 @@ public class TestMathParser {
 	@Test public void unaries3() { unaries("  +  -  ~ 1"); }
 
 	@Test public void plusOne1() { test("x+1", "x + 1"); }
-	@Test public void plusOne2() { test("+1+x", "+1 + x"); }
+	@Test public void plusOne2() { test("+1+x", "1 + x"); }
 	@Test public void minusOne1() { test("x-1", "x - 1"); }
 	@Test public void minusOne2() { test("-1-x", "-1 - x"); }
 
@@ -52,6 +52,9 @@ public class TestMathParser {
 	@Test public void parenMultiline1() { test("{\n  x = (\n    doc = \"bla\"\n  ) => bloo(\n    1, 2, 3\n  )\n}", "{x = ((doc = \"bla\") ⇒ bloo(1, 2, 3))}"); }
 
 	@Test public void negateCallResult() { test("-abs(x)", "-abs(x)"); }
+
+	// There can be an issue whether this is parsed as x(-1) or (x - 1)
+	@Test public void testMinus1() { test("x-1", "x - 1"); }
 
 	public void unaries(String src) {
 		test(src, "+-~1");
