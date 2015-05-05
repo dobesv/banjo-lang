@@ -1,5 +1,6 @@
 package banjo.dom.core;
 
+import static java.util.Objects.requireNonNull;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
 import fj.Ord;
@@ -14,9 +15,9 @@ public class Slot {
 	public Slot(Identifier name, Option<Identifier> selfBinding,
             CoreExpr value) {
         super();
-        this.name = name;
-        this.selfBinding = selfBinding;
-        this.value = value;
+        this.name = requireNonNull(name);
+        this.selfBinding = requireNonNull(selfBinding);
+        this.value = requireNonNull(value);
     }
 
 	static final Ord<Slot> ORD = Ord.chain(
@@ -107,4 +108,9 @@ public class Slot {
 	public Slot withName(Identifier newName) {
 	    return new Slot(newName, selfBinding, value);
     }
+
+	@Override
+	public String toString() {
+	    return toSource(new StringBuffer()).toString();
+	}
 }
