@@ -165,7 +165,6 @@ public class SourceCodeScanner {
 	public String matchOperator(ParserReader in) throws IOException {
 		final int first = in.read();
 		switch(first) {
-		case '.': return ".";
 		case ',': return ",";
 		case ';': return ";";
 		case '(': return "(";
@@ -184,9 +183,15 @@ public class SourceCodeScanner {
 		in.getPreviousPosition(this.tokenStartPos);
 
 		final int second = in.read();
-		if((first == '+' || first == '-' || first == '.') && Character.isDigit(second)) {
+		if(first == '.' && Character.isDigit(second)) {
 			in.seek(this.tokenStartPos);
 			return null;
+		}
+
+		// Operator '.' is special
+		if(first == '.') {
+			in.unread(); // unread the second character
+			return ".";
 		}
 		if(!isOperatorChar(second)) {
 			in.unread(); // unread the second character

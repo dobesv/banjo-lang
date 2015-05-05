@@ -179,6 +179,12 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 
 		@Override
 		SourceExpr makeOp(SourceExpr rightOperand, List<SourceFileRange> ranges, List<SourceFileRange> operatorRanges) {
+			if(this.operator == Operator.NEGATE && rightOperand instanceof NumberLiteral) {
+				return ((NumberLiteral)rightOperand).negate(operatorRanges.append(ranges));
+			} else if(this.operator == Operator.PLUS && rightOperand instanceof NumberLiteral) {
+				return rightOperand;
+			}
+
 			return new UnaryOp(ranges, this.operator, operatorRanges, rightOperand);
 		}
 
@@ -369,6 +375,8 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 				case PROJECTION:
 				case SELECTOR:
 				case BASE_SLOT:
+				case MAP_PROJECTION:
+
 					// Try for an operator method - where operators change meaning based on position,
 					// favor binary over unary, and prefix over suffix.  People who want to reference
 					// those other methods will have to use backslashes.

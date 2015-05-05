@@ -14,6 +14,7 @@ import banjo.dom.core.CoreExprAlgebra;
 import banjo.dom.core.CoreExprVisitor;
 import banjo.dom.source.Operator;
 import banjo.dom.source.Precedence;
+import banjo.dom.source.SourceExpr;
 import banjo.dom.source.SourceExprAlgebra;
 import banjo.dom.source.SourceExprVisitor;
 import banjo.parser.util.SourceFileRange;
@@ -86,8 +87,16 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	        return Objects.requireNonNull(((BigDecimal)num).negate());
 		if(num instanceof BigInteger)
 	        return Objects.requireNonNull(((BigInteger)num).negate());
-		if(num instanceof Long) return new Long(-((Long)num).longValue());
-		if(num instanceof Integer) return new Integer(-((Integer)num).intValue());
+		if(num instanceof Long) return Long.valueOf(-num.longValue());
+		if(num instanceof Byte) return Short.valueOf((short)-num.shortValue());
+		if(num instanceof Short) return Short.valueOf((short)-num.shortValue());
+		if(num instanceof Integer) return Integer.valueOf(-num.intValue());
+		if(num instanceof Float) return Float.valueOf(-num.floatValue());
+		if(num instanceof Double) return Double.valueOf(-num.doubleValue());
+		if(num instanceof SourceNumber) {
+			SourceNumber sn = (SourceNumber) num;
+			return new SourceNumber("-"+sn.toString(), negateNumber(sn.getValue()));
+		}
 		throw new Error("Unexpected number subclass: "+num.getClass());
 	}
 
@@ -195,5 +204,8 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		} else throw new Error("TODO: "+n.getClass().getSimpleName());
 		return ctor;
 	}
+	public SourceExpr negate(List<SourceFileRange> ranges) {
+	    return new NumberLiteral(ranges, negateNumber(number));
+    }
 
 }
