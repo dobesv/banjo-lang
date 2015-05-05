@@ -1,6 +1,15 @@
 package banjo.eval.coreexpr;
 
 import static java.util.Objects.requireNonNull;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Objects;
+import java.util.function.Supplier;
+
+import org.apache.commons.math3.fraction.BigFraction;
+import org.apache.commons.math3.fraction.Fraction;
+
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.BaseFunctionRef;
 import banjo.dom.core.Call;
@@ -19,16 +28,24 @@ import banjo.dom.token.BadIdentifier;
 import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.StringLiteral;
-import banjo.eval.EvalUtil;
+import banjo.eval.ExtendedObject;
+import banjo.eval.NotCallable;
 import banjo.eval.ProjectLoader;
+import banjo.eval.SlotNotFound;
+import banjo.eval.UnboundIdentifier;
+import banjo.eval.UnresolvedCodeError;
 import banjo.eval.Value;
+import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.PackageValue;
 import banjo.parser.util.SourceFileRange;
+import banjo.util.SourceNumber;
 import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
+import fj.data.Stream;
 import fj.data.TreeMap;
 
 public class CoreExprEvaluator implements CoreExprVisitor<Object> {
@@ -48,16 +65,26 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	}
 
 	public void bindUnboundThunk(P2<Identifier,Binding> p) {
-		Object value = p._2().value;
-		if(value instanceof LazyValue) {
-			LazyValue thunk = (LazyValue)value;
-			if(thunk.evaluator == null)
-				thunk.evaluator = this;
-		}
+		bindUnboundThunk(p._2().value);
 	}
 
+	private void bindUnboundThunk(Object value) {
+	    if(value instanceof LazyCoreExprValue) {
+			LazyCoreExprValue thunk = (LazyCoreExprValue)value;
+			if(thunk.evaluator == null) {
+				thunk.evaluator = this;
+				thunk.stack = JavaRuntimeSupport.stack.get();
+			}
+		}
+	    if(value instanceof ExtendedObject) {
+	    	ExtendedObject comp = (ExtendedObject)value;
+	    	bindUnboundThunk(comp.base);
+	    	bindUnboundThunk(comp.extension);
+	    }
+    }
+
 	public Object lazy(CoreExpr e) {
-		return new LazyValue(e, this);
+		return new LazyCoreExprValue(e, this, JavaRuntimeSupport.stack.get());
 	}
 
 	public Object failure(String variant, String info) {
@@ -75,7 +102,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 
 	@Override
 	public Object badExpr(BadCoreExpr badExpr) {
-		return new IllegalStateException(badExpr.getMessage());
+		return new UnresolvedCodeError(badExpr.getMessage(), badExpr.getSourceFileRanges());
 	}
 
 	private Object badExpr(String message) {
@@ -93,16 +120,16 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 		if(call.target instanceof SlotReference) {
 			SlotReference slotRef = (SlotReference) call.target;
 			final Object target = evaluate(slotRef.object);
-			return EvalUtil.callMethod(target, slotRef.slotName.id, null, null, argsList);
+			return JavaRuntimeSupport.callMethod(target, slotRef.slotName.id, target, null, argsList);
 		} else {
 			final Object target = evaluate(call.target);
-			return EvalUtil.call(target, target, null, argsList);
+			return JavaRuntimeSupport.call(target, target, null, argsList);
 		}
 	}
 
 	@Override
 	public Object extend(Extend extend) {
-		return new ExtendedObject(lazy(extend.base), lazy(extend.extension));
+		return new ExtendInstance(lazy(extend.base), lazy(extend.extension), extend);
 	}
 
 	@Override
@@ -124,11 +151,11 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	}
 
 	protected Object unboundIdentifier(Identifier id) {
-	    return FunctionInstance.addTrace(new IllegalStateException(String.format("Unknown variable '%s'", id.id)), id);
+	    return new UnboundIdentifier(String.format("Unknown variable '%s'", id.id));
     }
 
 	protected Object notAFunctionSelfName(Identifier id) {
-	    return FunctionInstance.addTrace(new IllegalStateException(String.format("Variable '%s' is not a function's self-recursive name", id.id)), id);
+	    return new UnboundIdentifier(String.format("Variable '%s' is not a function's self-recursive name", id.id));
     }
 
 	protected Option<Binding> getBinding(Identifier id) {
@@ -139,25 +166,41 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 
 	@Override
 	public Object stringLiteral(StringLiteral stringLiteral) {
-		final Object stringWrapFn = getRootEnvironment().identifier(new Identifier("java string"));
-		return EvalUtil.call(stringWrapFn, List.single(stringLiteral.string));
+		return callJavaHelper("string", stringLiteral.string);
 	}
 
 	@Override
 	public Object inspect(Inspect inspect) {
-		throw new Error("TODO");
+		return callJavaHelper("mirror", this, inspect);
 	}
 
 	@Override
 	public Object listLiteral(ListLiteral listLiteral) {
-		final Object listWrapFn = getRootEnvironment().identifier(new Identifier("java list"));
-		return EvalUtil.call(listWrapFn, List.single(listLiteral.elements.map(this::lazy)));
+		return callJavaHelper("list", listLiteral.elements.map(this::lazy));
+	}
+
+	private Object javaHelpers() {
+	    return getRootEnvironment().identifier(new Identifier("java"));
+    }
+
+	private Object _callJavaHelper(String name, List<Object> args) {
+		return JavaRuntimeSupport.callMethod(javaHelpers(), name, args);
+	}
+
+	private Object callJavaHelper(String name, Object arg1) {
+		return _callJavaHelper(name, List.single(arg1));
+	}
+
+	private Object callJavaHelper(String name, Object arg1, Object arg2) {
+		return _callJavaHelper(name, List.list(arg1, arg2));
 	}
 
 	@Override
 	public Object numberLiteral(NumberLiteral numberLiteral) {
-		final Object wrapFn = getRootEnvironment().identifier(new Identifier("java number"));
-		return EvalUtil.call(wrapFn, List.list(numberLiteral.getNumber(), numberLiteral.getSuffix()));
+		Number number = numberLiteral.getNumber();
+		if(number instanceof SourceNumber) number = ((SourceNumber)number).getValue();
+		final Object result = callJavaHelper("number", number);
+		return result;
 	}
 
 	/**
@@ -175,19 +218,53 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
     @Override
 	public Object slotReference(final SlotReference ref) {
     	final Object target = evaluate(ref.object);
-		return EvalUtil.readSlot(target, target, null, ref.slotName.id);
+		return JavaRuntimeSupport.readSlot(target, target, null, ref.slotName.id);
 	}
+
+    static final List<P2<Identifier, Binding>> javaPackages() {
+    	return List.single(P.p(new Identifier("java"), Binding.simple(new PackageValue("java"))))
+    			.cons(P.p(new Identifier("banjo"), Binding.simple(new PackageValue("banjo"))));
+//    	return Stream.stream(Package.getPackages())
+//    	.map(PackageValue::new)
+//    	.map(p -> P.p(new Identifier(p.getName()), Binding.simple(p)))
+//    	.toList();
+    }
 
 	public static CoreExprEvaluator root(List<P2<Identifier, CoreExpr>> rootBindings) {
 		FreeVariableGatherer freeVarGatherer = new FreeVariableGatherer();
-		List<P2<Identifier, Binding>> bindings = bindExprsToLazyValues(rootBindings);
+		List<P2<Identifier, Binding>> bindings = mergeRootBindings(javaPackages().append(bindExprsToLazyValues(rootBindings)));
 		CoreExprEvaluator env = new CoreExprEvaluator(null, bindings, freeVarGatherer);
 		return env;
 	}
 
+	/**
+	 * Merge same-named bindings using ExtendedObject.  This is only intended for use in the root scope,
+	 * because the root bindings automatically "extend" same-named root bindings.
+	 *
+	 * The result does not maintain the original sort order of the list.
+	 *
+	 * Currently this assumes all the bindings are "simple" bindings - that is, only have a "value" set.
+	 */
+	public static List<P2<Identifier, Binding>> mergeRootBindings(
+            List<P2<Identifier, Binding>> bindings) {
+		final TreeMap<Identifier, Binding> newBindingMap = bindings.foldLeft(CoreExprEvaluator::mergeRootBinding, TreeMap.empty(Identifier.ORD));
+		return newBindingMap.toStream().toList();
+    }
+
+	/**
+	 * Add or merge a single root binding into a map of root bindings.
+	 */
+	protected static TreeMap<Identifier, Binding> mergeRootBinding(
+            TreeMap<Identifier, Binding> bindingMap, P2<Identifier, Binding> binding) {
+	    return bindingMap.set(binding._1(),
+	    		bindingMap.get(binding._1())
+	    		.map(nextBinding -> (Binding) Binding.simple(new ExtendedObject(binding._2().value, nextBinding.value)))
+	    		.orSome(binding._2()));
+    }
+
 	private static List<P2<Identifier, Binding>> bindExprsToLazyValues(
             List<P2<Identifier, CoreExpr>> rootBindings) {
-	    List<P2<Identifier, Binding>> bindings = rootBindings.map(binding -> P.p(binding._1(), Binding.simple(new LazyValue(binding._2()))));
+	    List<P2<Identifier, Binding>> bindings = rootBindings.map(binding -> P.p(binding._1(), Binding.simple(new LazyCoreExprValue(binding._2()))));
 	    return bindings;
     }
 
@@ -199,13 +276,13 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
     }
 
 	public CoreExprEvaluator child(List<P2<Identifier,Binding>> bindings) {
+		if(bindings.isEmpty())
+			return this;
 		return new CoreExprEvaluator(this, bindings, freeVarGatherer);
 	}
 
 	/**
-	 * Evaluate the expression in the current environment, returning an Object.  Use
-	 * EvalUtil to work the the object.  The result may be a thunk - if you need a
-	 * concrete value use EvalUtil.force().
+	 * Evaluate the expression in the current environment, returning an Object.
 	 */
 	public Object evaluate(CoreExpr expr) {
 		return expr.acceptVisitor(this);
@@ -236,11 +313,15 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	 * <code>(value && x) == x</code>
 	 */
 	public boolean isTruthy(CoreExpr expr) {
-		return EvalUtil.isTruthy(evaluate(expr));
+		return JavaRuntimeSupport.isTruthy(evaluate(expr));
     }
 
 	@Override
     public Value functionLiteral(FunctionLiteral f) {
 		return new FunctionInstance(f, this);
+    }
+
+	public Object lazy(CoreExpr expr, List<P2<Identifier, Binding>> bindings) {
+	    return child(bindings).lazy(expr);
     }
 }

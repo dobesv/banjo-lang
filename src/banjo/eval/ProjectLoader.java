@@ -85,26 +85,45 @@ public class ProjectLoader {
 	    return Files.isRegularFile(path);
     }
 
+	/**
+	 * Load the contents of a folder, returning an ObjectLiteral with the AST representation of the folder and its contents.
+	 *
+	 * @param path Filesystem location of the folder
+	 * @param key Name to use for the self-binding of slots in the folder
+	 * @return
+	 */
 	public ObjectLiteral loadFolder(Path path, Identifier key) {
 		final List<SourceFileRange> ranges = List.single(new SourceFileRange(path.getFileName().toString(), FileRange.EMPTY));
 		try {
 			Option<Identifier> selfBinding = Option.some(key);
-			return new ObjectLiteral(ranges,
-					mergeBindings(listFilesInFolder(path)
+			return new ObjectLiteral(ranges, mergeBindings(listFilesInFolder(path)
 					.map(p -> loadBinding(p))
 					.reduce(EMPTY_BINDINGS, (b1, b2) -> b1.append(b2))
-					.toStream()
-					.toList()).map(p -> new Slot(p._1(), selfBinding, p._2())));
+			).map(p -> new Slot(p._1(), selfBinding, p._2())));
 		} catch (IOException e) {
 			return new ObjectLiteral(ranges, List.nil());
 		}
     }
 
 	/**
-	 * List files in a folder.  The files are sorted with directories first, then in alphabetic case-insensitive order.
+	 * List files in a folder.
+	 *
+	 * The files are unsorted.
+	 *
+	 * A subclass (i.e. as in eclipse) might override this.
 	 */
 	public Stream<Path> listFilesInFolder(Path path) throws IOException {
-	    return Files.list(path).sorted(new Comparator<Path>() {
+	    return Files.list(path);
+    }
+
+	/**
+	 * Return a sorted list of files in the given folder.  Uses the listFilesInFolder() method to get
+	 * the list of files, which allows the file listing method to be overridden more easily.
+	 *
+	 * This sorts folders to the top, then alphabetically.
+	 */
+	public Stream<Path> sortedFilesInFolder(Path path) throws IOException {
+		return listFilesInFolder(path).sorted(new Comparator<Path>() {
 	    	@Override
 	    	public int compare(Path o1, Path o2) {
 	    		int cmp = -Boolean.compare(Files.isDirectory(o1), Files.isDirectory(o2));
@@ -123,8 +142,14 @@ public class ProjectLoader {
 	    		return cmp;
 	    	}
 		});
-    }
+	}
 
+	/**
+	 * Load an expression tree from a file.
+	 *
+	 * @param path File path to load
+	 * @return The expression tree
+	 */
 	public CoreExpr loadSourceCode(Path path) {
     	final String filePath = path.toString();
 	    CoreExpr value;
@@ -168,15 +193,16 @@ public class ProjectLoader {
 
 	protected String readFileAsUtf8String(Path path)
             throws IOException {
-		Reader reader = openFile(path);
-		StringBuilder sb = new StringBuilder();
-		CharBuffer buf = CharBuffer.allocate(64*1024);
-		while(reader.read(buf) > 0) {
-			buf.flip();
-			sb.append(buf.array(), 0, buf.length());
-			buf.clear();
+		try(Reader reader = openFile(path)) {
+			StringBuilder sb = new StringBuilder();
+			CharBuffer buf = CharBuffer.allocate(64*1024);
+			while(reader.read(buf) > 0) {
+				buf.flip();
+				sb.append(buf.array(), 0, buf.length());
+				buf.clear();
+			}
+		    return sb.toString();
 		}
-	    return sb.toString();
     }
 
 	/**
@@ -184,7 +210,7 @@ public class ProjectLoader {
 	 *
 	 * The result does not maintain the original sort order of the list.
 	 */
-	private static List<P2<Identifier, CoreExpr>> mergeBindings(
+	public static List<P2<Identifier, CoreExpr>> mergeBindings(
             List<P2<Identifier, CoreExpr>> bindings) {
 		final TreeMap<Identifier, CoreExpr> newBindingMap = bindings.foldLeft(ProjectLoader::mergeBinding, TreeMap.empty(Identifier.ORD));
 		return newBindingMap.toStream().toList();

@@ -6,20 +6,23 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 import banjo.dom.core.CoreExpr;
-import banjo.eval.EvalUtil;
 import banjo.eval.coreexpr.CoreExprEvaluator;
+import banjo.eval.util.JavaRuntimeSupport;
 
 public class TestSimpleExpressions {
 	CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
 	public boolean isTruthyExpr(String src) {
 		System.out.println("Source: "+src);
-		final Object value = EvalUtil.force(evaluator.evaluate(CoreExpr.fromString(src)));
-		if(!EvalUtil.isDefined(value)) {
-			System.out.println("FAILURE: "+value);
-			throw new AssertionError("FAILURE: "+value, (value instanceof Throwable) ? (Throwable) value : null);
+		final CoreExpr ast = CoreExpr.fromString(src);
+		final Object evalResult = evaluator.evaluate(ast);
+		final Object value = JavaRuntimeSupport.force(evalResult);
+		final String valueStr = value.toString();
+		System.out.println("Result: "+valueStr);
+		if(!JavaRuntimeSupport.isDefined(value)) {
+			final Throwable valueThrowable = (value instanceof Throwable) ? (Throwable) value : null;
+			throw new AssertionError(src + " not truthy, got: " + valueStr, valueThrowable);
 		} else {
-			System.out.println("Result: "+EvalUtil.toString(value));
-			return EvalUtil.isTruthy(value);
+			return JavaRuntimeSupport.isTruthy(value);
 		}
 	}
 
@@ -28,7 +31,7 @@ public class TestSimpleExpressions {
 	}
 
 	public boolean isDefined(String src) {
-		return EvalUtil.isDefined(CoreExprEvaluator.eval(src));
+		return JavaRuntimeSupport.isDefined(CoreExprEvaluator.eval(src));
 	}
 
 	@Test public void trueIsTruthy()     { assertTruthyExpr(("true")); }
@@ -48,10 +51,10 @@ public class TestSimpleExpressions {
 	@Test public void testFalseEqNotTrue() { assertTruthyExpr(("false == ! true")); }
 	@Test public void testNotFalseEqNotFalse() { assertTruthyExpr(("! false == ! false")); }
 
-	@Test public void smalIntegerComparisons() {
+	@Test public void smallIntegerComparisons() {
 		for(int i = 1; i <= 10; i++) {
-			assertTruthyExpr(String.valueOf(i)+"=="+String.valueOf(i));
-			assertTruthyExpr(String.valueOf(-i)+"=="+String.valueOf(-i));
+			assertTruthyExpr(String.valueOf(i)+" == "+String.valueOf(i));
+			assertTruthyExpr(String.valueOf(-i)+" == "+String.valueOf(-i));
 			assertTruthyExpr(String.valueOf(-i)+" < "+String.valueOf(i));
 			assertTruthyExpr(String.valueOf(-i)+" <= "+String.valueOf(i));
 			assertTruthyExpr(String.valueOf(-i)+" != "+String.valueOf(i));
@@ -73,12 +76,11 @@ public class TestSimpleExpressions {
 	@Test public void eq1() { assertTruthyExpr(("1 == 1")); }
 	@Test public void eq2() { assertTruthyExpr(("2 == 2")); }
 	@Test public void eq3() { assertTruthyExpr(("3 == 3")); }
-	@Test public void eq4() { assertTruthyExpr(("3 == 3")); }
-	@Test public void eq5() { assertTruthyExpr(("3 == 3")); }
+	@Test public void eq4() { assertTruthyExpr(("4 == 4")); }
+	@Test public void eq5() { assertTruthyExpr(("5 == 5")); }
 	@Test public void minusOneEqualsMinusOne() { assertTruthyExpr(("-1 == -1")); }
 	@Test public void minusTwoEqualsMinusTwo() { assertTruthyExpr(("-2 == -2")); }
 	@Test public void minusThreeEqualsMinusThree() { assertTruthyExpr(("-3 == -3")); }
-
 
 	@Test public void testRange22() { assertTruthyExpr(("[1, 2, 3, 4, 5].slice(2, 2) == [3, 4]")); }
 

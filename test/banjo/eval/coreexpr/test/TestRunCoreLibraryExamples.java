@@ -17,9 +17,9 @@ import banjo.dom.core.Slot;
 import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
-import banjo.eval.EvalUtil;
 import banjo.eval.ProjectLoader;
 import banjo.eval.coreexpr.CoreExprEvaluator;
+import banjo.eval.util.JavaRuntimeSupport;
 import fj.P2;
 import fj.data.List;
 
@@ -72,10 +72,10 @@ public class TestRunCoreLibraryExamples {
 
 		final CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile());
 		Object result = evaluator.evaluate(x);
-		final boolean working = EvalUtil.isDefined(result);
+		final boolean working = JavaRuntimeSupport.isDefined(result);
 		//if(!working) System.out.println("Error: "+result.object);
-		final boolean success = working && EvalUtil.isTruthy(result);
-		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x+" --> "+EvalUtil.toString(result));
+		final boolean success = working && JavaRuntimeSupport.isTruthy(result);
+		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x+" --> "+result);
 		return ! success;
 	}
 	private List<CoreExpr> findExamples(CoreExpr base) {
