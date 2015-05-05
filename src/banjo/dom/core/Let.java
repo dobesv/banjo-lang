@@ -58,7 +58,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 					value.toSource(sb, Precedence.COMMA);
 				}
 			}
-			sb.append(") => ");
+			sb.append(") ").append(Operator.LET.getOp()).append(" ");
 			body.toSource(sb, Operator.LET.getRightPrecedence());
 		}
 	}
