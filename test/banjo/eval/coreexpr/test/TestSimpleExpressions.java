@@ -84,4 +84,8 @@ public class TestSimpleExpressions {
 
 	@Test public void testRange22() { assertTruthyExpr(("[1, 2, 3, 4, 5].slice(2, 2) == [3, 4]")); }
 
+	@Test public void compose1() { assertTruthyExpr("(not = (x -> !x), not not = not ; not) ⇒ not not(true)"); }
+	@Test public void compose2() { assertTruthyExpr("(not = (x -> !x), not not = not ; not, not not not = not not ; not) ⇒ not not not(true) == false"); }
+
+
 }

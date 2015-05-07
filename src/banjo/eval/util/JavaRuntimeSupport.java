@@ -120,10 +120,13 @@ public class JavaRuntimeSupport {
 	public static Object readSlot(Object obj, Object self, Supplier<Object> baseValue, String name) {
 		if(obj instanceof Value) {
 			return ((Value)obj).slot(self, name, baseValue);
+		} else if(name.equals("label")) {
+			// If it's not a Value subclass, just assume it won't implement the "label" slot
+			return String.valueOf(obj);
 		}
 		if(obj == null) {
-			if(name.equals("string representation"))
-				return "null";
+			if(baseValue != null)
+				return baseValue.get();
 			return new SlotNotFound(name, self);
 		}
 		if(obj instanceof Throwable) {
@@ -188,12 +191,12 @@ public class JavaRuntimeSupport {
 							}
 						}
 					}
-					if(!(obj instanceof Value) && "string representation".equals(name)) {
+					if(!(obj instanceof Value) && "label".equals(name)) {
 						return obj.toString();
 					}
 					if(baseValue == null)
 						return new SlotNotFound(name, self, t);
-					return baseValue;
+					return baseValue.get();
 				}
 			}
         } catch (IllegalArgumentException | SecurityException e) {
@@ -273,10 +276,8 @@ public class JavaRuntimeSupport {
 		if(realTarget instanceof Value)
 			return ((Value)realTarget).callMethod(name, targetObject, fallback, args);
 		final Object f = readSlot(realTarget, realTarget, null, name);
-		if(!isDefined(f)) {
-			if(fallback != null)
-				return fallback.get();
-			return f;
+		if(fallback != null && !isDefined(f)) {
+			return fallback.get();
 		}
 		return call(f, f, null, args);
 	}
@@ -367,6 +368,9 @@ public class JavaRuntimeSupport {
 		public static boolean ge(int a, int b) { return a >= b; }
 		public static boolean lt(int a, int b) { return a < b; }
 		public static boolean le(int a, int b) { return a <= b; }
+		public static Object cmp(int a, int b, Object ascending, Object equal, Object descending, Object undefined) {
+			return (a < b) ? ascending : (a > b) ? descending : equal;
+		}
 	}
 
 	public static class Longs {
@@ -382,6 +386,9 @@ public class JavaRuntimeSupport {
 		public static boolean ge(long a, long b) { return a >= b; }
 		public static boolean lt(long a, long b) { return a < b; }
 		public static boolean le(long a, long b) { return a <= b; }
+		public static Object cmp(long a, long b, Object ascending, Object equal, Object descending, Object undefined) {
+			return (a < b) ? ascending : (a > b) ? descending : equal;
+		}
 	}
 
 	public static class Floats {
@@ -397,6 +404,9 @@ public class JavaRuntimeSupport {
 		public static boolean ge(float a, float b) { return a >= b; }
 		public static boolean lt(float a, float b) { return a < b; }
 		public static boolean le(float a, float b) { return a <= b; }
+		public static Object cmp(float a, float b, Object ascending, Object equal, Object descending, Object undefined) {
+			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
+		}
 	}
 
 	public static class Doubles {
@@ -412,6 +422,9 @@ public class JavaRuntimeSupport {
 		public static boolean ge(double a, double b) { return a >= b; }
 		public static boolean lt(double a, double b) { return a < b; }
 		public static boolean le(double a, double b) { return a <= b; }
+		public static Object cmp(double a, double b, Object ascending, Object equal, Object descending, Object undefined) {
+			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
+		}
 	}
 
 	public static class Strings {
@@ -422,6 +435,10 @@ public class JavaRuntimeSupport {
 		public static boolean ge(String a, String b) { return a.compareTo(b) <= 0; }
 		public static boolean lt(String a, String b) { return a.compareTo(b) > 0; }
 		public static boolean le(String a, String b) { return a.compareTo(b) >= 0; }
+		public static Object cmp(String a, String b, Object ascending, Object equal, Object descending, Object undefined) {
+			int cmp = a.compareTo(b);
+			return cmp < 0 ? ascending : cmp > 0 ? descending : equal;
+		}
 	}
 	public static final ThreadLocal<List<Supplier<StackTraceElement>>> stack = ThreadLocal.<List<Supplier<StackTraceElement>>>withInitial(List::nil);
 }

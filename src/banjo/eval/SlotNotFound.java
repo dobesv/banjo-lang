@@ -22,7 +22,7 @@ public class SlotNotFound extends Fail {
 	    // TODO Need a way to display the object without triggering another SlotNotFound error ...
 		String objectStr;
         try {
-	        objectStr = JavaRuntimeSupport.isDefined(object) && !id.equals("string representation") ? String.valueOf(object) : object == null ? "null" : object.getClass().getName()+" instance";
+	        objectStr = JavaRuntimeSupport.isDefined(object) && !id.equals("label") ? String.valueOf(object) : object == null ? "null" : object.getClass().getName()+" instance";
         } catch (Throwable t) {
         	t.printStackTrace();
         	objectStr = object.getClass().getName()+" instance";

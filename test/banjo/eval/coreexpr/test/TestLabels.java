@@ -8,7 +8,7 @@ import banjo.dom.core.CoreExpr;
 import banjo.eval.coreexpr.CoreExprEvaluator;
 import banjo.eval.util.JavaRuntimeSupport;
 
-public class TestStringRepresentations {
+public class TestLabels {
 	CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
 	public String stringRepr(String src) {
 		System.out.println("Source: "+src);
@@ -27,16 +27,16 @@ public class TestStringRepresentations {
 	@Test public void _false() { testRepr("false"); }
 	@Test public void f1() { testRepr("x -> x", "<function from :line 1 col 1>"); }
 
-	@Test public void obj1() { testRepr("{string representation = \"foo\"}", "foo"); }
+	@Test public void obj1() { testRepr("{label = \"foo\"}", "foo"); }
 
-	@Test public void ext1() { testRepr("{a=b} @ {string representation = \"bla\"}", "bla"); }
-	@Test public void ext2() { testRepr("{string representation = \"bla\"} @ {a=b}", "bla"); }
-	@Test public void ext3() { testRepr("{string representation = \"bla\"} @ (x -> x+1)", "bla"); }
-	@Test public void ext4() { testRepr("(x -> x+1) @ {string representation = \"bla\"}", "bla"); }
+	@Test public void ext1() { testRepr("{a=b} @ {label = \"bla\"}", "bla"); }
+	@Test public void ext2() { testRepr("{label = \"bla\"} @ {a=b}", "bla"); }
+	@Test public void ext3() { testRepr("{label = \"bla\"} @ (x -> x+1)", "bla"); }
+	@Test public void ext4() { testRepr("(x -> x+1) @ {label = \"bla\"}", "bla"); }
 	@Test public void ext5() { testRepr("(x -> x+1) @ {foo = \"bla\"}", "<object from :line 1 col 12>"); }
 
-	@Test public void slot1() { testRepr("{ foo = { string representation = \"bar\" } }.foo", "bar"); }
-	@Test public void slot2() { testRepr("{ foo = { }, string representation = \"bar\" }.foo", "{}"); }
+	@Test public void slot1() { testRepr("{ foo = { label = \"bar\" } }.foo", "bar"); }
+	@Test public void slot2() { testRepr("{ foo = { }, label = \"bar\" }.foo", "{}"); }
 
 
 	public void testRepr(String expr) {

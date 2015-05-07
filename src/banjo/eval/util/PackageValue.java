@@ -25,7 +25,7 @@ public class PackageValue extends Value {
 
 	@Override
 	public Object slot(Object self, String slotName, Supplier<Object> fallbackValue) {
-		if("string representation".equals(slotName))
+		if("label".equals(slotName))
 			return this.name;
 		String childName = this.name+"."+slotName;
 		if(Character.isLowerCase(childName.charAt(0))) {

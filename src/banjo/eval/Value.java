@@ -66,10 +66,8 @@ public class Value {
 	 */
 	public Object callMethod(String name, Object targetObject, Supplier<Object> fallback, List<Object> args) {
 	    final Object f = slot(targetObject, name, null);
-	    if(!JavaRuntimeSupport.isDefined(f)) {
-	    	if(fallback != null)
-	    		return fallback.get();
-	    	return f;
+	    if(fallback != null && !JavaRuntimeSupport.isDefined(f)) {
+    		return fallback.get();
 	    }
 		return JavaRuntimeSupport.call(f, f, null, args);
     }
@@ -77,7 +75,7 @@ public class Value {
 	@Override
 	public String toString() {
 	    try {
-	    	return JavaRuntimeSupport.convertToJava(String.class, slot(this, "string representation", null));
+	    	return JavaRuntimeSupport.convertToJava(String.class, slot(this, "label", null));
 	    } catch(Throwable t) {
 	    	//t.printStackTrace();
 	    	return toStringFallback();
