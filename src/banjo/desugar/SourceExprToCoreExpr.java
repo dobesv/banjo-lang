@@ -1322,7 +1322,7 @@ public class SourceExprToCoreExpr {
 	private DesugarResult<CoreExpr> functionComposition(BinaryOp op, SourceExpr first, SourceExpr second) {
 		final DesugarResult<CoreExpr> firstDs = expr(first);
 		final DesugarResult<CoreExpr> secondDs = firstDs.expr(second);
-		return secondDs.withDesugared(op, new Call(Operator.FUNCTION_COMPOSITION_LEFT.getMethodIdentifier(), List.list(firstDs.getValue(), secondDs.getValue())));
+		return secondDs.withDesugared(op, new Call(Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier(), List.list(firstDs.getValue(), secondDs.getValue())));
     }
 
 	public DesugarResult<CoreExpr> baseFunction(UnaryOp op) {
