@@ -49,7 +49,7 @@ public class SlotInstance extends Value implements CalculatedValue {
 						evaluator.child(List.iterableList(slot.selfBinding.map(id -> P.p(id, new Binding(self, slot.name.id, prevSlotValue, null))))) :
 						evaluator;
 				final CoreExpr slotExpr = slot.value;
-				self = null;
+				//self = null;
 				cachedValue = JavaRuntimeSupport.force(slotEvaluator.evaluate(slotExpr));
 			} finally {
 				JavaRuntimeSupport.stack.set(oldStack);
@@ -80,6 +80,6 @@ public class SlotInstance extends Value implements CalculatedValue {
 	public String toStringFallback() {
 		if(self != null)
 			return "lazy("+self+"."+slot.name+")";
-	    return "lazy(<slot "+slot.name+" in ???>)";
+	    return "<slot "+slot.name+" in ???>";
 	}
 }
