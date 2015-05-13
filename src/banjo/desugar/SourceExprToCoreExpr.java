@@ -1107,7 +1107,16 @@ public class SourceExprToCoreExpr {
 		final Operator operator = op.getOperator();
 		List<SourceFileRange> operatorRanges = op.getOperatorRanges();
 		final SourceExpr rightSourceExpr = op.getRight();
-		return binaryOpToCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
+		switch(operator.operatorType) {
+		case METHOD:
+			return binaryOpToCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
+		case METHOD_SWITCHED:
+			return binaryOpToCall(op, rightSourceExpr, operator, operatorRanges, leftSourceExpr, optional);
+		case FUNCTION:
+			return binaryOpToFunctionCall(op, leftSourceExpr, rightSourceExpr, operator.getMethodIdentifier());
+		default:
+			throw new Error();
+		}
 	}
 
 	protected DesugarResult<CoreExpr> binaryOpToCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
@@ -1299,30 +1308,24 @@ public class SourceExprToCoreExpr {
 	}
 
 	/**
-	 * a >> b = ((...) -> b(a(...)))
+	 * a ; b = ((...) -> b(a(...)))
 	 */
 	public DesugarResult<CoreExpr> functionCompositionRight(BinaryOp op) {
-	    return functionComposition(op, op.getLeft(), op.getRight());
+	    return binaryOpToFunctionCall(op, op.getLeft(), op.getRight(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
     }
 
 	/**
-	 * a << b = ((...) -> a(b(...)))
+	 * a ∘ b = ((...) -> a(b(...)))
 	 */
 	public DesugarResult<CoreExpr> functionCompositionLeft(BinaryOp op) {
-	    return functionComposition(op, op.getRight(), op.getLeft());
+	    return binaryOpToFunctionCall(op, op.getRight(), op.getLeft(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
     }
 
 
-	/**
-	 * Chain a mapping
-	 *
-	 * second << first = combine args((argtuple) -> second(argtuple(first)))
-	 *
-	 */
-	private DesugarResult<CoreExpr> functionComposition(BinaryOp op, SourceExpr first, SourceExpr second) {
-		final DesugarResult<CoreExpr> firstDs = expr(first);
+	private DesugarResult<CoreExpr> binaryOpToFunctionCall(BinaryOp op, SourceExpr first, SourceExpr second, Identifier functionIdentifier) {
+	    final DesugarResult<CoreExpr> firstDs = expr(first);
 		final DesugarResult<CoreExpr> secondDs = firstDs.expr(second);
-		return secondDs.withDesugared(op, new Call(Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier(), List.list(firstDs.getValue(), secondDs.getValue())));
+		return secondDs.withDesugared(op, new Call(new Call(functionIdentifier, List.single(firstDs.getValue())), List.single(secondDs.getValue())));
     }
 
 	public DesugarResult<CoreExpr> baseFunction(UnaryOp op) {

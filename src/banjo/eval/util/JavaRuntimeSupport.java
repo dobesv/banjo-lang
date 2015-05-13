@@ -1,11 +1,17 @@
 package banjo.eval.util;
 
+import interceptors.ArgInterceptor;
+import interceptors.CallInterceptor;
+import interceptors.CallResultInterceptor;
+import interceptors.SlotInterceptor;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
@@ -14,13 +20,10 @@ import java.util.function.Supplier;
 import banjo.dom.source.Operator;
 import banjo.eval.CalculatedValue;
 import banjo.eval.Fail;
-import banjo.eval.FunctionComposition;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.eval.Value;
-import banjo.eval.coreexpr.FunctionInstance;
 import fj.data.List;
-import fj.data.Stream;
 
 public class JavaRuntimeSupport {
 
@@ -337,7 +340,37 @@ public class JavaRuntimeSupport {
 	 * The result of second is the result of the function.
 	 */
 	public static Object composeFunctions(Object first, Object second) {
-		return new FunctionComposition(first, second);
+		return new CallResultInterceptor(second, first);
+	}
+
+	/**
+	 * Function result interceptor.  Equivalent to function composition.
+	 */
+	public static Object functionResultInterceptor(Object interceptor, Object target) {
+		return new CallResultInterceptor(interceptor, target);
+	}
+
+	/**
+	 * Slot interceptor.  Passes each slot value through a function before returning it.
+	 */
+	public static Object slotInterceptor(Object interceptor, Object target) {
+		return new SlotInterceptor(interceptor, target);
+	}
+
+	/**
+	 * Function argument interceptor - passes each function argument through a function
+	 * before passing it into the given object.
+	 */
+	public static Object argInterceptor(Object interceptor, Object target) {
+		return new ArgInterceptor(interceptor, target);
+	}
+
+	/**
+	 * Call interceptor - gets function arguments as a tuple to use as it
+	 * pleases.
+	 */
+	public static Object callInterceptor(Object interceptor, Object target) {
+		return new CallInterceptor(interceptor, target);
 	}
 
 	private static final class LazySlotValue implements CalculatedValue {
@@ -427,8 +460,46 @@ public class JavaRuntimeSupport {
 		}
 	}
 
+	public static class BigIntegers {
+		public static BigInteger sum(BigInteger a, BigInteger b) { return a.add(b); }
+		public static BigInteger difference(BigInteger a, BigInteger b) { return a.subtract(b); }
+		public static BigInteger product(BigInteger a, BigInteger b) { return a.multiply(b); }
+		public static BigInteger quotient(BigInteger a, BigInteger b) { return a.divide(b); }
+		public static BigInteger neg(BigInteger a) { return a.negate(); }
+		public static BigInteger abs(BigInteger a) { return a.abs(); }
+		public static boolean eq(BigInteger a, BigInteger b) { return a.equals(b); }
+		public static boolean ne(BigInteger a, BigInteger b) { return !a.equals(b); }
+		public static boolean gt(BigInteger a, BigInteger b) { return a.compareTo(b) > 0; }
+		public static boolean ge(BigInteger a, BigInteger b) { return a.compareTo(b) >= 0; }
+		public static boolean lt(BigInteger a, BigInteger b) { return a.compareTo(b) < 0; }
+		public static boolean le(BigInteger a, BigInteger b) { return a.compareTo(b) <= 0; }
+		public static Object cmp(BigInteger a, BigInteger b, Object ascending, Object equal, Object descending, Object undefined) {
+			int c = a.compareTo(b);
+			return (c < 0) ? ascending : (c > 0) ? descending : equal;
+		}
+	}
+
+	public static class BigDecimals {
+		public static BigDecimal sum(BigDecimal a, BigDecimal b) { return a.add(b); }
+		public static BigDecimal difference(BigDecimal a, BigDecimal b) { return a.subtract(b); }
+		public static BigDecimal product(BigDecimal a, BigDecimal b) { return a.multiply(b); }
+		public static BigDecimal quotient(BigDecimal a, BigDecimal b) { return a.divide(b); }
+		public static BigDecimal neg(BigDecimal a) { return a.negate(); }
+		public static BigDecimal abs(BigDecimal a) { return a.abs(); }
+		public static boolean eq(BigDecimal a, BigDecimal b) { return a.equals(b); }
+		public static boolean ne(BigDecimal a, BigDecimal b) { return !a.equals(b); }
+		public static boolean gt(BigDecimal a, BigDecimal b) { return a.compareTo(b) > 0; }
+		public static boolean ge(BigDecimal a, BigDecimal b) { return a.compareTo(b) >= 0; }
+		public static boolean lt(BigDecimal a, BigDecimal b) { return a.compareTo(b) < 0; }
+		public static boolean le(BigDecimal a, BigDecimal b) { return a.compareTo(b) <= 0; }
+		public static Object cmp(BigDecimal a, BigDecimal b, Object ascending, Object equal, Object descending, Object undefined) {
+			int c = a.compareTo(b);
+			return (c < 0) ? ascending : (c > 0) ? descending : equal;
+		}
+	}
+
 	public static class Strings {
-		public static String sum(String a, String b) { return a + b; }
+		public static String concat(String a, String b) { return a + b; }
 		public static boolean eq(String a, String b) { return a.equals(b); }
 		public static boolean ne(String a, String b) { return !a.equals(b); }
 		public static boolean gt(String a, String b) { return a.compareTo(b) < 0; }

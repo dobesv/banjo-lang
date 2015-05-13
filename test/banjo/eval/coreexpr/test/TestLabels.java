@@ -38,6 +38,10 @@ public class TestLabels {
 	@Test public void slot1() { testRepr("{ foo = { label = \"bar\" } }.foo", "bar"); }
 	@Test public void slot2() { testRepr("{ foo = { }, label = \"bar\" }.foo", "{}"); }
 
+	@Test public void list1() { testRepr("[1,2]", "[1, 2]"); }
+	@Test public void list2() { testRepr("[1,2]", "[1].first"); }
+	@Test public void list3() { testRepr("[1,2]", "[2].last"); }
+
 
 	public void testRepr(String expr) {
 		testRepr(expr, expr);

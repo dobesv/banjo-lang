@@ -12,8 +12,8 @@ import fj.Ord;
 
 public enum Operator {
 	// Unary operators
-	PLUS("+", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
-	NEGATE("-", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
+	PLUS("+", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "-_"),
+	NEGATE("-", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "+_"),
 	COMPLEMENT("~", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	NOT("¬ !", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	LIST_ELEMENT("• *",OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),
@@ -47,7 +47,7 @@ public enum Operator {
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	NEQ("≠ !=", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
-	MEMBER_OF("∈ <++", OperatorType.METHOD, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "contains"),
+	MEMBER_OF("∈ <++", OperatorType.METHOD_SWITCHED, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "∈"),
 	INTERSECT("∩ &", OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
 	XOR("⊻ ><", OperatorType.METHOD, Position.INFIX, Precedence.XOR),
 	UNION("∪ |", OperatorType.METHOD, Position.INFIX, Precedence.UNION),
@@ -57,8 +57,8 @@ public enum Operator {
 
 	PIPE_TO("|>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
-	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
-	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),
 
 	PRECONDITION("&&&", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("↦ ->", OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
@@ -112,22 +112,25 @@ public enum Operator {
 
 	Operator(String ops, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence, Precedence precedence) {
 		this(ops, operatorType, parenType, position, associativity, leftPrecedence, precedence,
-				defaultOpMethodName(ops, position, associativity));
+				defaultOpMethodName(ops, position, associativity, operatorType));
 	}
 
-	private static String defaultOpMethodName(String ops, Position position,
-            Associativity associativity) {
-		String op = ops.split(" ", 2)[0];
-		switch(position) {
-		case PREFIX:
-			return "_ "+op;
-		case SUFFIX:
-			return op+" _";
-		case INFIX:
-			return "_ "+op+" _";
-		default:
+	static String defaultOpMethodName(String ops, Position position,
+            Associativity associativity, OperatorType type) {
+		if(type == OperatorType.BUILTIN)
 			return null;
-		}
+		String op = ops.split(" ", 2)[0];
+//		switch(position) {
+//		case PREFIX:
+//			return op+" _";
+//		case SUFFIX:
+//			return "_ "+op;
+//		case INFIX:
+//			return "_ "+op+" _";
+//		default:
+//			return null;
+//		}
+		return op;
     }
 
 	public static Associativity defaultAssociativity(Position position) {

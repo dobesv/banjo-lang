@@ -27,11 +27,11 @@ public class ObjectInstance extends Value {
     }
 
 	@Override
-	public Object slot(Object self, String name, Supplier<Object> prevSlotValue) {
+	public Object slot(Object self, String name, Supplier<Object> fallback) {
 		return slots
 			.get(name).map(
-				slot -> (Object)new SlotInstance(slot, evaluator, self, prevSlotValue)
-			).orSome(P.lazy(() -> super.slot(self, name, prevSlotValue)));
+				slot -> (Object)new SlotInstance(slot, evaluator, self, fallback)
+			).orSome(P.lazy(() -> super.slot(self, name, fallback)));
 	}
 
 	@Override

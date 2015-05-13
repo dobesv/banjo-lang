@@ -55,6 +55,10 @@ public class Value {
 		throw new IllegalStateException("Value is not an int32 and not convertible to int32: "+this, v instanceof Throwable ? (Throwable) v : null);
 	}
 
+	static final Supplier<Object> nullSupplier = new Supplier<Object>() {
+		public Object get() { return null; }
+	};
+
 	/**
 	 * Call a function in a slot.  A subclass may provide an optimized implementation in some cases.
 	 *
@@ -65,7 +69,7 @@ public class Value {
 	 * @return
 	 */
 	public Object callMethod(String name, Object targetObject, Supplier<Object> fallback, List<Object> args) {
-	    final Object f = slot(targetObject, name, null);
+	    final Object f = slot(targetObject, name, nullSupplier);
 	    if(fallback != null && !JavaRuntimeSupport.isDefined(f)) {
     		return fallback.get();
 	    }
