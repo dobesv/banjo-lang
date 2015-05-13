@@ -220,7 +220,7 @@ public class ProjectLoader {
             TreeMap<Identifier, CoreExpr> bindingMap, P2<Identifier, CoreExpr> binding) {
 	    return bindingMap.set(binding._1(),
 	    		bindingMap.get(binding._1())
-	    		.map(nextValue -> (CoreExpr) new Extend(binding._2(), (CoreExpr)nextValue))
+	    		.map(prevValue -> (CoreExpr) new Extend((CoreExpr)prevValue, binding._2()))
 	    		.orSome((CoreExpr)binding._2()));
     }
 
