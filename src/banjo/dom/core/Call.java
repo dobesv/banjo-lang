@@ -35,11 +35,14 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public void toSource(final StringBuffer sb) {
 		getBinaryOperator().map(op -> {
-			((SlotReference)target).object.toSource(sb, op.getLeftPrecedence());
+			CoreExpr tgt = ((SlotReference)target).object;
+			CoreExpr arg = args.head();
+			boolean switched = op.isSelfOnRightMethodOperator();
+			(switched? arg : tgt).toSource(sb, op.getLeftPrecedence());
 			sb.append(' ');
 			op.toSource(sb);
 			sb.append(' ');
-			args.head().toSource(sb, op.getRightPrecedence());
+			(switched? tgt : arg).toSource(sb, op.getRightPrecedence());
 			return op;
 		}).orSome(P.lazy(u -> {
 			target.toSource(sb, Operator.CALL.getLeftPrecedence());
@@ -69,7 +72,11 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 		return "(" + ListUtil.insertCommas(args) + ")";
 	}
 	public String toString() {
-		return getBinaryOperator().map(op -> ((SlotReference)target).object + " " + op.getOp() + " " + args.head().toString()).orSome(target+argsToString());
+		return getBinaryOperator().map(op ->
+		   op.isSelfOnRightMethodOperator() ?
+				   args.head().toString() + " " + op.getOp() + " " + ((SlotReference)target).object :
+		   ((SlotReference)target).object + " " + op.getOp() + " " + args.head().toString()
+	    ).orSome(target+argsToString());
 	}
 
 	@Override
