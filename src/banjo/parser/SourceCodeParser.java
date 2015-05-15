@@ -375,7 +375,7 @@ public class SourceCodeParser implements TokenVisitor<SourceCodeParser> {
 				case PROJECTION:
 				case SELECTOR:
 				case BASE_SLOT:
-				case MAP_PROJECTION:
+				case PROJECTION_OF_MEMBERS:
 
 					// Try for an operator method - where operators change meaning based on position,
 					// favor binary over unary, and prefix over suffix.  People who want to reference

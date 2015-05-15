@@ -32,7 +32,7 @@ public enum Operator {
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
 	EXTEND("Φ @", OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-	MAP_PROJECTION("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
+	PROJECTION_OF_MEMBERS("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	QUICK_LAMBDA("&", OperatorType.BUILTIN, Position.PREFIX, Precedence.UNARY_PREFIX),
 	POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
@@ -56,6 +56,7 @@ public enum Operator {
 	FALLBACK("?:", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 
 	PIPE_TO("|>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
+	APPLICATION_TO_MEMBERS("*>", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),
 	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),

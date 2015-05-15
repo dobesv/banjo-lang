@@ -5,7 +5,12 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import fj.P;
+import fj.P1;
+import banjo.dom.core.BaseCoreExprVisitor;
+import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.SlotReference;
 import banjo.eval.coreexpr.CoreExprEvaluator;
 import banjo.eval.util.JavaRuntimeSupport;
 
@@ -18,6 +23,29 @@ public class TestSimpleExpressions {
 		final Object value = JavaRuntimeSupport.force(evalResult);
 		final String valueStr = value.toString();
 		System.out.println("Result: "+valueStr);
+		ast.acceptVisitor(new BaseCoreExprVisitor<Void>() {
+			@Override
+			public Void fallback() {
+			    return null;
+			}
+
+			@Override
+			public Void call(Call n) {
+				if(n.target instanceof SlotReference) {
+					final SlotReference methodReceiver = (SlotReference)n.target;
+					final Object lhs = evaluator.evaluate(methodReceiver.object);
+					n.getBinaryOperator().map(x -> {
+						final Object rhs = evaluator.evaluate(n.args.head());
+						System.out.println("Calling: "+lhs+" "+x.getOp()+" "+rhs);
+						return null;
+					}).orSome(P.lazy(() -> {
+						System.out.println("Calling: "+lhs+"."+methodReceiver.slotName+"("+n.args.map(evaluator::evaluate)+")");
+						return null;
+					}));
+				}
+			    return null;
+			}
+		});
 		if(!JavaRuntimeSupport.isDefined(value)) {
 			final Throwable valueThrowable = (value instanceof Throwable) ? (Throwable) value : null;
 			throw new AssertionError(src + " not truthy, got: " + valueStr, valueThrowable);
@@ -82,7 +110,9 @@ public class TestSimpleExpressions {
 	@Test public void minusTwoEqualsMinusTwo() { assertTruthyExpr(("-2 == -2")); }
 	@Test public void minusThreeEqualsMinusThree() { assertTruthyExpr(("-3 == -3")); }
 
-	@Test public void testRange22() { assertTruthyExpr(("[1, 2, 3, 4, 5].slice(2, 2) == [3, 4]")); }
+	@Test public void testSlice24() { assertTruthyExpr(("[1, 2, 3, 4, 5].slice(2, 4) == [3, 4]")); }
+	@Test public void testSlice22() { assertTruthyExpr(("[1, 2, 3, 4, 5].slice(2, 2) == []")); }
+	@Test public void testSlice2Neg1() { assertTruthyExpr(("[1, 2, 3, 4, 5, 6].slice(2, -1) == [3, 4, 5]")); }
 
 	@Test public void compose1() { assertTruthyExpr("(not = (x -> !x), not not = not ; not) ⇒ not not(true)"); }
 	@Test public void compose2() { assertTruthyExpr("(not = (x -> !x), not not = not ; not, not not not = not not ; not) ⇒ not not not(true) == false"); }

@@ -261,10 +261,10 @@ public class SourceExprToCoreExpr {
 	}
 
 	protected DesugarResult<CoreExpr> mapProjection(SourceExpr op, CoreExpr target,	SourceExpr projection, boolean callNext, boolean optional) {
-		final Identifier argName = new Identifier("//compiler/map projection/x");
+		final Identifier argName = new Identifier("__tmp");
 		final DesugarResult<CoreExpr> projectionDs = projection(op, argName, projection, false);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
-		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, "map", projectFuncDs.getValue()));
+		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, Operator.APPLICATION_TO_MEMBERS.methodNameKey, projectFuncDs.getValue()));
 		return mapCallDs;
 	}
 
@@ -1176,7 +1176,7 @@ public class SourceExprToCoreExpr {
 			case BASE_SLOT: return projection(op, true);
 			case FUNCTION: return functionLiteral(op);
 			case PROJECTION: return projection(op, false);
-			case MAP_PROJECTION: return mapProjection(op, false, false);
+			case PROJECTION_OF_MEMBERS: return mapProjection(op, false, false);
 
 			// Normal operators are translated into a method call
 			case GT:
@@ -1198,6 +1198,7 @@ public class SourceExprToCoreExpr {
 			case LOGICAL_AND:
 			case LOGICAL_OR:
 			case FALLBACK:
+			case APPLICATION_TO_MEMBERS:
 				return binaryOpToCall(op, false);
 
 			case EXTEND:

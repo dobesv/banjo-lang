@@ -229,7 +229,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 								b.baseSlotValue.get() :
 								new BaseSlotNotFound(ref.slotName.id, selfRef) :
 								new UnboundIdentifier("'"+selfRef+"' is not a same-object binding"))
-    	    				.orSome(new UnboundIdentifier("No same-object binding named '"+selfRef+"'"));
+    	    				.orSome(P.lazy(() -> new UnboundIdentifier("'"+selfRef+"' is not defined in the current scope")));
     			}
 
     			@Override

@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
+import banjo.dom.core.FunctionLiteral;
 import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 
@@ -42,5 +43,13 @@ public class TestOperator {
 		assertEquals("a", e.args.head().toSource());
 		assertEquals("b", ((SlotReference)e.target).object.toSource());
 		assertEquals("\\∈", ((SlotReference)e.target).slotName.toSource());
+	}
+
+	@Test
+	public void mapProjection() {
+		Call e = (Call)CoreExpr.fromString("a*.b");
+		assertEquals("a", ((SlotReference)e.target).object.toSource());
+		assertEquals(1, e.args.length());
+		assertEquals("b", ((SlotReference)((FunctionLiteral)e.args.head()).body).slotName.id);
 	}
 }

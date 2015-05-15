@@ -404,6 +404,9 @@ public class JavaRuntimeSupport {
 		public static Object cmp(int a, int b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : equal;
 		}
+		public static Object checkSign(int a, Object negative, Object zero, Object positive) {
+			return (a < 0) ? negative : (a > 0) ? positive : zero;
+		}
 	}
 
 	public static class Longs {
@@ -421,6 +424,9 @@ public class JavaRuntimeSupport {
 		public static boolean le(long a, long b) { return a <= b; }
 		public static Object cmp(long a, long b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : equal;
+		}
+		public static Object checkSign(long a, Object negative, Object zero, Object positive) {
+			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
 	}
 
@@ -440,6 +446,9 @@ public class JavaRuntimeSupport {
 		public static Object cmp(float a, float b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
 		}
+		public static Object checkSign(float a, Object negative, Object zero, Object positive) {
+			return (a < 0) ? negative : (a > 0) ? positive : zero;
+		}
 	}
 
 	public static class Doubles {
@@ -458,6 +467,10 @@ public class JavaRuntimeSupport {
 		public static Object cmp(double a, double b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
 		}
+		public static Object checkSign(double a, Object negative, Object zero, Object positive) {
+			return (a < 0) ? negative : (a > 0) ? positive : zero;
+		}
+
 	}
 
 	public static class BigIntegers {
@@ -476,6 +489,9 @@ public class JavaRuntimeSupport {
 		public static Object cmp(BigInteger a, BigInteger b, Object ascending, Object equal, Object descending, Object undefined) {
 			int c = a.compareTo(b);
 			return (c < 0) ? ascending : (c > 0) ? descending : equal;
+		}
+		public static Object checkSign(BigInteger a, Object negative, Object zero, Object positive) {
+			return Integers.checkSign(a.signum(), negative, zero, positive);
 		}
 	}
 
@@ -496,10 +512,13 @@ public class JavaRuntimeSupport {
 			int c = a.compareTo(b);
 			return (c < 0) ? ascending : (c > 0) ? descending : equal;
 		}
+		public static Object checkSign(BigDecimal a, Object negative, Object zero, Object positive) {
+			return Integers.checkSign(a.signum(), negative, zero, positive);
+		}
 	}
 
 	public static class Strings {
-		public static String concat(String a, String b) { return a + b; }
+		public static String concat(Object a, Object b) { return String.valueOf(a) + String.valueOf(b); }
 		public static boolean eq(String a, String b) { return a.equals(b); }
 		public static boolean ne(String a, String b) { return !a.equals(b); }
 		public static boolean gt(String a, String b) { return a.compareTo(b) < 0; }

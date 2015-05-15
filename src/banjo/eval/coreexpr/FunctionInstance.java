@@ -35,7 +35,7 @@ public class FunctionInstance extends Value {
 					missingArgNames.map(name -> P.p(name, Binding.simple(new IllegalArgumentException("Missing argument '"+name.id+"'"))));
 			List<P2<Identifier, Binding>> argBindings = f.args
 					.zip(arguments.map(Binding::simple)).append(missingArgBindings)
-					.append(f.recursiveBindingName.map(n -> P.p(n, new Binding(this, null, null, prevImpl))).toList());
+					.append(f.recursiveBindingName.map(n -> P.p(n, new Binding(recurse, null, null, prevImpl))).toList());
 			return evaluator.evaluate(f.body, argBindings);
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);
