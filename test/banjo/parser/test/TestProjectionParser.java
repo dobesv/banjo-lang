@@ -21,7 +21,7 @@ public class TestProjectionParser {
 	@Test public void specialCharField1() { ParseTestUtils.test("a.\\-\\-", SlotReference.class); }
 	@Test public void specialCharField2() { ParseTestUtils.test("a.\\.\\.", SlotReference.class); }
 	@Test public void specialCharField3() { ParseTestUtils.test("a.\\.", SlotReference.class); }
-	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a.map(.b)", Call.class); }
+	@Test public void aStarDotB() { ParseTestUtils.test("a*.b", "a *> (.b)", Call.class); }
 
 //	@Test public void aDotQuestionB() { ParseTestUtils.test("a.?b", "a.?b", Call.class); }
 //	@Test public void aDotQuestionBC() { ParseTestUtils.test("a.?b(c)", "a.?b(c)", Call.class); }
