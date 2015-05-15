@@ -64,11 +64,15 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 			return Unit.unit();
 		}).orSome(P.lazy(u -> {
 			object.toSource(sb);
-			(base ? Operator.BASE_SLOT : Operator.PROJECTION).toSource(sb);
+			getOperator().toSource(sb);
 			slotName.toSource(sb);
 			return Unit.unit();
 		}));
 	}
+
+	private Operator getOperator() {
+	    return base ? Operator.BASE_SLOT : Operator.PROJECTION;
+    }
 
 	@Override
 	public String toString() {
@@ -76,7 +80,7 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 			op.isParen() ? op.getParenType().getStartChar()+object.toString()+op.getParenType().getEndChar() :
 			op.isPrefix() ? op.getOp() + object.toString() :
 			object.toString() + op.getOp()
-		).orSome(P.lazy(u -> object.toString() + Operator.PROJECTION.getOp()+slotName.toString()));
+		).orSome(P.lazy(u -> object.toString() + getOperator().getOp()+slotName.toString()));
 	}
 
 	@Override

@@ -15,13 +15,13 @@ import banjo.eval.util.JavaRuntimeSupport;
 public class SlotInstance extends Value implements CalculatedValue {
 	public Slot slot;
 	public Object self;
-	public Object prevSlotValue;
+	public Supplier<Object> prevSlotValue;
 	public CoreExprEvaluator evaluator;
 	public Object cachedValue;
 	public boolean calculated;
 
 	public SlotInstance(Slot slot, CoreExprEvaluator evaluator, Object self,
-            Object prevSlotValue) {
+            Supplier<Object> prevSlotValue) {
 	    super();
 	    this.slot = slot;
 	    this.evaluator = requireNonNull(evaluator);

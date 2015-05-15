@@ -11,6 +11,7 @@ import org.apache.commons.math3.fraction.BigFraction;
 import org.apache.commons.math3.fraction.Fraction;
 
 import banjo.dom.core.BadCoreExpr;
+import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.BaseFunctionRef;
 import banjo.dom.core.Call;
 import banjo.dom.core.CoreExpr;
@@ -217,8 +218,29 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 
     @Override
 	public Object slotReference(final SlotReference ref) {
-    	final Object target = evaluate(ref.object);
-		return JavaRuntimeSupport.readSlot(target, target, null, ref.slotName.id);
+    	if(ref.base) {
+    		return ref.object.acceptVisitor(new BaseCoreExprVisitor<Object>() {
+    			@Override
+    			public Object identifier(Identifier selfRef) {
+    	    		return getBinding(selfRef)
+    	    				.map(b ->
+    	    					b.bindsSelfForSlot(ref.slotName.id) ?
+								b.baseSlotValue != null ?
+								b.baseSlotValue.get() :
+								new BaseSlotNotFound(ref.slotName.id, selfRef) :
+								new UnboundIdentifier("'"+selfRef+"' is not a same-object binding"))
+    	    				.orSome(new UnboundIdentifier("No same-object binding named '"+selfRef+"'"));
+    			}
+
+    			@Override
+    			public Object fallback() {
+    			    return new UnboundIdentifier("'"+ref.base+"': expected an identifier");
+    			}
+			});
+    	} else {
+	    	final Object target = evaluate(ref.object);
+			return JavaRuntimeSupport.readSlot(target, target, null, ref.slotName.id);
+    	}
 	}
 
     static final List<P2<Identifier, Binding>> javaPackages() {

@@ -1,9 +1,11 @@
 package banjo.eval.coreexpr;
 
+import java.util.function.Supplier;
+
 public class Binding {
 	public final Object value;
 	public final String slotName;
-	public final Object baseSlotValue;
+	public final Supplier<Object> baseSlotValue;
 	public final Object baseFunction;
 
 	/**
@@ -21,7 +23,7 @@ public class Binding {
 	 * @param baseFunction In the self-referential binding of a function, if the function is an extension
 	 *   of another function, the previous/original implementation is available here.
 	 */
-	public Binding(Object value, String slotName, Object baseSlotValue, Object baseFunction) {
+	public Binding(Object value, String slotName, Supplier<Object> baseSlotValue, Object baseFunction) {
         super();
         this.value = value;
         this.slotName = slotName;
@@ -41,4 +43,8 @@ public class Binding {
 	public String toString() {
 	    return String.valueOf(value);
 	}
+
+	public boolean bindsSelfForSlot(String id) {
+	    return id.equals(slotName);
+    }
 }

@@ -124,7 +124,7 @@ public class JavaRuntimeSupport {
 		if(obj instanceof Value) {
 			return ((Value)obj).slot(self, name, baseValue);
 		} else if(name.equals("label")) {
-			// If it's not a Value subclass, just assume it won't implement the "label" slot
+			// If it's not a Value subclass, just implement the "label" slot as toString()
 			return String.valueOf(obj);
 		}
 		if(obj == null) {
@@ -230,7 +230,7 @@ public class JavaRuntimeSupport {
                 }
 	        }
 	        if(f instanceof Function) {
-	        	return ((Function<Object,Object>)f).apply(args.toOption().toNull());
+	        	return ((Function<Object,Object>)f).apply(force(args.toOption().toNull()));
 	        }
 	        if(f instanceof Supplier) {
 	        	return ((Supplier<Object>)f).get();
