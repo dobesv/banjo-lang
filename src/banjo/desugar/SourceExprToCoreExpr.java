@@ -492,7 +492,11 @@ public class SourceExprToCoreExpr {
 		if(combiningOp == null || combiningOp == Operator.ASSIGNMENT)
 			return slot;
 		Identifier selfBinding = slot.selfBinding.orSome(Identifier.__TMP);
-		CoreExpr newValue = Call.binaryOp(SlotReference.base(selfBinding, slot.name), combiningOp, slot.value);
+		final CoreExpr base = SlotReference.base(selfBinding, slot.name);
+		CoreExpr newValue =
+				combiningOp == Operator.EXTEND ?
+				new Extend(base, slot.value) :
+				Call.binaryOp(base, combiningOp, slot.value);
 		return new Slot(slot.name, Option.some(selfBinding), newValue);
 	}
 
