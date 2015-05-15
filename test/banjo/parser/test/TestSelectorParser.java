@@ -20,11 +20,11 @@ public class TestSelectorParser {
 	@Test public void test3() { parse(".(x)", ".(x)"); }
 	@Test public void test4() { parse(".(x + y)", ".(x + y)"); }
 	@Test public void test5() { parse(".foo(x,y)", ".foo(x, y)"); }
-	@Test public void testOpPlus() { parse(".+(7)", "._ \\+ _(7)"); }
-	@Test public void testOpMinus() { parse(".-(7)", "._ \\- _(7)"); }
-	@Test public void testOpTimesJuxta() { parse(".* 7", "._ \\× _(7)"); }
-	@Test public void testOpDivJuxta() { parse("./ 7", "._ \\÷ _(7)"); }
-	@Test public void testOpNot() { parse(".!", "._ \\¬"); }
-	@Test public void testOpInv() { parse(".~", "._ \\~"); }
+	@Test public void testOpPlus() { parse(".+(7)", ".\\+(7)"); }
+	@Test public void testOpMinus() { parse(".-(7)", ".\\-(7)"); }
+	@Test public void testOpTimesJuxta() { parse(".* 7", ".\\×(7)"); }
+	@Test public void testOpDivJuxta() { parse("./ 7", ".\\÷(7)"); }
+	@Test public void testOpNot() { parse(".!", ".\\¬"); }
+	@Test public void testOpInv() { parse(".~", ".\\~"); }
 
 }

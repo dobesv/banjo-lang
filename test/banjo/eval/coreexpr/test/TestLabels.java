@@ -38,9 +38,9 @@ public class TestLabels {
 	@Test public void slot1() { testRepr("{ foo = { label = \"bar\" } }.foo", "bar"); }
 	@Test public void slot2() { testRepr("{ foo = { }, label = \"bar\" }.foo", "{}"); }
 
-	@Test public void list1() { testRepr("[1,2]", "[1, 2]"); }
-	@Test public void list2() { testRepr("[1,2]", "[1].first"); }
-	@Test public void list3() { testRepr("[1,2]", "[2].last"); }
+	@Test public void list12() { testRepr("[1,2]", "[1, 2]"); }
+	@Test public void listFirst() { testRepr("[1,2].first", "[1]"); }
+	@Test public void listLast() { testRepr("[1,2].last", "[2]"); }
 
 
 	public void testRepr(String expr) {
