@@ -44,6 +44,8 @@ public class TestSimpleExpressions extends BaseSourceExprTest {
 			"[] != [false]",
 			"[].is empty",
 			"0 . is zero",
+			"0 == 0.0",
+			"0.0 == 0",
 			"[1, 2, 3, 4, 5].slice(2, 4) == [3, 4]",
 			"[1, 2, 3, 4, 5].slice(2, 2) == []",
 			"[1, 2, 3, 4, 5, 6].slice(2, -1) == [3, 4, 5]",

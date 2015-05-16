@@ -407,6 +407,8 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(int a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		public static BigDecimal toBigDecimal(int a) { return BigDecimal.valueOf(a); }
+		public static BigInteger toBigInteger(int a) { return BigInteger.valueOf(a); }
 	}
 
 	public static class Longs {
@@ -428,6 +430,8 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(long a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		public static BigDecimal toBigDecimal(long a) { return BigDecimal.valueOf(a); }
+		public static BigInteger toBigInteger(long a) { return BigInteger.valueOf(a); }
 	}
 
 	public static class Floats {
@@ -449,6 +453,8 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(float a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		public static BigDecimal toBigDecimal(float a) { return new BigDecimal(a); }
+		public static BigInteger toBigInteger(float a) { return BigInteger.valueOf((long)a); }
 	}
 
 	public static class Doubles {
@@ -470,6 +476,8 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(double a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		public static BigDecimal toBigDecimal(double a) { return new BigDecimal(a); }
+		public static BigInteger toBigInteger(double a) { return BigInteger.valueOf((long)a); }
 
 	}
 
@@ -493,6 +501,9 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(BigInteger a, Object negative, Object zero, Object positive) {
 			return Integers.checkSign(a.signum(), negative, zero, positive);
 		}
+		public static BigDecimal toBigDecimal(BigInteger a) { return new BigDecimal(a); }
+		public static BigInteger toBigInteger(BigInteger a) { return a; }
+
 	}
 
 	public static class BigDecimals {
@@ -515,6 +526,8 @@ public class JavaRuntimeSupport {
 		public static Object checkSign(BigDecimal a, Object negative, Object zero, Object positive) {
 			return Integers.checkSign(a.signum(), negative, zero, positive);
 		}
+		public static BigDecimal toBigDecimal(BigDecimal a) { return a; }
+		public static BigInteger toBigInteger(BigDecimal a) { return a.toBigInteger(); }
 	}
 
 	public static class Strings {

@@ -19,8 +19,9 @@ import fj.data.List;
 
 public abstract class BaseExprTest {
 
+	final static CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
+
 	final CoreExpr expr;
-	CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
 	final Object value;
 
 	public BaseExprTest(CoreExpr ast) {
@@ -54,7 +55,7 @@ public abstract class BaseExprTest {
     	final String valueStr = expr.acceptVisitor(new BaseCoreExprVisitor<String>() {
     		@Override
     		public String fallback() {
-    		    return value.toString();
+    		    return expr.toSource() + " --> " + value.toString();
     		}
 
     		@Override
@@ -62,7 +63,7 @@ public abstract class BaseExprTest {
     			if(n.target instanceof SlotReference) {
     				final SlotReference methodReceiver = (SlotReference)n.target;
     				final Object lhs = evaluator.evaluate(methodReceiver.object);
-    				n.getBinaryOperator().map(x -> {
+    				return n.getBinaryOperator().map(x -> {
     					final Object rhs = evaluator.evaluate(n.args.head());
     					return "("+lhs+" "+x.getOp()+" "+rhs+")"+ " --> " + value;
     				}).orSome(P.lazy(() -> {
