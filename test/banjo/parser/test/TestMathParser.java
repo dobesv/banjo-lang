@@ -52,6 +52,7 @@ public class TestMathParser {
 
 	@Test public void negateCallResult() { test("-abs(x)", "-abs(x)"); }
 
+
 	// There can be an issue whether this is parsed as x(-1) or (x - 1)
 	@Test public void testMinus1() { test("x-1", "x - 1"); }
 

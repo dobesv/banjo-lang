@@ -109,8 +109,13 @@ public interface CoreExpr extends Expr {
 	 * Parse a string to a CoreExpr
 	 */
 	public static CoreExpr fromString(String src) {
-		return new SourceExprToCoreExpr().desugar(SourceExpr.fromString(src)).getValue();
+		final SourceExpr parseTree = SourceExpr.fromString(src);
+		return fromSourceExpr(parseTree);
 	}
+
+	public static CoreExpr fromSourceExpr(final SourceExpr parseTree) {
+	    return new SourceExprToCoreExpr().desugar(parseTree).getValue();
+    }
 
 	/**
 	 * True if this CoreExpr is the same as the other, ignoring source file location.

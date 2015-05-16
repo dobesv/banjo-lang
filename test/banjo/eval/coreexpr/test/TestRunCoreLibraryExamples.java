@@ -1,9 +1,12 @@
 package banjo.eval.coreexpr.test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import junit.framework.AssertionFailedError;
+import junit.framework.TestResult;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.Call;
@@ -17,14 +20,40 @@ import banjo.dom.core.Slot;
 import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
+import banjo.eval.Fail;
 import banjo.eval.ProjectLoader;
 import banjo.eval.coreexpr.CoreExprEvaluator;
 import banjo.eval.util.JavaRuntimeSupport;
+import fj.P;
 import fj.P2;
 import fj.data.List;
 
-public class TestRunCoreLibraryExamples {
-	Identifier EXAMPLES_KEY = new Identifier("usage examples");
+@RunWith(Parameterized.class)
+public class TestRunCoreLibraryExamples extends BaseExprTest {
+	public TestRunCoreLibraryExamples(CoreExpr expr, CoreExpr withoutScope) {
+	    super(expr);
+    }
+
+//	@Test
+//	public void test() throws Throwable {
+//		CoreExpr body = TestRunCoreLibraryExamples.stripScope(expr);
+//		final CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile(expr.getSourceFileRanges().head().getSourceFile());
+//		Object evalResult = evaluator.evaluate(expr);
+//		if(JavaRuntimeSupport.isDefined(evalResult)) {
+//			if(JavaRuntimeSupport.isTruthy(evalResult)) {
+//			} else {
+//				final AssertionFailedError afe = new AssertionFailedError(body+" --> "+evalResult);
+//				TestRunCoreLibraryExamples.setStackTrace(expr, afe);
+//				throw afe;
+//			}
+//		} else if(evalResult instanceof Throwable) {
+//			throw (Throwable) evalResult;
+//		} else {
+//			throw new Fail(body+" --> "+evalResult);
+//		}
+//	}
+//
+	public static final Identifier EXAMPLES_KEY = new Identifier("usage examples");
 
 	static Boolean looksLikeExample(CoreExpr arg) {
 		return arg.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
@@ -67,18 +96,7 @@ public class TestRunCoreLibraryExamples {
 		});
 	}
 
-	Boolean testFails(CoreExpr x) {
-		System.out.println("Testing: "+x);
-
-		final CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile(x.getSourceFileRanges().head().getSourceFile());
-		Object result = evaluator.evaluate(x);
-		final boolean working = JavaRuntimeSupport.isDefined(result);
-		//if(!working) System.out.println("Error: "+result.object);
-		final boolean success = working && JavaRuntimeSupport.isTruthy(result);
-		System.out.println((working?success?"PASS":"FAIL":"ERROR")+": "+x+" --> "+result);
-		return ! success;
-	}
-	private List<CoreExpr> findExamples(CoreExpr base) {
+	static private List<CoreExpr> findExamples(CoreExpr base) {
 		return base.acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
 			@Override
 			public List<CoreExpr> fallback() {
@@ -113,7 +131,7 @@ public class TestRunCoreLibraryExamples {
 			}
 			@Override
 			public List<CoreExpr> let(Let let) {
-			    return List.join(let.bindings.map(this::binding));
+			    return List.join(let.bindings.map(this::binding)).map(e -> new Let(let.getSourceFileRanges(), let.bindings, e));
 			}
 			@Override
 			public List<CoreExpr> extend(Extend n) {
@@ -122,7 +140,10 @@ public class TestRunCoreLibraryExamples {
 
 			@Override
 			public List<CoreExpr> functionLiteral(FunctionLiteral f) {
-			    return f.body.acceptVisitor(this);
+			    return f.body.acceptVisitor(this).map(e ->
+			        f.recursiveBindingName.map(recId ->
+			            (CoreExpr)new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e))
+		            .orSome(e));
 			}
 
 			@Override
@@ -131,18 +152,38 @@ public class TestRunCoreLibraryExamples {
 			}
 		});
 	}
+	private static List<CoreExpr> allExamples;
 
-	@Test
-	public void testCoreLibraryExamplesPass() {
-
-		List<CoreExpr> allExamples = List.join((new ProjectLoader()).loadBanjoPath()
-			.map(P2.__2())
-			.<List<CoreExpr>>map(this::findExamples));
-		System.out.println("Found "+allExamples.length()+" examples");
-
-		assertFalse("Failed to find any examples in the core library.", allExamples.isEmpty());
-		final List<CoreExpr> failures = allExamples.filter(this::testFails);
-		System.out.println("Found "+allExamples.length()+" examples, "+failures.length()+" failed");
-		assertTrue(failures.isEmpty());
+	public static List<CoreExpr> getAllExamples() {
+		if(allExamples == null) {
+			allExamples = findAllExamples();
+		}
+		return allExamples;
 	}
+
+	public static List<CoreExpr> findAllExamples() {
+		return List.join((new ProjectLoader()).loadBanjoPath()
+				.map(P2.__2())
+				.<List<CoreExpr>>map(TestRunCoreLibraryExamples::findExamples));
+	}
+
+	@Parameters(name="{1}")
+	public static List<Object[]> parameters() {
+		return findAllExamples().map(x -> new Object[]{x, stripScope(x)});
+	}
+
+	static CoreExpr stripScope(CoreExpr x) {
+		while(x instanceof Let) {
+			x = ((Let)x).body;
+		}
+		return x;
+	}
+	public static void setStackTrace(CoreExpr x, final AssertionFailedError afe) {
+	    afe.setStackTrace(new StackTraceElement[] {
+	    	new StackTraceElement("<examples>",
+	    		x.toSource(),
+	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getSourceFile()).toNull(),
+	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
+	    });
+    }
 }
