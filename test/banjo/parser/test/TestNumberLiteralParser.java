@@ -94,6 +94,10 @@ public class TestNumberLiteralParser {
 	}
 
 	@Test
+	public void testZeroPointZero() {
+		testDecimal("0.0");
+	}
+	@Test
 	public void decimals() {
 		testDecimal("0");
 		testDecimal("1");

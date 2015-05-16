@@ -560,6 +560,7 @@ public class SourceCodeScanner {
 			default:
 				digits = 1;
 				in.unread();
+				cp = '0';
 				in.getCurrentPosition(this.afterDigits);
 				break;
 			}
