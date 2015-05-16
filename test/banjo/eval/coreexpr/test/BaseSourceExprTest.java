@@ -12,7 +12,7 @@ import banjo.dom.core.CoreExpr;
 import banjo.dom.source.SourceErrorGatherer;
 import banjo.dom.source.SourceExpr;
 
-public class BaseSourceExprTest extends BaseExprTest {
+public abstract class BaseSourceExprTest extends BaseExprTest {
 
 	public final String src;
 	public final SourceExpr parseTree;

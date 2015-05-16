@@ -17,7 +17,7 @@ import banjo.parser.util.ListUtil;
 import fj.P;
 import fj.data.List;
 
-public class BaseExprTest {
+public abstract class BaseExprTest {
 
 	final CoreExpr expr;
 	CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
