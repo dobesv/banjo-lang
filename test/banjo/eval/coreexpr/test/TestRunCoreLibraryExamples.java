@@ -141,7 +141,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 			@Override
 			public List<CoreExpr> functionLiteral(FunctionLiteral f) {
 			    return f.body.acceptVisitor(this).map(e ->
-			        f.recursiveBindingName.map(recId ->
+			        f.sourceObjectBinding.map(recId ->
 			            (CoreExpr)new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e))
 		            .orSome(e));
 			}

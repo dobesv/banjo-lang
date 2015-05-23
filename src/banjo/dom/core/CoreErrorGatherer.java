@@ -74,13 +74,13 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
     public List<BadExpr> functionLiteral(List<SourceFileRange> ranges,
-            List<Identifier> args, List<BadExpr> body, Option<Identifier> recursiveBindingName) {
-	    return body.append(recursiveBindingName.map(n -> n.acceptVisitor(this)).orSome(List.nil()));
+            List<Identifier> args, List<BadExpr> body, Option<Identifier> sourceObjectBinding) {
+	    return body.append(sourceObjectBinding.map(n -> n.acceptVisitor(this)).orSome(List.nil()));
     }
 
 	@Override
     public List<BadExpr> slotReference(List<SourceFileRange> ranges,
-            List<BadExpr> object, Identifier slotName) {
+            List<BadExpr> object, Identifier slotName, boolean base) {
 	    return object.append(slotName.acceptVisitor(this));
     }
 

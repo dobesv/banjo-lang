@@ -2,20 +2,19 @@ package banjo.eval;
 
 import java.util.function.Supplier;
 
-import fj.data.List;
-import banjo.dom.token.Identifier;
-import banjo.eval.coreexpr.LazyValue;
+import banjo.dom.source.Operator;
 import banjo.eval.util.JavaRuntimeSupport;
+import fj.data.List;
 
 public class ExtendedObject extends Value {
 	public final class ExtendedMethodFallbackSupplier implements Supplier<Object> {
 	    public final String name;
 	    public final Object targetObject;
-	    public final Supplier<Object> fallback;
+	    public final Object fallback;
 	    public final List<Object> args;
 
 		public ExtendedMethodFallbackSupplier(String name, Object targetObject,
-                Supplier<Object> fallback, List<Object> args) {
+                Object fallback, List<Object> args) {
 	    	this.name = name;
 	    	this.targetObject = targetObject;
 	    	this.fallback = fallback;
@@ -45,11 +44,11 @@ public class ExtendedObject extends Value {
 
 	private final class BaseObjectSlotValueSupplier implements Supplier<Object> {
 		public final Object targetObject;
-		public final Supplier<Object> baseSlotValue;
+		public final Object baseSlotValue;
 		public final String name;
 
 	    public BaseObjectSlotValueSupplier(Object targetObject,
-	    		Supplier<Object> baseSlotValue, String name, List<Supplier<StackTraceElement>> stack) {
+	    		Object baseSlotValue, String name, List<Supplier<StackTraceElement>> stack) {
 	        this.targetObject = targetObject;
 	        this.baseSlotValue = baseSlotValue;
 	        this.name = name;
@@ -76,7 +75,7 @@ public class ExtendedObject extends Value {
     }
 
 	@Override
-	public Object slot(Object targetObject, String name, Supplier<Object> baseSlotValue) {
+	public Object slot(Object targetObject, String name, Object baseSlotValue) {
 		final BaseObjectSlotValueSupplier newBaseSlotValue = new BaseObjectSlotValueSupplier(targetObject, baseSlotValue, name, JavaRuntimeSupport.stack.get());
 		return JavaRuntimeSupport.readSlot(extension, targetObject, newBaseSlotValue, name);
 	}
@@ -91,8 +90,13 @@ public class ExtendedObject extends Value {
     }
 
 	@Override
-	public Object callMethod(String name, Object targetObject, Supplier<Object> fallback, List<Object> args) {
+	public Object callMethod(String name, Object targetObject, Object fallback, List<Object> args) {
 		final Supplier<Object> newFallback = new ExtendedMethodFallbackSupplier(name, targetObject, fallback, args);
 		return JavaRuntimeSupport.callMethod(extension, name, targetObject, newFallback, args);
+	}
+
+	@Override
+	protected String toStringFallback() {
+	    return base + " " + Operator.EXTEND.getOp() + " " + extension;
 	}
 }

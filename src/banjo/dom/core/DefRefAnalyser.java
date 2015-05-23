@@ -126,8 +126,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser functionLiteral(List<SourceFileRange> ranges,
-            List<Identifier> args, DefRefAnalyser body, Option<Identifier> recursiveBindingName) {
-	    return body.defs(args.append(recursiveBindingName.toList()));
+            List<Identifier> args, DefRefAnalyser body, Option<Identifier> sourceObjectBinding) {
+	    return body.defs(args.append(sourceObjectBinding.toList()));
     }
 
 	@Override
@@ -137,7 +137,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	}
 
 	@Override
-    public DefRefAnalyser slotReference(List<SourceFileRange> ranges, DefRefAnalyser object, Identifier slotName) {
+    public DefRefAnalyser slotReference(List<SourceFileRange> ranges, DefRefAnalyser object, Identifier slotName, boolean base) {
 		List<Identifier> slotRefs = object.slotRefs.snoc(slotName);
 		return new DefRefAnalyser(object.unresolvedLocalRefs, object.localRefs, object.localDefs, slotRefs, object.slotDefs);
     }

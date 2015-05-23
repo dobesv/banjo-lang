@@ -2,10 +2,12 @@ package banjo.eval.coreexpr;
 
 import java.util.function.Supplier;
 
-public class Binding {
+import banjo.eval.UnboundFunctionSelfName;
+
+public class BindingInstance {
 	public final Object value;
 	public final String slotName;
-	public final Supplier<Object> baseSlotValue;
+	public final Object baseSlotValue;
 	public final Object baseFunction;
 
 	/**
@@ -23,7 +25,7 @@ public class Binding {
 	 * @param baseFunction In the self-referential binding of a function, if the function is an extension
 	 *   of another function, the previous/original implementation is available here.
 	 */
-	public Binding(Object value, String slotName, Supplier<Object> baseSlotValue, Object baseFunction) {
+	public BindingInstance(Object value, String slotName, Object baseSlotValue, Object baseFunction) {
         super();
         this.value = value;
         this.slotName = slotName;
@@ -31,12 +33,16 @@ public class Binding {
         this.baseFunction = baseFunction;
     }
 
-	public static Binding simple(Object value) {
-		return new Binding(value, null, null, null);
+	public static BindingInstance let(Object value) {
+		return new BindingInstance(value, null, null, null);
 	}
 
-	public static Binding functionSelf(Object func, Object baseFunction) {
-		return new Binding(func, null, null, baseFunction);
+	public static BindingInstance functionSelf(Object sourceObject, Object baseFunction) {
+		return new BindingInstance(sourceObject, null, null, baseFunction);
+	}
+
+	public static BindingInstance slotSourceObject(Object sourceObject, String slotName, Object baseSlotValue) {
+		return new BindingInstance(sourceObject, slotName, baseSlotValue, null);
 	}
 
 	@Override

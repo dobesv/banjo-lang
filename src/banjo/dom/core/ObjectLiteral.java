@@ -69,7 +69,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.objectLiteral(getSourceFileRanges(), slots.map(s -> P.p(s.name, s.selfBinding, s.value.acceptVisitor(visitor))));
+		return visitor.objectLiteral(getSourceFileRanges(), slots.map(s -> P.p(s.name, s.sourceObjectBinding, s.value.acceptVisitor(visitor))));
 	}
 
 	public Option<Slot> findMethod(String name) {

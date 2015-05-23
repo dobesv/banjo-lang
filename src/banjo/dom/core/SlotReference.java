@@ -44,7 +44,7 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.slotReference(getSourceFileRanges(), object.acceptVisitor(visitor), slotName);
+		return visitor.slotReference(getSourceFileRanges(), object.acceptVisitor(visitor), slotName, base);
 	}
 
 	@Override

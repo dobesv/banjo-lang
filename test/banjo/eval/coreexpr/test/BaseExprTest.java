@@ -12,6 +12,9 @@ import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.SlotReference;
 import banjo.eval.coreexpr.CoreExprEvaluator;
+import banjo.eval.coreexpr.FreeExpression;
+import banjo.eval.coreexpr.FreeExpressionFactory;
+import banjo.eval.coreexpr.ProjectEnvironment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.parser.util.ListUtil;
 import fj.P;
@@ -19,7 +22,7 @@ import fj.data.List;
 
 public abstract class BaseExprTest {
 
-	final static CoreExprEvaluator evaluator = CoreExprEvaluator.forSourceFile("(test)");
+	final static ProjectEnvironment environment = ProjectEnvironment.forSourceFile("(test)");
 
 	final CoreExpr expr;
 	final Object value;
@@ -29,7 +32,8 @@ public abstract class BaseExprTest {
 		this.expr = ast;
 		Object tmp;
     	try {
-    		tmp = JavaRuntimeSupport.force(evaluator.evaluate(expr));
+    		final Object fx = environment.eval(ast);
+			tmp = JavaRuntimeSupport.force(fx);
         } catch (Throwable e) {
         	tmp = e;
         }
@@ -50,6 +54,11 @@ public abstract class BaseExprTest {
     }
 
 	@Test
+	public void printable() {
+		value.toString();
+	}
+
+	@Test
     public void isTruthy() throws Throwable {
     	evaluates();
     	final String valueStr = expr.acceptVisitor(new BaseCoreExprVisitor<String>() {
@@ -62,12 +71,12 @@ public abstract class BaseExprTest {
     		public String call(Call n) {
     			if(n.target instanceof SlotReference) {
     				final SlotReference methodReceiver = (SlotReference)n.target;
-    				final Object lhs = evaluator.evaluate(methodReceiver.object);
+    				final Object lhs = environment.eval(methodReceiver.object);
     				return n.getBinaryOperator().map(x -> {
-    					final Object rhs = evaluator.evaluate(n.args.head());
+    					final Object rhs = environment.eval(n.args.head());
     					return "("+lhs+" "+x.getOp()+" "+rhs+")"+ " --> " + value;
     				}).orSome(P.lazy(() -> {
-    					return "( == "+lhs+"."+methodReceiver.slotName+"("+ListUtil.insertCommas(n.args.toStream().map(evaluator::evaluate))+")" + "-->" + value;
+    					return "( == "+lhs+"."+methodReceiver.slotName+"("+ListUtil.insertCommas(n.args.toStream().map(environment::eval))+")" + "-->" + value;
     				}));
     			}
     		    return value.toString();

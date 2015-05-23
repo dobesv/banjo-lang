@@ -13,7 +13,7 @@ public class Value {
 	 * Note that most of the methods below will automatically force the value
 	 * if you call them.
 	 */
-	public Object calculate() { return this; }
+	public Object get() { return this; }
 
 	/**
 	 * If this is callable, perform the call and return the result.  Otherwise return Undefined.
@@ -41,9 +41,9 @@ public class Value {
 	 * then this may not be equal to "this".
 	 * @param fallback Value to return if the slot is not found
 	 */
-	public Object slot(Object self, String name, Supplier<Object> fallback) {
+	public Object slot(Object self, String name, Object fallback) {
 		if(fallback != null)
-			return fallback.get();
+			return fallback;
 		return new SlotNotFound(name, self);
 	}
 
@@ -68,10 +68,10 @@ public class Value {
 	 * @param args List of arguments to pass
 	 * @return
 	 */
-	public Object callMethod(String name, Object targetObject, Supplier<Object> fallback, List<Object> args) {
-	    final Object f = slot(targetObject, name, nullSupplier);
+	public Object callMethod(String name, Object targetObject, Object fallback, List<Object> args) {
+	    final Object f = JavaRuntimeSupport.force(slot(targetObject, name, nullSupplier));
 	    if(fallback != null && !JavaRuntimeSupport.isDefined(f)) {
-    		return fallback.get();
+    		return fallback;
 	    }
 		return JavaRuntimeSupport.call(f, f, null, args);
     }

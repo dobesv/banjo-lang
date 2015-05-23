@@ -71,7 +71,7 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 
 	public Set<Identifier> slot(Slot slot) {
 		Set<Identifier> freeVars = analyse(slot.value);
-		return slot.selfBinding.map(selfBinding -> freeVars.delete(selfBinding)).orSome(freeVars);
+		return slot.sourceObjectBinding.map(selfBinding -> freeVars.delete(selfBinding)).orSome(freeVars);
 	}
 	@Override
     public Set<Identifier> objectLiteral(ObjectLiteral objectLiteral) {

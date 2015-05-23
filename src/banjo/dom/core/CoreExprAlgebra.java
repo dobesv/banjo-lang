@@ -19,7 +19,7 @@ public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T inspect(List<SourceFileRange> ranges, T target);
 	T identifier(List<SourceFileRange> ranges, String id);
 	T let(List<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
-	T functionLiteral(List<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> recursiveBindingName);
-	T slotReference(List<SourceFileRange> ranges, T object, Identifier slotName);
+	T functionLiteral(List<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> sourceObjectBinding);
+	T slotReference(List<SourceFileRange> ranges, T object, Identifier slotName, boolean base);
 	T baseFunctionRef(List<SourceFileRange> sourceFileRanges, Identifier name);
 }

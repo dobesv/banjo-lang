@@ -491,7 +491,7 @@ public class SourceExprToCoreExpr {
 	protected Slot applyCombiningOp(Slot slot, Operator combiningOp) {
 		if(combiningOp == null || combiningOp == Operator.ASSIGNMENT)
 			return slot;
-		Identifier selfBinding = slot.selfBinding.orSome(Identifier.__TMP);
+		Identifier selfBinding = slot.sourceObjectBinding.orSome(Identifier.__TMP);
 		final CoreExpr base = SlotReference.base(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTEND ?
@@ -886,7 +886,7 @@ public class SourceExprToCoreExpr {
 	 * @param bodySourceOffset Absolute source offset of the function body expression
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee; use the same offset as sourceOffset if none specified
 	 */
-	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr methodSourceExpr, final SourceExpr args, final Option<SourceExpr> recursiveBindingName, final CoreExpr body) {
+	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr methodSourceExpr, final SourceExpr args, final Option<SourceExpr> sourceObjectBinding, final CoreExpr body) {
 		return args.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(BinaryOp op) {
@@ -904,7 +904,7 @@ public class SourceExprToCoreExpr {
 				final SourceExpr newGuaranteeSourceExpr = op.getRight();
 				final DesugarResult<CoreExpr> newGuaranteeDs = expr(newGuaranteeSourceExpr);
 				CoreExpr newBody = SourceExprToCoreExpr.this.applyGuarantee(body, op.getOperator(), newGuaranteeDs.getValue());
-				return newGuaranteeDs.functionLiteral(methodSourceExpr, newArgs, recursiveBindingName, newBody);
+				return newGuaranteeDs.functionLiteral(methodSourceExpr, newArgs, sourceObjectBinding, newBody);
 			}
 
 			@Override
@@ -915,7 +915,7 @@ public class SourceExprToCoreExpr {
 						Identifier.UNDERSCORE,
 						single(exprs),
 						Option.none(),
-						recursiveBindingName,
+						sourceObjectBinding,
 						body);
 				return slotDs.mapValue(slot -> slot.value);
 			}

@@ -89,7 +89,7 @@ public class TestObjectLiteralParser {
 		ObjectLiteral obj = (ObjectLiteral) CoreExpr.fromString("{x.y(z) = z}");
 		assertEquals(1, obj.slots.length());
 		assertTrue(obj.slots.head().name.eql(new Identifier("y")));
-		assertTrue(obj.slots.head().selfBinding.some().eql(new Identifier("x")));
+		assertTrue(obj.slots.head().sourceObjectBinding.some().eql(new Identifier("x")));
 		FunctionLiteral func = (FunctionLiteral) obj.slots.head().value;
 		assertTrue(func.body.eql(new Identifier("z")));
 		assertEquals(1, func.args.length());

@@ -1,27 +1,36 @@
 package banjo.eval.coreexpr;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
+import banjo.dom.core.CoreExpr;
 import banjo.dom.core.FunctionLiteral;
 import banjo.dom.token.Identifier;
 import banjo.eval.Value;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Stream;
+import fj.data.TreeMap;
 
 public class FunctionInstance extends Value {
-	public final FunctionLiteral f;
-	public final CoreExprEvaluator evaluator;
+	public final List<SourceFileRange> ranges;
+	public final List<Identifier> args;
+	public final FreeExpression body;
+	public final Option<Identifier> sourceObjectBinding;
+	public final Environment parentEnvironment;
 
-	public FunctionInstance(FunctionLiteral f,
-            CoreExprEvaluator evaluator) {
-	    super();
-	    this.f = f;
-	    this.evaluator = evaluator;
+	public FunctionInstance(List<SourceFileRange> ranges, List<Identifier> args,
+			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment parentEnvironment) {
+		this.ranges = ranges;
+		this.args = args;
+		this.body = body;
+		this.sourceObjectBinding = sourceObjectBinding;
+		this.parentEnvironment = parentEnvironment;
     }
 
 
@@ -30,13 +39,8 @@ public class FunctionInstance extends Value {
 		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
 		JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
 		try {
-			List<Identifier> missingArgNames = f.args.drop(arguments.length());
-			final List<P2<Identifier, Binding>> missingArgBindings =
-					missingArgNames.map(name -> P.p(name, Binding.simple(new IllegalArgumentException("Missing argument '"+name.id+"'"))));
-			List<P2<Identifier, Binding>> argBindings = f.args
-					.zip(arguments.map(Binding::simple)).append(missingArgBindings)
-					.append(f.recursiveBindingName.map(n -> P.p(n, new Binding(recurse, null, null, prevImpl))).toList());
-			return evaluator.evaluate(f.body, argBindings);
+			Environment env = new FunctionEnvironment(args, arguments, sourceObjectBinding, recurse, prevImpl, parentEnvironment);
+			return body.apply(env);
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);
 		}
@@ -44,14 +48,14 @@ public class FunctionInstance extends Value {
 
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("<banjo code>",
-				f.checkRecursiveBinding()._1().map(x -> x.id).orSome("<function>"),
-				f.getSourceFileRanges().toOption().map(x -> x.getSourceFile()).toNull(),
-				f.getSourceFileRanges().toOption().map(x -> x.getStartLine()).orSome(-1));
+				sourceObjectBinding.map(x -> x.id).orSome("<function>"),
+				ranges.toOption().map(x -> x.getSourceFile()).toNull(),
+				ranges.toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 	@Override
     public String toStringFallback() {
-		final Option<SourceFileRange> loc = Stream.join(f.args.toStream().map(x -> x.getSourceFileRanges().toStream())).append(f.body.getSourceFileRanges().toStream()).toOption();
-		Option<Identifier> bindingName = f.recursiveBindingName;
+		final Option<SourceFileRange> loc = ranges.toOption();
+		Option<Identifier> bindingName = sourceObjectBinding;
 		StringBuffer sb = new StringBuffer();
 		sb.append("<function");
 		bindingName.forEach(x -> sb.append(" ").append(x));

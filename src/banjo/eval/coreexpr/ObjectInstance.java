@@ -1,37 +1,24 @@
 package banjo.eval.coreexpr;
 
-import java.util.function.Supplier;
-
-import banjo.dom.core.Slot;
-import banjo.dom.token.Identifier;
-import banjo.eval.Fail;
-import banjo.eval.SlotNotFound;
 import banjo.eval.Value;
 import banjo.parser.util.ListUtil;
 import fj.P;
-import fj.data.List;
-import fj.data.Option;
 import fj.data.TreeMap;
 
 public class ObjectInstance extends Value {
+	public final TreeMap<String, SlotInstance> slots;
 
-	// A slot is a function from (__self, __prev_value) -> value
-	public final TreeMap<String,Slot> slots;
-	public final CoreExprEvaluator evaluator;
-
-	public ObjectInstance(TreeMap<String, Slot> slots,
-            CoreExprEvaluator evaluator) {
-	    super();
-	    this.slots = slots;
-	    this.evaluator = evaluator;
+	public ObjectInstance(
+            TreeMap<String, SlotInstance> slots) {
+		this.slots = slots;
     }
 
 	@Override
-	public Object slot(Object self, String name, Supplier<Object> fallback) {
+	public Object slot(Object sourceObject, String name, Object fallback) {
 		return slots
 			.get(name).map(
-				slot -> (Object)new SlotInstance(slot, evaluator, self, fallback)
-			).orSome(P.lazy(() -> super.slot(self, name, fallback)));
+				slot -> (Object)new SlotReferenceInstance(slot, sourceObject, fallback)
+			).orSome(P.lazy(() -> super.slot(sourceObject, name, fallback)));
 	}
 
 	@Override

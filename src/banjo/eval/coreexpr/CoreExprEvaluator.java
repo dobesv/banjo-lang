@@ -1,15 +1,6 @@
 package banjo.eval.coreexpr;
 
 import static java.util.Objects.requireNonNull;
-
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Objects;
-import java.util.function.Supplier;
-
-import org.apache.commons.math3.fraction.BigFraction;
-import org.apache.commons.math3.fraction.Fraction;
-
 import banjo.dom.core.BadCoreExpr;
 import banjo.dom.core.BaseCoreExprVisitor;
 import banjo.dom.core.BaseFunctionRef;
@@ -30,9 +21,7 @@ import banjo.dom.token.Identifier;
 import banjo.dom.token.NumberLiteral;
 import banjo.dom.token.StringLiteral;
 import banjo.eval.ExtendedObject;
-import banjo.eval.NotCallable;
 import banjo.eval.ProjectLoader;
-import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundIdentifier;
 import banjo.eval.UnresolvedCodeError;
 import banjo.eval.Value;
@@ -46,18 +35,17 @@ import fj.P2;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
-import fj.data.Stream;
 import fj.data.TreeMap;
 
 public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	public final CoreExprEvaluator parent;
-	public final TreeMap<Identifier, Binding> bindings;
+	public final TreeMap<Identifier, BindingInstance> bindings;
 
-	public static final TreeMap<Identifier, Binding> EMPTY_BINDINGS = TreeMap.empty(Identifier.ORD);
+	public static final TreeMap<Identifier, BindingInstance> EMPTY_BINDINGS = TreeMap.empty(Identifier.ORD);
 
 	private final FreeVariableGatherer freeVarGatherer;
 
-	private CoreExprEvaluator(CoreExprEvaluator parent, List<P2<Identifier, Binding>> bindings, FreeVariableGatherer freeVarGatherer) {
+	private CoreExprEvaluator(CoreExprEvaluator parent, List<P2<Identifier, BindingInstance>> bindings, FreeVariableGatherer freeVarGatherer) {
 		super();
 		this.parent = parent;
 		bindings.forEach(this::bindUnboundThunk);
@@ -65,13 +53,13 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 		this.freeVarGatherer = requireNonNull(freeVarGatherer);
 	}
 
-	public void bindUnboundThunk(P2<Identifier,Binding> p) {
+	public void bindUnboundThunk(P2<Identifier,BindingInstance> p) {
 		bindUnboundThunk(p._2().value);
 	}
 
 	private void bindUnboundThunk(Object value) {
-	    if(value instanceof LazyCoreExprValue) {
-			LazyCoreExprValue thunk = (LazyCoreExprValue)value;
+	    if(value instanceof CoreExprInstance) {
+			CoreExprInstance thunk = (CoreExprInstance)value;
 			if(thunk.evaluator == null) {
 				thunk.evaluator = this;
 				thunk.stack = JavaRuntimeSupport.stack.get();
@@ -85,7 +73,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
     }
 
 	public Object lazy(CoreExpr e) {
-		return new LazyCoreExprValue(e, this, JavaRuntimeSupport.stack.get());
+		return new CoreExprInstance(e, this, JavaRuntimeSupport.stack.get());
 	}
 
 	public Object failure(String variant, String info) {
@@ -143,7 +131,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	@Override
 	public Object baseFunctionRef(BaseFunctionRef baseFunctionRef) {
 	    final Identifier id = baseFunctionRef.name;
-		final Option<Binding> binding = getBinding(id);
+		final Option<BindingInstance> binding = getBinding(id);
 		if(binding.isNone())
 			return unboundIdentifier(id);
 		return binding.filter(b -> b.baseFunction != null)
@@ -159,8 +147,8 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	    return new UnboundIdentifier(String.format("Variable '%s' is not a function's self-recursive name", id.id));
     }
 
-	protected Option<Binding> getBinding(Identifier id) {
-		final Option<Binding> binding = this.bindings.get(id);
+	protected Option<BindingInstance> getBinding(Identifier id) {
+		final Option<BindingInstance> binding = this.bindings.get(id);
 		if(parent != null && binding.isNone()) return parent.getBinding(id);
 		else return binding;
     }
@@ -226,7 +214,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
     	    				.map(b ->
     	    					b.bindsSelfForSlot(ref.slotName.id) ?
 								b.baseSlotValue != null ?
-								b.baseSlotValue.get() :
+								b.baseSlotValue :
 								new BaseSlotNotFound(ref.slotName.id, selfRef) :
 								new UnboundIdentifier("'"+selfRef+"' is not a same-object binding"))
     	    				.orSome(P.lazy(() -> new UnboundIdentifier("'"+selfRef+"' is not defined in the current scope")));
@@ -243,9 +231,9 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
     	}
 	}
 
-    static final List<P2<Identifier, Binding>> javaPackages() {
-    	return List.single(P.p(new Identifier("java"), Binding.simple(new PackageValue("java"))))
-    			.cons(P.p(new Identifier("banjo"), Binding.simple(new PackageValue("banjo"))));
+    static final List<P2<Identifier, BindingInstance>> javaPackages() {
+    	return List.single(P.p(new Identifier("java"), BindingInstance.let(new PackageValue("java"))))
+    			.cons(P.p(new Identifier("banjo"), BindingInstance.let(new PackageValue("banjo"))));
 //    	return Stream.stream(Package.getPackages())
 //    	.map(PackageValue::new)
 //    	.map(p -> P.p(new Identifier(p.getName()), Binding.simple(p)))
@@ -254,7 +242,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 
 	public static CoreExprEvaluator root(List<P2<Identifier, CoreExpr>> rootBindings) {
 		FreeVariableGatherer freeVarGatherer = new FreeVariableGatherer();
-		List<P2<Identifier, Binding>> bindings = mergeRootBindings(javaPackages().append(bindExprsToLazyValues(rootBindings)));
+		List<P2<Identifier, BindingInstance>> bindings = mergeRootBindings(javaPackages().append(bindExprsToLazyValues(rootBindings)));
 		CoreExprEvaluator env = new CoreExprEvaluator(null, bindings, freeVarGatherer);
 		return env;
 	}
@@ -267,37 +255,37 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	 *
 	 * Currently this assumes all the bindings are "simple" bindings - that is, only have a "value" set.
 	 */
-	public static List<P2<Identifier, Binding>> mergeRootBindings(
-            List<P2<Identifier, Binding>> bindings) {
-		final TreeMap<Identifier, Binding> newBindingMap = bindings.foldLeft(CoreExprEvaluator::mergeRootBinding, TreeMap.empty(Identifier.ORD));
+	public static List<P2<Identifier, BindingInstance>> mergeRootBindings(
+            List<P2<Identifier, BindingInstance>> bindings) {
+		final TreeMap<Identifier, BindingInstance> newBindingMap = bindings.foldLeft(CoreExprEvaluator::mergeRootBinding, TreeMap.empty(Identifier.ORD));
 		return newBindingMap.toStream().toList();
     }
 
 	/**
 	 * Add or merge a single root binding into a map of root bindings.
 	 */
-	protected static TreeMap<Identifier, Binding> mergeRootBinding(
-            TreeMap<Identifier, Binding> bindingMap, P2<Identifier, Binding> binding) {
+	protected static TreeMap<Identifier, BindingInstance> mergeRootBinding(
+            TreeMap<Identifier, BindingInstance> bindingMap, P2<Identifier, BindingInstance> binding) {
 	    return bindingMap.set(binding._1(),
 	    		bindingMap.get(binding._1())
-	    		.map(nextBinding -> (Binding) Binding.simple(new ExtendedObject(binding._2().value, nextBinding.value)))
+	    		.map(nextBinding -> (BindingInstance) BindingInstance.let(new ExtendedObject(binding._2().value, nextBinding.value)))
 	    		.orSome(binding._2()));
     }
 
-	private static List<P2<Identifier, Binding>> bindExprsToLazyValues(
+	private static List<P2<Identifier, BindingInstance>> bindExprsToLazyValues(
             List<P2<Identifier, CoreExpr>> rootBindings) {
-	    List<P2<Identifier, Binding>> bindings = rootBindings.map(binding -> P.p(binding._1(), Binding.simple(new LazyCoreExprValue(binding._2()))));
+	    List<P2<Identifier, BindingInstance>> bindings = rootBindings.map(binding -> P.p(binding._1(), BindingInstance.let(new CoreExprInstance(binding._2()))));
 	    return bindings;
     }
 
 	@Override
     public Object let(Let let) {
-		List<P2<Identifier, Binding>> bindings = bindExprsToLazyValues(let.bindings);
+		List<P2<Identifier, BindingInstance>> bindings = bindExprsToLazyValues(let.bindings);
 		CoreExprEvaluator env = child(bindings);
 		return env.evaluate(let.body);
     }
 
-	public CoreExprEvaluator child(List<P2<Identifier,Binding>> bindings) {
+	public CoreExprEvaluator child(List<P2<Identifier,BindingInstance>> bindings) {
 		if(bindings.isEmpty())
 			return this;
 		return new CoreExprEvaluator(this, bindings, freeVarGatherer);
@@ -314,7 +302,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 	 * Evaluate the given expression in the current environment PLUS the
 	 * given bindings.
 	 */
-	public Object evaluate(CoreExpr expr, List<P2<Identifier,Binding>> bindings) {
+	public Object evaluate(CoreExpr expr, List<P2<Identifier,BindingInstance>> bindings) {
 		return child(bindings).evaluate(expr);
 	}
 
@@ -343,7 +331,7 @@ public class CoreExprEvaluator implements CoreExprVisitor<Object> {
 		return new FunctionInstance(f, this);
     }
 
-	public Object lazy(CoreExpr expr, List<P2<Identifier, Binding>> bindings) {
+	public Object lazy(CoreExpr expr, List<P2<Identifier, BindingInstance>> bindings) {
 	    return child(bindings).lazy(expr);
     }
 }

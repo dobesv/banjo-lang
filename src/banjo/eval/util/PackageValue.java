@@ -1,5 +1,6 @@
 package banjo.eval.util;
 
+import java.util.HashMap;
 import java.util.function.Supplier;
 
 import fj.data.List;
@@ -24,7 +25,7 @@ public class PackageValue extends Value {
     }
 
 	@Override
-	public Object slot(Object self, String slotName, Supplier<Object> fallbackValue) {
+	public Object slot(Object self, String slotName, Object fallbackValue) {
 		if("label".equals(slotName))
 			return this.name;
 		String childName = this.name+"."+slotName;
@@ -32,26 +33,26 @@ public class PackageValue extends Value {
 			// Possible subpackage
 			Package subpackage = Package.getPackage(childName);
 			if(subpackage != null)
-				return new PackageValue(subpackage);
+				return PackageValue.forName(childName);
 		}
 		try {
 	        return Class.forName(childName);
         } catch (ClassNotFoundException | LinkageError e) {
         	if(fallbackValue != null)
-        		return fallbackValue.get();
+        		return fallbackValue;
         	return new SlotNotFound(slotName, self, e);
         }
 	}
 
 	@Override
 	public Object callMethod(String slotName, Object targetObject,
-	        Supplier<Object> fallback, List<Object> args) {
+	        Object fallback, List<Object> args) {
 		String childName = this.name+"."+slotName;
 		try {
 	        return JavaRuntimeSupport.call(Class.forName(childName), args);
         } catch (ClassNotFoundException | LinkageError e) {
         	if(fallback != null)
-        		return fallback.get();
+        		return fallback;
         	return new SlotNotFound(slotName, targetObject, e);
         }
 	}
@@ -65,7 +66,13 @@ public class PackageValue extends Value {
 	    return name;
 	}
 
+	public static final HashMap<String, PackageValue> cache = new HashMap<>();
 	public static PackageValue forName(String name) {
-		return new PackageValue(name);
+		PackageValue cached = cache.get(name);
+		if(cached == null) {
+			cached = new PackageValue(name);
+			cache.put(name, cached);
+		}
+		return cached;
 	}
 }

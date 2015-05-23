@@ -18,7 +18,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import banjo.dom.source.Operator;
-import banjo.eval.CalculatedValue;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
@@ -120,7 +119,8 @@ public class JavaRuntimeSupport {
 	public static Object readFalseSlot(Object obj) {
 		return readSlot(obj, "false");
 	}
-	public static Object readSlot(Object obj, Object self, Supplier<Object> baseValue, String name) {
+	public static Object readSlot(Object maybeLazyObj, Object self, Object baseValue, String name) {
+		Object obj = force(maybeLazyObj);
 		if(obj instanceof Value) {
 			return ((Value)obj).slot(self, name, baseValue);
 		} else if(name.equals("label")) {
@@ -129,7 +129,7 @@ public class JavaRuntimeSupport {
 		}
 		if(obj == null) {
 			if(baseValue != null)
-				return baseValue.get();
+				return baseValue;
 			return new SlotNotFound(name, self);
 		}
 		if(obj instanceof Throwable) {
@@ -188,6 +188,12 @@ public class JavaRuntimeSupport {
 						if(name.equals(Operator.MEMBER_OF.methodName)) {
 							return (Function<Object,Boolean>)clazz::isInstance;
 						}
+
+						try {
+							return clazz.getField(name).get(null);
+						} catch(Throwable tt) {
+						}
+
 						for(Class<?> innerClass : clazz.getDeclaredClasses()) {
 							if(name.equals(innerClass.getSimpleName())) {
 								return innerClass;
@@ -199,7 +205,7 @@ public class JavaRuntimeSupport {
 					}
 					if(baseValue == null)
 						return new SlotNotFound(name, self, t);
-					return baseValue.get();
+					return baseValue;
 				}
 			}
         } catch (IllegalArgumentException | SecurityException e) {
@@ -274,13 +280,13 @@ public class JavaRuntimeSupport {
 	 * @param fallback If the method is not implemented, this lazily supplies a substitute return value (by calling a base object method or returning an error)
 	 * @param args Method arguments to pass
 	 */
-	public static Object callMethod(Object target, String name, Object targetObject, Supplier<Object> fallback, List<Object> args) {
+	public static Object callMethod(Object target, String name, Object targetObject, Object fallback, List<Object> args) {
 		Object realTarget = force(target);
 		if(realTarget instanceof Value)
 			return ((Value)realTarget).callMethod(name, targetObject, fallback, args);
 		final Object f = readSlot(realTarget, realTarget, null, name);
 		if(fallback != null && !isDefined(f)) {
-			return fallback.get();
+			return fallback;
 		}
 		return call(f, f, null, args);
 	}
@@ -296,9 +302,8 @@ public class JavaRuntimeSupport {
 	 * If a value is lazy, evaluate it to yield the "final" object.
 	 */
 	public static Object force(Object obj) {
-		if(obj instanceof CalculatedValue) {
-			final Object tmp = ((CalculatedValue)obj).calculate();
-			return force(tmp);
+		while(obj instanceof Supplier) {
+			obj = ((Supplier<?>)obj).get();
 		}
 		return obj;
 	}
@@ -320,7 +325,9 @@ public class JavaRuntimeSupport {
 			return ((Boolean)obj).booleanValue();
 		}
 		try {
-			return Boolean.TRUE == force(callMethod(obj, Operator.LOGICAL_AND.methodName, Boolean.TRUE));
+			final Object callResult = callMethod(obj, Operator.LOGICAL_AND.methodName, Boolean.TRUE);
+			final Object val = force(callResult);
+			return Boolean.TRUE == val;
 		} catch(Exception e) {
 			return false; // Failure is not truthy
 		}
@@ -373,7 +380,7 @@ public class JavaRuntimeSupport {
 		return new CallInterceptor(interceptor, target);
 	}
 
-	private static final class LazySlotValue implements CalculatedValue {
+	private static final class LazySlotValue implements Supplier<Object> {
 	    public final Object baseObject;
 	    public final String name;
 
@@ -383,7 +390,7 @@ public class JavaRuntimeSupport {
         }
 
 		@Override
-	    public Object calculate() {
+	    public Object get() {
 	    	return readSlot(baseObject, baseObject, null, name);
 	    }
     }
@@ -543,5 +550,26 @@ public class JavaRuntimeSupport {
 			return cmp < 0 ? ascending : cmp > 0 ? descending : equal;
 		}
 	}
+
+	public static final Boolean TRUE = Boolean.TRUE;
+	public static final Boolean FALSE = Boolean.FALSE;
+
 	public static final ThreadLocal<List<Supplier<StackTraceElement>>> stack = ThreadLocal.<List<Supplier<StackTraceElement>>>withInitial(List::nil);
+
+	public static PackageValue getJavaPackage(String name) {
+		return PackageValue.forName(name);
+	}
+
+	public static final PackageValue javaPackage = PackageValue.forName("java");
+	public static final PackageValue banjoPackage = PackageValue.forName("banjo");
+
+	public boolean isByte(Object x) { return x instanceof Byte; }
+	public boolean isShort(Object x) { return x instanceof Short; }
+	public boolean isInteger(Object x) { return x instanceof Integer; }
+	public boolean isLong(Object x) { return x instanceof Long; }
+	public boolean isFloat(Object x) { return x instanceof Float; }
+	public boolean isDouble(Object x) { return x instanceof Double; }
+	public boolean isBigInteger(Object x) { return x instanceof BigInteger; }
+	public boolean isBigDecimal(Object x) { return x instanceof BigDecimal; }
+
 }
