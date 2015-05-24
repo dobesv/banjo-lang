@@ -22,4 +22,9 @@ public class CallResultInterceptor extends Interceptor {
 		Object finalValue = JavaRuntimeSupport.call(interceptor, List.single(intermediateValue));
 		return finalValue;
 	}
+
+	@Override
+	protected String toStringFallback() {
+	    return target + " " + Operator.FUNCTION_COMPOSITION_RIGHT.getOp() + " " + interceptor;
+	}
 }

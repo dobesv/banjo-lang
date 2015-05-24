@@ -1,7 +1,5 @@
 package banjo.eval.coreexpr;
 
-import java.util.function.Function;
-
 import banjo.eval.util.JavaRuntimeSupport;
 import fj.Ord;
 import fj.data.TreeMap;

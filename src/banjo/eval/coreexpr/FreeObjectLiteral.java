@@ -2,11 +2,16 @@ package banjo.eval.coreexpr;
 
 import banjo.dom.token.Identifier;
 import banjo.eval.util.MemoizingSupplier;
+import banjo.eval.util.SlotMemoizer;
 import banjo.parser.util.ListUtil;
 import banjo.parser.util.SourceFileRange;
+import fj.Ord;
+import fj.P;
+import fj.P2;
 import fj.P3;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.TreeMap;
 
 public class FreeObjectLiteral implements FreeExpression {
 	public final List<SourceFileRange> ranges;
@@ -19,7 +24,11 @@ public class FreeObjectLiteral implements FreeExpression {
     }
 	@Override
 	public Object apply(Environment env) {
-	    return new MemoizingSupplier<Object>(new ObjectInstanceFactory(ranges, env, slots));
+		List<P2<String,SlotInstance>> _slots = slots.map(s -> P.p(s._1().id,
+				 s._2().isSome() ?
+					(SlotInstance)new RecursiveSlotInstance(s._1(), s._2().some(), s._3(), env) :
+						(SlotInstance)new FreeSlotInstance(s._3().apply(env))));
+		return new SlotMemoizer(new ObjectInstance(TreeMap.treeMap(Ord.stringOrd, _slots)));
 	}
 
 	@Override

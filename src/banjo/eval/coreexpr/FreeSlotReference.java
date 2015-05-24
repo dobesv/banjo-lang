@@ -1,6 +1,7 @@
 package banjo.eval.coreexpr;
 
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.MemoizingSupplier;
+
 
 public class FreeSlotReference implements FreeExpression {
 	public final FreeExpression object;
@@ -15,7 +16,7 @@ public class FreeSlotReference implements FreeExpression {
 
 	@Override
 	public Object apply(Environment env) {
-		return JavaRuntimeSupport.readSlot(object.apply(env), slotName);
+		return new MemoizingSupplier<Object>(new SlotReferenceInstance(object.apply(env), slotName));
 	}
 
 	@Override

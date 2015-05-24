@@ -1,9 +1,7 @@
 package banjo.eval.coreexpr.test;
 
 import junit.framework.AssertionFailedError;
-import junit.framework.TestResult;
 
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -20,10 +18,7 @@ import banjo.dom.core.Slot;
 import banjo.dom.core.SlotReference;
 import banjo.dom.source.Operator;
 import banjo.dom.token.Identifier;
-import banjo.eval.Fail;
 import banjo.eval.ProjectLoader;
-import banjo.eval.coreexpr.CoreExprEvaluator;
-import banjo.eval.util.JavaRuntimeSupport;
 import fj.P;
 import fj.P2;
 import fj.data.List;

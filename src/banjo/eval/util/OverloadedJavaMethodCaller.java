@@ -19,4 +19,8 @@ public class OverloadedJavaMethodCaller extends Value {
 		return JavaRuntimeSupport.callJavaMethod(target, methods, arguments);
 	}
 
+	@Override
+	public String toStringFallback() {
+	    return methods[0].getDeclaringClass().getName()+"."+methods[0].getName();
+	}
 }

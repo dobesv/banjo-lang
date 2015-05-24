@@ -1,30 +1,20 @@
 package banjo.eval.coreexpr;
 
-import java.util.function.Supplier;
-
+import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.JavaRuntimeSupport;
 
-public class SlotReferenceInstance implements Supplier<Object> {
+public class SlotReferenceInstance extends BaseSupplier {
+	public final Object object;
+	public final String name;
 
-	public final SlotInstance slotInstance;
-	public final Object sourceObject;
-	public final Object prevSlotValue;
-
-	public SlotReferenceInstance(SlotInstance slotInstance, Object sourceObject, Object prevSlotValue) {
-		this.slotInstance = slotInstance;
-		this.sourceObject = sourceObject;
-		this.prevSlotValue = prevSlotValue;
+	public SlotReferenceInstance(Object object, String name) {
+	    super();
+	    this.object = object;
+	    this.name = name;
     }
 
 	@Override
 	public Object get() {
-		return slotInstance.apply(sourceObject, prevSlotValue);
+		return JavaRuntimeSupport.readSlot(object, name);
 	}
-
-	@Override
-	public String toString() {
-	    return String.valueOf(JavaRuntimeSupport.force(get()));
-	}
-
-
 }

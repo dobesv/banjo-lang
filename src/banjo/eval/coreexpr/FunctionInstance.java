@@ -1,21 +1,13 @@
 package banjo.eval.coreexpr;
 
-import java.util.function.Function;
 import java.util.function.Supplier;
 
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.FunctionLiteral;
 import banjo.dom.token.Identifier;
 import banjo.eval.Value;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.parser.util.SourceFileRange;
-import fj.Ord;
-import fj.P;
-import fj.P2;
 import fj.data.List;
 import fj.data.Option;
-import fj.data.Stream;
-import fj.data.TreeMap;
 
 public class FunctionInstance extends Value {
 	public final List<SourceFileRange> ranges;

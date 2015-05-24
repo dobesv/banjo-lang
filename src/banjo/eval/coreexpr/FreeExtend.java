@@ -2,6 +2,7 @@ package banjo.eval.coreexpr;
 
 import banjo.dom.source.Operator;
 import banjo.eval.ExtendedObject;
+import banjo.eval.util.SlotMemoizer;
 
 public class FreeExtend implements FreeExpression {
 	public final FreeExpression base;
@@ -13,7 +14,7 @@ public class FreeExtend implements FreeExpression {
     }
 	@Override
 	public Object apply(Environment environment) {
-	    return new ExtendedObject(base.apply(environment), extension.apply(environment));
+	    return new SlotMemoizer(new ExtendedObject(base.apply(environment), extension.apply(environment)));
 	}
 
 	@Override

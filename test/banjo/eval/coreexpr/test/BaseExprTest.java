@@ -11,7 +11,6 @@ import banjo.dom.core.Call;
 import banjo.dom.core.CoreErrorGatherer;
 import banjo.dom.core.CoreExpr;
 import banjo.dom.core.SlotReference;
-import banjo.eval.coreexpr.CoreExprEvaluator;
 import banjo.eval.coreexpr.FreeExpression;
 import banjo.eval.coreexpr.FreeExpressionFactory;
 import banjo.eval.coreexpr.ProjectEnvironment;
@@ -27,13 +26,18 @@ public abstract class BaseExprTest {
 	final CoreExpr expr;
 	final Object value;
 
+	final Object intermediateValue;
+
+	public final FreeExpression freeExpr;
+
 	public BaseExprTest(CoreExpr ast) {
 		super();
 		this.expr = ast;
 		Object tmp;
+		freeExpr = FreeExpressionFactory.apply(ast);
+		intermediateValue = environment.bind(freeExpr);
     	try {
-    		final Object fx = environment.eval(ast);
-			tmp = JavaRuntimeSupport.force(fx);
+			tmp = JavaRuntimeSupport.force(intermediateValue);
         } catch (Throwable e) {
         	tmp = e;
         }

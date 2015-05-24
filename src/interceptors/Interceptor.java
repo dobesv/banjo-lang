@@ -1,20 +1,17 @@
 package interceptors;
 
-import banjo.eval.Value;
+import banjo.eval.util.WrapperValue;
+
 
 /**
  * Superclass for objects that wrap another object and intercept some
  * operations on that other object.
  */
-public abstract class Interceptor extends Value {
+public abstract class Interceptor extends WrapperValue {
 
 	public final Object interceptor;
-	public final Object target;
-
 	public Interceptor(Object interceptor, Object target) {
-	    super();
+	    super(target);
 	    this.interceptor = interceptor;
-	    this.target = target;
     }
-
 }

@@ -3,11 +3,13 @@ package banjo.eval;
 import java.util.function.Supplier;
 
 import banjo.dom.source.Operator;
+import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.MemoizingSupplier;
 import fj.data.List;
 
 public class ExtendedObject extends Value {
-	public final class ExtendedMethodFallbackSupplier implements Supplier<Object> {
+	public final class ExtendedMethodFallbackSupplier extends BaseSupplier {
 	    public final String name;
 	    public final Object targetObject;
 	    public final Object fallback;
@@ -42,7 +44,7 @@ public class ExtendedObject extends Value {
 	    }
     }
 
-	private final class BaseObjectSlotValueSupplier implements Supplier<Object> {
+	private final class BaseObjectSlotValueSupplier extends BaseSupplier {
 		public final Object targetObject;
 		public final Object baseSlotValue;
 		public final String name;
@@ -58,11 +60,6 @@ public class ExtendedObject extends Value {
 	    public Object get() {
 	    	return JavaRuntimeSupport.readSlot(base, targetObject, baseSlotValue, name);
 	    }
-
-		@Override
-        public String toString() {
-	        return "lazy(" + targetObject + "." + name + ")";
-        }
     }
 
 	public final Object base;
@@ -91,7 +88,7 @@ public class ExtendedObject extends Value {
 
 	@Override
 	public Object callMethod(String name, Object targetObject, Object fallback, List<Object> args) {
-		final Supplier<Object> newFallback = new ExtendedMethodFallbackSupplier(name, targetObject, fallback, args);
+		final Supplier<Object> newFallback = new MemoizingSupplier<Object>(new ExtendedMethodFallbackSupplier(name, targetObject, fallback, args));
 		return JavaRuntimeSupport.callMethod(extension, name, targetObject, newFallback, args);
 	}
 

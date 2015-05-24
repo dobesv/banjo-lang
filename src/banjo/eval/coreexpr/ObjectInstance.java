@@ -17,7 +17,7 @@ public class ObjectInstance extends Value {
 	public Object slot(Object sourceObject, String name, Object fallback) {
 		return slots
 			.get(name).map(
-				slot -> (Object)new SlotReferenceInstance(slot, sourceObject, fallback)
+				slot -> slot.apply(sourceObject, fallback)
 			).orSome(P.lazy(() -> super.slot(sourceObject, name, fallback)));
 	}
 

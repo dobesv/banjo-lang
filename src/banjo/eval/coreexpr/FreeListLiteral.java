@@ -15,7 +15,7 @@ public class FreeListLiteral implements FreeExpression {
 	@Override
 	public Object apply(Environment env) {
 	    final List<Object> elts = elements.map(e -> e.apply(env));
-		return JavaRuntimeSupport.callMethod(FreeExpressionFactory.javaHelpers(env), "list", elts);
+		return JavaRuntimeSupport.callMethod(FreeExpressionFactory.javaHelpers(env), "list", List.single(elts));
 	}
 	@Override
 	public String toString() {

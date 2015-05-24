@@ -2,7 +2,7 @@ package banjo.eval.coreexpr;
 
 import java.util.function.Supplier;
 
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.MemoizingSupplier;
 import fj.Ord;
 import fj.P;
@@ -19,27 +19,22 @@ public class LetEnvironment extends TreeMapEnvironment {
 	    return TreeMap.treeMap(Ord.stringOrd, bindings.map(p -> P.p(p._1(), bindOne(p._2(), recursiveEnv))));
     }
 
-	static class LazyBoundValue implements Supplier<Object> {
+	static class LazyBindingValue extends BaseSupplier {
 		public final FreeExpression f;
 		public final Environment environment;
-		public LazyBoundValue(FreeExpression f, Environment recursiveEnv) {
+		public LazyBindingValue(FreeExpression f, Environment environment) {
 	        super();
 	        this.f = f;
-	        this.environment = recursiveEnv;
+	        this.environment = environment;
         }
 
 		@Override
 		public Object get() {
 		    return f.apply(environment);
 		}
-
-		@Override
-		public String toString() {
-		    return JavaRuntimeSupport.force(get()).toString();
-		}
 	}
 	private static BindingInstance bindOne(FreeExpression f, Environment recursiveEnv) {
-	    final Supplier<Object> v = new LazyBoundValue(f, recursiveEnv);
+	    final Supplier<Object> v = new LazyBindingValue(f, recursiveEnv);
 		final MemoizingSupplier<Object> memo = new MemoizingSupplier<Object>(v);
 		return BindingInstance.let(memo);
     }

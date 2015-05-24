@@ -4,15 +4,15 @@ import java.util.function.Supplier;
 
 public class FreeSlotInstance implements SlotInstance {
 
-	public final Supplier<Object> value;
+	public final Object value;
 
-	public FreeSlotInstance(Supplier<Object> value) {
+	public FreeSlotInstance(Object value) {
 	    super();
 	    this.value = value;
     }
 
 	@Override
-	public Supplier<Object> apply(Object t, Object u) {
+	public Object apply(Object t, Object u) {
 	    return value;
 	}
 

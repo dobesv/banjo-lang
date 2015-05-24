@@ -1,11 +1,6 @@
 package banjo.eval.coreexpr;
 
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
 import banjo.dom.token.Identifier;
-import fj.data.Option;
 
 public class RecursiveSlotInstance implements SlotInstance {
 	public final Identifier name;

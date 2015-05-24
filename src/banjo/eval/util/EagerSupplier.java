@@ -2,7 +2,7 @@ package banjo.eval.util;
 
 import java.util.function.Supplier;
 
-public class EagerSupplier implements Supplier<Object> {
+public class EagerSupplier extends BaseSupplier {
 
 	private final Object value;
 

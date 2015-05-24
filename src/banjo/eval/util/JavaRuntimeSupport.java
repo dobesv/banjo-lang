@@ -316,9 +316,6 @@ public class JavaRuntimeSupport {
 	public static boolean isDefined(Object obj) {
 		return obj != null && !(force(obj) instanceof Throwable);
 	}
-	public static Object lazyReadSlot(Object baseObject, String name) {
-		return new LazySlotValue(baseObject, name);
-    }
 
 	public static boolean isTruthy(Object obj) {
 		if(obj instanceof Boolean) {
@@ -495,8 +492,8 @@ public class JavaRuntimeSupport {
 		public static BigInteger quotient(BigInteger a, BigInteger b) { return a.divide(b); }
 		public static BigInteger neg(BigInteger a) { return a.negate(); }
 		public static BigInteger abs(BigInteger a) { return a.abs(); }
-		public static boolean eq(BigInteger a, BigInteger b) { return a.equals(b); }
-		public static boolean ne(BigInteger a, BigInteger b) { return !a.equals(b); }
+		public static boolean eq(BigInteger a, BigInteger b) { return a.compareTo(b) == 0; }
+		public static boolean ne(BigInteger a, BigInteger b) { return a.compareTo(b) != 0; }
 		public static boolean gt(BigInteger a, BigInteger b) { return a.compareTo(b) > 0; }
 		public static boolean ge(BigInteger a, BigInteger b) { return a.compareTo(b) >= 0; }
 		public static boolean lt(BigInteger a, BigInteger b) { return a.compareTo(b) < 0; }
@@ -520,8 +517,8 @@ public class JavaRuntimeSupport {
 		public static BigDecimal quotient(BigDecimal a, BigDecimal b) { return a.divide(b); }
 		public static BigDecimal neg(BigDecimal a) { return a.negate(); }
 		public static BigDecimal abs(BigDecimal a) { return a.abs(); }
-		public static boolean eq(BigDecimal a, BigDecimal b) { return a.equals(b); }
-		public static boolean ne(BigDecimal a, BigDecimal b) { return !a.equals(b); }
+		public static boolean eq(BigDecimal a, BigDecimal b) { return a.compareTo(b) == 0; }
+		public static boolean ne(BigDecimal a, BigDecimal b) { return a.compareTo(b) != 0; }
 		public static boolean gt(BigDecimal a, BigDecimal b) { return a.compareTo(b) > 0; }
 		public static boolean ge(BigDecimal a, BigDecimal b) { return a.compareTo(b) >= 0; }
 		public static boolean lt(BigDecimal a, BigDecimal b) { return a.compareTo(b) < 0; }
