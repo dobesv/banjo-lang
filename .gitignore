@@ -9,3 +9,4 @@ bin
 /.externalToolBuilders
 /META-INF
 /build.properties
+*.log
