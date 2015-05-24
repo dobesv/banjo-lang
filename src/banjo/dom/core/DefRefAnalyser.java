@@ -121,7 +121,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 		List<P2<Identifier, Identifier>> newRefs = this.localRefs.append(Either.rights(boundVars));
 		List<Identifier> newFreeVars = Either.lefts(boundVars);
 		List<Identifier> newDefs = this.localDefs.append(newNames);
-	    return new DefRefAnalyser(newFreeVars, newRefs, newDefs, this.slotRefs, this.slotRefs);
+	    return new DefRefAnalyser(newFreeVars, newRefs, newDefs, this.slotRefs, this.slotDefs);
     }
 
 	@Override
