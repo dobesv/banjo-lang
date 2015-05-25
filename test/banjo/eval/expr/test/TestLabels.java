@@ -20,7 +20,7 @@ public class TestLabels extends BaseSourceExprTest {
 			"0 . label == \"0\"",
 			"1 . label == \"1\"",
 			"2 . label == \"2\"",
-			"-1 . label == \"-1\"",
+			"(-1) . label == \"-1\"",
 			//"(x -> x).label == \"<function from :line 1 col 1>\"",
 			"({a=b} @ {label = \"bla\"}).label == \"bla\"",
 			"({label = \"bla\"} @ {a=b}).label == \"bla\"",
