@@ -1,24 +1,29 @@
 package banjo.parser.test;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import banjo.expr.token.Identifier;
+import fj.data.Stream;
 
-public class TestIdParser {
+@RunWith(Parameterized.class)
+public class TestIdParser extends BaseParserTest {
 
-	@Test public void abc() { test("abc"); }
-	@Test public void abcCaps() { test("ABC"); }
-	@Test public void testSpecialChars1() { test("\\."); }
-	@Test public void testSpecialChars2() { test("\\-\\-"); }
-	@Ignore @Test public void testSpecialChars3() { test("\\-\\ \\-"); }
+	public TestIdParser(String source, String expectedToString,
+            Class<?> expectedClass) {
+	    super(source, expectedToString, expectedClass);
+    }
 
-	private void test(String string) {
-		test(string,string);
+	@Parameters(name="{0}")
+	public static Stream<Object[]> parameters() {
+		return Stream.stream(
+				test("abc", Identifier.class),
+				test("ABC", Identifier.class),
+				test("\\a\\b\\c", "abc", Identifier.class),
+				test("\\.", Identifier.class),
+				test("\\-\\ \\-", "\\-\\ \\-", Identifier.class),
+				test("\\-\\-", Identifier.class)
+		);
 	}
-
-	private void test(String source, String expectedSource) {
-		ParseTestUtils.test(source, 0, null, Identifier.class, expectedSource);
-	}
-	
 }

@@ -60,19 +60,20 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	}
 
 	public static void toSource(String id, StringBuffer sb) {
-		int spaces=0;
-		for(int i=0; i < id.length(); i++) {
+		int spaces = 0;
+		for (int i = 0; i < id.length(); i++) {
 			final int cp = id.codePointAt(i);
-			if(cp > Character.MAX_VALUE) i++;
-			if(cp == ' ') spaces++;
-			else spaces=0;
-			final boolean ok = i==0?
-					TokenScanner.isIdentifierStart(cp):
-						TokenScanner.isIdentifierPart(cp) || (cp == ' ' && spaces == 1);
-					if(!ok) {
-						sb.append('\\');
-					}
-					sb.appendCodePoint(cp);
+			if (cp > Character.MAX_VALUE) i++;
+			if (cp == ' ') spaces++;
+			else spaces = 0;
+			final boolean ok = i == 0 ?
+					TokenScanner.isIdentifierStart(cp) :
+			        TokenScanner.isIdentifierPart(cp)
+			                || (cp == ' ' && spaces == 1 && TokenScanner.isIdentifierStart(id.codePointAt(i+1)));
+			if (!ok) {
+				sb.append('\\');
+			}
+			sb.appendCodePoint(cp);
 		}
 	}
 
