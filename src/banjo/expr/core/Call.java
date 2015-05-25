@@ -4,6 +4,7 @@ import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
@@ -11,7 +12,7 @@ import fj.data.List;
 import fj.data.Option;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<Call> callOrd = Ord.chain(
+	public static final Ord<Call> callOrd = OrdUtil.chain(
 		CoreExpr.coreExprOrd.comap(call -> call.target),
 		CoreExpr.listOfCoreExprOrd.comap(call -> call.args)
 	);

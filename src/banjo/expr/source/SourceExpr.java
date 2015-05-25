@@ -10,6 +10,7 @@ import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
+import banjo.expr.util.OrdUtil;
 import fj.Ord;
 import fj.Ordering;
 import fj.data.List;
@@ -72,7 +73,7 @@ public interface SourceExpr extends Expr, SourceNode {
 
 		})
 	);
-	public static final Ord<SourceExpr> sourceExprOrd = Ord.chain(CLASS_NAME_ORD, _sourceExprsOfSameClassOrd);
+	public static final Ord<SourceExpr> sourceExprOrd = OrdUtil.chain(CLASS_NAME_ORD, _sourceExprsOfSameClassOrd);
 
 	String toFullyParenthesizedSource();
 

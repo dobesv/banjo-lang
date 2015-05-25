@@ -5,6 +5,7 @@ import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
@@ -21,7 +22,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	private static final Ord<FunctionLiteral> _argsOrd = Identifier.LIST_ORD.comap((FunctionLiteral f) -> f.args);
 	private static final Ord<FunctionLiteral> _bodyOrd = CoreExpr.coreExprOrd.comap((FunctionLiteral f) -> f.body);
-	public static final Ord<FunctionLiteral> functionLiteralOrd = Ord.chain(_argsOrd, _bodyOrd);
+	public static final Ord<FunctionLiteral> functionLiteralOrd = OrdUtil.chain(_argsOrd, _bodyOrd);
 
 	/**
 	 *

@@ -4,6 +4,7 @@ import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
@@ -13,7 +14,7 @@ import fj.data.List;
 public class Let extends AbstractCoreExpr implements CoreExpr {
 
 	public static final Ord<List<P2<Identifier, CoreExpr>>> BINDINGS_ORD = Ord.listOrd(Ord.p2Ord(Identifier.ORD, CoreExpr.coreExprOrd));
-	public static final Ord<Let> ORD = Ord.chain(
+	public static final Ord<Let> ORD = OrdUtil.chain(
 			BINDINGS_ORD.comap(let -> let.bindings),
 			coreExprOrd.comap(let -> let.body)
 	);

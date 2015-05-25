@@ -7,12 +7,13 @@ import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprAlgebra;
 import banjo.expr.source.SourceExprVisitor;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
 
 public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
-	public static final Ord<BadIdentifier> ORD = Ord.chain(
+	public static final Ord<BadIdentifier> ORD = OrdUtil.chain(
 				Ord.stringOrd.comap((BadIdentifier x) -> x.message),
 				Ord.stringOrd.comap((BadIdentifier x) -> x.originalSource)
 	);

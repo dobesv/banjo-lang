@@ -1,16 +1,17 @@
 package banjo.expr.source;
 
 import banjo.expr.BadExpr;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
-	public static final Ord<BinaryOp> _leftRightOrd = Ord.chain(
+	public static final Ord<BinaryOp> _leftRightOrd = OrdUtil.chain(
 			sourceExprOrd.comap((BinaryOp x) -> x.left),
 			sourceExprOrd.comap((BinaryOp x) -> x.right)
 	);
-	public static final Ord<BinaryOp> ORD = Ord.chain(
+	public static final Ord<BinaryOp> ORD = OrdUtil.chain(
 			AbstractOp.<BinaryOp>_operatorOrd(),
 			_leftRightOrd
 	);

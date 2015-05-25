@@ -2,12 +2,13 @@ package banjo.expr.core;
 
 import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
-	protected static final Ord<Extend> extendOrd = Ord.chain(
+	protected static final Ord<Extend> extendOrd = OrdUtil.chain(
 			CoreExpr.coreExprOrd.comap((e) -> e.base),
 			CoreExpr.coreExprOrd.comap((e) -> e.extension)
 	);

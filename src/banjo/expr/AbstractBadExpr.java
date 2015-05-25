@@ -2,6 +2,7 @@ package banjo.expr;
 
 import banjo.expr.source.Precedence;
 import banjo.expr.token.StringLiteral;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.Ordering;
@@ -9,7 +10,7 @@ import fj.data.List;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	public static final Ord<Object[]> ARGS_ORD = Ord.ord((a) -> (b) -> Ordering.fromInt(AbstractBadExpr.compareArgs(a, b)));
-	public static final Ord<AbstractBadExpr> ORD = Ord.chain(
+	public static final Ord<AbstractBadExpr> ORD = OrdUtil.chain(
 		Ord.stringOrd.comap((AbstractBadExpr x) -> x.messageTemplate),
 		ARGS_ORD.comap((AbstractBadExpr x) -> x.args)
 	);

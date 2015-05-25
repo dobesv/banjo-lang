@@ -3,6 +3,7 @@ package banjo.expr.core;
 import static java.util.Objects.requireNonNull;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
+import banjo.expr.util.OrdUtil;
 import fj.Ord;
 import fj.data.List;
 import fj.data.Option;
@@ -20,9 +21,9 @@ public class Slot {
         this.value = requireNonNull(value);
     }
 
-	static final Ord<Slot> ORD = Ord.chain(
+	static final Ord<Slot> ORD = OrdUtil.chain(
 			Identifier.ORD.comap(slot -> slot.name),
-			Ord.chain(
+			OrdUtil.chain(
 					Ord.optionOrd(Identifier.ORD).comap(slot -> slot.sourceObjectBinding),
 					CoreExpr.coreExprOrd.comap(slot -> slot.value)
 			));

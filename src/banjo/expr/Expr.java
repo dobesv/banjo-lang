@@ -1,6 +1,7 @@
 package banjo.expr;
 
 import banjo.expr.source.Precedence;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
@@ -24,7 +25,7 @@ public interface Expr {
 	public List<SourceFileRange> getSourceFileRanges();
 
 	public static <A extends Expr> Ord<A> ordWithFileRanges(Ord<A> subclassOrd) {
-		return Ord.chain(EXPR_RANGES_ORD, subclassOrd);
+		return OrdUtil.chain(EXPR_RANGES_ORD, subclassOrd);
 	}
 
 }

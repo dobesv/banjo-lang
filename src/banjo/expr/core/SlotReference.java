@@ -1,17 +1,18 @@
 package banjo.expr.core;
 
+import banjo.expr.source.Operator;
+import banjo.expr.source.Precedence;
+import banjo.expr.token.Identifier;
+import banjo.expr.util.OrdUtil;
+import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
 import fj.Unit;
 import fj.data.List;
 import fj.data.Option;
-import banjo.expr.source.Operator;
-import banjo.expr.source.Precedence;
-import banjo.expr.token.Identifier;
-import banjo.expr.util.SourceFileRange;
 
 public class SlotReference extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<SlotReference> ORD = Ord.chain(
+	public static final Ord<SlotReference> ORD = OrdUtil.chain(
 			CoreExpr.coreExprOrd.comap((SlotReference x) -> x.object),
 			Identifier.ORD.comap((SlotReference x) -> x.slotName)
 	);

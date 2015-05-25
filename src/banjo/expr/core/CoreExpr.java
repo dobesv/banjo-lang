@@ -8,6 +8,7 @@ import banjo.expr.token.BadIdentifier;
 import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.StringLiteral;
+import banjo.expr.util.OrdUtil;
 import fj.F2Functions;
 import fj.Ord;
 import fj.Ordering;
@@ -102,7 +103,7 @@ public interface CoreExpr extends Expr {
 	 */
 	<T> T acceptVisitor(CoreExprAlgebra<T> visitor);
 
-	public static final Ord<CoreExpr> coreExprOrd = Ord.chain(CLASS_NAME_ORD, _coreExprsOfSameClassOrd);
+	public static final Ord<CoreExpr> coreExprOrd = OrdUtil.chain(CLASS_NAME_ORD, _coreExprsOfSameClassOrd);
 	public static final Ord<List<CoreExpr>> listOfCoreExprOrd = Ord.listOrd(CoreExpr.coreExprOrd);
 
 	/**

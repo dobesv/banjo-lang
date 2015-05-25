@@ -1,12 +1,13 @@
 package banjo.expr.source;
 
 import banjo.expr.BadExpr;
+import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
-	public static final Ord<UnaryOp> ORD = Ord.chain(
+	public static final Ord<UnaryOp> ORD = OrdUtil.chain(
 			Operator.ORD.comap(x -> x.operator),
 			sourceExprOrd.comap(x -> x.operand)
 	);
