@@ -2,8 +2,9 @@ language: java
 jdk:
   - oraclejdk8
 env:
-  - BANJO_PATH: banjo-core-lib-master/src:banjo-java-lib-master/src
-before_script:
+  global:
+    - BANJO_PATH=banjo-core-lib-master/src:banjo-java-lib-master/src
+before_install:
  - wget https://github.com/dobesv/functionaljava/archive/master.tar.gz -O functionaljava-master.tar.gz
  - tar -zxvf functionaljava-master.tar.gz
  - gradle -p functionaljava-master --info java8:install core:install
