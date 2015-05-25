@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.source.SourceExpr;
+import banjo.expr.source.SourceExpr;
 
 public class TestPrecedence {
 

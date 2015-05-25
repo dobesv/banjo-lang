@@ -1,6 +1,7 @@
 package banjo.eval.coreexpr;
 
 import banjo.eval.ProjectLoader;
+import banjo.expr.free.FreeExpressionFactory;
 import fj.P;
 
 public class ProjectEnvironment extends LetEnvironment {

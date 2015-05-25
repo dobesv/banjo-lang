@@ -5,11 +5,11 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
-import banjo.dom.core.CoreErrorGatherer;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.token.Identifier;
 import banjo.eval.ProjectLoader;
+import banjo.expr.BadExpr;
+import banjo.expr.core.CoreErrorGatherer;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.token.Identifier;
 import fj.P2;
 import fj.data.List;
 

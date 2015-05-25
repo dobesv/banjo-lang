@@ -1,6 +1,6 @@
 package banjo.eval;
 
-import banjo.parser.util.SourceFileRange;
+import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 
 public class UnresolvedCodeError extends Fail {

@@ -1,10 +1,5 @@
 package banjo.eval.util;
 
-import interceptors.ArgInterceptor;
-import interceptors.CallInterceptor;
-import interceptors.CallResultInterceptor;
-import interceptors.SlotInterceptor;
-
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
@@ -17,11 +12,15 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import banjo.dom.source.Operator;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.eval.Value;
+import banjo.eval.interceptors.ArgInterceptor;
+import banjo.eval.interceptors.CallInterceptor;
+import banjo.eval.interceptors.CallResultInterceptor;
+import banjo.eval.interceptors.SlotInterceptor;
+import banjo.expr.source.Operator;
 import fj.data.List;
 
 public class JavaRuntimeSupport {

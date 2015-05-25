@@ -7,10 +7,10 @@ import org.junit.Test;
 import fj.P;
 import fj.P3;
 import fj.data.List;
-import banjo.desugar.SourceExprToCoreExpr.DesugarResult;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.source.SourceErrorGatherer;
-import banjo.dom.source.SourceExpr;
+import banjo.eval.coreexpr.CoreExprFactory.DesugarResult;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.source.SourceErrorGatherer;
+import banjo.expr.source.SourceExpr;
 
 public abstract class BaseSourceExprTest extends BaseExprTest {
 

@@ -11,13 +11,13 @@ import java.math.BigDecimal;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.source.SourceExpr;
-import banjo.dom.source.UnaryOp;
-import banjo.dom.token.NumberLiteral;
-import banjo.parser.SourceCodeParser;
-import banjo.util.SourceNumber;
+import banjo.expr.BadExpr;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.SourceExprFactory;
+import banjo.expr.source.UnaryOp;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.util.SourceNumber;
 
 public class TestNumberLiteralParser {
 
@@ -35,7 +35,7 @@ public class TestNumberLiteralParser {
 	}
 	private void testNonNumber(String inStr, Class<? extends BadExpr> eClass) {
 		try {
-			final SourceCodeParser parser = new SourceCodeParser();
+			final SourceExprFactory parser = new SourceExprFactory();
 			final SourceExpr node = parser.parse(inStr);
 			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
 			final int errCount = ParseTestUtils.parseErrors(eClass, node);

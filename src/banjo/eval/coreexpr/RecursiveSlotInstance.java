@@ -1,6 +1,7 @@
 package banjo.eval.coreexpr;
 
-import banjo.dom.token.Identifier;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.token.Identifier;
 
 public class RecursiveSlotInstance implements SlotInstance {
 	public final Identifier name;

@@ -8,8 +8,8 @@ import java.io.IOException;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.core.CoreExpr;
-import banjo.dom.token.StringLiteral;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.token.StringLiteral;
 
 public class TestStringLiteralParser {
 

@@ -2,10 +2,11 @@ package banjo.eval.coreexpr;
 
 import java.util.function.Supplier;
 
-import banjo.dom.token.Identifier;
 import banjo.eval.Value;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.parser.util.SourceFileRange;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.token.Identifier;
+import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 import fj.data.Option;
 

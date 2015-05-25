@@ -4,9 +4,9 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.DefRefAnalyser;
+import banjo.expr.BadExpr;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.DefRefAnalyser;
 import fj.data.List;
 
 public class TestDefRefAnalyser {

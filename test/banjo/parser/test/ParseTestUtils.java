@@ -8,17 +8,17 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import banjo.desugar.SourceExprToCoreExpr;
-import banjo.desugar.SourceExprToCoreExpr.DesugarResult;
-import banjo.dom.BadExpr;
-import banjo.dom.Expr;
-import banjo.dom.core.BaseCoreExprVisitor;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.source.SourceErrorGatherer;
-import banjo.dom.source.SourceExpr;
-import banjo.dom.token.NumberLiteral;
-import banjo.parser.SourceCodeParser;
-import banjo.parser.util.SourceFileRange;
+import banjo.eval.coreexpr.CoreExprFactory;
+import banjo.eval.coreexpr.CoreExprFactory.DesugarResult;
+import banjo.expr.BadExpr;
+import banjo.expr.Expr;
+import banjo.expr.core.BaseCoreExprVisitor;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.source.SourceErrorGatherer;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.SourceExprFactory;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.util.SourceFileRange;
 import fj.Unit;
 import fj.data.List;
 
@@ -29,13 +29,13 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> void test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		final SourceCodeParser parser = new SourceCodeParser("<test>");
+		final SourceExprFactory parser = new SourceExprFactory("<test>");
 		test(source, expectedErrors, expectedErrorClass, expectedClass, normalizedSource, parser);
 	}
 
 	public static <T extends Expr> void test(String source, int expectedErrors,
 			Class<? extends BadExpr> expectedErrorClass,
-			Class<T> expectedClass, String normalizedSource, SourceCodeParser parser)
+			Class<T> expectedClass, String normalizedSource, SourceExprFactory parser)
 					throws Error {
 		System.out.println("Source input:\n  "+source.replace("\n", "\n  "));
 		try {
@@ -44,7 +44,7 @@ public class ParseTestUtils {
 			System.out.println("Parsed (fully parenthesized):\n  " + parseTree.toFullyParenthesizedSource().replace("\n", "\n  "));
 			int errCount = parseErrors(expectedErrorClass, parseTree);
 			if(errCount == 0) {
-				final SourceExprToCoreExpr desugarer = new SourceExprToCoreExpr();
+				final CoreExprFactory desugarer = new CoreExprFactory();
 				final DesugarResult<CoreExpr> desugarResult = desugarer.desugar(parseTree);
 				final CoreExpr ast = desugarResult.getValue();
 				System.out.println("Desugared:\n  " + ast.toSource().replace("\n", "\n  "));

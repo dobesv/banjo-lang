@@ -1,9 +1,10 @@
 package banjo.eval.coreexpr;
 
-import banjo.dom.token.Identifier;
 import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.SlotMemoizer;
-import banjo.parser.util.SourceFileRange;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.token.Identifier;
+import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
 import fj.P2;

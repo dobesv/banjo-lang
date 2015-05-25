@@ -1,6 +1,6 @@
 package banjo.eval.coreexpr;
 
-import banjo.dom.token.Identifier;
+import banjo.expr.token.Identifier;
 import fj.Ord;
 import fj.P;
 import fj.P2;

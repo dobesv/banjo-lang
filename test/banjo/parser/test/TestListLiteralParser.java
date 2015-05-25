@@ -2,8 +2,8 @@ package banjo.parser.test;
 
 import org.junit.Test;
 
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.ListLiteral;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.ListLiteral;
 
 public class TestListLiteralParser {
 

@@ -1,7 +1,7 @@
 package banjo.eval.coreexpr;
 
 import banjo.eval.Value;
-import banjo.parser.util.ListUtil;
+import banjo.expr.util.ListUtil;
 import fj.P;
 import fj.data.TreeMap;
 

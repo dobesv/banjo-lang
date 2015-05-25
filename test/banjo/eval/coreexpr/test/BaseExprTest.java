@@ -6,16 +6,16 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
-import banjo.dom.core.BaseCoreExprVisitor;
-import banjo.dom.core.Call;
-import banjo.dom.core.CoreErrorGatherer;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.SlotReference;
-import banjo.eval.coreexpr.FreeExpression;
-import banjo.eval.coreexpr.FreeExpressionFactory;
 import banjo.eval.coreexpr.ProjectEnvironment;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.parser.util.ListUtil;
+import banjo.expr.core.BaseCoreExprVisitor;
+import banjo.expr.core.Call;
+import banjo.expr.core.CoreErrorGatherer;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.SlotReference;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.free.FreeExpressionFactory;
+import banjo.expr.util.ListUtil;
 import fj.P;
 import fj.data.List;
 

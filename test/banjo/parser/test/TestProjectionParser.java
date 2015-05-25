@@ -2,9 +2,9 @@ package banjo.parser.test;
 
 import org.junit.Test;
 
-import banjo.dom.core.Call;
-import banjo.dom.core.ObjectLiteral;
-import banjo.dom.core.SlotReference;
+import banjo.expr.core.Call;
+import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.SlotReference;
 
 public class TestProjectionParser {
 

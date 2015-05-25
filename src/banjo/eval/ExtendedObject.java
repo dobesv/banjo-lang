@@ -2,10 +2,10 @@ package banjo.eval;
 
 import java.util.function.Supplier;
 
-import banjo.dom.source.Operator;
 import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.eval.util.MemoizingSupplier;
+import banjo.expr.source.Operator;
 import fj.data.List;
 
 public class ExtendedObject extends Value {

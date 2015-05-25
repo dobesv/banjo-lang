@@ -4,8 +4,8 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.function.Supplier;
 
-import banjo.dom.core.BadCoreExpr;
 import banjo.eval.UnresolvedCodeError;
+import banjo.expr.core.BadCoreExpr;
 
 public class BadExprInstance implements Supplier<Object> {
 

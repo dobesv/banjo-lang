@@ -17,20 +17,20 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-import banjo.desugar.SourceExprToCoreExpr;
-import banjo.dom.core.BadCoreExpr;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.Extend;
-import banjo.dom.core.ObjectLiteral;
-import banjo.dom.core.Slot;
-import banjo.dom.source.SourceExpr;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.StringLiteral;
-import banjo.parser.SourceCodeParser;
-import banjo.parser.util.FilePos;
-import banjo.parser.util.FileRange;
-import banjo.parser.util.ParserReader;
-import banjo.parser.util.SourceFileRange;
+import banjo.eval.coreexpr.CoreExprFactory;
+import banjo.expr.core.BadCoreExpr;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.Extend;
+import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.Slot;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.SourceExprFactory;
+import banjo.expr.token.Identifier;
+import banjo.expr.token.StringLiteral;
+import banjo.expr.util.FilePos;
+import banjo.expr.util.FileRange;
+import banjo.expr.util.ParserReader;
+import banjo.expr.util.SourceFileRange;
 import fj.P;
 import fj.P2;
 import fj.data.List;
@@ -154,13 +154,13 @@ public class ProjectLoader {
     	final String filePath = path.toString();
 	    CoreExpr value;
 	    try {
-	    	final SourceCodeParser parser = new SourceCodeParser(filePath);
+	    	final SourceExprFactory parser = new SourceExprFactory(filePath);
 	    	final int size = (int)fileSize(path);
 	    	if(size == 0) {
 	    		value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Empty file '"+filePath+"'");
 	    	} else {
 	    		final SourceExpr parsed = parser.parse(new ParserReader(openFile(path), size));
-	    		value = new SourceExprToCoreExpr().desugar(parsed).getValue();
+	    		value = new CoreExprFactory().desugar(parsed).getValue();
 	    	}
 	    } catch (IOException e) {
 	    	value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Error reading file '"+filePath+"': "+e);

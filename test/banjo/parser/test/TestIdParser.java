@@ -3,7 +3,7 @@ package banjo.parser.test;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.token.Identifier;
+import banjo.expr.token.Identifier;
 
 public class TestIdParser {
 

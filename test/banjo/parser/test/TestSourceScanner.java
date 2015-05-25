@@ -7,16 +7,16 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.Expr;
-import banjo.dom.core.Let;
-import banjo.dom.token.Comment;
-import banjo.dom.token.Identifier;
-import banjo.dom.token.OperatorRef;
-import banjo.dom.token.Token;
-import banjo.dom.token.Whitespace;
-import banjo.parser.SourceCodeParser;
-import banjo.parser.SourceCodeScanner;
-import banjo.parser.util.TokenCollector;
+import banjo.expr.Expr;
+import banjo.expr.core.Let;
+import banjo.expr.source.SourceExprFactory;
+import banjo.expr.token.Comment;
+import banjo.expr.token.Identifier;
+import banjo.expr.token.OperatorRef;
+import banjo.expr.token.Token;
+import banjo.expr.token.TokenScanner;
+import banjo.expr.token.Whitespace;
+import banjo.expr.util.TokenCollector;
 import fj.data.List;
 public class TestSourceScanner {
 	@Test
@@ -37,9 +37,9 @@ public class TestSourceScanner {
 			Class<? extends Expr> expectedClass,
 			String[] expectedTokenNormalizedSource,
 			Class<?>[] expectedTokenClasses) throws Error {
-		final SourceCodeScanner scanner = new SourceCodeScanner();
+		final TokenScanner scanner = new TokenScanner();
 		List<Token> tokens = scanner.scan(src, new TokenCollector()).getTokens();
-		final SourceCodeParser parser = new SourceCodeParser();
+		final SourceExprFactory parser = new SourceExprFactory();
 		test(src, 0, null, expectedClass, normalizedSource, parser);
 		final int expectedTokenCount = expectedTokenNormalizedSource.length;
 		assertEquals(expectedTokenCount, tokens.length());

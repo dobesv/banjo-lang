@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 
 import banjo.eval.util.BaseSupplier;
 import banjo.eval.util.MemoizingSupplier;
+import banjo.expr.free.FreeExpression;
 import fj.Ord;
 import fj.P;
 import fj.P2;

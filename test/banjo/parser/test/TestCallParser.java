@@ -5,8 +5,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.core.Call;
-import banjo.dom.core.CoreExpr;
+import banjo.expr.core.Call;
+import banjo.expr.core.CoreExpr;
 
 public class TestCallParser {
 

@@ -8,11 +8,11 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import banjo.dom.core.Call;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.SlotReference;
-import banjo.dom.source.Operator;
+import banjo.expr.core.Call;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.FunctionLiteral;
+import banjo.expr.core.SlotReference;
+import banjo.expr.source.Operator;
 
 public class TestOperator {
 

@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
-import banjo.dom.source.BadSourceExpr.ExpectedOperator;
-import banjo.dom.source.SourceErrorGatherer;
-import banjo.dom.source.SourceExpr;
-import banjo.parser.util.FileRange;
+import banjo.expr.BadExpr;
+import banjo.expr.source.SourceErrorGatherer;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.BadSourceExpr.ExpectedOperator;
+import banjo.expr.util.FileRange;
 
 public class TestParseErrors {
 

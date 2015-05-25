@@ -6,9 +6,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import banjo.dom.core.CoreErrorGatherer;
-import banjo.dom.core.CoreExpr;
 import banjo.eval.Fail;
+import banjo.expr.core.CoreErrorGatherer;
+import banjo.expr.core.CoreExpr;
 import fj.data.Stream;
 
 @RunWith(Parameterized.class)

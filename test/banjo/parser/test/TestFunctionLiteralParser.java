@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.token.Identifier;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.FunctionLiteral;
+import banjo.expr.token.Identifier;
 
 
 public class TestFunctionLiteralParser {

@@ -3,8 +3,8 @@ package banjo.parser.test;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.dom.BadExpr;
-import banjo.dom.source.BadSourceExpr;
+import banjo.expr.BadExpr;
+import banjo.expr.source.BadSourceExpr;
 
 public class TestMathParser {
 

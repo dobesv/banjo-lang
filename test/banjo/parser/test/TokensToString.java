@@ -9,11 +9,15 @@ import java.io.UncheckedIOException;
 
 
 
-import banjo.dom.token.TokenVisitor;
-import banjo.parser.SourceCodeScanner;
-import banjo.parser.util.FileRange;
-import banjo.parser.util.ParserReader;
-import banjo.parser.util.TokenCollector;
+
+
+
+
+import banjo.expr.token.TokenScanner;
+import banjo.expr.token.TokenVisitor;
+import banjo.expr.util.FileRange;
+import banjo.expr.util.ParserReader;
+import banjo.expr.util.TokenCollector;
 import fj.data.List;
 
 public class TokensToString implements TokenVisitor<String> {
@@ -85,7 +89,7 @@ public class TokensToString implements TokenVisitor<String> {
 			final int rangeEnd, String[] expectedTokens,
 			final TokensToString testVisitor) throws Error {
 		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
-		final SourceCodeScanner scanner = new SourceCodeScanner();
+		final TokenScanner scanner = new TokenScanner();
 		List<String> foundTokens;
 		try {
 			final TokenCollector collector = new TokenCollector();

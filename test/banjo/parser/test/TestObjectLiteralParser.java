@@ -10,13 +10,13 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import fj.P2;
-import banjo.dom.core.CoreExpr;
-import banjo.dom.core.FunctionLiteral;
-import banjo.dom.core.Let;
-import banjo.dom.core.ObjectLiteral;
-import banjo.dom.core.Slot;
-import banjo.dom.source.BadSourceExpr;
-import banjo.dom.token.Identifier;
+import banjo.expr.core.CoreExpr;
+import banjo.expr.core.FunctionLiteral;
+import banjo.expr.core.Let;
+import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.Slot;
+import banjo.expr.source.BadSourceExpr;
+import banjo.expr.token.Identifier;
 
 public class TestObjectLiteralParser {
 
