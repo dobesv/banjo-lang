@@ -38,6 +38,8 @@ import fj.data.Option;
 import fj.data.TreeMap;
 
 public class ProjectLoader {
+	private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
+	private static final String LIB_PATH_ENV_NAME = "BANJO_PATH";
 	public static final List<P2<Identifier, CoreExpr>> EMPTY_BINDINGS = List.nil();
 
 	/**
@@ -245,8 +247,8 @@ public class ProjectLoader {
 	}
 
 	protected String getBanjoPathFromEnvironment() {
-	    String path = System.getProperty("banjo.path");
-		if(path == null) path = System.getenv("BANJO_PATH");
+	    String path = System.getProperty(LIB_PATH_SYS_PROPERTY);
+		if(path == null) path = System.getenv(LIB_PATH_ENV_NAME);
 	    return path;
     }
 
