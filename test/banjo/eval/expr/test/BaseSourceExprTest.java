@@ -4,13 +4,12 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import fj.P;
-import fj.P3;
-import fj.data.List;
-import banjo.eval.expr.CoreExprFactory.DesugarResult;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.source.SourceErrorGatherer;
 import banjo.expr.source.SourceExpr;
+import fj.P;
+import fj.P3;
+import fj.data.List;
 
 public abstract class BaseSourceExprTest extends BaseExprTest {
 
