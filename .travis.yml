@@ -10,5 +10,5 @@ before_install:
  - gradle -p functionaljava-master --info java8:install core:install
  - wget https://github.com/dobesv/banjo-core-lib/archive/master.tar.gz -O banjo-core-lib-master.tar.gz
  - tar -zxvf banjo-core-lib-master.tar.gz
- - wget https://github.com/dobesv/banjo-core-lib/archive/master.tar.gz -O banjo-java-lib-master.tar.gz
+ - wget https://github.com/dobesv/banjo-java-lib/archive/master.tar.gz -O banjo-java-lib-master.tar.gz
  - tar -zxvf banjo-java-lib-master.tar.gz
