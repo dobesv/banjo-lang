@@ -2,7 +2,7 @@ package banjo.expr.free;
 
 import java.util.function.Supplier;
 
-import banjo.eval.coreexpr.SlotInstance;
+import banjo.eval.expr.SlotInstance;
 
 public class FreeSlotInstance implements SlotInstance {
 

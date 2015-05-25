@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.coreexpr.BadExprInstance;
-import banjo.eval.coreexpr.Environment;
+import banjo.eval.expr.BadExprInstance;
+import banjo.eval.expr.Environment;
 import banjo.expr.core.BadCoreExpr;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;

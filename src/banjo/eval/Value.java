@@ -2,7 +2,7 @@ package banjo.eval;
 
 import java.util.function.Supplier;
 
-import banjo.eval.coreexpr.FunctionInstance;
+import banjo.eval.expr.FunctionInstance;
 import banjo.eval.util.JavaRuntimeSupport;
 import fj.data.List;
 

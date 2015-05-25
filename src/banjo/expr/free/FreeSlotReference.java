@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.coreexpr.Environment;
-import banjo.eval.coreexpr.SlotReferenceInstance;
+import banjo.eval.expr.Environment;
+import banjo.eval.expr.SlotReferenceInstance;
 import banjo.eval.util.MemoizingSupplier;
 
 

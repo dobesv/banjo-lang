@@ -8,8 +8,8 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import banjo.eval.coreexpr.CoreExprFactory;
-import banjo.eval.coreexpr.CoreExprFactory.DesugarResult;
+import banjo.eval.expr.CoreExprFactory;
+import banjo.eval.expr.CoreExprFactory.DesugarResult;
 import banjo.expr.BadExpr;
 import banjo.expr.Expr;
 import banjo.expr.core.BaseCoreExprVisitor;

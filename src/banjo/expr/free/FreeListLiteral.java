@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.coreexpr.Environment;
+import banjo.eval.expr.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.util.ListUtil;
 import fj.data.List;

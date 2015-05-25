@@ -1,9 +1,9 @@
 package banjo.expr.free;
 
-import banjo.eval.coreexpr.Environment;
-import banjo.eval.coreexpr.ObjectInstance;
-import banjo.eval.coreexpr.RecursiveSlotInstance;
-import banjo.eval.coreexpr.SlotInstance;
+import banjo.eval.expr.Environment;
+import banjo.eval.expr.ObjectInstance;
+import banjo.eval.expr.RecursiveSlotInstance;
+import banjo.eval.expr.SlotInstance;
 import banjo.eval.util.MemoizingSupplier;
 import banjo.eval.util.SlotMemoizer;
 import banjo.expr.token.Identifier;

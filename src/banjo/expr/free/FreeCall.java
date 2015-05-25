@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.coreexpr.CallInstance;
-import banjo.eval.coreexpr.Environment;
+import banjo.eval.expr.CallInstance;
+import banjo.eval.expr.Environment;
 import banjo.eval.util.MemoizingSupplier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
