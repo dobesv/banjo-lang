@@ -3,6 +3,14 @@ package banjo.eval.util;
 import fj.data.List;
 import banjo.eval.Value;
 
+/**
+ * Utility base class that wraps another object
+ * and delegates all "Value" operations to that
+ * object.
+ *
+ * A subclass can then override just the operations
+ * that it needs to.
+ */
 public class WrapperValue extends Value {
 
 	public final Object target;
