@@ -8,12 +8,12 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import banjo.eval.expr.CoreExprFactory;
-import banjo.eval.expr.CoreExprFactory.DesugarResult;
 import banjo.expr.BadExpr;
 import banjo.expr.Expr;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.CoreExprFactory;
+import banjo.expr.core.CoreExprFactory.DesugarResult;
 import banjo.expr.source.SourceErrorGatherer;
 import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprFactory;

@@ -17,9 +17,9 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
 
-import banjo.eval.expr.CoreExprFactory;
 import banjo.expr.core.BadCoreExpr;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.CoreExprFactory;
 import banjo.expr.core.Extend;
 import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Slot;

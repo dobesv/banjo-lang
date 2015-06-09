@@ -1,4 +1,4 @@
-package banjo.eval.expr;
+package banjo.expr.core;
 
 import static fj.data.List.cons;
 import static fj.data.List.single;
@@ -6,20 +6,6 @@ import static fj.data.List.single;
 import java.util.Objects;
 
 import banjo.expr.BadExpr;
-import banjo.expr.core.BadCoreExpr;
-import banjo.expr.core.BaseCoreExprVisitor;
-import banjo.expr.core.BaseFunctionRef;
-import banjo.expr.core.Call;
-import banjo.expr.core.CoreErrorGatherer;
-import banjo.expr.core.CoreExpr;
-import banjo.expr.core.Extend;
-import banjo.expr.core.FunctionLiteral;
-import banjo.expr.core.Inspect;
-import banjo.expr.core.Let;
-import banjo.expr.core.ListLiteral;
-import banjo.expr.core.ObjectLiteral;
-import banjo.expr.core.Slot;
-import banjo.expr.core.SlotReference;
 import banjo.expr.source.BadSourceExpr;
 import banjo.expr.source.BaseSourceExprVisitor;
 import banjo.expr.source.BinaryOp;

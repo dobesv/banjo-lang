@@ -1,6 +1,5 @@
 package banjo.expr.core;
 
-import banjo.eval.expr.CoreExprFactory;
 import banjo.expr.AbstractBadExpr;
 import banjo.expr.Expr;
 import banjo.expr.source.SourceExpr;
