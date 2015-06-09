@@ -416,6 +416,7 @@ public class TokenScanner {
 	 */
 
 	private <T extends TokenVisitor<T>> List<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+		int leftColumn = in.getCurrentIndentColumn();
 		int cp = in.read();
 		if(cp == '`') {
 			return backtick(in, visitor);
@@ -426,16 +427,19 @@ public class TokenScanner {
 		}
 		final int quoteType = cp;
 
-		int leftColumn = in.getCurrentColumnNumber();
 		this.buf.setLength(0);
 		List<T> errs = List.nil();
 		while((cp = in.read()) != -1) {
 			if(cp == quoteType)
 				break; // End of string
-			// Ignore whitespace with column <= the left column if we are at the start of the line
-			if(cp == ' ' && in.getCurrentColumnNumber() <= leftColumn) {
-				continue;
-			} else leftColumn = Math.min(in.getCurrentColumnNumber(), leftColumn);
+			// Ignore whitespace that's indented to the same level as the starting line
+			final int currentColumnNumber = in.getCurrentColumnNumber();
+			if(cp != '\n' && currentColumnNumber <= leftColumn) {
+				if(cp == ' ')
+					continue;
+				in.unread();
+				return errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Dedent without close quote in string literal"));
+			}
 
 			if(cp != '\\') {
 				this.buf.appendCodePoint(cp);
@@ -444,7 +448,7 @@ public class TokenScanner {
 			final FilePos afterBackslash = in.getFilePos();
 			cp = in.read();
 			if(cp == -1) {
-				return List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Backslash at end of file."));
+				return errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Backslash at end of file."));
 			}
 			switch (cp) {
 			case '\\': this.buf.append('\\'); break;
@@ -478,12 +482,12 @@ public class TokenScanner {
 			}
 
 			default:  {
-				final String escSeq = in.readStringFrom(afterBackslash);
+				final String escSeq = StringLiteral.toSource(in.readStringFrom(afterBackslash));
 				return List.<T>single(visitor.badToken(in.getFileRange(afterBackslash), escSeq, "Unknown escape sequence "+escSeq));
 			}
 			}
 		}
-		if(cp == -1) errs = errs.append(List.<T>single(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal")));
+		if(cp == -1) errs = errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
 		if(errs.isNotEmpty())
 			return errs;
 		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));

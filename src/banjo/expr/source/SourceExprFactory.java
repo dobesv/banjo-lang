@@ -566,10 +566,10 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		while(!opStack.isEmpty()) {
 			final PartialOp po = opStack.head();
 			opStack = opStack.tail();
+			operand = po.rhs(operand);
 			if(po.isParen()) {
-				operand = new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType());
-			} else {
-				operand = po.rhs(operand);
+				// Insert missing close paren error, if we are missing the close paren
+				operand = new BinaryOp(Operator.EXTEND, new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType()), operand);
 			}
 		}
 		return update(opStack, operand, operand, 0);

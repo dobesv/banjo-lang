@@ -23,10 +23,10 @@ import java.util.regex.Pattern;
 public class ParserReader extends Reader {
 
 	public static class Pos {
-		int line=1;
-		int col=1;
-		int offset=0;
-		int indentLevel=0;
+		int line = 1;
+		int col = 1;
+		int offset = 0;
+		int indentColumn = 1;
 		boolean startOfLine;
 
 		public Pos() {
@@ -38,12 +38,13 @@ public class ParserReader extends Reader {
 			this.line = other.line;
 			this.col = other.col;
 			this.offset = other.offset;
-			this.indentLevel = other.indentLevel;
+			this.indentColumn = other.indentColumn;
 		}
 		public void assign(FilePos filePos) {
 			this.line = filePos.line;
 			this.col = filePos.column;
 			this.offset = filePos.offset;
+			this.indentColumn = -1; // Unknown!
 		}
 
 
@@ -59,10 +60,11 @@ public class ParserReader extends Reader {
 			if(ch == '\n') {
 				this.line++;
 				this.col = 1;
-				this.startOfLine=true;
+				this.indentColumn = 1;
+				this.startOfLine = true;
 			} else {
 				this.col++;
-				if(ch == ' ' && this.startOfLine) this.indentLevel++;
+				if(ch == ' ' && this.startOfLine) this.indentColumn = this.col;
 				else this.startOfLine = false;
 			}
 			this.offset++;
@@ -88,8 +90,8 @@ public class ParserReader extends Reader {
 		public int getOffset() {
 			return this.offset;
 		}
-		public int getIndentLevel() {
-			return this.indentLevel;
+		public int getIndentColumn() {
+			return this.indentColumn;
 		}
 		public boolean isStartOfLine() {
 			return this.startOfLine;
@@ -323,6 +325,10 @@ public class ParserReader extends Reader {
 	 */
 	public int getCurrentColumnNumber() {
 		return this.current.col;
+	}
+
+	public int getCurrentIndentColumn() {
+		return this.current.indentColumn;
 	}
 
 	@Override
