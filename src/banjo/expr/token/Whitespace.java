@@ -7,7 +7,7 @@ public class Whitespace extends AbstractAtom implements Token {
 	private final String text;
 
 	public Whitespace(SourceFileRange sfr, String text) {
-		super(sfr);
+		super(sfr, -1);
 		this.text = text;
 	}
 

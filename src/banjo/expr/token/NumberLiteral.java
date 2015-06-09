@@ -28,16 +28,16 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	private final Number number;
 
-	public NumberLiteral(SourceFileRange sfr, Number number) {
-		this(List.single(sfr), number);
+	public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number) {
+		this(List.single(sfr), indentColumn, number);
 	}
-	public NumberLiteral(List<SourceFileRange> ranges, Number number) {
-		super(ranges);
+	public NumberLiteral(List<SourceFileRange> ranges, int indentColumn, Number number) {
+		super(ranges, indentColumn);
 		this.number = requireNonNull(number);
 	}
 
 	public NumberLiteral(Number n) {
-		this(List.nil(), n);
+		this(List.nil(), 0, n);
 	}
 
 	public Number getNumber() {
@@ -117,7 +117,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), number);
+		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), indentColumn, number);
 	}
 
 	public CoreExpr toConstructionExpression() {
@@ -205,7 +205,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		return ctor;
 	}
 	public SourceExpr negate(List<SourceFileRange> ranges) {
-	    return new NumberLiteral(ranges, negateNumber(number));
+	    return new NumberLiteral(ranges, indentColumn, negateNumber(number));
     }
 
 }

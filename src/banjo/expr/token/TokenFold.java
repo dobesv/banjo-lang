@@ -3,10 +3,10 @@ package banjo.expr.token;
 import banjo.expr.util.FileRange;
 
 public interface TokenFold<T> {
-	T stringLiteral(T state, FileRange range, String string);
-	T numberLiteral(T state, FileRange range, Number number, String suffix);
-	T identifier(T state, FileRange range, String id);
-	T operator(T state, FileRange range, String op);
+	T stringLiteral(T state, FileRange range, int indentColumn, String string);
+	T numberLiteral(T state, FileRange range, int indentColumn, Number number);
+	T identifier(T state, FileRange range, int indentColumn, String id);
+	T operator(T state, FileRange range, int indentColumn, String op);
 	T whitespace(T state, FileRange range, String text);
 	T comment(T state, FileRange range, String text);
 	T badToken(T state, FileRange fileRange, String text, String message);
@@ -15,23 +15,23 @@ public interface TokenFold<T> {
 	public static final class RecFold<T extends TokenVisitor<T>> implements TokenFold<T> {
 
 		@Override
-		public T stringLiteral(T state, FileRange range, String string) {
-			return state.stringLiteral(range, string);
+		public T stringLiteral(T state, FileRange range, int indentColumn, String string) {
+			return state.stringLiteral(range, indentColumn, string);
 		}
 
 		@Override
-		public T numberLiteral(T state, FileRange range, Number number, String suffix) {
-			return state.numberLiteral(range, number);
+		public T numberLiteral(T state, FileRange range, int indentColumn, Number number) {
+			return state.numberLiteral(range, indentColumn, number);
 		}
 
 		@Override
-		public T identifier(T state, FileRange range, String id) {
-			return state.identifier(range, id);
+		public T identifier(T state, FileRange range, int indentColumn, String id) {
+			return state.identifier(range, indentColumn, id);
 		}
 
 		@Override
-		public T operator(T state, FileRange range, String op) {
-			return state.operator(range, op);
+		public T operator(T state, FileRange range, int indentColumn, String op) {
+			return state.operator(range, indentColumn, op);
 		}
 
 		@Override

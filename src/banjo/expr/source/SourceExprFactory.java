@@ -26,22 +26,22 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	public final List<PartialOp> opStack;
 	public final SourceExpr operand;
 	public final SourceExpr result;
-	public final int operandIndentLevel;
+	public final int operandIndentColumn;
 
 	abstract class PartialOp {
 		protected final Operator operator;
 		protected final List<SourceFileRange> ranges;
 		protected final SourceExpr operatorExpr;
-		protected final int indentLevel;
+		protected final int indentColumn;
 
 		/**
 		 *
 		 */
-		public PartialOp(List<SourceFileRange> ranges, Operator operator, SourceExpr operatorExpr, int indentLevel) {
+		public PartialOp(List<SourceFileRange> ranges, Operator operator, SourceExpr operatorExpr, int indentColumn) {
 			this.ranges = ranges.append(operatorExpr.getSourceFileRanges()).sort(SourceFileRange.ORD);
 			this.operator = operator;
 			this.operatorExpr = operatorExpr;
-			this.indentLevel = indentLevel;
+			this.indentColumn = indentColumn;
 		}
 
 		/**
@@ -111,14 +111,14 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		 * Create a partial binary op.  We have the left-hand operand and the the operator but we're waiting for the right-hand
 		 * operand.
 		 */
-		public PartialBinaryOp(Operator operator, SourceExpr operand, SourceExpr operatorExpr, int indentLevel) {
+		public PartialBinaryOp(Operator operator, SourceExpr operand, SourceExpr operatorExpr, int indentColumn) {
 			super(operand.getSourceFileRanges().append(operatorExpr.getSourceFileRanges()),
-					operator, operatorExpr, indentLevel);
+					operator, operatorExpr, indentColumn);
 			this.leftOperand = operand;
 		}
 
-		public PartialBinaryOp(Operator operator, SourceExpr operand, SourceFileRange operatorRange, int indentLevel) {
-			this(operator, operand, new OperatorRef(operatorRange, operator.getOp()), indentLevel);
+		public PartialBinaryOp(Operator operator, SourceExpr operand, SourceFileRange operatorRange, int indentColumn) {
+			this(operator, operand, new OperatorRef(operatorRange, indentColumn, operator.getOp()), indentColumn);
 		}
 
 		@Override
@@ -162,12 +162,12 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 
 	class PartialUnaryOp extends PartialOp {
 
-		public PartialUnaryOp(List<SourceFileRange> ranges, Operator operator, int indentLevel) {
-			super(ranges, operator, new OperatorRef(ranges, operator.getOp()), indentLevel);
+		public PartialUnaryOp(List<SourceFileRange> ranges, Operator operator, int indentColumn) {
+			super(ranges, operator, new OperatorRef(ranges, indentColumn, operator.getOp()), indentColumn);
 		}
 
-		public PartialUnaryOp(SourceFileRange range, Operator operator, int indentLevel) {
-			this(List.single(range), operator, indentLevel);
+		public PartialUnaryOp(SourceFileRange range, Operator operator, int indentColumn) {
+			this(List.single(range), operator, indentColumn);
 		}
 
 		@Override
@@ -189,13 +189,13 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		}
 	}
 
-	public SourceExprFactory(String sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
+	public SourceExprFactory(String sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentColumn) {
 		super();
 		this.sourceFile = sourceFile;
 		this.opStack = opStack;
 		this.operand = operand;
 		this.result = result;
-		this.operandIndentLevel = operandIndentLevel;
+		this.operandIndentColumn = operandIndentColumn;
 	}
 
 	/**
@@ -245,21 +245,21 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 
 	/**
 	 * Helper for checkIndentDedent to decide whether an expression is closed
-	 * off by a de-dent.
+	 * off by a newline and possible dedent.
 	 */
 	boolean shouldPopBasedOnDedent(int column) {
 		if(this.opStack.isEmpty()) return false;
-		final PartialOp first = this.opStack.head();
-		final int indentLevel = first.indentLevel;
+		PartialOp first = this.opStack.head();
+		final int indentColumn = first.indentColumn;
 		return !first.isParen() && first.getOperator() != Operator.NEWLINE;
-		//return column < indentLevel || (!first.isParen() && column == indentLevel);
+		//return column < indentColumn || (!first.isParen() && column == indentColumn);
 	}
 
 	SourceExprFactory popPartialOp() {
 		final SourceExpr operand = this.operand;
 		if(operand == null) throw new NullPointerException();
 		final PartialOp op = opStack.head();
-		return update(opStack.tail(), op.rhs(operand), op.indentLevel);
+		return update(opStack.tail(), op.rhs(operand), op.indentColumn);
 	}
 
 	SourceExprFactory pushNewline(FileRange range) {
@@ -272,11 +272,10 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	 * whitespace/comments only.
 	 *
 	 * @param range The range of the token
+	 * @param indentColumn TODO
 	 */
-	private SourceExprFactory checkNewline(FileRange range) {
+	private SourceExprFactory checkNewline(FileRange range, int indentColumn) {
 		final int line = range.getStartLine();
-		final int column = range.getStartColumn();
-		//final int offset = range.getStartOffset();
 		SourceExpr operand = this.getOperand();
 
 		// Check if we have an operand, it has source location, and we have moved to the next line
@@ -285,7 +284,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 
 		// Now if we get a de-dent we have to move up the operator stack
 		SourceExprFactory ps = this;
-		while(ps.shouldPopBasedOnDedent(column)) {
+		while(ps.shouldPopBasedOnDedent(indentColumn)) {
 			ps = ps.popPartialOp();
 		}
 
@@ -293,11 +292,11 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		return ps.pushNewline(range);
 	}
 
-	private SourceExprFactory update(List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentLevel) {
-		return new SourceExprFactory(sourceFile, opStack, operand, result, operandIndentLevel);
+	private SourceExprFactory update(List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentColumn) {
+		return new SourceExprFactory(sourceFile, opStack, operand, result, operandIndentColumn);
 	}
-	private SourceExprFactory update(List<PartialOp> opStack, SourceExpr operand, int operandIndentLevel) {
-		return update(opStack, operand, result, operandIndentLevel);
+	private SourceExprFactory update(List<PartialOp> opStack, SourceExpr operand, int operandIndentColumn) {
+		return update(opStack, operand, result, operandIndentColumn);
 	}
 
 	public SourceExprFactory pushPartialOp(PartialOp partialOp) {
@@ -305,7 +304,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	}
 
 	private SourceExprFactory visitAtom(FileRange range, SourceExpr token) {
-		return checkNewline(range)
+		return checkNewline(range, range.getStartColumn())
 				.maybeJuxtaposition(range)
 				.withOperand(token, range.getStartColumn());
 	}
@@ -323,29 +322,29 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				.pushPartialBinaryOp(Operator.JUXTAPOSITION, betweenRange, "");
 	}
 
-	private SourceExprFactory withOperand(SourceExpr newOperand, int operandIndentLevel) {
-		return update(opStack, newOperand, operandIndentLevel);
+	private SourceExprFactory withOperand(SourceExpr newOperand, int operandIndentColumn) {
+		return update(opStack, newOperand, operandIndentColumn);
 	}
 
 	@Override
-	public SourceExprFactory stringLiteral(FileRange range, String token) {
-		return visitAtom(range, new StringLiteral(sfr(range), token));
+	public SourceExprFactory stringLiteral(FileRange range, int indentColumn, String token) {
+		return visitAtom(range, new StringLiteral(sfr(range), indentColumn, token));
 	}
 	@Override
-	public SourceExprFactory numberLiteral(FileRange range, Number number) {
-		return visitAtom(range, new NumberLiteral(sfr(range), number));
+	public SourceExprFactory numberLiteral(FileRange range, int indentColumn, Number number) {
+		return visitAtom(range, new NumberLiteral(sfr(range), indentColumn, number));
 	}
 	@Override
-	public SourceExprFactory identifier(FileRange range, String text) {
-		return visitAtom(range, new Identifier(sfr(range), text));
+	public SourceExprFactory identifier(FileRange range, int indentColumn, String text) {
+		return visitAtom(range, new Identifier(sfr(range), indentColumn, text));
 	}
 
 	@Override
-	public SourceExprFactory operator(FileRange range, String op) {
-		return checkNewline(range).operator_(range, op);
+	public SourceExprFactory operator(FileRange range, int indentColumn, String op) {
+		return checkNewline(range, indentColumn).operator_(range, op, indentColumn);
 	}
 
-	private SourceExprFactory operator_(FileRange range, String op) {
+	private SourceExprFactory operator_(FileRange range, String op, int indentColumn) {
 	    SourceExprFactory cp = tryCloseParen(range, op);
 		if(cp != null) {
 			return cp;
@@ -357,7 +356,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 			SourceExprFactory suf = suffixOperator(range, op);
 			if(suf != null) return suf;
 
-			SourceExprFactory infix = infixOperator(range, op);
+			SourceExprFactory infix = infixOperator(range, op, indentColumn);
 			if(infix != null) return infix;
 
 		} else {
@@ -376,7 +375,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 					for(Position p : new Position[] {Position.INFIX, Position.PREFIX, Position.SUFFIX}) {
 						Operator oper = Operator.fromOp(op, p);
 						if(oper != null && oper.getMethodName() != null && !oper.isParen())
-							return identifier(range, oper.getMethodName());
+							return identifier(range, indentColumn, oper.getMethodName());
 					}
 					break;
 				default:
@@ -396,7 +395,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				operator,
 				List.single(sfr(range)),
 				operand),
-			operandIndentLevel);
+			operandIndentColumn);
 	}
 	public SourceExprFactory suffixOperator(FileRange range, String op) {
 			// Infix or suffix position
@@ -414,10 +413,10 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		return pushPartialOp(new PartialBinaryOp(
 				operator,
 				operand,
-				new OperatorRef(sfr(range), op),
-				operandIndentLevel(operator, range)));
+				new OperatorRef(sfr(range), operandIndentColumn, op),
+				operandIndentColumn));
 	}
-	public SourceExprFactory infixOperator(FileRange range, String op) {
+	public SourceExprFactory infixOperator(FileRange range, String op, int indentColumn) {
 		Operator operator = Operator.fromOp(op, Position.INFIX);
 
 		if(operator != null) {
@@ -434,13 +433,13 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		// Prefix position
 		Operator operator = Operator.fromOp(op, Position.PREFIX);
 		if(operator != null) {
-			return pushPartialOp(new PartialUnaryOp(sfr(range), operator, operandIndentLevel(operator, range)));
+			return pushPartialOp(new PartialUnaryOp(sfr(range), operator, operandIndentColumn(operator, range)));
 		}
 		return null;
 	}
 
-	private int operandIndentLevel(Operator operator, FileRange range) {
-		int indentLevel = range.getStartColumn();
+	private int operandIndentColumn(Operator operator, FileRange range) {
+		int indentColumn = range.getStartColumn();
 
 		// Paren allows its content to dedent past the left
 		// operand, but not past the start of the line the
@@ -450,7 +449,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		if(operand != null) {
 			for(SourceFileRange r : operand.getSourceFileRanges()) {
 				if(r.getStartLine() == startLine) {
-					indentLevel = this.operandIndentLevel;
+					indentColumn = this.operandIndentColumn;
 				}
 			}
 		}
@@ -458,16 +457,16 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 			for(final PartialOp pop : opStack) {
 				for(SourceFileRange r : pop.ranges) {
 					if(r.getStartLine() == startLine) {
-						indentLevel = pop.indentLevel;
+						indentColumn = pop.indentColumn;
 					}
 				}
 			}
 		}
-		return indentLevel;
+		return indentColumn;
 	}
 
-	private SourceExprFactory update(SourceExpr operand, int operandIndentLevel) {
-		return update(opStack, operand, operandIndentLevel);
+	private SourceExprFactory update(SourceExpr operand, int operandIndentColumn) {
+		return update(opStack, operand, operandIndentColumn);
 	}
 
 	public SourceExprFactory applyOperatorPrecedenceToStack(Operator operator) {
@@ -475,7 +474,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		final Precedence prec = operator.getLeftPrecedence();
 		final boolean rightAssoc = operator.isRightAssociative();
 		List<PartialOp> opStack = this.opStack;
-		int operandIndentLevel = this.operandIndentLevel;
+		int operandIndentColumn = this.operandIndentColumn;
 		while(!opStack.isEmpty()
 				&& opStack.head().getOperator().isParen() == false
 				&& !(rightAssoc && opStack.head().getOperator() == operator)
@@ -483,9 +482,9 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 			final PartialOp op = opStack.head();
 			opStack = opStack.tail();
 			operand = op.rhs(operand);
-			operandIndentLevel = op.indentLevel;
+			operandIndentColumn = op.indentColumn;
 		}
-		return update(opStack, operand, operandIndentLevel);
+		return update(opStack, operand, operandIndentColumn);
 	}
 
 	private SourceExprFactory tryCloseParen(FileRange range, String op) {
@@ -517,7 +516,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		}
 
 		SourceExpr operand = this.getOperand();
-		int operandIndentLevel = this.operandIndentLevel;
+		int operandIndentColumn = this.operandIndentColumn;
 		while(!opStack.isEmpty()) {
 			final PartialOp po = opStack.head();
 			opStack = opStack.tail();
@@ -528,22 +527,22 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				} else {
 					operand = new EmptyExpr(sfr(FileRange.between(po.ranges.last().getFileRange(), range)));
 				}
-				operandIndentLevel = po.indentLevel;
+				operandIndentColumn = po.indentColumn;
 			}
 			if(po.isOpenParen(closeParenType)) {
-				return update(opStack, po.closeParen(operand, range), po.indentLevel);
+				return update(opStack, po.closeParen(operand, range), po.indentColumn);
 			}
 			if(po.isParen()) {
 				operand = new BadSourceExpr.MismatchedCloseParen(List.single(sfr(range)), po.getParenType(), closeParenType);
-				operandIndentLevel = po.indentLevel;
+				operandIndentColumn = po.indentColumn;
 				break;
 			} else {
 				operand = po.rhs(operand);
-				operandIndentLevel = po.indentLevel;
+				operandIndentColumn = po.indentColumn;
 			}
 		}
 		operand = new BadSourceExpr.MismatchedCloseParen(List.single(sfr(range)), closeParenType);
-		return update(opStack, operand, operandIndentLevel);
+		return update(opStack, operand, operandIndentColumn);
 	}
 
 	@Override

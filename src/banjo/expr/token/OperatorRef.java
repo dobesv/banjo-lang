@@ -16,15 +16,17 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	public static final Ord<OperatorRef> ORD = Ord.stringOrd.comap((OperatorRef opRef) -> opRef.op);
 
-	private final String op;
+	public final String op;
+	public final int indentColumn;
 
-	public OperatorRef(List<SourceFileRange> ranges, String op) {
-		super(ranges);
+	public OperatorRef(List<SourceFileRange> ranges, int indentColumn, String op) {
+		super(ranges, indentColumn);
 		this.op = op;
+		this.indentColumn = indentColumn;
 	}
 
-	public OperatorRef(SourceFileRange operatorRange, String op) {
-		this(List.single(operatorRange), op);
+	public OperatorRef(SourceFileRange operatorRange, int indentColumn, String op) {
+		this(List.single(operatorRange), indentColumn, op);
 	}
 
 	@Override
@@ -53,7 +55,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.operator(getSourceFileRanges().head().getFileRange(), op);
+		return parser.operator(getSourceFileRanges().head().getFileRange(), 0, op);
 	}
 
 	@Override

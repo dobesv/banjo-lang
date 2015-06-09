@@ -33,22 +33,22 @@ public class TokenCollector implements TokenVisitor<TokenCollector> {
 	}
 
 	@Override
-	public TokenCollector stringLiteral(FileRange range, String string) {
-		return token(new StringLiteral(sfr(range), string));
+	public TokenCollector stringLiteral(FileRange range, int indentColumn, String string) {
+		return token(new StringLiteral(sfr(range), indentColumn, string));
 	}
 	@Override
-	public TokenCollector numberLiteral(FileRange range, Number number) {
-		return token(new NumberLiteral(sfr(range), number));
+	public TokenCollector numberLiteral(FileRange range, int indentColumn, Number number) {
+		return token(new NumberLiteral(sfr(range), indentColumn, number));
 	}
 	@Override
-	public TokenCollector identifier(FileRange range, String id) {
-		this.parser.identifier(range, id);
-		return token(new Identifier(sfr(range), id));
+	public TokenCollector identifier(FileRange range, int indentColumn, String id) {
+		this.parser.identifier(range, indentColumn, id);
+		return token(new Identifier(sfr(range), indentColumn, id));
 	}
 	@Override
-	public TokenCollector operator(FileRange range, String op) {
-		this.parser.operator(range, op);
-		return token(new OperatorRef(sfr(range), op));
+	public TokenCollector operator(FileRange range, int indentColumn, String op) {
+		this.parser.operator(range, indentColumn, op);
+		return token(new OperatorRef(sfr(range), indentColumn, op));
 	}
 	@Override
 	public TokenCollector whitespace(FileRange range, String ws) {

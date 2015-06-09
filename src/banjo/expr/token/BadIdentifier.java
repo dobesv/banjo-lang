@@ -21,7 +21,7 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	public final String originalSource;
 
 	public BadIdentifier(List<SourceFileRange> ranges, String message, String originalSource) {
-		super(ranges, originalSource);
+		super(ranges, 0, originalSource);
 		this.message = message;
 		this.originalSource = originalSource;
 	}

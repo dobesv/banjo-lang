@@ -103,7 +103,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser identifier(List<SourceFileRange> ranges, String id) {
-	    return new DefRefAnalyser(List.single(new Identifier(ranges, id)), EMPTY_LOCAL_REFS, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST);
+	    return new DefRefAnalyser(List.single(new Identifier(ranges, 0, id)), EMPTY_LOCAL_REFS, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST);
     }
 
 	@Override

@@ -32,17 +32,17 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 
 	public final String id;
 
-	public Identifier(List<SourceFileRange> ranges, String id) {
-		super(ranges);
+	public Identifier(List<SourceFileRange> ranges, int indentColumn, String id) {
+		super(ranges, indentColumn);
 		this.id = requireNonNull(id);
 	}
 
-	public Identifier(SourceFileRange range, String id) {
-		this(List.single(range), id);
+	public Identifier(SourceFileRange range, int indentColumn, String id) {
+		this(List.single(range), indentColumn, id);
 	}
 
 	public Identifier(String id) {
-		this(List.nil(), id);
+		this(List.nil(), 0, id);
 	}
 
 	public String getId() {
@@ -104,7 +104,7 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.identifier(getSourceFileRanges().head().getFileRange(), id);
+		return parser.identifier(getSourceFileRanges().head().getFileRange(), indentColumn, id);
 	}
 }
 

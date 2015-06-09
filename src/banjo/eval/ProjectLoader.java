@@ -186,7 +186,7 @@ public class ProjectLoader {
 	    	LineNumberReader tmp = new LineNumberReader(new StringReader(text));
 	    	tmp.skip(text.length());
 	    	final SourceFileRange range = new SourceFileRange(filePath, new FileRange(FilePos.START, new FilePos(text.length(), tmp.getLineNumber()+1, 1)));
-	    	value = new StringLiteral(range, text);
+	    	value = new StringLiteral(range, 0, text);
 	    } catch (IOException e) {
 	    	value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Error reading file '"+path+"': "+e);
 	    }

@@ -3,10 +3,10 @@ package banjo.expr.token;
 import banjo.expr.util.FileRange;
 
 public interface TokenVisitor<T> {
-	T stringLiteral(FileRange range, String string);
-	T numberLiteral(FileRange range, Number number);
-	T identifier(FileRange range, String id);
-	T operator(FileRange range, String op);
+	T stringLiteral(FileRange range, int indentColumn, String string);
+	T numberLiteral(FileRange range, int indentColumn, Number number);
+	T identifier(FileRange range, int indentColumn, String id);
+	T operator(FileRange range, int indentColumn, String op);
 	T whitespace(FileRange range, String text);
 	T comment(FileRange range, String text);
 	T badToken(FileRange fileRange, String text, String message);

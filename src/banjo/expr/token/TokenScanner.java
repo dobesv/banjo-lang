@@ -416,7 +416,7 @@ public class TokenScanner {
 	 */
 
 	private <T extends TokenVisitor<T>> List<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		int leftColumn = in.getCurrentIndentColumn();
+		int indentColumn = in.getCurrentIndentColumn();
 		int cp = in.read();
 		if(cp == '`') {
 			return backtick(in, visitor);
@@ -434,11 +434,11 @@ public class TokenScanner {
 				break; // End of string
 			// Ignore whitespace that's indented to the same level as the starting line
 			final int currentColumnNumber = in.getCurrentColumnNumber();
-			if(cp != '\n' && currentColumnNumber <= leftColumn) {
+			if(cp != '\n' && currentColumnNumber <= indentColumn) {
 				if(cp == ' ')
 					continue;
 				in.unread();
-				return errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Dedent without close quote in string literal"));
+				return errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Dedent in string literal, or missing close quote "+StringLiteral.toSource(String.valueOf(Character.toChars(quoteType)))));
 			}
 
 			if(cp != '\\') {
@@ -490,17 +490,18 @@ public class TokenScanner {
 		if(cp == -1) errs = errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
 		if(errs.isNotEmpty())
 			return errs;
-		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), this.buf.toString()));
+		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), indentColumn, this.buf.toString()));
 	}
 
 	private <T extends TokenVisitor<T>> List<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+		int indentColumn = in.getCurrentIndentColumn();
 		String str = matchOperator(in);
 		if(str == null) str = matchID(in);
 		if(str == null) {
 			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), "Empty backtick");
 			str = "";
 		}
-		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), str));
+		return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), indentColumn, str));
 	}
 
 	private final Pos afterDigits = new Pos();
@@ -540,6 +541,7 @@ public class TokenScanner {
 	}
 
 	private <T extends TokenVisitor<T>> List<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+		int indentColumn = in.getCurrentColumnNumber();
 		int cp = in.read();
 		boolean negative = false;
 		boolean isNumber = false;
@@ -704,7 +706,7 @@ public class TokenScanner {
 			number = Long.valueOf(0);
 		}
 		final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-		return List.<T>single(visitor.numberLiteral(fileRange, new SourceNumber(text, number)));
+		return List.<T>single(visitor.numberLiteral(fileRange, indentColumn, new SourceNumber(text, number)));
 	}
 
 	/**
@@ -715,10 +717,11 @@ public class TokenScanner {
 	 * @return An IdRef if the parse is successful; null otherwise.
 	 */
 	private <T extends TokenVisitor<T>> List<T> identifier(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+		int indentColumn = in.getCurrentColumnNumber();
 		final String identifier = matchID(in);
 		if(identifier == null)
 			return List.nil();
-		return List.<T>single(visitor.identifier(in.getFileRange(this.tokenStartPos), identifier));
+		return List.<T>single(visitor.identifier(in.getFileRange(this.tokenStartPos), indentColumn, identifier));
 	}
 
 	/**
@@ -729,10 +732,11 @@ public class TokenScanner {
 	 * @return An OperatorRef if the parse is successful; O otherwise
 	 */
 	private <T extends TokenVisitor<T>> List<T> operator(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+		int indentColumn = in.getCurrentIndentColumn();
 		final String operator = matchOperator(in);
 		if(operator == null)
 			return List.nil();
-		return List.<T>single(visitor.operator(in.getFileRange(this.tokenStartPos), operator));
+		return List.<T>single(visitor.operator(in.getFileRange(this.tokenStartPos), indentColumn, operator));
 	}
 
 	public static String codePointToString(int cp) {

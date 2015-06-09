@@ -62,22 +62,22 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String operator(FileRange range, String tok) {
+	public String operator(FileRange range, int indentColumn, String tok) {
 		return token("op", range);
 	}
 
 	@Override
-	public String stringLiteral(FileRange range, String tok) {
+	public String stringLiteral(FileRange range, int indentColumn, String tok) {
 		return token("str", range);
 	}
 
 	@Override
-	public String numberLiteral(FileRange range, Number value) {
+	public String numberLiteral(FileRange range, int indentColumn, Number value) {
 		return token("num", range);
 	}
 
 	@Override
-	public String identifier(FileRange range, String tok) {
+	public String identifier(FileRange range, int indentColumn, String tok) {
 		return token("id", range);
 	}
 

@@ -18,16 +18,16 @@ public class StringLiteral extends AbstractAtom implements Atom {
 	public static final Ord<StringLiteral> ORD = Ord.stringOrd.comap((StringLiteral x) -> x.string);
 	public final String string;
 
-	public StringLiteral(List<SourceFileRange> ranges, String string) {
-		super(ranges);
+	public StringLiteral(List<SourceFileRange> ranges, int indentColumn, String string) {
+		super(ranges, indentColumn);
 		this.string = string;
 	}
 
-	public StringLiteral(SourceFileRange range, String string) {
-		this(List.single(range), string);
+	public StringLiteral(SourceFileRange range, int indentColumn, String string) {
+		this(List.single(range), indentColumn, string);
 	}
 	public StringLiteral(String string) {
-		this(List.nil(), string);
+		this(List.nil(), 0, string);
 	}
 
 	public String getString() {
@@ -81,7 +81,7 @@ public class StringLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.stringLiteral(getSourceFileRanges().head().getFileRange(), string);
+		return parser.stringLiteral(getSourceFileRanges().head().getFileRange(), indentColumn, string);
 	}
 
 	@Override

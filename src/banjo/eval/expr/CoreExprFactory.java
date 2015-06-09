@@ -289,7 +289,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	}
 
 	protected static Identifier concatNameParts(Identifier prefix, Identifier suffix) {
-		return new Identifier(prefix.getSourceFileRanges().append(suffix.getSourceFileRanges()), (prefix.id + " _ " + suffix.id).trim());
+		return new Identifier(prefix.getSourceFileRanges().append(suffix.getSourceFileRanges()), prefix.indentColumn, (prefix.id + " _ " + suffix.id).trim());
 	}
 	protected static Identifier concatNameParts(Identifier prefix, Option<Identifier> nameSuffix) {
         return nameSuffix.map((suf) -> concatNameParts(prefix, suf)).orSome(prefix);
@@ -468,7 +468,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 			@Override
 			public DesugarResult<List<Slot>> fallback(SourceExpr other) {
-				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots, null);
+				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), 0, other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots, null);
 			}
 		}));
 	}
@@ -482,7 +482,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	}
 
 	Identifier opMethodName(List<SourceFileRange> operatorRanges, Operator op) {
-		return new Identifier(operatorRanges, op.getMethodName());
+		return new Identifier(operatorRanges, 0, op.getMethodName());
 	}
 	Identifier opMethodName(Operator op) {
 		return opMethodName(NOT_FROM_SOURCE, op);

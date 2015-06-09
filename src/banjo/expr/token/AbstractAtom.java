@@ -9,12 +9,14 @@ import fj.data.List;
 
 
 public abstract class AbstractAtom extends AbstractExpr {
+	public final int indentColumn;
 
-	public AbstractAtom(List<SourceFileRange> ranges) {
+	public AbstractAtom(List<SourceFileRange> ranges, int indentColumn) {
 		super(ranges);
+		this.indentColumn = indentColumn;
 	}
-	public AbstractAtom(SourceFileRange range) {
-		this(List.single(range));
+	public AbstractAtom(SourceFileRange range, int indentColumn) {
+		this(List.single(range), indentColumn);
 	}
 
 	@Override
