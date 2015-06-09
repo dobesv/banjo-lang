@@ -440,6 +440,9 @@ public class TokenScanner {
 				in.unread();
 				return errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "Dedent in string literal, or missing close quote "+StringLiteral.toSource(String.valueOf(Character.toChars(quoteType)))));
 			}
+			// No leading newlines
+			if(cp == '\n' && buf.length() == 0)
+				continue;
 
 			if(cp != '\\') {
 				this.buf.appendCodePoint(cp);
@@ -541,7 +544,7 @@ public class TokenScanner {
 	}
 
 	private <T extends TokenVisitor<T>> List<T> numberLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		int indentColumn = in.getCurrentColumnNumber();
+		int indentColumn = in.getCurrentIndentColumn();
 		int cp = in.read();
 		boolean negative = false;
 		boolean isNumber = false;
@@ -717,7 +720,7 @@ public class TokenScanner {
 	 * @return An IdRef if the parse is successful; null otherwise.
 	 */
 	private <T extends TokenVisitor<T>> List<T> identifier(ParserReader in, TokenVisitor<T> visitor) throws IOException {
-		int indentColumn = in.getCurrentColumnNumber();
+		int indentColumn = in.getCurrentIndentColumn();
 		final String identifier = matchID(in);
 		if(identifier == null)
 			return List.nil();

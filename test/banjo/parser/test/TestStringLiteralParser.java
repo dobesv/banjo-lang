@@ -15,7 +15,13 @@ public class TestStringLiteralParser {
 
 	@Test public void testHelloWorld() { testParser("\"Hello, world!\"", "Hello, world!", 0); }
 	@Test public void testEscapes() { testParser("\"\\\"\\t\\n\\r\"", "\"\t\n\r", 0); }
-	@Ignore @Test public void testMultiline() { testParser("  \"abc\n   def\n    ghi\n   jkl\n   \"", "abc\ndef\n ghi\njkl\n"); }
+	@Test public void testMultiline1() { testParser("  \"abc\n   def\n    ghi\n   jkl\n   \"", "abc\n def\n  ghi\n jkl\n "); }
+	@Test public void testMultiline2() {
+
+		ParseTestUtils.test("{ x.is positive = (\n    \"\n      Return `true` if this number is positive.\n    \"\n  ) ⇒ !x.negative\n}",
+				"{x.is positive = ((_ = \"  Return `true` if this number is positive.\\n\") ⇒ ¬x.negative)}");
+	}
+
 	@Test public void testBacktick() { testParser("`HelloWorld", "HelloWorld", 0); }
 	@Test public void testBacktickEscapes() { testParser("`Hello\\ World\\!", "Hello World!", 0); }
 	//@Test public void testBacktickEmpty1() { testParser("`", "", 1); }

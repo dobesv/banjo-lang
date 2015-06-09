@@ -31,10 +31,10 @@ public class TestParseErrors {
 
 	@Test public void testUnclosedStringLiteralInParen1() { test("bla = \"abc", BadSourceExpr.class, 6, 10); }
 	@Test public void testUnclosedStringLiteralInParen2() { test("(\n bla = \"abc\n)", BadExpr.class, 9, 14); }
-	@Test public void testUnclosedStringLiteralInParen3() { test("(\n bla = \"\nabc\n)", BadExpr.class, 9, 11); }
+	@Test public void testUnclosedStringLiteralInParen3() { test("(\n bla = \"\n)\n", BadExpr.class, 9, 11); }
 	@Test public void testUnclosedStringLiteralInParen4() { test("(\n bla = \"\n  abc\n)", BadExpr.class, 9, 17); }
 
-	@Ignore("TODO") @Test public void testDedentInParens1() { test("(\n  bla = foo(\n1)\n  )", BadSourceExpr.class, 1, 10); }
+	@Test public void testDedentInParens1() { test("(\n  bla = foo(\n1)\n  )", BadSourceExpr.class, 15, 16); }
 
 
 }

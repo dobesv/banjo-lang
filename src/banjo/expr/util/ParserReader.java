@@ -27,7 +27,7 @@ public class ParserReader extends Reader {
 		int col = 1;
 		int offset = 0;
 		int indentColumn = 1;
-		boolean startOfLine;
+		boolean startOfLine = true;
 
 		public Pos() {
 		}
@@ -39,17 +39,20 @@ public class ParserReader extends Reader {
 			this.col = other.col;
 			this.offset = other.offset;
 			this.indentColumn = other.indentColumn;
+			this.startOfLine = other.startOfLine;
 		}
 		public void assign(FilePos filePos) {
 			this.line = filePos.line;
 			this.col = filePos.column;
 			this.offset = filePos.offset;
 			this.indentColumn = -1; // Unknown!
+			this.startOfLine = false; // Unknown!
 		}
 
 
 		private void accumulate(int ch) {
 			if(ch == -1) {
+				// Fake newline at end of file
 				if(this.col != 1) {
 					this.line++;
 					this.col = 1;
@@ -64,8 +67,10 @@ public class ParserReader extends Reader {
 				this.startOfLine = true;
 			} else {
 				this.col++;
-				if(ch == ' ' && this.startOfLine) this.indentColumn = this.col;
-				else this.startOfLine = false;
+				if(this.startOfLine) {
+					this.indentColumn = this.col;
+					if(ch != ' ') this.startOfLine = false;
+				}
 			}
 			this.offset++;
 		}
@@ -99,6 +104,8 @@ public class ParserReader extends Reader {
 		public void moveToStartOfLine() {
 			this.offset -= this.col-1;
 			this.col = 1;
+			this.indentColumn = 1;
+			this.startOfLine = true;
 		}
 
 	}
@@ -493,13 +500,15 @@ public class ParserReader extends Reader {
 		return "";
 	}
 
-	public String readString(int chars) throws IOException {
-		final char[] buf = new char[chars];
-		int remaining = chars;
+	public String readString(int length) throws IOException {
+		final char[] buf = new char[length];
+		int remaining = length;
+		int offset = 0;
 		while(remaining > 0) {
-			final int didRead = read(buf);
+			final int didRead = read(buf, offset, remaining);
 			if(didRead == -1) throw new EOFException();
 			remaining -= didRead;
+			offset += didRead;
 		}
 		return new String(buf);
 	}
