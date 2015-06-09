@@ -21,6 +21,10 @@ public class TestStringLiteralParser {
 		ParseTestUtils.test("{ x.is positive = (\n    \"\n      Return `true` if this number is positive.\n    \"\n  ) ⇒ !x.negative\n}",
 				"{x.is positive = ((_ = \"  Return `true` if this number is positive.\\n\") ⇒ ¬x.negative)}");
 	}
+	@Test public void testMultiline3() { testParser("  \"\n  abc\n   def\n\n    ghi\n\n   jkl\n   \"", "abc\n def\n\n  ghi\n\n jkl\n "); }
+
+	// Test line feed handling in string literal
+	@Test public void testMultiline4() { testParser("  \" x\r\n\r\n  \"\r\n", " x\n\n"); }
 
 	@Test public void testBacktick() { testParser("`HelloWorld", "HelloWorld", 0); }
 	@Test public void testBacktickEscapes() { testParser("`Hello\\ World\\!", "Hello World!", 0); }

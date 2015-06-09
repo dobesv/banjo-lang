@@ -432,6 +432,9 @@ public class TokenScanner {
 		while((cp = in.read()) != -1) {
 			if(cp == quoteType)
 				break; // End of string
+			// Ignore/strip line feeds
+			if(cp == '\r')
+				continue;
 			// Ignore whitespace that's indented to the same level as the starting line
 			final int currentColumnNumber = in.getCurrentColumnNumber();
 			if(cp != '\n' && currentColumnNumber <= indentColumn) {
