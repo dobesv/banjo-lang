@@ -376,6 +376,13 @@ public class JavaRuntimeSupport {
 		return new CallInterceptor(interceptor, target);
 	}
 
+	/**
+	 * Lazy value - wrap a supplier with a cache
+	 */
+	public static Object lazy(Supplier<Object> calculation) {
+		return new MemoizingSupplier<Object>(calculation);
+	}
+
 	public static class Integers {
 		public static int sum(int a, int b) { return a + b; }
 		public static int difference(int a, int b) { return a - b; }
