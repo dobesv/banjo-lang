@@ -376,21 +376,6 @@ public class JavaRuntimeSupport {
 		return new CallInterceptor(interceptor, target);
 	}
 
-	private static final class LazySlotValue implements Supplier<Object> {
-	    public final Object baseObject;
-	    public final String name;
-
-		public LazySlotValue(Object baseObject, String name) {
-	    	this.baseObject = baseObject;
-	    	this.name = name;
-        }
-
-		@Override
-	    public Object get() {
-	    	return readSlot(baseObject, baseObject, null, name);
-	    }
-    }
-
 	public static class Integers {
 		public static int sum(int a, int b) { return a + b; }
 		public static int difference(int a, int b) { return a - b; }
