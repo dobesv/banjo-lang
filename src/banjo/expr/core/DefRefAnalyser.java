@@ -155,7 +155,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	}
 
 	protected BadCoreExpr slotDefNotMatchingAnyRef(Identifier name) {
-	    return new BadCoreExpr(name.getSourceFileRanges(), "There are no slots defined with name '%s'", name.id);
+	    return new BadCoreExpr(name.getSourceFileRanges(), "There are no slots defined with name '%s' anywhere in this project, are you sure you spelled this right?", name.id);
     }
 
 	protected BadCoreExpr unboundIdentifier(Identifier name) {
