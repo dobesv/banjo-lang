@@ -14,14 +14,21 @@ import java.util.function.Supplier;
 
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
+import banjo.eval.Signal;
 import banjo.eval.SlotNotFound;
 import banjo.eval.Value;
+import banjo.eval.input.InputValue;
+import banjo.eval.input.PeriodicMillis;
 import banjo.eval.interceptors.ArgInterceptor;
 import banjo.eval.interceptors.CallInterceptor;
 import banjo.eval.interceptors.CallResultInterceptor;
 import banjo.eval.interceptors.SlotInterceptor;
 import banjo.expr.source.Operator;
+import banjo.expr.token.StringLiteral;
+import fj.P;
+import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public class JavaRuntimeSupport {
 
@@ -36,8 +43,10 @@ public class JavaRuntimeSupport {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-    public static <T> T convertToJava(Class<T> clazz, Object banjoValue) {
-		Object v = force(banjoValue);
+    public static <T> P2<T, Set<InputValue>> convertToJava(Class<T> clazz, Object banjoValue) {
+		P2<Object, Set<InputValue>> p = forceWithDeps(banjoValue);
+		Object v = p._1();
+		Set<InputValue> dependencies = p._2();
 		if(clazz.isPrimitive()) {
 			clazz = (Class<T>) (
 					clazz == Boolean.TYPE ? Boolean.class :
@@ -53,33 +62,37 @@ public class JavaRuntimeSupport {
 			);
 		}
 		try {
-			return clazz.cast(v);
+			return P.p(clazz.cast(v), dependencies);
 		} catch(ClassCastException cce) {
 			if(!isDefined(v)) {
 				if(v instanceof Error) throw (Error)v;
 				throw new IllegalStateException("Cannot convert undefined value to "+clazz, v instanceof Throwable ? (Throwable)v : null);
 			}
 
-			// Needs some kind of conversio
+			// Needs some kind of conversion
 			Object conversion = readSlot(banjoValue, banjoValue, null, "conversions");
 			for(String s : clazz.getName().split("\\.")) {
 				if(!isDefined(conversion)) {
 					if(conversion instanceof Error) throw (Error)conversion;
 					throw new IllegalStateException("No conversion defined from " + (clazz == String.class ? v.getClass().getName() : v.toString()) + " to " +clazz, conversion instanceof Throwable ? (Throwable)conversion : null);
 				}
-				conversion = force(readSlot(conversion, conversion, null, s));
+				conversion = readSlot(conversion, conversion, null, s);
 			}
+			P2<Object, Set<InputValue>> cp = forceWithDeps(conversion);
+			conversion = cp._1();
+			dependencies = dependencies.union(cp._2());
 			if(!isDefined(conversion)) {
 				if(conversion instanceof Error) throw (Error)conversion;
 				throw new IllegalStateException("No conversion defined from " + (clazz == String.class ? v.getClass().getName() : v.toString()) + " to " +clazz, conversion instanceof Throwable ? (Throwable)conversion : null);
 			}
-			return clazz.cast(conversion);
+			return P.p(clazz.cast(conversion), dependencies);
 		}
 	}
 
 	public static Object callJavaMethod(Object target, Executable[] methods, List<Object> arguments) {
 		Object[] argumentArray = arguments.array(Object[].class);
 		int argumentCount = argumentArray.length;
+		Set<InputValue> dependencies = InputValue.emptySet;
 		methodLoop: for(Executable method : methods) {
 			final int parameterCount = method.getParameterCount();
 			if(argumentCount < parameterCount)
@@ -89,7 +102,9 @@ public class JavaRuntimeSupport {
 			Object[] convertedParams = new Object[parameterCount];
 			for(int i = 0; i < parameterCount; i++) {
 				try {
-					convertedParams[i] = convertToJava(paramTypes[i], argumentArray[i]);
+					final P2<?, Set<InputValue>> p = convertToJava(paramTypes[i], argumentArray[i]);
+					convertedParams[i] = p._1();
+					dependencies = dependencies.union(p._2());
 				} catch(Exception e) {
 					// Failed to convert
 					continue methodLoop;
@@ -102,12 +117,12 @@ public class JavaRuntimeSupport {
 				 (method instanceof Constructor) ?
 					((Constructor<?>)method).newInstance(convertedParams) :
 					((Method)method).invoke(target, convertedParams);
-				return result;
+				return Signal.addDependencies(result, dependencies);
             } catch (Exception e) {
-            	return e;
+            	return Signal.addDependencies(e, dependencies);
             }
 		}
-		return new NoSuchMethodError("Failed to find a compatible method: "+target+"."+methods[0].getName());
+		return Signal.addDependencies(new NoSuchMethodError("Failed to find a compatible method: "+target+"."+methods[0].getName()), dependencies);
 	}
 	public static Object readSlot(Object obj, String name) {
 		return readSlot(obj, obj, null, name);
@@ -126,133 +141,152 @@ public class JavaRuntimeSupport {
 			// If it's not a Value subclass, just implement the "label" slot as toString()
 			return String.valueOf(obj);
 		}
-		if(obj == null) {
-			if(baseValue != null)
-				return baseValue;
-			return new SlotNotFound(name, self);
-		}
-		if(obj instanceof Throwable) {
-			// Can't read slots from undefined values (represented as java exceptions)
-			return obj;
-		}
 
-		try {
-			Method[] methods = Arrays.asList(obj.getClass().getMethods())
-					.stream()
-					.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == Modifier.PUBLIC)
-					.toArray(Method[]::new);
-			if((obj instanceof Class) && methods.length == 0) {
-				methods = Arrays.asList(((Class)obj).getDeclaredMethods())
-						.stream()
-						.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == (Modifier.STATIC | Modifier.PUBLIC))
-						.toArray(Method[]::new);
-			}
-			if(methods.length > 0) {
-				return new OverloadedJavaMethodCaller(obj, methods);
-			} else {
-				try {
-					Field field = obj.getClass().getField(name);
-					return field.get(obj);
-				} catch(Throwable t) {
-					// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
-					// can be used in simple logical operations without conversion.
-					if(obj instanceof Boolean) {
-						if(((Boolean)obj).booleanValue()) {
-							if(name.equals("if")) {
-								return (Function<?,?>)(JavaRuntimeSupport::readTrueSlot);
-							}
-	    					if(name.equals(Operator.LOGICAL_AND.methodName)) {
-	    						// Return the object that was provided
-	    						return Function.identity();
-	    					}
-	    					if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)){
-	    						// Return the original object (Boolean.TRUE)
-	    						return (Function<?,?>)(x -> obj);
-	    					}
-						} else {
-							if(name.equals("if")) {
-								return (Function<?,?>)(JavaRuntimeSupport::readFalseSlot);
-							}
-	    					if(name.equals(Operator.LOGICAL_AND.methodName)) {
-	    						// Return the original object (Boolean.FALSE)
-	    						return (Function<?,?>)(x -> obj);
-	    					}
-	    					if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)) {
-	    						// Return the object that was provided
-	    						return Function.identity();
-	    					}
-						}
-					} else if(obj instanceof Class) {
-						final Class<?> clazz = (Class<?>)obj;
-						if(name.equals(Operator.MEMBER_OF.methodName)) {
-							return (Function<Object,Boolean>)clazz::isInstance;
-						}
-
-						try {
-							return clazz.getField(name).get(null);
-						} catch(Throwable tt) {
-						}
-
-						for(Class<?> innerClass : clazz.getDeclaredClasses()) {
-							if(name.equals(innerClass.getSimpleName())) {
-								return innerClass;
-							}
-						}
-					}
-					if(!(obj instanceof Value) && "label".equals(name)) {
-						return obj.toString();
-					}
-					if(baseValue == null)
-						return new SlotNotFound(name, self, t);
-					return baseValue;
-				}
-			}
-        } catch (IllegalArgumentException | SecurityException e) {
-        	return e;
-        }
+		P2<Object, Set<InputValue>> p = forceWithDeps(obj);
+		Set<InputValue> dependencies = p._2();
+		final Object realValue = p._1();
+		final Object slotValue = readJavaObjectSlot(self, baseValue, name, realValue);
+		return Signal.addDependencies(slotValue, dependencies);
 	}
+	public static Object readJavaObjectSlot(Object self, Object baseValue, String name,
+            Object obj) {
+	    if(name.equals("java string") && obj instanceof String) {
+			return obj;
+		} else if(obj == null || obj instanceof Throwable) {
+			return baseValue != null ? baseValue : new SlotNotFound(name, self);
+		} else {
+
+			try {
+				final Class<? extends Object> objClass = obj.getClass();
+				Method[] methods = instanceMethodsWithName(objClass, name);
+				if((obj instanceof Class) && methods.length == 0) {
+					methods = Arrays.asList(((Class<?>)obj).getDeclaredMethods())
+							.stream()
+							.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == (Modifier.STATIC | Modifier.PUBLIC))
+							.toArray(Method[]::new);
+				}
+				if(methods.length > 0) {
+					return new OverloadedJavaMethodCaller(obj, methods);
+				} else {
+					try {
+						Field field = objClass.getField(name);
+						return field.get(obj);
+					} catch(Throwable t) {
+						// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
+						// can be used in simple logical operations without conversion.
+						if(obj instanceof Boolean) {
+							if(((Boolean)obj).booleanValue()) {
+								if(name.equals("if")) {
+									return (Function<?,?>)(JavaRuntimeSupport::readTrueSlot);
+								} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
+		    						// Return the object that was provided
+									return Function.identity();
+		    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)){
+		    						// Return the original object (Boolean.TRUE)
+		    						return (Function<?,?>)(x -> obj);
+		    					}
+							} else {
+								if(name.equals("if")) {
+									return (Function<?,?>)(JavaRuntimeSupport::readFalseSlot);
+								} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
+		    						// Return the original object (Boolean.FALSE)
+									return (Function<?,?>)(x -> obj);
+		    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)) {
+		    						// Return the object that was provided
+		    						return Function.identity();
+		    					}
+							}
+						} else if(obj instanceof Class) {
+							final Class<?> clazz = (Class<?>)obj;
+							if(name.equals(Operator.MEMBER_OF.methodName)) {
+								return readSlot(clazz, "isInstance");
+							} else {
+								try {
+									return clazz.getField(name).get(null);
+								} catch(Throwable tt) {
+									Object innerClassValue = null;
+									for(Class<?> innerClass : clazz.getDeclaredClasses()) {
+										if(name.equals(innerClass.getSimpleName())) {
+											innerClassValue = innerClass;
+										}
+									}
+									if(innerClassValue != null) {
+										return innerClassValue;
+									}
+								}
+							}
+						}
+						if(!(obj instanceof Value) && "label".equals(name)) {
+							return obj.toString();
+						} else {
+							return baseValue != null ? baseValue : new SlotNotFound(name, self, t);
+						}
+					}
+				}
+	        } catch (IllegalArgumentException | SecurityException e) {
+	        	return e;
+	        }
+		}
+    }
+	public static Method[] instanceMethodsWithName(
+            final Class<? extends Object> objClass, String name) {
+	    Method[] methods = Arrays.asList(objClass.getMethods())
+	    		.stream()
+	    		.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == Modifier.PUBLIC)
+	    		.toArray(Method[]::new);
+	    return methods;
+    }
 
 	/**
 	 * Call a callable target with the given arguments.
 	 * @param recurseFunction TODO
 	 * @param baseFunction TODO
 	 */
-	@SuppressWarnings("unchecked")
     public static Object call(Object callee, Object recurseFunction, Object baseFunction, List<Object> args) {
-		Object f = force(callee);
-		if(f instanceof Value) {
-			return ((Value)f).call(recurseFunction, baseFunction, args);
+		Object ff = force(callee);
+		if(ff instanceof Value) {
+			return ((Value)ff).call(recurseFunction, baseFunction, args);
 		}
-		if(!isDefined(f))
-			return f;
 
-		try {
-	        if(f instanceof Callable) {
-	        	try {
-	                return ((Callable<Object>)f).call();
-                } catch (Exception e) {
-                	return new Fail(e);
-                }
-	        }
-	        if(f instanceof Function) {
-	        	return ((Function<Object,Object>)f).apply(force(args.toOption().toNull()));
-	        }
-	        if(f instanceof Supplier) {
-	        	return ((Supplier<Object>)f).get();
-	        }
-	        if(f instanceof Class) {
-	        	if(args.isEmpty())
-	        		return ((Class<?>)f).newInstance();
-	        	return callJavaMethod(null, ((Class<?>)f).getConstructors(), args);
-	        }
-        } catch (IllegalAccessException
-                | SecurityException | InstantiationException e) {
-        	return new Fail(e);
-        }
-		if(baseFunction == null)
-			return new NotCallable(f);
-		return call(baseFunction, recurseFunction, null, args);
+		P2<Object, Set<InputValue>> p = forceWithDeps(ff);
+		Object f = p._1();
+		Set<InputValue> dependencies = p._2();
+		return Signal.addDependencies(callJavaObject(recurseFunction, baseFunction, args, f), dependencies);
 	}
+	@SuppressWarnings("unchecked")
+	public static Object callJavaObject(Object recurseFunction,
+            Object baseFunction, List<Object> args, Object f) {
+	    if(!isDefined(f)) {
+			return f;
+		} else {
+			try {
+		        if(f instanceof Callable) {
+		        	try {
+		                return ((Callable<?>)f).call();
+	                } catch (Exception e) {
+	                	return new Fail(e);
+	                }
+		        }
+		        if(f instanceof Function) {
+		        	return callJavaMethod(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(1));
+		        }
+		        if(f instanceof Supplier) {
+		        	return ((Supplier<?>)f).get();
+		        }
+		        if(f instanceof Class) {
+		        	if(args.isEmpty())
+		        		return ((Class<?>)f).newInstance();
+		        	return callJavaMethod(null, ((Class<?>)f).getConstructors(), args);
+		        }
+	        } catch (IllegalAccessException
+	                | SecurityException | InstantiationException e) {
+	        	return new Fail(e);
+	        }
+			if(baseFunction == null)
+				return new NotCallable(f);
+			return call(baseFunction, recurseFunction, null, args);
+		}
+    }
 
 	/**
 	 * Simpler wrapper for a top-level call without any extension information.
@@ -300,6 +334,17 @@ public class JavaRuntimeSupport {
 	/**
 	 * If a value is lazy, evaluate it to yield the "final" object.
 	 */
+	public static P2<Object, Set<InputValue>> forceWithDeps(Object obj) {
+		Set<InputValue> dependencies = InputValue.emptySet;
+		obj = force(obj);
+		while(obj instanceof Signal) {
+			Signal s = (Signal)obj;
+			obj = force(s.target);
+			dependencies = dependencies.union(s.dependencies);
+		}
+		return P.p(obj, dependencies);
+	}
+
 	public static Object force(Object obj) {
 		while(obj instanceof Supplier) {
 			obj = ((Supplier<?>)obj).get();
@@ -308,12 +353,13 @@ public class JavaRuntimeSupport {
 	}
 
 	/**
-	 * Return true if the value is not null
+	 * Return true if the value is not null and not a Throwable
 	 * @param obj
 	 * @return
 	 */
 	public static boolean isDefined(Object obj) {
-		return obj != null && !(force(obj) instanceof Throwable);
+		Object realValue = forceWithDeps(obj)._1();
+		return realValue != null && !(realValue instanceof Throwable);
 	}
 
 	public static boolean isTruthy(Object obj) {
@@ -327,10 +373,6 @@ public class JavaRuntimeSupport {
 		} catch(Exception e) {
 			return false; // Failure is not truthy
 		}
-	}
-
-	public static boolean isTrue(Object obj) {
-		return convertToJava(Boolean.class, obj) == Boolean.TRUE;
 	}
 
 	public static Object applyBoolean(boolean a, Object ifTrue, Object ifFalse) {
@@ -551,13 +593,80 @@ public class JavaRuntimeSupport {
 	public static final PackageValue javaPackage = PackageValue.forName("java");
 	public static final PackageValue banjoPackage = PackageValue.forName("banjo");
 
-	public boolean isByte(Object x) { return x instanceof Byte; }
-	public boolean isShort(Object x) { return x instanceof Short; }
-	public boolean isInteger(Object x) { return x instanceof Integer; }
-	public boolean isLong(Object x) { return x instanceof Long; }
-	public boolean isFloat(Object x) { return x instanceof Float; }
-	public boolean isDouble(Object x) { return x instanceof Double; }
-	public boolean isBigInteger(Object x) { return x instanceof BigInteger; }
-	public boolean isBigDecimal(Object x) { return x instanceof BigDecimal; }
+	public static boolean isByte(Object x) { return x instanceof Byte; }
+	public static boolean isShort(Object x) { return x instanceof Short; }
+	public static boolean isInteger(Object x) { return x instanceof Integer; }
+	public static boolean isLong(Object x) { return x instanceof Long; }
+	public static boolean isFloat(Object x) { return x instanceof Float; }
+	public static boolean isDouble(Object x) { return x instanceof Double; }
+	public static boolean isBigInteger(Object x) { return x instanceof BigInteger; }
+	public static boolean isBigDecimal(Object x) { return x instanceof BigDecimal; }
 
+	public static Runnable logger(String msg) {
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				System.out.println(msg);
+			}
+
+			@Override
+			public String toString() {
+			    return "System.out.println("+StringLiteral.toSource(msg)+")";
+			}
+		};
+	}
+	public static Runnable terminator() {
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				System.exit(0);
+			}
+
+			@Override
+			public String toString() {
+			    return "System.exit(0)";
+			}
+		};
+	}
+
+	public static StringBuilder stringBuilder() {
+		return new StringBuilder();
+	}
+
+	public static List<Object> emptyList() { return List.nil(); }
+	public static List<Object> cons(Object elt, List<Object> tail) { return List.cons(elt, tail); }
+
+	public static Object runnableList(List<Object> rs) {
+		List<P2<Runnable, Set<InputValue>>> ps = rs.map(r -> convertToJava(Runnable.class, r));
+		List<Runnable> runnables = ps.map(P2.__1());
+		Set<InputValue> dependencies = ps.map(P2.__2()).foldRight((a, b) -> a.union(b), InputValue.emptySet);
+		Runnable compositeRunnable = new Runnable() {
+			@Override
+			public void run() {
+				for(Object x : runnables) {
+					P2<Runnable, Set<InputValue>> p = convertToJava(Runnable.class, x);
+					if(!p._2().isEmpty())
+						throw new Error("Expected dependencies to be empty here ...");
+					Runnable r = p._1();
+					r.run();
+				}
+			}
+		};
+		return Signal.addDependencies(compositeRunnable, dependencies);
+	}
+
+	/**
+	 * Supply a new clock value at most once per minPeriod milliseconds.  The
+	 * clock value is the value of System.currentTimeMillis().
+	 *
+	 * @param minPeriod
+	 * @return
+	 */
+	public static Signal periodicMillis(long minPeriod) {
+		return Signal.input(System.currentTimeMillis(), new PeriodicMillis(minPeriod));
+	}
+
+	public static final long startTime = System.currentTimeMillis();
 }

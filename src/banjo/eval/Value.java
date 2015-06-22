@@ -79,7 +79,7 @@ public class Value {
 	@Override
 	public String toString() {
 	    try {
-	    	return JavaRuntimeSupport.convertToJava(String.class, slot(this, "label", null));
+	    	return JavaRuntimeSupport.convertToJava(String.class, slot(this, "label", null))._1();
 	    } catch(Throwable t) {
 	    	//t.printStackTrace();
 	    	return toStringFallback();

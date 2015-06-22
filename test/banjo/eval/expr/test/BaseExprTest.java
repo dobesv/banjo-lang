@@ -33,9 +33,9 @@ public abstract class BaseExprTest {
 	public BaseExprTest(CoreExpr ast) {
 		super();
 		this.expr = ast;
-		Object tmp;
 		freeExpr = FreeExpressionFactory.apply(ast);
 		intermediateValue = environment.bind(freeExpr);
+		Object tmp;
     	try {
 			tmp = JavaRuntimeSupport.force(intermediateValue);
         } catch (Throwable e) {
