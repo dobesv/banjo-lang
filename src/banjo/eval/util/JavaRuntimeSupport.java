@@ -1,13 +1,18 @@
 package banjo.eval.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -18,7 +23,6 @@ import banjo.eval.Signal;
 import banjo.eval.SlotNotFound;
 import banjo.eval.Value;
 import banjo.eval.input.InputValue;
-import banjo.eval.input.PeriodicMillis;
 import banjo.eval.interceptors.ArgInterceptor;
 import banjo.eval.interceptors.CallInterceptor;
 import banjo.eval.interceptors.CallResultInterceptor;
@@ -29,8 +33,21 @@ import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Set;
+import fj.data.Stream;
 
 public class JavaRuntimeSupport {
+
+	static Properties slotMappings = new Properties();
+
+	static {
+		try {
+	        final InputStream stream = JavaRuntimeSupport.class.getResourceAsStream("library slot names.properties");
+			final InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
+			slotMappings.load(reader);
+        } catch (IOException e) {
+        	throw new UncheckedIOException(e);
+        }
+	}
 
 	public static Error fail(String message) {
 		return new Fail(message);
@@ -43,6 +60,7 @@ public class JavaRuntimeSupport {
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
+	@SlotName("convert to java")
     public static <T> P2<T, Set<InputValue>> convertToJava(Class<T> clazz, Object banjoValue) {
 		P2<Object, Set<InputValue>> p = forceWithDeps(banjoValue);
 		Object v = p._1();
@@ -124,6 +142,8 @@ public class JavaRuntimeSupport {
 		}
 		return Signal.addDependencies(new NoSuchMethodError("Failed to find a compatible method: "+target+"."+methods[0].getName()), dependencies);
 	}
+
+	@SlotName("read slot")
 	public static Object readSlot(Object obj, String name) {
 		return readSlot(obj, obj, null, name);
 	}
@@ -148,6 +168,12 @@ public class JavaRuntimeSupport {
 		final Object slotValue = readJavaObjectSlot(self, baseValue, name, realValue);
 		return Signal.addDependencies(slotValue, dependencies);
 	}
+	public static String methodSlotName(Method method) {
+		SlotName slotAnn = method.getAnnotation(SlotName.class);
+		if(slotAnn != null)
+			return slotAnn.value();
+		return slotMappings.getProperty(method.getClass().getName()+":"+method.getName(), method.getName());
+	}
 	public static Object readJavaObjectSlot(Object self, Object baseValue, String name,
             Object obj) {
 	    if(name.equals("java string") && obj instanceof String) {
@@ -158,82 +184,81 @@ public class JavaRuntimeSupport {
 
 			try {
 				final Class<? extends Object> objClass = obj.getClass();
-				Method[] methods = instanceMethodsWithName(objClass, name);
-				if((obj instanceof Class) && methods.length == 0) {
-					methods = Arrays.asList(((Class<?>)obj).getDeclaredMethods())
-							.stream()
-							.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == (Modifier.STATIC | Modifier.PUBLIC))
-							.toArray(Method[]::new);
+				final boolean isClass = obj instanceof Class;
+				Method[] methods = isClass ?
+						staticMethodsWithName((Class<?>)obj, name) :
+						instanceMethodsWithName(objClass, name);
+				// Automatically call getters
+				if(methods.length == 1 && methods[0].getParameterCount() == 0) {
+					return callJavaMethod(obj, methods, List.nil());
 				}
 				if(methods.length > 0) {
 					return new OverloadedJavaMethodCaller(obj, methods);
 				} else {
-					try {
-						Field field = objClass.getField(name);
-						return field.get(obj);
-					} catch(Throwable t) {
-						// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
-						// can be used in simple logical operations without conversion.
-						if(obj instanceof Boolean) {
-							if(((Boolean)obj).booleanValue()) {
-								if(name.equals("if")) {
-									return (Function<?,?>)(JavaRuntimeSupport::readTrueSlot);
-								} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
-		    						// Return the object that was provided
-									return Function.identity();
-		    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)){
-		    						// Return the original object (Boolean.TRUE)
-		    						return (Function<?,?>)(x -> obj);
-		    					}
-							} else {
-								if(name.equals("if")) {
-									return (Function<?,?>)(JavaRuntimeSupport::readFalseSlot);
-								} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
-		    						// Return the original object (Boolean.FALSE)
-									return (Function<?,?>)(x -> obj);
-		    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)) {
-		    						// Return the object that was provided
-		    						return Function.identity();
-		    					}
-							}
-						} else if(obj instanceof Class) {
-							final Class<?> clazz = (Class<?>)obj;
-							if(name.equals(Operator.MEMBER_OF.methodName)) {
-								return readSlot(clazz, "isInstance");
-							} else {
-								try {
-									return clazz.getField(name).get(null);
-								} catch(Throwable tt) {
-									Object innerClassValue = null;
-									for(Class<?> innerClass : clazz.getDeclaredClasses()) {
-										if(name.equals(innerClass.getSimpleName())) {
-											innerClassValue = innerClass;
-										}
-									}
-									if(innerClassValue != null) {
-										return innerClassValue;
-									}
+					// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
+					// can be used in simple logical operations without conversion.
+					if(obj instanceof Boolean) {
+						if(((Boolean)obj).booleanValue()) {
+							if(name.equals("if")) {
+								return (Function<?,?>)(JavaRuntimeSupport::readTrueSlot);
+							} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
+	    						// Return the object that was provided
+								return Function.identity();
+	    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)){
+	    						// Return the original object (Boolean.TRUE)
+	    						return (Function<?,?>)(x -> obj);
+	    					}
+						} else {
+							if(name.equals("if")) {
+								return (Function<?,?>)(JavaRuntimeSupport::readFalseSlot);
+							} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
+	    						// Return the original object (Boolean.FALSE)
+								return (Function<?,?>)(x -> obj);
+	    					} else if(name.equals(Operator.LOGICAL_OR.methodName) || name.equals(Operator.FALLBACK.methodName)) {
+	    						// Return the object that was provided
+	    						return Function.identity();
+	    					}
+						}
+					} else if(isClass) {
+						final Class<?> clazz = (Class<?>)obj;
+						if(name.equals(Operator.MEMBER_OF.methodName)) {
+							return (Function<Object,Boolean>)clazz::isInstance;
+						} else {
+							for(Class<?> innerClass : clazz.getDeclaredClasses()) {
+								final SlotName slotAnn = innerClass.getAnnotation(SlotName.class);
+								final String slotName = slotAnn != null ? slotAnn.value() : innerClass.getSimpleName();
+								if(name.equals(slotName)) {
+									return innerClass;
 								}
 							}
 						}
-						if(!(obj instanceof Value) && "label".equals(name)) {
-							return obj.toString();
-						} else {
-							return baseValue != null ? baseValue : new SlotNotFound(name, self, t);
-						}
+					}
+					if(!(obj instanceof Value) && "label".equals(name)) {
+						return obj.toString();
+					} else {
+						return baseValue != null ? baseValue : new SlotNotFound(name, self);
 					}
 				}
+
 	        } catch (IllegalArgumentException | SecurityException e) {
 	        	return e;
 	        }
 		}
     }
+	public static Method[] staticMethodsWithName(Class<?> clazz, String name) {
+	    Method[] methods;
+	    methods = Stream.<Method>stream(clazz.getDeclaredMethods())
+	    		.filter(m ->
+	    		name.equals(methodSlotName(m))
+	    		&& (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == (Modifier.STATIC | Modifier.PUBLIC))
+	    		.array(Method[].class);
+	    return methods;
+    }
 	public static Method[] instanceMethodsWithName(
             final Class<? extends Object> objClass, String name) {
-	    Method[] methods = Arrays.asList(objClass.getMethods())
-	    		.stream()
-	    		.filter(m -> m.getName().equals(name) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == Modifier.PUBLIC)
-	    		.toArray(Method[]::new);
+	    Method[] methods = Stream.<Method>stream(objClass.getMethods())
+	    		.filter(m -> name.equals(methodSlotName(m)) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == Modifier.PUBLIC)
+	    		.array(Method[].class);
 	    return methods;
     }
 
@@ -253,7 +278,7 @@ public class JavaRuntimeSupport {
 		Set<InputValue> dependencies = p._2();
 		return Signal.addDependencies(callJavaObject(recurseFunction, baseFunction, args, f), dependencies);
 	}
-	@SuppressWarnings("unchecked")
+
 	public static Object callJavaObject(Object recurseFunction,
             Object baseFunction, List<Object> args, Object f) {
 	    if(!isDefined(f)) {
@@ -291,6 +316,7 @@ public class JavaRuntimeSupport {
 	/**
 	 * Simpler wrapper for a top-level call without any extension information.
 	 */
+	@SlotName("call")
 	public static Object call(Object f, List<Object> args) {
 		return call(f, f, null, args);
 	}
@@ -299,6 +325,7 @@ public class JavaRuntimeSupport {
 	 * Call a method on the given target with the given arguments.  In some cases
 	 * this will be more efficient then doing call(readSlot(obj, name), args)
 	 */
+	@SlotName("call method")
 	public static Object callMethod(Object obj, String name, List<Object> args) {
 	    return callMethod(obj, name, obj, null, args);
 	}
@@ -332,14 +359,14 @@ public class JavaRuntimeSupport {
 	}
 
 	/**
-	 * If a value is lazy, evaluate it to yield the "final" object.
+	 * If a value is lazy, evaluate it to yield the "final" object,
+	 * including separating out values inside a signal.
 	 */
 	public static P2<Object, Set<InputValue>> forceWithDeps(Object obj) {
 		Set<InputValue> dependencies = InputValue.emptySet;
-		obj = force(obj);
-		while(obj instanceof Signal) {
+		while((obj = force(obj)) instanceof Signal) {
 			Signal s = (Signal)obj;
-			obj = force(s.target);
+			obj = s.target;
 			dependencies = dependencies.union(s.dependencies);
 		}
 		return P.p(obj, dependencies);
@@ -357,11 +384,13 @@ public class JavaRuntimeSupport {
 	 * @param obj
 	 * @return
 	 */
+	@SlotName("is defined")
 	public static boolean isDefined(Object obj) {
 		Object realValue = forceWithDeps(obj)._1();
 		return realValue != null && !(realValue instanceof Throwable);
 	}
 
+	@SlotName("is truthy")
 	public static boolean isTruthy(Object obj) {
 		if(obj instanceof Boolean) {
 			return ((Boolean)obj).booleanValue();
@@ -384,6 +413,7 @@ public class JavaRuntimeSupport {
 	 * arguments to this function.  The result of calling first is passed to second.
 	 * The result of second is the result of the function.
 	 */
+	@SlotName("function composition")
 	public static Object composeFunctions(Object first, Object second) {
 		return new CallResultInterceptor(second, first);
 	}
@@ -391,6 +421,7 @@ public class JavaRuntimeSupport {
 	/**
 	 * Function result interceptor.  Equivalent to function composition.
 	 */
+	@SlotName("result interceptor")
 	public static Object functionResultInterceptor(Object interceptor, Object target) {
 		return new CallResultInterceptor(interceptor, target);
 	}
@@ -398,6 +429,7 @@ public class JavaRuntimeSupport {
 	/**
 	 * Slot interceptor.  Passes each slot value through a function before returning it.
 	 */
+	@SlotName("slot interceptor")
 	public static Object slotInterceptor(Object interceptor, Object target) {
 		return new SlotInterceptor(interceptor, target);
 	}
@@ -406,6 +438,7 @@ public class JavaRuntimeSupport {
 	 * Function argument interceptor - passes each function argument through a function
 	 * before passing it into the given object.
 	 */
+	@SlotName("argument interceptor")
 	public static Object argInterceptor(Object interceptor, Object target) {
 		return new ArgInterceptor(interceptor, target);
 	}
@@ -414,6 +447,7 @@ public class JavaRuntimeSupport {
 	 * Call interceptor - gets function arguments as a tuple to use as it
 	 * pleases.
 	 */
+	@SlotName("call interceptor")
 	public static Object callInterceptor(Object interceptor, Object target) {
 		return new CallInterceptor(interceptor, target);
 	}
@@ -425,6 +459,7 @@ public class JavaRuntimeSupport {
 		return new MemoizingSupplier<Object>(calculation);
 	}
 
+	@SlotName("integer")
 	public static class Integers {
 		public static int sum(int a, int b) { return a + b; }
 		public static int difference(int a, int b) { return a - b; }
@@ -441,13 +476,16 @@ public class JavaRuntimeSupport {
 		public static Object cmp(int a, int b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : equal;
 		}
-		public static Object checkSign(int a, Object negative, Object zero, Object positive) {
+		public static Object sign(int a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(int a) { return BigDecimal.valueOf(a); }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(int a) { return BigInteger.valueOf(a); }
 	}
 
+	@SlotName("long")
 	public static class Longs {
 		public static long sum(long a, long b) { return a + b; }
 		public static long difference(long a, long b) { return a - b; }
@@ -464,13 +502,16 @@ public class JavaRuntimeSupport {
 		public static Object cmp(long a, long b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : equal;
 		}
-		public static Object checkSign(long a, Object negative, Object zero, Object positive) {
+		public static Object sign(long a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(long a) { return BigDecimal.valueOf(a); }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(long a) { return BigInteger.valueOf(a); }
 	}
 
+	@SlotName("float")
 	public static class Floats {
 		public static float sum(float a, float b) { return a + b; }
 		public static float difference(float a, float b) { return a - b; }
@@ -487,13 +528,16 @@ public class JavaRuntimeSupport {
 		public static Object cmp(float a, float b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
 		}
-		public static Object checkSign(float a, Object negative, Object zero, Object positive) {
+		public static Object sign(float a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(float a) { return new BigDecimal(a); }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(float a) { return BigInteger.valueOf((long)a); }
 	}
 
+	@SlotName("double")
 	public static class Doubles {
 		public static double sum(double a, double b) { return a + b; }
 		public static double difference(double a, double b) { return a - b; }
@@ -510,14 +554,17 @@ public class JavaRuntimeSupport {
 		public static Object cmp(double a, double b, Object ascending, Object equal, Object descending, Object undefined) {
 			return (a < b) ? ascending : (a > b) ? descending : (a == b) ? equal : undefined;
 		}
-		public static Object checkSign(double a, Object negative, Object zero, Object positive) {
+		public static Object sign(double a, Object negative, Object zero, Object positive) {
 			return (a < 0) ? negative : (a > 0) ? positive : zero;
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(double a) { return new BigDecimal(a); }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(double a) { return BigInteger.valueOf((long)a); }
 
 	}
 
+	@SlotName("big integer")
 	public static class BigIntegers {
 		public static BigInteger sum(BigInteger a, BigInteger b) { return a.add(b); }
 		public static BigInteger difference(BigInteger a, BigInteger b) { return a.subtract(b); }
@@ -535,14 +582,17 @@ public class JavaRuntimeSupport {
 			int c = a.compareTo(b);
 			return (c < 0) ? ascending : (c > 0) ? descending : equal;
 		}
-		public static Object checkSign(BigInteger a, Object negative, Object zero, Object positive) {
-			return Integers.checkSign(a.signum(), negative, zero, positive);
+		public static Object sign(BigInteger a, Object negative, Object zero, Object positive) {
+			return Integers.sign(a.signum(), negative, zero, positive);
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(BigInteger a) { return new BigDecimal(a); }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(BigInteger a) { return a; }
 
 	}
 
+	@SlotName("big decimal")
 	public static class BigDecimals {
 		public static BigDecimal sum(BigDecimal a, BigDecimal b) { return a.add(b); }
 		public static BigDecimal difference(BigDecimal a, BigDecimal b) { return a.subtract(b); }
@@ -560,13 +610,16 @@ public class JavaRuntimeSupport {
 			int c = a.compareTo(b);
 			return (c < 0) ? ascending : (c > 0) ? descending : equal;
 		}
-		public static Object checkSign(BigDecimal a, Object negative, Object zero, Object positive) {
-			return Integers.checkSign(a.signum(), negative, zero, positive);
+		public static Object sign(BigDecimal a, Object negative, Object zero, Object positive) {
+			return Integers.sign(a.signum(), negative, zero, positive);
 		}
+		@SlotName("to big decimal")
 		public static BigDecimal toBigDecimal(BigDecimal a) { return a; }
+		@SlotName("to big integer")
 		public static BigInteger toBigInteger(BigDecimal a) { return a.toBigInteger(); }
 	}
 
+	@SlotName("string")
 	public static class Strings {
 		public static String concat(Object a, Object b) { return String.valueOf(a) + String.valueOf(b); }
 		public static boolean eq(String a, String b) { return a.equals(b); }
@@ -586,6 +639,7 @@ public class JavaRuntimeSupport {
 
 	public static final ThreadLocal<List<Supplier<StackTraceElement>>> stack = ThreadLocal.<List<Supplier<StackTraceElement>>>withInitial(List::nil);
 
+	@SlotName("package")
 	public static PackageValue getJavaPackage(String name) {
 		return PackageValue.forName(name);
 	}
@@ -593,14 +647,15 @@ public class JavaRuntimeSupport {
 	public static final PackageValue javaPackage = PackageValue.forName("java");
 	public static final PackageValue banjoPackage = PackageValue.forName("banjo");
 
-	public static boolean isByte(Object x) { return x instanceof Byte; }
-	public static boolean isShort(Object x) { return x instanceof Short; }
-	public static boolean isInteger(Object x) { return x instanceof Integer; }
-	public static boolean isLong(Object x) { return x instanceof Long; }
-	public static boolean isFloat(Object x) { return x instanceof Float; }
-	public static boolean isDouble(Object x) { return x instanceof Double; }
-	public static boolean isBigInteger(Object x) { return x instanceof BigInteger; }
-	public static boolean isBigDecimal(Object x) { return x instanceof BigDecimal; }
+	@SlotName("java package")
+	public static final PackageValue getJavaPackage() {
+		return javaPackage;
+	}
+
+	@SlotName("banjo package")
+	public static final PackageValue getBanjoPackage() {
+		return banjoPackage;
+	}
 
 	public static Runnable logger(String msg) {
 		return new Runnable() {
@@ -631,10 +686,12 @@ public class JavaRuntimeSupport {
 		};
 	}
 
+	@SlotName("string builder")
 	public static StringBuilder stringBuilder() {
 		return new StringBuilder();
 	}
 
+	@SlotName("empty list")
 	public static List<Object> emptyList() { return List.nil(); }
 	public static List<Object> cons(Object elt, List<Object> tail) { return List.cons(elt, tail); }
 
@@ -657,16 +714,9 @@ public class JavaRuntimeSupport {
 		return Signal.addDependencies(compositeRunnable, dependencies);
 	}
 
-	/**
-	 * Supply a new clock value at most once per minPeriod milliseconds.  The
-	 * clock value is the value of System.currentTimeMillis().
-	 *
-	 * @param minPeriod
-	 * @return
-	 */
-	public static Signal periodicMillis(long minPeriod) {
-		return Signal.input(System.currentTimeMillis(), new PeriodicMillis(minPeriod));
+	public static final Instant startTime = Instant.now();
+	@SlotName("start time")
+	public static final Instant getStartTime() {
+		return startTime;
 	}
-
-	public static final long startTime = System.currentTimeMillis();
 }

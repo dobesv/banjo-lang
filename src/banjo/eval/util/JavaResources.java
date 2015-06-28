@@ -1,8 +1,7 @@
-package banjo.eval.expr;
+package banjo.eval.util;
 
+import banjo.eval.expr.ProjectEnvironment;
 import banjo.eval.input.InputValue;
-import banjo.eval.util.JavaResources;
-import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
@@ -10,27 +9,37 @@ import fj.P2;
 import fj.data.List;
 import fj.data.Set;
 
-public class ConsoleApp extends JavaResources {
-	public static void main(String[] args) {
-		if(args.length == 0) {
-			args = new String[] { "console app" };
-		}
-		final String rootExpr = args[0].replaceFirst("\\.banjo$", "");
-		runConsoleApp(rootExpr);
+public class JavaResources {
+
+	@SlotName("epoch seconds")
+	public long epochSeconds() {
+
+		return System.currentTimeMillis() / 1000;
 	}
 
-	public static void runConsoleApp(final String rootExpr) {
+	public void log(String message) {
+		System.out.println(message);
+	}
+
+	public void prompt(String message) {
+		System.out.print(message);
+	}
+
+	@SlotName("no action")
+	public void noAction() {
+	}
+
+	public void runApp(final String rootExpr) {
 	    CoreExpr ast = CoreExpr.fromString(rootExpr);
 		FreeExpression freeExpr = FreeExpressionFactory.apply(ast);
 		String cwdPath = new java.io.File(".banjo").getAbsolutePath();
 		ProjectEnvironment environment = ProjectEnvironment.forSourceFile(cwdPath);
 		Object program = environment.bind(freeExpr);
-		Object javaPackage = environment.apply("java").value;
-		Object resources = JavaRuntimeSupport.readSlot(javaPackage, "resources");
+		final List<Object> progArgs = List.<Object>single(this);
 
 		long currentTimeMillis = System.currentTimeMillis();
 		while(true) {
-			Object actions = JavaRuntimeSupport.call(program, List.<Object>single(resources));
+			Object actions = JavaRuntimeSupport.call(program, progArgs);
 	    	P2<Runnable, Set<InputValue>> r = JavaRuntimeSupport.convertToJava(Runnable.class, actions);
 
 			r._1().run();

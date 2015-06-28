@@ -2,10 +2,11 @@ package banjo.eval.input;
 
 public class PeriodicMillis implements InputValue {
 	public final long period;
-	long lastPollTime = System.currentTimeMillis();
+	long frameStart = System.currentTimeMillis();
 
-	public PeriodicMillis(long period) {
+	public PeriodicMillis(long startTime, long period) {
 	    super();
+	    this.frameStart = startTime;
 	    this.period = period;
     }
 
@@ -14,20 +15,22 @@ public class PeriodicMillis implements InputValue {
 		if(o == this) return 0;
 		int cmp = o.getClass().getName().compareTo(getClass().getName());
 		if(cmp != 0) return cmp;
+
 		return Long.compare(period, ((PeriodicMillis)o).period);
 	}
 
 	@Override
-	public long getNextPollTime() {
-		return lastPollTime + period;
+	public long getNextPollTime(long currentTimeMillis) {
+		return Math.max(frameStart + period, currentTimeMillis);
 	}
-
-	public long currentFrameTime() {
-	    return (System.currentTimeMillis() / period) * period;
-    }
 
 	@Override
 	public Object currentValue() {
-	    return Long.valueOf(lastPollTime = currentFrameTime());
+	    return Long.valueOf(frameStart);
+	}
+
+	@Override
+	public void poll(long currentTimeMillis) {
+		frameStart = getNextPollTime(currentTimeMillis);
 	}
 }
