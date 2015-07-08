@@ -2,21 +2,23 @@ package banjo.expr.free;
 
 import banjo.eval.expr.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.value.Value;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.ListUtil;
 import fj.data.List;
 
 public class FreeJavaHelperCall implements FreeExpression {
 	public final String name;
-	public final List<Object> args;
-	public FreeJavaHelperCall(String name, List<Object> args) {
+	public final List<Value> args;
+	public FreeJavaHelperCall(String name, List<Value> args) {
         super();
         this.name = name;
         this.args = args;
     }
 	@Override
-	public Object apply(Environment env) {
-	    return JavaRuntimeSupport.callMethod(FreeExpressionFactory.javaHelpers(env), name, args);
+	public Value apply(Environment env) {
+	    final Value javaHelpers = FreeExpressionFactory.javaHelpers(env);
+		return javaHelpers.callMethod(name, args);
 	}
 
 	@Override

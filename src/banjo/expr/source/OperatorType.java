@@ -4,5 +4,6 @@ public enum OperatorType {
 	METHOD,
 	BUILTIN,
 	METHOD_SWITCHED,
-	FUNCTION;
+	FUNCTION,
+	FUNCTION_SWITCHED;
 }

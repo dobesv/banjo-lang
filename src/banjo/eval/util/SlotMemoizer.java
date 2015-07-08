@@ -3,20 +3,23 @@ package banjo.eval.util;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 
-public class SlotMemoizer extends WrapperValue {
-	public final HashMap<String, IdentityHashMap<Object, IdentityHashMap<Object, Object>>> cache = new HashMap<>();
+import banjo.eval.value.Value;
+import banjo.eval.value.WrapperValue;
 
-	public SlotMemoizer(Object delegate) {
+public class SlotMemoizer extends WrapperValue {
+	public final HashMap<String, IdentityHashMap<Value, IdentityHashMap<Value, Value>>> cache = new HashMap<>();
+
+	public SlotMemoizer(Value delegate) {
 	    super(delegate);
     }
 
 	@Override
-	public Object slot(Object self, String name, Object fallback) {
-		IdentityHashMap<Object, IdentityHashMap<Object, Object>> c1 = cache.get(name);
+	public Value slot(Value self, String name, Value fallback) {
+		IdentityHashMap<Value, IdentityHashMap<Value, Value>> c1 = cache.get(name);
 		if(c1 == null) cache.put(name, c1 = new IdentityHashMap<>());
-		IdentityHashMap<Object, Object> c2 = c1.get(self);
+		IdentityHashMap<Value, Value> c2 = c1.get(self);
 		if(c2 == null) c1.put(self, c2 = new IdentityHashMap<>());
-		Object value = c2.get(fallback);
+		Value value = c2.get(fallback);
 		if(value == null) {
 			c2.put(fallback, value = super.slot(self, name, fallback));
 		}

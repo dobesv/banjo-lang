@@ -3,6 +3,7 @@ package banjo.eval.expr;
 import java.util.function.Function;
 
 import fj.P;
+import fj.data.Option;
 import fj.data.TreeMap;
 
 public class TreeMapEnvironment implements Environment {
@@ -22,7 +23,14 @@ public class TreeMapEnvironment implements Environment {
 
 	@Override
     public BindingInstance apply(String t) {
-    	return bindings.get(t).orSome(P.lazy((u) -> parentEnvironment.apply(t)));
+    	final Option<BindingInstance> binding = bindings.get(t);
+    	if(binding.isSome())
+    		return binding.some();
+		return parentEnvironment.apply(t);
     }
 
+	@Override
+	public String toString() {
+	    return parentEnvironment + "("+bindings+") ⇒ ";
+	}
 }

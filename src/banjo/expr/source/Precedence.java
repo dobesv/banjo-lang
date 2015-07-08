@@ -25,8 +25,8 @@ public enum Precedence {
 	TERNARY, // ? :
 	COLON, // Key/value pair
 	BULLET, // Bullets list
-	FUNCTION, // ->
 	EXTEND, // @
+	FUNCTION, // ↦ ->
 	ASSIGNMENT, // =, +=, *=, ...
 	COND, // '=>' implication / cond
 	COMMA, // ',' "sequence operator"

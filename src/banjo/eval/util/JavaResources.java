@@ -40,6 +40,7 @@ public class JavaResources {
 		long currentTimeMillis = System.currentTimeMillis();
 		while(true) {
 			Object actions = JavaRuntimeSupport.call(program, progArgs);
+			
 	    	P2<Runnable, Set<InputValue>> r = JavaRuntimeSupport.convertToJava(Runnable.class, actions);
 
 			r._1().run();

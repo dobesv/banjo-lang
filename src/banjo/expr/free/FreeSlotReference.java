@@ -1,8 +1,7 @@
 package banjo.expr.free;
 
 import banjo.eval.expr.Environment;
-import banjo.eval.expr.SlotReferenceInstance;
-import banjo.eval.util.MemoizingSupplier;
+import banjo.eval.value.Value;
 
 
 public class FreeSlotReference implements FreeExpression {
@@ -17,8 +16,9 @@ public class FreeSlotReference implements FreeExpression {
     }
 
 	@Override
-	public Object apply(Environment env) {
-		return new MemoizingSupplier<Object>(new SlotReferenceInstance(object.apply(env), slotName));
+	public Value apply(Environment env) {
+		Value value = object.apply(env);
+		return Value.lazy(() -> value.slot(slotName));
 	}
 
 	@Override

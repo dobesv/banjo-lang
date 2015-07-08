@@ -1,9 +1,7 @@
 package banjo.expr.source;
 
-import static banjo.expr.Consts.CODEPOINT_NONE;
 import static java.util.Objects.requireNonNull;
 
-import java.util.Arrays;
 import java.util.Objects;
 
 import banjo.expr.ParenType;
@@ -25,12 +23,13 @@ public enum Operator {
 	ABSVALUE(ParenType.ABSVALUE, OperatorType.METHOD, Position.PREFIX),
 	OBJECT_LITERAL(ParenType.BRACES, OperatorType.BUILTIN, Position.PREFIX),
 	INSPECT("$", OperatorType.BUILTIN, Precedence.UNARY_PREFIX, Position.PREFIX),
-	SELECTOR(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
+	PROJECTION_FUNCTION(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
+	EXTENSION_FUNCTION("Φ @", OperatorType.FUNCTION, Precedence.SELECTOR, Position.PREFIX),
 	BASE_FUNCTION("↑ ^", OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
 
 	// Binary operators
 	CALL(ParenType.PARENS, OperatorType.BUILTIN, Position.INFIX),
-	EXTEND("Φ @", OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
+	EXTENSION("Φ @", OperatorType.FUNCTION, Position.INFIX, Precedence.EXTEND),
 	PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	PROJECTION_OF_MEMBERS("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
 	BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
@@ -58,11 +57,11 @@ public enum Operator {
 	PIPE_TO("|>", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 	APPLICATION_TO_MEMBERS("*>", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
-	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),
-	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.FUNCTION, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 
 	PRECONDITION("&&&", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
-	FUNCTION("↦ ->", OperatorType.BUILTIN, Position.INFIX, Precedence.FUNCTION, Associativity.RIGHT),
+	FUNCTION("↦ ->", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX, Precedence.FUNCTION, Associativity.RIGHT),
 	ASSIGNMENT("=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.RIGHT),
 	EXTEND_METHOD("Φ= @=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
 	ADD_METHOD("+=", OperatorType.BUILTIN, Position.INFIX, Precedence.ASSIGNMENT, Associativity.NA),
@@ -149,8 +148,8 @@ public enum Operator {
 	Operator(String ops, OperatorType operatorType, Position position, Precedence precedence, Associativity associativity) {
 		this(ops, operatorType, position, precedence, precedence, associativity);
 	}
-	Operator(String ops, OperatorType operatorType, Position position, Precedence left, Precedence p, Associativity associativity) {
-		this(ops, operatorType, null, position, associativity, left, p);
+	Operator(String ops, OperatorType operatorType, Position position, Precedence leftPrecedence, Precedence rightPrecedence, Associativity associativity) {
+		this(ops, operatorType, null, position, associativity, leftPrecedence, rightPrecedence);
 	}
 	Operator(String ops, OperatorType operatorType, Precedence p, Associativity associativity) {
 		this(ops, operatorType, null, Position.INFIX, associativity, p, p);

@@ -4,8 +4,8 @@ import banjo.eval.expr.Environment;
 import banjo.eval.expr.ObjectInstance;
 import banjo.eval.expr.RecursiveSlotInstance;
 import banjo.eval.expr.SlotInstance;
-import banjo.eval.util.MemoizingSupplier;
 import banjo.eval.util.SlotMemoizer;
+import banjo.eval.value.Value;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
@@ -27,7 +27,7 @@ public class FreeObjectLiteral implements FreeExpression {
 		this.slots = slots;
     }
 	@Override
-	public Object apply(Environment env) {
+	public Value apply(Environment env) {
 		List<P2<String,SlotInstance>> _slots = slots.map(s -> P.p(s._1().id,
 				 s._2().isSome() ?
 					(SlotInstance)new RecursiveSlotInstance(s._1(), s._2().some(), s._3(), env) :

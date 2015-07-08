@@ -11,7 +11,12 @@ public class TestPrecedence {
 
 	@Test public void newlinePrecAssoc() { test("a=1\nb=2\nc", "(a = 1) (nl) ((b = 2) (nl) c)"); }
 	@Test public void commaPrecAssoc() { test("a=1,b=2,c", "(a = 1) , ((b = 2) , c)"); }
-
+	@Test public void functionLiteralContainsExtend() {
+		test("a -> b @ c", "a ↦ (b Φ c)");
+	}
+	@Test public void extendContainsFunctionLiteral() {
+		test("a @ b -> c", "a Φ (b ↦ c)");
+	}
 	private void test(String source, String expectedFullyParenthesized) {
 		final SourceExpr parseResult = SourceExpr.fromString(source);
 		final String actualFullyParenthesizedSource = parseResult.toFullyParenthesizedSource();

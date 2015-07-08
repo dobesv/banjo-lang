@@ -1,6 +1,5 @@
 package banjo.eval.expr;
 
-import banjo.eval.input.InputValue;
 import banjo.eval.util.JavaResources;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.core.CoreExpr;

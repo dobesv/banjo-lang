@@ -14,4 +14,9 @@ public class ProjectEnvironment extends LetEnvironment {
 		return new ProjectEnvironment(JavaRootEnvironment.INSTANCE, sourceFilePath);
 	}
 
+	@Override
+	public String toString() {
+	    return "(project environment)";
+	}
+
 }

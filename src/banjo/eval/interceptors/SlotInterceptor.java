@@ -1,11 +1,9 @@
 package banjo.eval.interceptors;
 
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import fj.data.List;
-import banjo.eval.SlotNotFound;
 import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.Selector;
+import banjo.eval.value.Value;
+import fj.data.List;
 
 /**
  * Catch all slot accesses to this object and give them to a function
@@ -17,29 +15,13 @@ import banjo.eval.util.JavaRuntimeSupport;
  * on whatever objects it wants to.
  */
 public class SlotInterceptor extends Interceptor {
-	public SlotInterceptor(Object interceptor, Object target) {
+	public SlotInterceptor(Value interceptor, Value target) {
 	    super(interceptor, target);
     }
 
-	static class Selector implements Function<Object, Object> {
-		public final String slotName;
-		public Selector(String slotName) {
-			this.slotName = slotName;
-		}
-
-		@Override
-		public String toString() {
-		    return "."+slotName;
-		}
-
-		@Override
-        public Object apply(Object t) {
-	        return JavaRuntimeSupport.readSlot(t, slotName);
-        }
-	}
 	@Override
-	public Object slot(Object self, String name, Object fallback) {
-		final Selector sel = new Selector(name);
-		return JavaRuntimeSupport.call(interceptor, List.list(sel, fallback));
+	public Value slot(Value self, String name, Value fallback) {
+		final Value sel = Value.fromJava(new Selector(name));
+		return interceptor.call(List.list(sel, fallback));
 	}
 }

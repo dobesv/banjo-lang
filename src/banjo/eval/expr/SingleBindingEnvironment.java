@@ -19,4 +19,8 @@ public class SingleBindingEnvironment implements Environment {
 		return t.equals(key) ? binding : parent.apply(t);
 	}
 
+	@Override
+	public String toString() {
+	    return parent + "(" + binding.slotName + " = " + binding.value + ") ⇒ ";
+	}
 }

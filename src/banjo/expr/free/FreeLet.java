@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.expr.Environment;
 import banjo.eval.expr.LetEnvironment;
+import banjo.eval.value.Value;
 import banjo.expr.source.Operator;
 import fj.P2;
 import fj.data.List;
@@ -16,7 +17,7 @@ public class FreeLet implements FreeExpression {
         this.body = body;
     }
 	@Override
-	public Object apply(Environment env) {
+	public Value apply(Environment env) {
 	    return body.apply(new LetEnvironment(env, bindings));
 	}
 

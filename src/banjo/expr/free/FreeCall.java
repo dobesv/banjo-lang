@@ -1,8 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.Environment;
-import banjo.eval.util.MemoizingSupplier;
+import banjo.eval.value.Value;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
@@ -19,9 +18,15 @@ public class FreeCall implements FreeExpression {
         this.args = args;
     }
 
+
+	/**
+	 * Bind the call to the environment, but do not evaluate it yet.
+	 */
 	@Override
-	public Object apply(Environment environment) {
-	    return new MemoizingSupplier<Object>(new CallInstance(function.apply(environment), args.map(arg -> arg.apply(environment))));
+	public Value apply(Environment environment) {
+		Value callee = function.apply(environment);
+		List<Value> args = this.args.map(arg -> arg.apply(environment));
+		return Value.lazy(() -> callee.call(args));
 	}
 
 	@Override

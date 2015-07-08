@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.UnboundFunctionSelfName;
 import banjo.eval.expr.Environment;
+import banjo.eval.value.Value;
 import fj.P;
 import fj.data.Option;
 
@@ -14,7 +15,11 @@ public class FreeBaseFunctionRef implements FreeExpression {
     }
 
 	@Override
-	public Object apply(Environment env) {
-	    return Option.fromNull(env.apply(name).baseFunction).orSome(P.lazy((u) -> new UnboundFunctionSelfName("Not a function self-name: '"+name+"'")));
+	public Value apply(Environment env) {
+	    return Option.fromNull(
+	    		env.apply(name).baseFunction
+	    ).orSome(P.lazy(
+	    		(u) -> new UnboundFunctionSelfName("Not a function self-name: '"+name+"'"))
+	    );
 	}
 }

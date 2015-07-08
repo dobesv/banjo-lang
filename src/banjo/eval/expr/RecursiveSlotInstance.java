@@ -1,5 +1,6 @@
 package banjo.eval.expr;
 
+import banjo.eval.value.Value;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 
@@ -25,10 +26,10 @@ public class RecursiveSlotInstance implements SlotInstance {
 	}
 
 	@Override
-	public Object apply(Object self, Object prevSlotValue) {
-		final BindingInstance binding = new BindingInstance(self, name.id, prevSlotValue, null);
-		Environment slotEnv = ((key) ->
-			key.equals(sourceObjectBinding.id) ? binding : environment.apply(key));
+	public Value apply(Value self, Value prevSlotValue) {
+		final BindingInstance binding = BindingInstance.slotSourceObject(self, name.id, prevSlotValue);
+		Environment slotEnv =
+				new SingleBindingEnvironment(sourceObjectBinding.id, binding, environment);
 		return valueFactory.apply(slotEnv);
 	}
 

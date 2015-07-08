@@ -6,8 +6,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
+import banjo.eval.Fail;
 import banjo.eval.expr.ProjectEnvironment;
 import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.value.Value;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
@@ -24,9 +26,9 @@ public abstract class BaseExprTest {
 	final static ProjectEnvironment environment = ProjectEnvironment.forSourceFile("(test)");
 
 	final CoreExpr expr;
-	final Object value;
+	final Value value;
 
-	final Object intermediateValue;
+	final Value intermediateValue;
 
 	public final FreeExpression freeExpr;
 
@@ -35,11 +37,13 @@ public abstract class BaseExprTest {
 		this.expr = ast;
 		freeExpr = FreeExpressionFactory.apply(ast);
 		intermediateValue = environment.bind(freeExpr);
-		Object tmp;
+		Value tmp;
     	try {
-			tmp = JavaRuntimeSupport.force(intermediateValue);
+			tmp = intermediateValue.force();
+    	} catch (Fail f) {
+    		tmp = f;
         } catch (Throwable e) {
-        	tmp = e;
+        	tmp = new Fail(e);
         }
     	this.value = tmp;
 	}
@@ -54,7 +58,7 @@ public abstract class BaseExprTest {
     	assertNotNull(value);
     	if(value instanceof Error)
     		throw (Error)value;
-    	assertTrue(JavaRuntimeSupport.isDefined(value));
+    	assertTrue(value.isDefined());
     }
 
 	@Test
@@ -68,7 +72,7 @@ public abstract class BaseExprTest {
     	final String valueStr = expr.acceptVisitor(new BaseCoreExprVisitor<String>() {
     		@Override
     		public String fallback() {
-    		    return expr.toSource() + " --> " + value.toString();
+    		    return expr.toSource() + " = " + value.toString();
     		}
 
     		@Override
@@ -86,7 +90,7 @@ public abstract class BaseExprTest {
     		    return value.toString();
     		}
     	});
-    	assertTrue(valueStr, JavaRuntimeSupport.isTruthy(value));
+    	assertTrue(valueStr, value.isTruthy());
     }
 
 }

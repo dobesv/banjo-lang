@@ -1,16 +1,18 @@
 package banjo.eval.expr;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-import banjo.eval.Value;
 import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.value.FunctionTrait;
+import banjo.eval.value.Value;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 import fj.data.Option;
 
-public class FunctionInstance extends Value {
+public class FunctionInstance extends FunctionTrait implements Value, Function<List<Value>, Value> {
 	public final List<SourceFileRange> ranges;
 	public final List<Identifier> args;
 	public final FreeExpression body;
@@ -28,7 +30,7 @@ public class FunctionInstance extends Value {
 
 
 	@Override
-	public Object call(Object recurse, Object prevImpl, List<Object> arguments) {
+	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
 		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
 		JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
 		try {
@@ -56,4 +58,10 @@ public class FunctionInstance extends Value {
 		sb.append(">");
 		return sb.toString();
     }
+
+	@Override
+	public Value apply(List<Value> args) {
+	    return call(args);
+	}
+
 }

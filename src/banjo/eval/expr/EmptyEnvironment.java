@@ -15,4 +15,8 @@ public class EmptyEnvironment implements Environment {
 	    return new UnboundIdentifier("No variable in scope named '"+t+"'");
     }
 
+	@Override
+	public String toString() {
+	    return "() ⇒";
+	}
 }

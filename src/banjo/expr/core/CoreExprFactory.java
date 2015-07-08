@@ -409,7 +409,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			public DesugarResult<List<Slot>> binaryOp(BinaryOp op) {
 				switch(op.getOperator()) {
 				case ASSIGNMENT: return visitPair(op, Operator.ASSIGNMENT);
-				case EXTEND_METHOD: return visitPair(op, Operator.EXTEND);
+				case EXTEND_METHOD: return visitPair(op, Operator.EXTENSION);
 				case ADD_METHOD: return visitPair(op, Operator.ADD);
 				case SUB_METHOD: return visitPair(op, Operator.SUB);
 				case MUL_METHOD: return visitPair(op, Operator.MUL);
@@ -480,7 +480,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		Identifier selfBinding = slot.sourceObjectBinding.orSome(Identifier.__TMP);
 		final CoreExpr base = SlotReference.base(selfBinding, slot.name);
 		CoreExpr newValue =
-				combiningOp == Operator.EXTEND ?
+				combiningOp == Operator.EXTENSION ?
 				new Extend(base, slot.value) :
 				Call.binaryOp(base, combiningOp, slot.value);
 		return new Slot(slot.name, Option.some(selfBinding), newValue);
@@ -1104,6 +1104,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			return binaryOpToCall(op, rightSourceExpr, operator, operatorRanges, leftSourceExpr, optional);
 		case FUNCTION:
 			return binaryOpToFunctionCall(op, leftSourceExpr, rightSourceExpr, operator.getMethodIdentifier());
+		case FUNCTION_SWITCHED:
+			return binaryOpToFunctionCall(op, rightSourceExpr, leftSourceExpr, operator.getMethodIdentifier());
 		default:
 			throw new Error();
 		}
@@ -1188,10 +1190,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case LOGICAL_OR:
 		case FALLBACK:
 		case APPLICATION_TO_MEMBERS:
+		case EXTENSION:
 			return binaryOpToCall(op, false);
-
-		case EXTEND:
-			return extend(op);
 
 		case JUXTAPOSITION:
 			return juxtaposition(op);
@@ -1228,8 +1228,11 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case INSPECT:
 			return inspect(op);
 
-		case SELECTOR:
-			return selector(op);
+		case PROJECTION_FUNCTION:
+			return freeProjection(op);
+
+		case EXTENSION_FUNCTION:
+			return unaryOpToFunctionCall(op);
 
 		case BASE_FUNCTION:
 			return baseFunction(op);
@@ -1322,7 +1325,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	    return withDesugared(op, new BaseFunctionRef(op.getSourceFileRanges(), functionName));
     }
 
-	public DesugarResult<CoreExpr> selector(UnaryOp op) {
+	public DesugarResult<CoreExpr> freeProjection(UnaryOp op) {
 		final Identifier __tmp = Identifier.__TMP;
 		P3<CoreExpr,CoreExpr,CoreExprFactory> ps = op.getOperand().acceptVisitor(new BaseSourceExprVisitor<P3<CoreExpr,CoreExpr,CoreExprFactory>>() {
 			@Override
@@ -1671,10 +1674,22 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	}
 
 
+	/**
+	 * Implement a unary op as a slot on the operand.
+	 */
 	private DesugarResult<CoreExpr> unaryOpToSlotReference(final UnaryOp op) {
 	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
 	    return operandCoreExpr.withDesugared(op, new SlotReference(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
     }
+
+	/**
+	 * Implement a unary op using a unary function
+	 */
+	DesugarResult<CoreExpr> unaryOpToFunctionCall(UnaryOp op) {
+		Identifier functionName = opMethodName(op.getOperator());
+	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
+	    return operandCoreExpr.withDesugared(op, new Call(functionName, List.single(operandCoreExpr.getValue())));
+	}
 
 	/**
 	 * Figure out the self-binding.  This is more complex because it allows the self-reference

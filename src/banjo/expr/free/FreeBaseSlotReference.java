@@ -3,6 +3,7 @@ package banjo.expr.free;
 import banjo.eval.UnboundFunctionSelfName;
 import banjo.eval.expr.BindingInstance;
 import banjo.eval.expr.Environment;
+import banjo.eval.value.Value;
 import banjo.expr.source.Operator;
 
 public class FreeBaseSlotReference implements FreeExpression {
@@ -17,7 +18,7 @@ public class FreeBaseSlotReference implements FreeExpression {
     }
 
 	@Override
-	public Object apply(Environment env) {
+	public Value apply(Environment env) {
 		String id = ((FreeIdentifier)object).id;
 		final BindingInstance binding = env.apply(id);
 		if(binding.bindsSelfForSlot(slotName))

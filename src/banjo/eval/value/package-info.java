@@ -5,4 +5,4 @@
  * @author Dobes
  *
  */
-package banjo.eval.input;
+package banjo.eval.value;

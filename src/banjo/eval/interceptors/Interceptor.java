@@ -1,6 +1,7 @@
 package banjo.eval.interceptors;
 
-import banjo.eval.util.WrapperValue;
+import banjo.eval.value.Value;
+import banjo.eval.value.WrapperValue;
 
 
 /**
@@ -9,8 +10,8 @@ import banjo.eval.util.WrapperValue;
  */
 public abstract class Interceptor extends WrapperValue {
 
-	public final Object interceptor;
-	public Interceptor(Object interceptor, Object target) {
+	public final Value interceptor;
+	public Interceptor(Value interceptor, Value target) {
 	    super(target);
 	    this.interceptor = interceptor;
     }

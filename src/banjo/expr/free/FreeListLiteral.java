@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
 import banjo.eval.expr.Environment;
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.value.Value;
 import banjo.expr.util.ListUtil;
 import fj.data.List;
 
@@ -14,9 +14,10 @@ public class FreeListLiteral implements FreeExpression {
     }
 
 	@Override
-	public Object apply(Environment env) {
-	    final List<Object> elts = elements.map(e -> e.apply(env));
-		return JavaRuntimeSupport.callMethod(FreeExpressionFactory.javaHelpers(env), "list", List.single(elts));
+	public Value apply(Environment env) {
+	    final List<Value> elts = elements.map(e -> e.apply(env));
+		final Value javaHelpers = FreeExpressionFactory.javaHelpers(env);
+		return javaHelpers.callMethod("list", List.single(Value.fromJava(elts)));
 	}
 	@Override
 	public String toString() {

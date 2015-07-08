@@ -1,11 +1,12 @@
 package banjo.eval.expr;
 
-import banjo.eval.Value;
+import banjo.eval.value.Value;
+import banjo.eval.value.ValueToStringTrait;
 import banjo.expr.util.ListUtil;
-import fj.P;
+import fj.data.Option;
 import fj.data.TreeMap;
 
-public class ObjectInstance extends Value {
+public class ObjectInstance extends ValueToStringTrait implements Value {
 	public final TreeMap<String, SlotInstance> slots;
 
 	public ObjectInstance(
@@ -14,11 +15,11 @@ public class ObjectInstance extends Value {
     }
 
 	@Override
-	public Object slot(Object sourceObject, String name, Object fallback) {
-		return slots
-			.get(name).map(
-				slot -> slot.apply(sourceObject, fallback)
-			).orSome(P.lazy(() -> super.slot(sourceObject, name, fallback)));
+	public Value slot(Value sourceObject, String name, Value fallback) {
+		final Option<SlotInstance> value = slots.get(name);
+		if(value.isSome())
+			return value.some().apply(sourceObject, fallback);
+		return Value.super.slot(sourceObject, name, fallback);
 	}
 
 	@Override

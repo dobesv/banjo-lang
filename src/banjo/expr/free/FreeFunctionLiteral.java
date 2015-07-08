@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.expr.Environment;
 import banjo.eval.expr.FunctionInstance;
+import banjo.eval.value.Value;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
@@ -24,8 +25,9 @@ public class FreeFunctionLiteral implements FreeExpression {
     }
 
 	@Override
-	public Object apply(Environment env) {
-		return new FunctionInstance(ranges, args, body, sourceObjectBinding, env);
+	public Value apply(Environment env) {
+		final FunctionInstance f = new FunctionInstance(ranges, args, body, sourceObjectBinding, env);
+		return f;
 	}
 
 	@Override

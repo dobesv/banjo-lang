@@ -1,8 +1,8 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.BadExprInstance;
+import banjo.eval.UnresolvedCodeError;
 import banjo.eval.expr.Environment;
-import banjo.expr.core.BadCoreExpr;
+import banjo.eval.value.Value;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.token.Identifier;
@@ -25,8 +25,7 @@ public class FreeExpressionFactory implements
 	@Override
     public FreeExpression badExpr(
             List<SourceFileRange> ranges, String message, Object... args) {
-		final BadExprInstance result = new BadExprInstance(new BadCoreExpr(ranges, message, args));
-		return (env) -> result;
+		return (e) -> new UnresolvedCodeError(message, ranges);
     }
 
 	@Override
@@ -36,15 +35,15 @@ public class FreeExpressionFactory implements
 	    return new FreeObjectLiteral(ranges, slots);
     }
 
-	public static Object javaHelpers(Environment env) {
+	public static Value javaHelpers(Environment env) {
 	    return env.apply("java").value;
     }
 
-	private FreeExpression _callJavaHelper(String name, List<Object> args) {
+	private FreeExpression _callJavaHelper(String name, List<Value> args) {
 		return new FreeJavaHelperCall(name, args);
 	}
 
-	private FreeExpression callJavaHelper(String name, Object arg1) {
+	private FreeExpression callJavaHelper(String name, Value arg1) {
 		return _callJavaHelper(name, List.single(arg1));
 	}
 
@@ -52,14 +51,14 @@ public class FreeExpressionFactory implements
     public FreeExpression numberLiteral(
             List<SourceFileRange> ranges, Number number) {
 		if(number instanceof SourceNumber) number = ((SourceNumber)number).getValue();
-		FreeExpression result = callJavaHelper("number", number);
+		FreeExpression result = callJavaHelper("number", Value.fromJava(number));
 		return result;
     }
 
 	@Override
     public FreeExpression stringLiteral(
             List<SourceFileRange> ranges, String text) {
-		FreeExpression result = callJavaHelper("string", text);
+		FreeExpression result = callJavaHelper("string", Value.fromJava(text));
 		return result;
     }
 
@@ -91,7 +90,7 @@ public class FreeExpressionFactory implements
     public FreeExpression inspect(
             List<SourceFileRange> ranges,
             FreeExpression target) {
-		return callJavaHelper("mirror", target);
+		return (env) -> javaHelpers(env).callMethod("mirror", List.single(target.apply(env)));
     }
 
 	@Override
@@ -113,7 +112,8 @@ public class FreeExpressionFactory implements
             List<SourceFileRange> ranges, List<Identifier> args,
             FreeExpression body,
             Option<Identifier> sourceObjectBinding) {
-	    return new FreeFunctionLiteral(ranges, args, body, sourceObjectBinding);
+	    final FreeFunctionLiteral f = new FreeFunctionLiteral(ranges, args, body, sourceObjectBinding);
+		return f;
     }
 
 	@Override

@@ -344,7 +344,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				final Operator topOp = opStack.head().getOperator();
 				switch(topOp) {
 				case PROJECTION:
-				case SELECTOR:
+				case PROJECTION_FUNCTION:
 				case BASE_SLOT:
 				case PROJECTION_OF_MEMBERS:
 
@@ -549,7 +549,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 			operandIndentColumn = po.indentColumn;
 			if(po.isParen()) {
 				// Insert missing close paren error, if we are missing the close paren
-				operand = new BinaryOp(Operator.EXTEND, new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType()), operand);
+				operand = new BinaryOp(Operator.EXTENSION, new MissingCloseParen(po.operatorExpr.getSourceFileRanges(), po.getParenType()), operand);
 			}
 		}
 		return update(opStack, operand, operand, 0);

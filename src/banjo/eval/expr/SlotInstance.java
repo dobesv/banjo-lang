@@ -2,6 +2,8 @@ package banjo.eval.expr;
 
 import java.util.function.BiFunction;
 
-public interface SlotInstance extends BiFunction<Object, Object, Object> {
+import banjo.eval.value.Value;
+
+public interface SlotInstance extends BiFunction<Value, Value, Value> {
 
 }

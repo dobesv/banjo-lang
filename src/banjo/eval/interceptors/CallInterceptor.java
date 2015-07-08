@@ -2,7 +2,7 @@ package banjo.eval.interceptors;
 
 import java.util.function.Function;
 
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.value.Value;
 import fj.data.List;
 
 /**
@@ -13,19 +13,19 @@ import fj.data.List;
  */
 public class CallInterceptor extends Interceptor {
 
-	public CallInterceptor(Object interceptor, Object target) {
+	public CallInterceptor(Value interceptor, Value target) {
 		super(interceptor, target);
 	}
 
 	@Override
-	public Object call(Object recurse, Object baseImpl, List<Object> arguments) {
-		Function<Object, Object> suspension = new Function<Object, Object>() {
+	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
+		Value suspension = Value.fromJava(new Function<Value, Value>() {
 			@Override
-			public Object apply(Object t) {
-			    return JavaRuntimeSupport.call(t, arguments);
+			public Value apply(Value t) {
+			    return t.call(arguments);
 			}
-		};
-	    return JavaRuntimeSupport.call(interceptor, List.single(suspension));
+		});
+	    return interceptor.call(List.single(suspension));
 	}
 
 }
