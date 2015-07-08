@@ -13,6 +13,7 @@ import banjo.expr.core.CoreExpr;
 import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.SlotReference;
 import banjo.expr.source.Operator;
+import banjo.expr.source.OperatorType;
 
 public class TestOperator {
 
@@ -21,13 +22,13 @@ public class TestOperator {
 		HashMap<String, EnumSet<Operator>> methodOperatorMap = new HashMap<>();
 		for(Operator op : Operator.values()) {
 			final String methodName = op.getMethodName();
-			if(methodName != null) {
+			if(methodName != null &&
+					(op.operatorType == OperatorType.METHOD || op.operatorType == OperatorType.METHOD_SWITCHED)) {
 				EnumSet<Operator> ops = methodOperatorMap.get(methodName);
 				if(ops == null) methodOperatorMap.put(methodName, EnumSet.of(op));
 				else ops.add(op);
 			}
 		}
-
 		for(Map.Entry<String, EnumSet<Operator>> pair : methodOperatorMap.entrySet()) {
 			EnumSet<Operator> ops = pair.getValue();
 			assertEquals("Method name "+pair.getKey()+" maps to multiple operators: "+ops, 1, ops.size());
