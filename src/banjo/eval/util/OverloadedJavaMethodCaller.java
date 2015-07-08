@@ -6,12 +6,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import banjo.eval.Fail;
+import banjo.eval.value.FunctionTrait;
+import banjo.eval.value.FunctionValue;
 import banjo.eval.value.Value;
 import banjo.eval.value.ValueToStringTrait;
 import fj.data.Either;
 import fj.data.List;
 
-public class OverloadedJavaMethodCaller extends ValueToStringTrait implements Value {
+public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
 	public final Object target;
 	public final Method[] methods;
 	public OverloadedJavaMethodCaller(Object target, Method[] methods) {

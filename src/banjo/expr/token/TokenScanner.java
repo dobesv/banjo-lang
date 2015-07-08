@@ -607,7 +607,7 @@ public class TokenScanner {
 			} else if(digits > 0 && cp == '_') {
 				// Allow underscore to "break up" long numbers, like in Java
 				cp = in.read();
-			} else if(radix==10 && (cp == 'e' || cp == 'E' || cp == 'f' || cp == 'd')) {
+			} else if(radix==10 && (cp == 'e' || cp == 'E' || cp == 'f' || cp == 'd' || cp =='D')) {
 				// Can't start a number with an exponent marker
 				if(!isNumber) {
 					in.seek(this.tokenStartPos);
@@ -634,6 +634,12 @@ public class TokenScanner {
 				}
 				if(negexp) exp = -exp;
 				break;
+			} else if(cp == 'I') {
+				// Force BigInteger
+				expType = cp;
+				if(intValBig == null)
+					intValBig = BigInteger.valueOf(intValLong);
+				break; // No more digits after the 'I'
 			} else {
 				final int digitValue = Character.digit(cp, radix);
 				if(digitValue == -1) {
@@ -665,6 +671,9 @@ public class TokenScanner {
 		in.seek(this.afterDigits);
 
 		final int digitsRightOfDecimalPoint = digits - digitsLeftOfDecimalPoint;
+
+		// Check for a period without digits after it, in which case this
+		// might be an integer projection or not a number (e.g. an operator).
 		if(!isInteger && digits == digitsLeftOfDecimalPoint) {
 			if(!isNumber) {
 				in.seek(this.tokenStartPos);
@@ -706,6 +715,14 @@ public class TokenScanner {
 				if(!Double.isFinite(doubleValue))
 					throw new ArithmeticException("Number too large for double: "+text);
 				number = doubleValue;
+			} else if(expType == 'D') {
+				if(isInteger) {
+					if(intValBig == null) {
+						number = BigDecimal.valueOf(intValLong, scale);
+					} else {
+						number = new BigDecimal(intValBig, scale);
+					}
+				}
 			}
 		} catch(ArithmeticException e) {
 			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), e.getMessage());

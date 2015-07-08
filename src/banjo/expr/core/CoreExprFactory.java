@@ -1099,9 +1099,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final SourceExpr rightSourceExpr = op.getRight();
 		switch(operator.operatorType) {
 		case METHOD:
-			return binaryOpToCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
+			return binaryOpToMethodCall(op, leftSourceExpr, operator, operatorRanges, rightSourceExpr, optional);
 		case METHOD_SWITCHED:
-			return binaryOpToCall(op, rightSourceExpr, operator, operatorRanges, leftSourceExpr, optional);
+			return binaryOpToMethodCall(op, rightSourceExpr, operator, operatorRanges, leftSourceExpr, optional);
 		case FUNCTION:
 			return binaryOpToFunctionCall(op, leftSourceExpr, rightSourceExpr, operator.getMethodIdentifier());
 		case FUNCTION_SWITCHED:
@@ -1111,7 +1111,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		}
 	}
 
-	protected DesugarResult<CoreExpr> binaryOpToCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
+	protected DesugarResult<CoreExpr> binaryOpToMethodCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
 		final DesugarResult<CoreExpr> leftDs = expr(leftSourceExpr);
 		final DesugarResult<CoreExpr> rightDs = leftDs.expr(rightSourceExpr);
 		return rightDs.withDesugared(op, binaryOpToCall(op.getSourceFileRanges(), leftDs.getValue(), operator, operatorRanges, rightDs.getValue(), optional));
@@ -1121,7 +1121,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final boolean rightAssoc = operator.isRightAssociative();
 		final CoreExpr target = rightAssoc?rightCoreExpr:leftCoreExpr;
 		final CoreExpr parameter = rightAssoc?leftCoreExpr:rightCoreExpr;
-		final CoreExpr callTarget = operator == Operator.CALL? target : new SlotReference(target, opMethodName(operatorRanges, operator));
+		final Identifier methodName = opMethodName(operatorRanges, operator);
+		final CoreExpr callTarget = operator == Operator.CALL? target : new SlotReference(target, methodName);
 		return new Call(ranges, callTarget, List.single(parameter));
 	}
 
@@ -1159,8 +1160,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case CALL: return call(op);
 		case PIPE_TO: return pipeTo(op);
 		case PIPE_FROM: return pipeFrom(op);
-		case FUNCTION_COMPOSITION_LEFT: return functionCompositionLeft(op);
-		case FUNCTION_COMPOSITION_RIGHT: return functionCompositionRight(op);
 
 		// '.' and variants with NO parameters.  When there's a call, these are
 		// checked for specially inside of call().
@@ -1191,6 +1190,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case FALLBACK:
 		case APPLICATION_TO_MEMBERS:
 		case EXTENSION:
+		case FUNCTION_COMPOSITION_LEFT:
+		case FUNCTION_COMPOSITION_RIGHT:
 			return binaryOpToCall(op, false);
 
 		case JUXTAPOSITION:
@@ -1303,14 +1304,14 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	 * a ; b = ((...) -> b(a(...)))
 	 */
 	public DesugarResult<CoreExpr> functionCompositionRight(BinaryOp op) {
-	    return binaryOpToFunctionCall(op, op.getLeft(), op.getRight(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
+	    return binaryOpToMethodCall(op, op.getLeft(), op.getRight(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
     }
 
 	/**
 	 * a ∘ b = ((...) -> a(b(...)))
 	 */
 	public DesugarResult<CoreExpr> functionCompositionLeft(BinaryOp op) {
-	    return binaryOpToFunctionCall(op, op.getRight(), op.getLeft(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
+	    return binaryOpToMethodCall(op, op.getRight(), op.getLeft(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
     }
 
 
