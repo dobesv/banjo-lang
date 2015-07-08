@@ -36,14 +36,21 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public void toSource(final StringBuffer sb) {
 		getBinaryOperator().map(op -> {
-			CoreExpr tgt = ((SlotReference)target).object;
-			CoreExpr arg = args.head();
+			CoreExpr first;
+			CoreExpr second;
+			if(target instanceof Call) {
+				first = ((Call)target).args.head();
+				second = args.head();
+			} else {
+				first = ((SlotReference)target).object;
+				second = args.head();
+			}
 			boolean switched = op.isSelfOnRightMethodOperator();
-			(switched? arg : tgt).toSource(sb, op.getLeftPrecedence());
+			(switched? second : first).toSource(sb, op.getLeftPrecedence());
 			sb.append(' ');
 			op.toSource(sb);
 			sb.append(' ');
-			(switched? tgt : arg).toSource(sb, op.getRightPrecedence());
+			(switched? first : second).toSource(sb, op.getRightPrecedence());
 			return op;
 		}).orSome(P.lazy(u -> {
 			target.toSource(sb, Operator.CALL.getLeftPrecedence());
@@ -57,12 +64,19 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public Option<Operator> getBinaryOperator() {
-	    if(!args.isSingle())
+		if(!args.isSingle())
 	    	return Option.none();
-	    if(!(target instanceof SlotReference))
-	    	return Option.none();
-		SlotReference slotRef = (SlotReference)target;
-		return slotRef.getBinaryOperator();
+	    if(target instanceof Call) {
+	    	Call subcall = (Call)target;
+	    	if(subcall.args.isSingle() && subcall.target instanceof Identifier) {
+	    		Operator op = Operator.fromMethodName((Identifier)subcall.target, true);
+	    		return Option.fromNull(op);
+	    	}
+	    } else if(target instanceof SlotReference) {
+			SlotReference slotRef = (SlotReference)target;
+			return slotRef.getBinaryOperator();
+	    }
+    	return Option.none();
     }
 	public void argsToSource(final StringBuffer sb) {
 	    sb.append('(');
