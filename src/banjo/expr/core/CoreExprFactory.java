@@ -447,7 +447,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 			private DesugarResult<List<Slot>> pair(SourceExpr lvalueExpr, SourceExpr valueSourceExpr, Operator combiningOp) {
 				final DesugarResult<CoreExpr> eltDs = element(valueSourceExpr, headings);
-				// TODO Apply combiningOp operator ...
 				return eltDs.addMethod(fieldSourceExpr, lvalueExpr, eltDs.getValue(), Identifier.TRUE, slots, combiningOp);
 			}
 
@@ -1299,21 +1298,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final DesugarResult<CoreExpr> exprDs = expr(op.getOperand());
 		return exprDs.withDesugared(op, new Inspect(op.getSourceFileRanges(), exprDs.getValue()));
 	}
-
-	/**
-	 * a ; b = ((...) -> b(a(...)))
-	 */
-	public DesugarResult<CoreExpr> functionCompositionRight(BinaryOp op) {
-	    return binaryOpToMethodCall(op, op.getLeft(), op.getRight(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
-    }
-
-	/**
-	 * a ∘ b = ((...) -> a(b(...)))
-	 */
-	public DesugarResult<CoreExpr> functionCompositionLeft(BinaryOp op) {
-	    return binaryOpToMethodCall(op, op.getRight(), op.getLeft(), Operator.FUNCTION_COMPOSITION_RIGHT.getMethodIdentifier());
-    }
-
 
 	private DesugarResult<CoreExpr> binaryOpToFunctionCall(BinaryOp op, SourceExpr first, SourceExpr second, Identifier functionIdentifier) {
 	    final DesugarResult<CoreExpr> firstDs = expr(first);

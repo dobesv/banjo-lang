@@ -1,7 +1,7 @@
 package banjo.eval.util;
 
 import banjo.eval.expr.ProjectEnvironment;
-import banjo.eval.input.InputValue;
+import banjo.eval.value.Value;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
@@ -34,43 +34,43 @@ public class JavaResources {
 		FreeExpression freeExpr = FreeExpressionFactory.apply(ast);
 		String cwdPath = new java.io.File(".banjo").getAbsolutePath();
 		ProjectEnvironment environment = ProjectEnvironment.forSourceFile(cwdPath);
-		Object program = environment.bind(freeExpr);
-		final List<Object> progArgs = List.<Object>single(this);
+		Value program = environment.bind(freeExpr);
+		final List<Value> progArgs = List.single(Value.fromJava(this));
 
 		long currentTimeMillis = System.currentTimeMillis();
-		while(true) {
-			Object actions = JavaRuntimeSupport.call(program, progArgs);
-			
-	    	P2<Runnable, Set<InputValue>> r = JavaRuntimeSupport.convertToJava(Runnable.class, actions);
-
-			r._1().run();
-
-			// Now watch the input values ...
-			Set<InputValue> inputValues = r._2();
-			long nextPollTime = Long.MAX_VALUE;
-			for(InputValue inputValue : inputValues) {
-				nextPollTime = Math.min(nextPollTime, inputValue.getNextPollTime(currentTimeMillis));
-			}
-
-			if(nextPollTime == Long.MAX_VALUE) {
-				// No point waiting so long ...
-				// Note: even if we are waiting for I/O, I/O should always have a timeout
-				return;
-			}
-			long timeToNextPoll = nextPollTime - System.currentTimeMillis();
-			if(timeToNextPoll > 0) {
-				try {
-		            Thread.sleep(timeToNextPoll);
-	            } catch (InterruptedException e) {
-	            	return;
-	            }
-			}
-
-			currentTimeMillis = System.currentTimeMillis();
-			for(InputValue inputValue : inputValues) {
-				inputValue.poll(currentTimeMillis);
-			}
-
-		}
+//		while(true) {
+//			Value actions = program.call(progArgs);
+//
+//	    	P2<Runnable, Set<InputValue>> r = JavaRuntimeSupport.convertToJava(Runnable.class, actions);
+//
+//			r._1().run();
+//
+//			// Now watch the input values ...
+//			Set<InputValue> inputValues = r._2();
+//			long nextPollTime = Long.MAX_VALUE;
+//			for(InputValue inputValue : inputValues) {
+//				nextPollTime = Math.min(nextPollTime, inputValue.getNextPollTime(currentTimeMillis));
+//			}
+//
+//			if(nextPollTime == Long.MAX_VALUE) {
+//				// No point waiting so long ...
+//				// Note: even if we are waiting for I/O, I/O should always have a timeout
+//				return;
+//			}
+//			long timeToNextPoll = nextPollTime - System.currentTimeMillis();
+//			if(timeToNextPoll > 0) {
+//				try {
+//		            Thread.sleep(timeToNextPoll);
+//	            } catch (InterruptedException e) {
+//	            	return;
+//	            }
+//			}
+//
+//			currentTimeMillis = System.currentTimeMillis();
+//			for(InputValue inputValue : inputValues) {
+//				inputValue.poll(currentTimeMillis);
+//			}
+//
+//		}
     }
 }

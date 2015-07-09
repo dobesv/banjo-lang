@@ -20,7 +20,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final List<FunctionLiteral> EMPTY_METHOD_LIST = List.nil();
 	public final List<Slot> slots;
 
-	public static final Ord<ObjectLiteral> ORD = Slot.LIST_ORD.comap((ObjectLiteral x) -> x.slots);
+	public static final Ord<ObjectLiteral> ORD = Slot.LIST_ORD.contramap((ObjectLiteral x) -> x.slots);
 
 	public ObjectLiteral() {
 		this(List.nil());

@@ -9,8 +9,8 @@ import fj.data.List;
 
 
 public interface Expr {
-	public static final Ord<Expr> EXPR_RANGES_ORD = SourceFileRange.LIST_ORD.comap(x -> x.getSourceFileRanges());
-	public static final Ord<Object> CLASS_NAME_ORD = Ord.stringOrd.comap(x -> x.getClass().getName());
+	public static final Ord<Expr> EXPR_RANGES_ORD = SourceFileRange.LIST_ORD.contramap(x -> x.getSourceFileRanges());
+	public static final Ord<Object> CLASS_NAME_ORD = Ord.stringOrd.contramap(x -> x.getClass().getName());
 
 	public void toSource(StringBuffer sb);
 

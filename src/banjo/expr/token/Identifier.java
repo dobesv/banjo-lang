@@ -13,7 +13,7 @@ import fj.Ord;
 import fj.data.List;
 
 public class Identifier extends AbstractAtom implements Atom, Token {
-	public static final Ord<Identifier> ORD = Ord.stringOrd.comap(x -> x.id);
+	public static final Ord<Identifier> ORD = Ord.stringOrd.contramap(x -> x.id);
 	public static final Ord<List<Identifier>> LIST_ORD = Ord.listOrd(ORD);
 
 	public static final Identifier ZERO = new Identifier("0");

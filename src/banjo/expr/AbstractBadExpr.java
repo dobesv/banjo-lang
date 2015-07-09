@@ -11,8 +11,8 @@ import fj.data.List;
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	public static final Ord<Object[]> ARGS_ORD = Ord.ord((a) -> (b) -> Ordering.fromInt(AbstractBadExpr.compareArgs(a, b)));
 	public static final Ord<AbstractBadExpr> ORD = OrdUtil.chain(
-		Ord.stringOrd.comap((AbstractBadExpr x) -> x.messageTemplate),
-		ARGS_ORD.comap((AbstractBadExpr x) -> x.args)
+		Ord.stringOrd.contramap((AbstractBadExpr x) -> x.messageTemplate),
+		ARGS_ORD.contramap((AbstractBadExpr x) -> x.args)
 	);
 
 	private final String messageTemplate;

@@ -14,8 +14,8 @@ import fj.data.List;
 
 public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	public static final Ord<BadIdentifier> ORD = OrdUtil.chain(
-				Ord.stringOrd.comap((BadIdentifier x) -> x.message),
-				Ord.stringOrd.comap((BadIdentifier x) -> x.originalSource)
+				Ord.stringOrd.contramap((BadIdentifier x) -> x.message),
+				Ord.stringOrd.contramap((BadIdentifier x) -> x.originalSource)
 	);
 	public final String message;
 	public final String originalSource;

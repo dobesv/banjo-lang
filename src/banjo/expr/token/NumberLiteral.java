@@ -24,7 +24,7 @@ import fj.data.List;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom {
-	public static final Ord<NumberLiteral> ORD = Ord.stringOrd.comap((NumberLiteral n) -> n.number.toString());
+	public static final Ord<NumberLiteral> ORD = Ord.stringOrd.contramap((NumberLiteral n) -> n.number.toString());
 
 	private final Number number;
 

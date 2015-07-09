@@ -8,8 +8,8 @@ import fj.data.List;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
 	public static final Ord<BinaryOp> _leftRightOrd = OrdUtil.chain(
-			sourceExprOrd.comap((BinaryOp x) -> x.left),
-			sourceExprOrd.comap((BinaryOp x) -> x.right)
+			sourceExprOrd.contramap((BinaryOp x) -> x.left),
+			sourceExprOrd.contramap((BinaryOp x) -> x.right)
 	);
 	public static final Ord<BinaryOp> ORD = OrdUtil.chain(
 			AbstractOp.<BinaryOp>_operatorOrd(),

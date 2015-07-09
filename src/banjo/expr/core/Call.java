@@ -13,8 +13,8 @@ import fj.data.Option;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 	public static final Ord<Call> callOrd = OrdUtil.chain(
-		CoreExpr.coreExprOrd.comap(call -> call.target),
-		CoreExpr.listOfCoreExprOrd.comap(call -> call.args)
+		CoreExpr.coreExprOrd.contramap(call -> call.target),
+		CoreExpr.listOfCoreExprOrd.contramap(call -> call.args)
 	);
 	public final CoreExpr target;
 	public final List<CoreExpr> args;

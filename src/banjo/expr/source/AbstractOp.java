@@ -6,7 +6,7 @@ import fj.Ord;
 import fj.data.List;
 
 public abstract class AbstractOp extends AbstractExpr {
-	protected static final <T extends AbstractOp> Ord<T> _operatorOrd() { return Operator.ORD.comap((x) -> x.operator); }
+	protected static final <T extends AbstractOp> Ord<T> _operatorOrd() { return Operator.ORD.contramap((x) -> x.operator); }
 			
 	public final Operator operator;
 	public final SourceExpr[] operands;

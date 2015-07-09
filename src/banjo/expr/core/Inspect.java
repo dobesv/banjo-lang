@@ -12,7 +12,7 @@ import fj.data.List;
  * The metadata is a map from a method name to that method's metadata.
  */
 public class Inspect extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<Inspect> ORD = CoreExpr.coreExprOrd.comap((x) -> x.target);
+	public static final Ord<Inspect> ORD = CoreExpr.coreExprOrd.contramap((x) -> x.target);
 	public final CoreExpr target;
 
 	public CoreExpr getTarget() {

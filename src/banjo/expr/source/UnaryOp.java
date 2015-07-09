@@ -8,8 +8,8 @@ import fj.data.List;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	public static final Ord<UnaryOp> ORD = OrdUtil.chain(
-			Operator.ORD.comap(x -> x.operator),
-			sourceExprOrd.comap(x -> x.operand)
+			Operator.ORD.contramap(x -> x.operator),
+			sourceExprOrd.contramap(x -> x.operand)
 	);
 	private final SourceExpr operand;
 

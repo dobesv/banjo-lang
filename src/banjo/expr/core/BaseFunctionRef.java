@@ -13,7 +13,7 @@ import fj.data.List;
  * The metadata is a map from a method name to that method's metadata.
  */
 public class BaseFunctionRef extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<BaseFunctionRef> ORD = Identifier.ORD.comap((x) -> x.name);
+	public static final Ord<BaseFunctionRef> ORD = Identifier.ORD.contramap((x) -> x.name);
 	public final Identifier name;
 
 	public BaseFunctionRef(List<SourceFileRange> sourceFileRanges, Identifier name) {

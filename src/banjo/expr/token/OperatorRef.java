@@ -14,7 +14,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	public static final OperatorRef NONE = null;
 
-	public static final Ord<OperatorRef> ORD = Ord.stringOrd.comap((OperatorRef opRef) -> opRef.op);
+	public static final Ord<OperatorRef> ORD = Ord.stringOrd.contramap((OperatorRef opRef) -> opRef.op);
 
 	public final String op;
 	public final int indentColumn;

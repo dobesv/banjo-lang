@@ -22,10 +22,10 @@ public class Slot {
     }
 
 	static final Ord<Slot> ORD = OrdUtil.chain(
-			Identifier.ORD.comap(slot -> slot.name),
+			Identifier.ORD.contramap(slot -> slot.name),
 			OrdUtil.chain(
-					Ord.optionOrd(Identifier.ORD).comap(slot -> slot.sourceObjectBinding),
-					CoreExpr.coreExprOrd.comap(slot -> slot.value)
+					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.sourceObjectBinding),
+					CoreExpr.coreExprOrd.contramap(slot -> slot.value)
 			));
 	static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
 

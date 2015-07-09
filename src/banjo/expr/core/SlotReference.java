@@ -13,8 +13,8 @@ import fj.data.Option;
 
 public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	public static final Ord<SlotReference> ORD = OrdUtil.chain(
-			CoreExpr.coreExprOrd.comap((SlotReference x) -> x.object),
-			Identifier.ORD.comap((SlotReference x) -> x.slotName)
+			CoreExpr.coreExprOrd.contramap((SlotReference x) -> x.object),
+			Identifier.ORD.contramap((SlotReference x) -> x.slotName)
 	);
 	public final CoreExpr object;
 	public final Identifier slotName;
@@ -75,13 +75,14 @@ public class SlotReference extends AbstractCoreExpr implements CoreExpr {
 	    return base ? Operator.BASE_SLOT : Operator.PROJECTION;
     }
 
+	public String binaryOpString(Operator op) {
+		return op.isParen() ? op.getParenType().getStartChar()+object.toString()+op.getParenType().getEndChar() :
+			op.isPrefix() ? op.getOp() + object.toString() :
+			object.toString() + op.getOp();
+	}
 	@Override
 	public String toString() {
-		return getUnaryOperator().map(op ->
-			op.isParen() ? op.getParenType().getStartChar()+object.toString()+op.getParenType().getEndChar() :
-			op.isPrefix() ? op.getOp() + object.toString() :
-			object.toString() + op.getOp()
-		).orSome(P.lazy(u -> object.toString() + getOperator().getOp()+slotName.toString()));
+		return getUnaryOperator().map(this::binaryOpString).orSome(P.lazy(u -> object.toString() + getOperator().getOp()+slotName.toString()));
 	}
 
 	@Override
