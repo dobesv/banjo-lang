@@ -92,9 +92,7 @@ task eclipseBuildProperties << {
 		.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it)})
 		.join(","))
 	props.setProperty("src.includes",
-		(sourceSets.main.java.srcDirs +
-			sourceSets.test.java.srcDirs +
-			["build.gradle", ".gitignore", ".gitattributes", "Readme.md", "META-INF"].collect({project.file(it)}))
+		(["build.gradle", "Readme.md"].collect({project.file(it)}))
 		.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it) + (it.isDirectory()?"/":"")})
 		.join(","))
 	props.setProperty("bin.includes", [
