@@ -25,10 +25,18 @@ import fj.data.List;
 
 @RunWith(Parameterized.class)
 public class TestRunCoreLibraryExamples extends BaseExprTest {
+	private CoreExpr withoutScope;
+
 	public TestRunCoreLibraryExamples(CoreExpr expr, CoreExpr withoutScope) {
-	    super(expr);
+	    this.expr = expr;
+	    this.withoutScope = withoutScope;
     }
 
+	@Override
+	public CoreExpr getAst() {
+		return expr;
+	}
+	
 //	@Test
 //	public void test() throws Throwable {
 //		CoreExpr body = TestRunCoreLibraryExamples.stripScope(expr);
@@ -126,7 +134,9 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 			}
 			@Override
 			public List<CoreExpr> let(Let let) {
-			    return List.join(let.bindings.map(this::binding)).map(e -> new Let(let.getSourceFileRanges(), let.bindings, e));
+			    List<List<CoreExpr>> examplesInBindings = let.bindings.map(this::binding);
+				List<CoreExpr> examplesInBody = let.body.acceptVisitor(this);
+				return List.join(examplesInBindings).append(examplesInBody).map(e -> new Let(let.getSourceFileRanges(), let.bindings, e));
 			}
 			@Override
 			public List<CoreExpr> extend(Extend n) {
@@ -135,16 +145,19 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 
 			@Override
 			public List<CoreExpr> functionLiteral(FunctionLiteral f) {
-			    return f.body.acceptVisitor(this).map(e ->
+			    List<CoreExpr> result = f.body.acceptVisitor(this).map(e ->
 			        f.sourceObjectBinding.map(recId ->
 			            (CoreExpr)new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e))
 		            .orSome(e));
+				return result;
 			}
 
 			@Override
 			public List<CoreExpr> slotReference(SlotReference slotReference) {
 			    return slotReference.object.acceptVisitor(this);
 			}
+			
+			
 		});
 	}
 	private static List<CoreExpr> allExamples;
