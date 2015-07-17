@@ -1,9 +1,11 @@
 package banjo.eval;
 
+import banjo.eval.util.JavaRuntimeSupport;
+import banjo.event.Event;
+import banjo.value.Reaction;
+import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
-import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.value.Value;
 
 
 public class Fail extends Error implements Value {
@@ -77,6 +79,11 @@ public class Fail extends Error implements Value {
 	    return false;
 	}
 
+	@Override
+	public Reaction<Value> react(Event event) {
+		return Reaction.none(this);
+	}
+	
 	@Override
 	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
 		if(clazz.isAssignableFrom(Fail.class)) {

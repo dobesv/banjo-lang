@@ -1,10 +1,10 @@
 package banjo.expr.free;
 
 import banjo.eval.UnboundFunctionSelfName;
+import banjo.eval.environment.Environment;
 import banjo.eval.expr.BindingInstance;
-import banjo.eval.expr.Environment;
-import banjo.eval.value.Value;
 import banjo.expr.source.Operator;
+import banjo.value.Value;
 
 public class FreeBaseSlotReference implements FreeExpression {
 	public final FreeExpression object;

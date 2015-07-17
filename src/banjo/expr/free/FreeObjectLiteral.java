@@ -1,14 +1,15 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
+import banjo.eval.environment.Environment;
+import banjo.eval.expr.FreeSlotInstance;
 import banjo.eval.expr.ObjectInstance;
 import banjo.eval.expr.RecursiveSlotInstance;
 import banjo.eval.expr.SlotInstance;
-import banjo.eval.util.SlotMemoizer;
-import banjo.eval.value.Value;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.Value;
+import banjo.value.meta.SlotMemoizer;
 import fj.Ord;
 import fj.P;
 import fj.P2;

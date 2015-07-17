@@ -1,10 +1,10 @@
 package banjo.expr.free;
 
 import banjo.eval.ExtendedObject;
-import banjo.eval.expr.Environment;
-import banjo.eval.util.SlotMemoizer;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
 import banjo.expr.source.Operator;
+import banjo.value.Value;
+import banjo.value.meta.SlotMemoizer;
 
 public class FreeExtend implements FreeExpression {
 	public final FreeExpression base;

@@ -1,14 +1,9 @@
 package banjo.eval.expr.test;
 
-import static org.junit.Assert.*;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import banjo.eval.Fail;
-import banjo.expr.core.CoreErrorGatherer;
-import banjo.expr.core.CoreExpr;
 import fj.data.Stream;
 
 @RunWith(Parameterized.class)
@@ -53,7 +48,7 @@ public class TestSimpleExpressions extends BaseSourceExprTest {
 			"[1, 2, 3, 4, 5].slice(2, 2) == []",
 			"[1, 2, 3, 4, 5, 6].slice(2, -1) == [3, 4, 5]",
 			"(not = (x -> !x), not not = not ; not) ⇒ not not(true)",
-			"(not = (x -> !x), not not = not ; not, not not not = not not ; not) ⇒ not not not(true) == false"
+			"(not = (x -> !x), not not = (not ; not), not not not = (not not ; not)) ⇒ not not not(true) == false"
 		).append(Stream.join(Stream.range(1, 10).map(i -> Stream.stream(
 				String.valueOf(i)+" == "+String.valueOf(i),
 				String.valueOf(-i)+" == "+String.valueOf(-i),

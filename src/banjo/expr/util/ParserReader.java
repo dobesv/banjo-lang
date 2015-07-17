@@ -26,7 +26,7 @@ public class ParserReader extends Reader {
 		int line = 1;
 		int col = 1;
 		int offset = 0;
-		int indentColumn = 1;
+		int indentColumn = 0;
 		boolean startOfLine = true;
 
 		public Pos() {
@@ -63,7 +63,7 @@ public class ParserReader extends Reader {
 			if(ch == '\n') {
 				this.line++;
 				this.col = 1;
-				this.indentColumn = 1;
+				this.indentColumn = 0;
 				this.startOfLine = true;
 			} else {
 				this.col++;

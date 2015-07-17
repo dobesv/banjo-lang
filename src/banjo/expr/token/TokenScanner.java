@@ -634,6 +634,9 @@ public class TokenScanner {
 				}
 				if(negexp) exp = -exp;
 				break;
+			} else if(cp == 'L' || cp == 'i') {
+				expType = cp;
+				break; // No more digits after the suffix
 			} else if(cp == 'I') {
 				// Force BigInteger
 				expType = cp;
@@ -705,17 +708,20 @@ public class TokenScanner {
 					number = new BigDecimal(intValBig, scale);
 				}
 			}
-			if(expType == 'f') {
+			switch(expType) {
+			case 'f':
 				final float floatValue = number.floatValue();
 				if(!Float.isFinite(floatValue))
 					throw new ArithmeticException("Number too large for float: "+text);
 				number = floatValue;
-			} else if(expType == 'd') {
+				break;
+			case 'd':
 				final double doubleValue = number.doubleValue();
 				if(!Double.isFinite(doubleValue))
 					throw new ArithmeticException("Number too large for double: "+text);
 				number = doubleValue;
-			} else if(expType == 'D') {
+				break;
+			case 'D':
 				if(isInteger) {
 					if(intValBig == null) {
 						number = BigDecimal.valueOf(intValLong, scale);
@@ -723,6 +729,15 @@ public class TokenScanner {
 						number = new BigDecimal(intValBig, scale);
 					}
 				}
+				break;
+			case 'i':
+				// TODO Check if out of range
+				number = number.intValue();
+				break;
+			case 'L':
+				// TODO Check if out of range
+				number = number.longValue();
+				break;
 			}
 		} catch(ArithmeticException e) {
 			visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), e.getMessage());

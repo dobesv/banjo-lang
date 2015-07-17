@@ -1,9 +1,11 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
-import banjo.eval.value.Value;
+import java.util.function.Supplier;
+
+import banjo.eval.environment.Environment;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.Value;
 import fj.data.List;
 
 public class FreeCall implements FreeExpression {
@@ -18,6 +20,26 @@ public class FreeCall implements FreeExpression {
         this.args = args;
     }
 
+	public static class LazyCall implements Supplier<Value> {
+		public final Value callee;
+		public final List<Value> args;
+		
+		public LazyCall(Value callee, List<Value> args) {
+			super();
+			this.callee = callee;
+			this.args = args;
+		}
+
+		@Override
+		public Value get() {
+			return callee.call(args);
+		}
+		
+		@Override
+		public String toString() {
+			return get().toString();
+		}
+	}
 
 	/**
 	 * Bind the call to the environment, but do not evaluate it yet.
@@ -26,7 +48,7 @@ public class FreeCall implements FreeExpression {
 	public Value apply(Environment environment) {
 		Value callee = function.apply(environment);
 		List<Value> args = this.args.map(arg -> arg.apply(environment));
-		return Value.lazy(() -> callee.call(args));
+		return Value.lazy(new LazyCall(callee, args));
 	}
 
 	@Override

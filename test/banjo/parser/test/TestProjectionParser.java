@@ -30,7 +30,7 @@ public class TestProjectionParser extends BaseParserTest {
 				test("a.\\.\\.", SlotReference.class),
 				test("a.\\.", SlotReference.class),
 				test("a*.b", "a *> (.b)", Call.class),
-				test("{t = [x, y].map((z) ↦ (\n  x\n )).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
+				test("{t = [x, y].map((z) ↦ (x)).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
 				test("{t = [\nx, \ny].length\n}", "{t = [x, y].length}", ObjectLiteral.class)
 		);
 	}

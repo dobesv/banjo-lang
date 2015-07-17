@@ -2,6 +2,7 @@ package banjo.expr.core;
 
 import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
+import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
@@ -32,14 +33,18 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append('[');
-		boolean first = true;
-		for(final CoreExpr elt : this.elements) {
-			if(first) first = false;
-			else sb.append(", ");
-			elt.toSource(sb, Precedence.COMMA);
+		if(elements.isEmpty()) {
+			sb.append("[]");
+		} else {
+			sb.append('[');
+			boolean first = true;
+			for(final CoreExpr elt : this.elements) {
+				if(first) first = false;
+				else sb.append(", ");
+				elt.toSource(sb, Precedence.COMMA);
+			}
+			sb.append(']');
 		}
-		sb.append(']');
 	}
 
 	@Override
@@ -62,10 +67,12 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public String toString() {
+		if(elements.isEmpty())
+			return "[]";
 		if(elements.length() > 5) {
-			return "["+elements.take(5)+", ...]";
+			return "["+ListUtil.insertCommas(elements.take(5))+", ...]";
 		} else {
-			return "["+elements+"]";
+			return "["+ListUtil.insertCommas(elements)+"]";
 		}
 	}
 

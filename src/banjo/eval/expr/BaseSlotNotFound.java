@@ -1,8 +1,7 @@
 package banjo.eval.expr;
 
 import banjo.eval.SlotNotFound;
-import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.value.Value;
+import banjo.value.Value;
 
 public class BaseSlotNotFound extends SlotNotFound {
 

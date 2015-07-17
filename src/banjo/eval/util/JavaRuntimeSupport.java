@@ -2,17 +2,21 @@ package banjo.eval.util;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.function.Supplier;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
-import banjo.eval.interceptors.ArgInterceptor;
-import banjo.eval.interceptors.CallInterceptor;
-import banjo.eval.interceptors.CallResultInterceptor;
-import banjo.eval.interceptors.SlotInterceptor;
-import banjo.eval.value.Value;
+import banjo.event.sink.EventSink;
+import banjo.event.source.EventSource;
 import banjo.expr.token.StringLiteral;
+import banjo.value.Value;
+import banjo.value.meta.ArgMapper;
+import banjo.value.meta.DynamicCallProxy;
+import banjo.value.meta.DynamicSlotProxy;
+import banjo.value.meta.FunctionComposition;
+import banjo.value.meta.SlotMapper;
 import fj.data.List;
 
 public class JavaRuntimeSupport {
@@ -43,43 +47,41 @@ public class JavaRuntimeSupport {
 	 */
 	@SlotName("function composition")
 	public static Value composeFunctions(Value first, Value second) {
-		return new CallResultInterceptor(second, first);
-	}
-
-	/**
-	 * Function result interceptor.  Equivalent to function composition.
-	 */
-	@SlotName("result interceptor")
-	public static Value functionResultInterceptor(Value interceptor, Value target) {
-		return new CallResultInterceptor(interceptor, target);
+		return new FunctionComposition(second, first);
 	}
 
 	/**
 	 * Slot interceptor.  Passes each slot value through a function before returning it.
 	 */
-	@SlotName("slot interceptor")
-	public static Value slotInterceptor(Value interceptor, Value target) {
-		return new SlotInterceptor(interceptor, target);
+	@SlotName("dynamic slot proxy")
+	public static Value slotInterceptor(Value interceptor) {
+		return new DynamicSlotProxy(interceptor);
 	}
 
 	/**
 	 * Function argument interceptor - passes each function argument through a function
 	 * before passing it into the given object.
 	 */
-	@SlotName("argument interceptor")
-	public static Object argInterceptor(Value interceptor, Value target) {
-		return new ArgInterceptor(interceptor, target);
+	@SlotName("arg mapper")
+	public static Object argMapper(Value interceptor, Value target) {
+		return new ArgMapper(interceptor, target);
 	}
 
 	/**
 	 * Call interceptor - gets function arguments as a tuple to use as it
 	 * pleases.
 	 */
-	@SlotName("call interceptor")
-	public static Value callInterceptor(Value interceptor, Value target) {
-		return new CallInterceptor(interceptor, target);
+	@SlotName("dynamic call proxy")
+	public static Value callInterceptor(Value proxy) {
+		return new DynamicCallProxy(proxy);
+	}
+	
+	@SlotName("slot mapper")
+	public static Value slotMapper(Value f, Value source) {
+		return new SlotMapper(f, source);
 	}
 
+	
 	@SlotName("∞")
 	public static double infinity() {
 		return Double.POSITIVE_INFINITY;
@@ -109,6 +111,13 @@ public class JavaRuntimeSupport {
 		public static BigDecimal toBigDecimal(int a) { return BigDecimal.valueOf(a); }
 		@SlotName("to big integer")
 		public static BigInteger toBigInteger(int a) { return BigInteger.valueOf(a); }
+		
+		@SlotName("bitwise and")
+		public static int and(int a, int b) { return a & b; }
+		@SlotName("bitwise or")
+		public static int or(int a, int b) { return a | b; }
+		@SlotName("bitwise xor")
+		public static int xor(int a, int b) { return a ^ b; }
 	}
 
 	@SlotName("long")
@@ -135,6 +144,14 @@ public class JavaRuntimeSupport {
 		public static BigDecimal toBigDecimal(long a) { return BigDecimal.valueOf(a); }
 		@SlotName("to big integer")
 		public static BigInteger toBigInteger(long a) { return BigInteger.valueOf(a); }
+		
+		@SlotName("bitwise and")
+		public static long and(long a, long b) { return a & b; }
+		@SlotName("bitwise or")
+		public static long or(long a, long b) { return a | b; }
+		@SlotName("bitwise xor")
+		public static long xor(long a, long b) { return a ^ b; }
+		
 	}
 
 	@SlotName("float")
@@ -215,7 +232,13 @@ public class JavaRuntimeSupport {
 		public static BigDecimal toBigDecimal(BigInteger a) { return new BigDecimal(a); }
 		@SlotName("to big integer")
 		public static BigInteger toBigInteger(BigInteger a) { return a; }
-
+		
+		@SlotName("bitwise and")
+		public static BigInteger and(BigInteger a, BigInteger b) { return a.and(b); }
+		@SlotName("bitwise or")
+		public static BigInteger or(BigInteger a, BigInteger b) { return a.or(b); }
+		@SlotName("bitwise xor")
+		public static BigInteger xor(BigInteger a, BigInteger b) { return a.xor(b); }
 	}
 
 	@SlotName("big decimal")
@@ -325,5 +348,20 @@ public class JavaRuntimeSupport {
 	@SlotName("start time")
 	public static final Instant getStartTime() {
 		return startTime;
+	}
+	
+	@SlotName("default clock")
+	public static Clock defaultClock() {
+		return Clock.systemUTC();
+	}
+	
+	@SlotName("default event source")
+	public static EventSource defaultEventSource() {
+		return EventSource.discoveredEventSourcesSource();
+	}
+	
+	@SlotName("default event sink")
+	public static EventSink defaultEventSink() {
+		return EventSink.discoveredEventSinksSink();
 	}
 }

@@ -1,8 +1,11 @@
 package banjo.eval.expr;
 
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
+import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
+import banjo.value.Reaction;
+import banjo.value.Value;
 
 public class RecursiveSlotInstance implements SlotInstance {
 	public final Identifier name;
@@ -31,6 +34,17 @@ public class RecursiveSlotInstance implements SlotInstance {
 		Environment slotEnv =
 				new SingleBindingEnvironment(sourceObjectBinding.id, binding, environment);
 		return valueFactory.apply(slotEnv);
+	}
+
+	@Override
+	public Reaction<SlotInstance> react(Event event) {
+		return environment.react(event).map(this::update);
+	}
+
+	public SlotInstance update(Environment newEnvironment) {
+		if(newEnvironment == environment)
+			return this;
+		return new RecursiveSlotInstance(name, sourceObjectBinding, valueFactory, newEnvironment);
 	}
 
 	@Override

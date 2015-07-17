@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.math.BigDecimal;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.expr.BadExpr;

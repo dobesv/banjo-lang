@@ -1,8 +1,8 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
 import banjo.expr.util.ListUtil;
+import banjo.value.Value;
 import fj.data.List;
 
 public class FreeListLiteral implements FreeExpression {

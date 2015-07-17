@@ -1,13 +1,13 @@
 package banjo.expr.free;
 
 import banjo.eval.UnresolvedCodeError;
-import banjo.eval.expr.Environment;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import banjo.expr.util.SourceNumber;
+import banjo.value.Value;
 import fj.P;
 import fj.P2;
 import fj.P3;

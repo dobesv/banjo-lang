@@ -6,10 +6,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import banjo.eval.Fail;
-import banjo.eval.value.FunctionTrait;
-import banjo.eval.value.FunctionValue;
-import banjo.eval.value.Value;
-import banjo.eval.value.ValueToStringTrait;
+import banjo.event.Event;
+import banjo.value.FunctionTrait;
+import banjo.value.Reaction;
+import banjo.value.Value;
+import banjo.value.meta.WrapperValue;
+import fj.P2;
 import fj.data.Either;
 import fj.data.List;
 
@@ -23,15 +25,50 @@ public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
     }
 
 	@Override
+	public Reaction<Value> react(Event event) {
+		return Reaction.none(this); // No stepping this one, it's all plain java objects
+	}
+	
+	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
-		return callJavaMethod(target, methods, arguments);
+		return new JavaMethodCallResult(target, methods, arguments);
 	}
 
 	@Override
 	public String toStringFallback() {
-	    return methods[0].getDeclaringClass().getName()+"."+methods[0].getName();
+	    return methods.toString();
 	}
 
+	public static class JavaMethodCallResult extends WrapperValue implements Value {
+		final Object javaObject;
+		final Executable[] methods;
+		final List<Value> arguments;
+		
+		public JavaMethodCallResult(Object javaObject, Executable[] methods, List<Value> arguments, Value value) {
+			super(value);
+			this.javaObject = javaObject;
+			this.methods = methods;
+			this.arguments = arguments;
+		}
+		
+		public JavaMethodCallResult(Object target, Executable[] methods, List<Value> arguments) {
+			this(target, methods, arguments, callJavaMethod(target, methods, arguments));
+		}
+		
+		@Override
+		public Reaction<Value> react(Event event) {
+			return Reaction.p(Reaction.to(target, event), Reaction.to(arguments, event)).map(P2.tuple(this::update2)); 
+		}
+		public Value update2(Value newTarget, List<Value> newArguments) {
+			return new JavaMethodCallResult(javaObject, methods, newArguments, newTarget);
+		}
+
+		
+		@Override
+		protected Value rewrap(Value newValue) {
+			throw new Error();
+		}
+	}
 	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments) {
 		Value[] argumentArray = arguments.array(Value[].class);
 		int argumentCount = argumentArray.length;
@@ -74,6 +111,6 @@ public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
 	        	return new Fail(e);
 	        }
 		}
-		return new Fail(new NoSuchMethodError("Failed to find a compatible method: "+target+"."+methods[0].getName()));
+		return new Fail(new NoSuchMethodError("Failed to find a compatible method for args "+arguments+" among "+methods));
 	}
 }

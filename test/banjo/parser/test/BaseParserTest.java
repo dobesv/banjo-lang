@@ -65,7 +65,7 @@ public abstract class BaseParserTest {
 		assertEquals(expectedToString, normalizedSource);
 	}
 
-	static Object[] test(String s) { return new Object[] {s}; }
+	static Object[] test(String s) { return new Object[] {s, null, null}; }
 	static Object[] test(String s, String expected, Class<?> clazz) { return new Object[] {s, expected, clazz}; }
 	static Object[] test(String s, Class<?> clazz) { return new Object[] {s, s, clazz}; }
 

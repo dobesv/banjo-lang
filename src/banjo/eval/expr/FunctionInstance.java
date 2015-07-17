@@ -3,12 +3,16 @@ package banjo.eval.expr;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import banjo.eval.environment.Environment;
+import banjo.eval.environment.FunctionEnvironment;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.value.FunctionTrait;
-import banjo.eval.value.Value;
+import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.FunctionTrait;
+import banjo.value.Reaction;
+import banjo.value.Value;
 import fj.data.List;
 import fj.data.Option;
 
@@ -17,24 +21,32 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public final List<Identifier> args;
 	public final FreeExpression body;
 	public final Option<Identifier> sourceObjectBinding;
-	public final Environment parentEnvironment;
+	public final Environment closure;
 
 	public FunctionInstance(List<SourceFileRange> ranges, List<Identifier> args,
-			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment parentEnvironment) {
+			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment closure) {
 		this.ranges = ranges;
 		this.args = args;
 		this.body = body;
 		this.sourceObjectBinding = sourceObjectBinding;
-		this.parentEnvironment = parentEnvironment;
+		this.closure = closure;
     }
 
+	@Override
+	public Reaction<Value> react(Event event) {
+		return closure.react(event).map(this::update);
+	}
+
+	private Value update(Environment newEnvironment) {
+		return (newEnvironment == closure)? this : new FunctionInstance(ranges, args, body, sourceObjectBinding, newEnvironment);
+	}
 
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
 		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
 		JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
 		try {
-			Environment env = new FunctionEnvironment(args, arguments, sourceObjectBinding, recurse, prevImpl, parentEnvironment);
+			Environment env = new FunctionEnvironment(args, arguments, sourceObjectBinding, recurse, prevImpl, closure);
 			return body.apply(env);
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);

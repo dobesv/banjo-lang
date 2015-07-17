@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
+import banjo.value.Value;
 
 
 public class FreeSlotReference implements FreeExpression {

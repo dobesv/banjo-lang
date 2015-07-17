@@ -1,6 +1,6 @@
 package banjo.eval;
 
-import banjo.eval.value.Value;
+import banjo.value.Value;
 
 
 public class SlotNotFound extends Fail {
@@ -32,7 +32,7 @@ public class SlotNotFound extends Fail {
 	        	objectStr = actualObject.getClass().getName()+" instance";
 	        }
 		}
-		return "No such slot '"+id+"' in "+objectStr;
+		return "No slot named '"+id+"' in "+objectStr;
 	}
 
 }

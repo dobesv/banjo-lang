@@ -1,9 +1,11 @@
 package banjo.eval;
 
-import banjo.eval.value.Value;
-import banjo.eval.value.ValueToStringTrait;
+import banjo.event.Event;
 import banjo.expr.source.Operator;
-import fj.data.Either;
+import banjo.value.Reaction;
+import banjo.value.Value;
+import banjo.value.ValueToStringTrait;
+import fj.P2;
 import fj.data.List;
 
 public class ExtendedObject extends ValueToStringTrait implements Value {
@@ -20,6 +22,15 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 	    public Value call(Value recurse, Value newPrevImpl, List<Value> arguments) {
 	    	return base.call(recurse, chainBaseImpl(prevImpl, newPrevImpl), arguments);
 	    }
+		
+		@Override
+		public Reaction<Value> react(Event event) {
+			return Reaction.to(base, prevImpl, event).map(P2.tuple(this::update));
+		}
+
+		public Value update(Value newBase, Value newPrevImpl) {
+			return (newBase == base && newPrevImpl == prevImpl) ? this : new ChainedBaseFunctionImpl(newBase, newPrevImpl);
+		}
     }
 
 	public final Value base;
@@ -57,4 +68,17 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     public String toStringFallback() {
 	    return base + " " + Operator.EXTENSION.getOp() + " " + extension;
 	}
+	
+	@Override
+	public Reaction<Value> react(Event event) {
+		return Reaction.to(base, extension, event).map(P2.tuple(this::update));
+	}
+
+	public Value update(Value newBase, Value newExtenstion) {
+		return (newBase == base && newExtenstion == extension) ? this : new ExtendedObject(newBase, newExtenstion);
+	}
+
+
+
 }
+

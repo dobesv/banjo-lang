@@ -9,10 +9,8 @@ import java.util.Iterator;
 
 import org.junit.Test;
 
-import fj.P2;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.FunctionLiteral;
-import banjo.expr.core.Let;
 import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Slot;
 import banjo.expr.source.BadSourceExpr;

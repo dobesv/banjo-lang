@@ -1,8 +1,12 @@
 package banjo.eval.expr;
 
-import banjo.eval.value.Value;
+import banjo.event.Event;
+import banjo.value.Reaction;
+import banjo.value.Reactive;
+import banjo.value.Value;
+import fj.P3;
 
-public class BindingInstance {
+public class BindingInstance implements Reactive<BindingInstance> {
 	public final Value value;
 	public final String slotName;
 	public final Value baseSlotValue;
@@ -51,4 +55,16 @@ public class BindingInstance {
 	public boolean bindsSelfForSlot(String id) {
 	    return id.equals(slotName);
     }
+
+	public Reaction<BindingInstance> react(Event event) {
+		return Reaction.to(value, baseSlotValue, baseFunction, event).map(this::update);
+	}
+
+	public BindingInstance update(P3<Value,Value,Value> values) {
+		return update(values._1(), values._2(), values._3());
+	}
+	public BindingInstance update(Value newValue, Value newBaseSlotValue, Value newBaseFunction) {
+		return (value == newValue && baseSlotValue == newBaseSlotValue && baseFunction == newBaseFunction) ? this :
+			new BindingInstance(newValue, slotName, newBaseSlotValue, newBaseFunction);
+	}
 }

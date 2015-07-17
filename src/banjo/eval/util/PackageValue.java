@@ -3,14 +3,15 @@ package banjo.eval.util;
 import java.util.HashMap;
 
 import banjo.eval.SlotNotFound;
-import banjo.eval.value.Value;
+import banjo.value.BaseInertValue;
+import banjo.value.Value;
 
 /**
  * A Value instance that provides dynamic access to the contents of a package.  This
  * provides slots for each subpackage and class in the package, which are looked up
  * on demand.
  */
-public class PackageValue implements Value {
+public class PackageValue extends BaseInertValue implements Value {
 	public final String name;
 
 	public PackageValue(Package pkg) {
@@ -60,4 +61,5 @@ public class PackageValue implements Value {
 		}
 		return cached;
 	}
+
 }

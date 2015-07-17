@@ -58,7 +58,7 @@ public enum Operator {
 	APPLICATION_TO_MEMBERS("*>", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
 	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_OR),
 	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.LAZY_OR),
-	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.METHOD, Position.INFIX, Precedence.LAZY_OR),
+	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.METHOD, null, Position.INFIX, Associativity.LEFT, Precedence.LAZY_OR, Precedence.LAZY_OR, "∘"),
 
 	PRECONDITION("&&&", OperatorType.BUILTIN, Position.INFIX, Precedence.LAZY_AND),
 	FUNCTION("↦ ->", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX, Precedence.FUNCTION, Associativity.RIGHT),

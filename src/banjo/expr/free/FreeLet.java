@@ -1,9 +1,9 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
-import banjo.eval.expr.LetEnvironment;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
+import banjo.eval.environment.LetEnvironment;
 import banjo.expr.source.Operator;
+import banjo.value.Value;
 import fj.P2;
 import fj.data.List;
 

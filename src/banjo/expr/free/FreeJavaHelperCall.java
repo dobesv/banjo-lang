@@ -1,10 +1,9 @@
 package banjo.expr.free;
 
-import banjo.eval.expr.Environment;
-import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.value.Value;
+import banjo.eval.environment.Environment;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.ListUtil;
+import banjo.value.Value;
 import fj.data.List;
 
 public class FreeJavaHelperCall implements FreeExpression {

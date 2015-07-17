@@ -194,4 +194,9 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
 	    });
     }
+	
+	@Override
+	public String exprSource() {
+		return withoutScope.toSource();
+	}
 }

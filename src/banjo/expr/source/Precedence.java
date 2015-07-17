@@ -28,7 +28,7 @@ public enum Precedence {
 	EXTEND, // @
 	FUNCTION, // ↦ ->
 	ASSIGNMENT, // =, +=, *=, ...
-	COND, // '=>' implication / cond
+	COND, // '=>' let
 	COMMA, // ',' "sequence operator"
 	SEMICOLON; // ';' "sequence operator"
 
