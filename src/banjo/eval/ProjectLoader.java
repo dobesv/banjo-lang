@@ -10,12 +10,15 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import banjo.expr.core.BadCoreExpr;
 import banjo.expr.core.CoreExpr;
@@ -50,16 +53,15 @@ public class ProjectLoader {
 	public List<P2<Identifier, CoreExpr>> loadBinding(Path path) {
 		String[] baseExt = path.getFileName().toString().split("\\.", 2);
 		String base = baseExt[0];
-		String ext = isRegularFile(path) ? baseExt.length == 2 ? baseExt[1] : "txt" : "";
+		String ext = Files.isRegularFile(path) ? baseExt.length == 2 ? baseExt[1] : "txt" : "";
 		Identifier key = new Identifier(base);
 		CoreExpr value;
-		if(isDirectory(path)) {
+		if(Files.isDirectory(path)) {
 			value = loadFolder(path, key);
-		} else if(isRegularFile(path)) {
+		} else if(Files.isRegularFile(path)) {
 			// System.out.println("Trying to load "+path+" ext = "+ext);
 			if(base.isEmpty())
 				return EMPTY_BINDINGS;
-			final String filename = path.getFileName().toString();
 			if("txt".equals(ext)) {
 				value = loadText(path);
 			} else if("banjo".equals(ext)) {
@@ -73,21 +75,6 @@ public class ProjectLoader {
 	}
 
 	/**
-	 * True if a directory exists at the target path.  Follows symlinks.
-	 */
-	protected boolean isDirectory(Path path) {
-	    return Files.isDirectory(path);
-    }
-
-	/**
-	 * True if the file is a "regular" file, i.e. it exists and is not a folder, device, or symlink to something that is
-	 * not a regular file.
-	 */
-	protected boolean isRegularFile(Path path) {
-	    return Files.isRegularFile(path);
-    }
-
-	/**
 	 * Load the contents of a folder, returning an ObjectLiteral with the AST representation of the folder and its contents.
 	 *
 	 * @param path Filesystem location of the folder
@@ -95,7 +82,7 @@ public class ProjectLoader {
 	 * @return
 	 */
 	public ObjectLiteral loadFolder(Path path, Identifier key) {
-		final List<SourceFileRange> ranges = List.single(new SourceFileRange(path.getFileName().toString(), FileRange.EMPTY));
+		final List<SourceFileRange> ranges = List.single(new SourceFileRange(path, FileRange.EMPTY));
 		try {
 			Option<Identifier> selfBinding = Option.some(key);
 			return new ObjectLiteral(ranges, mergeBindings(listFilesInFolder(path)
@@ -153,25 +140,20 @@ public class ProjectLoader {
 	 * @return The expression tree
 	 */
 	public CoreExpr loadSourceCode(Path path) {
-    	final String filePath = path.toString();
 	    CoreExpr value;
 	    try {
-	    	final SourceExprFactory parser = new SourceExprFactory(filePath);
-	    	final int size = (int)fileSize(path);
+	    	final SourceExprFactory parser = new SourceExprFactory(path);
+	    	final int size = (int)Files.size(path);
 	    	if(size == 0) {
-	    		value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Empty file '"+filePath+"'");
+	    		value = new BadCoreExpr(new SourceFileRange(path, FileRange.EMPTY), "Empty file '"+path+"'");
 	    	} else {
 	    		final SourceExpr parsed = parser.parse(new ParserReader(openFile(path), size));
 	    		value = new CoreExprFactory().desugar(parsed).getValue();
 	    	}
 	    } catch (IOException e) {
-	    	value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Error reading file '"+filePath+"': "+e);
+	    	value = new BadCoreExpr(new SourceFileRange(path, FileRange.EMPTY), "Error reading file '"+path+"': "+e);
 	    }
 	    return value;
-    }
-
-	protected long fileSize(Path path) throws IOException {
-	    return Files.size(path);
     }
 
 	protected Reader openFile(Path path) throws FileNotFoundException {
@@ -179,16 +161,15 @@ public class ProjectLoader {
     }
 
 	public CoreExpr loadText(Path path) {
-    	String filePath = path.toString();
 	    CoreExpr value;
 	    try {
 	    	String text = readFileAsUtf8String(path);
 	    	LineNumberReader tmp = new LineNumberReader(new StringReader(text));
 	    	tmp.skip(text.length());
-	    	final SourceFileRange range = new SourceFileRange(filePath, new FileRange(FilePos.START, new FilePos(text.length(), tmp.getLineNumber()+1, 1)));
+	    	final SourceFileRange range = new SourceFileRange(path, new FileRange(FilePos.START, new FilePos(text.length(), tmp.getLineNumber()+1, 1)));
 	    	value = new StringLiteral(range, 0, text);
 	    } catch (IOException e) {
-	    	value = new BadCoreExpr(new SourceFileRange(filePath, FileRange.EMPTY), "Error reading file '"+path+"': "+e);
+	    	value = new BadCoreExpr(new SourceFileRange(path, FileRange.EMPTY), "Error reading file '"+path+"': "+e);
 	    }
 	    return value;
     }
@@ -226,11 +207,7 @@ public class ProjectLoader {
 	    		.orSome((CoreExpr)binding._2()));
     }
 
-	public List<P2<Identifier, CoreExpr>> loadBindings(String rootPath) {
-		return loadBindings(Paths.get(rootPath));
-	}
-
-	protected List<P2<Identifier, CoreExpr>> loadBindings(final Path root) {
+	public List<P2<Identifier, CoreExpr>> loadBindings(final Path root) {
 	    try {
 			return mergeBindings(listFilesInFolder(root)
 					.map(p -> loadBinding(p))
@@ -243,32 +220,46 @@ public class ProjectLoader {
 	public List<P2<Identifier, CoreExpr>> loadBanjoPath() {
 		String path = getBanjoPathFromEnvironment();
 		if(path == null) return EMPTY_BINDINGS;
-		return loadImportedBindings(path);
+		return loadImportedBindings(path, false);
 	}
 
+	public List<P2<Identifier, CoreExpr>> loadClassPathBindings() {
+		return loadImportedBindings(System.getProperty("java.class.path", ""), true);
+	}
+	
 	protected String getBanjoPathFromEnvironment() {
 	    String path = System.getProperty(LIB_PATH_SYS_PROPERTY);
-		if(path == null) path = System.getenv(LIB_PATH_ENV_NAME);
+		if(path == null || path.isEmpty()) path = System.getenv(LIB_PATH_ENV_NAME);
 	    return path;
     }
 
-	public List<P2<Identifier, CoreExpr>> loadImportedBindings(String searchPath) {
-		List<P2<Identifier, CoreExpr>> bindings = EMPTY_BINDINGS;
-		if(searchPath != null) {
-			for(String path: searchPath.split(File.pathSeparator)) {
-				if(path.isEmpty())
-					continue;
-				bindings = bindings.append(loadBindings(path));
+	public static Stream<Path> maybeReadZipFile(Path p) {
+		if(Files.isDirectory(p)) {
+			return Stream.of(p);
+		} else if(Files.isRegularFile(p)) {
+			try {
+				FileSystem fs = FileSystems.newFileSystem(p, Thread.currentThread().getContextClassLoader());
+				return StreamSupport.stream(fs.getRootDirectories().spliterator(), true);
+			} catch (IOException e) {
+				return Stream.empty();
 			}
+		} else {
+			return Stream.empty();
 		}
-		return mergeBindings(bindings);
 	}
-
-	public List<P2<Identifier, CoreExpr>> loadLocalBindings(String sourceFilePath) {
-		if(sourceFilePath == null)
+	public List<P2<Identifier, CoreExpr>> loadImportedBindings(String searchPath, boolean requireDotBanjoFile) {
+		if(searchPath == null || searchPath.isEmpty())
 			return EMPTY_BINDINGS;
-		Path path = Paths.get(sourceFilePath);
-		return loadLocalBindings(path.getParent());
+		
+		Stream<Path> pathStream = Stream
+				.of(searchPath.split(File.pathSeparator))
+				.filter(s -> !s.isEmpty())
+				.map(Paths::get)
+				.flatMap(ProjectLoader::maybeReadZipFile);
+		if(requireDotBanjoFile)
+			pathStream = pathStream.filter(p -> Files.exists(p.resolve(".banjo")));
+		Stream<List<P2<Identifier, CoreExpr>>> bindingsStream = pathStream.map(this::loadBindings);
+		return mergeBindings(bindingsStream.reduce(EMPTY_BINDINGS, (a,b) -> a.append(b)));
 	}
 
 	protected List<P2<Identifier, CoreExpr>> loadLocalBindings(final Path path) {
@@ -276,7 +267,7 @@ public class ProjectLoader {
 			return EMPTY_BINDINGS;
 		Path tryPath = path;
 	    while(tryPath != null) {
-			if(fileExists(tryPath.resolve(".banjo")) || fileExists(tryPath.resolve(".project")))
+			if(Files.exists(tryPath.resolve(".banjo")) || Files.exists(tryPath.resolve(".project")))
 				return loadBindings(tryPath);
 
 			tryPath = tryPath.getParent();
@@ -284,11 +275,7 @@ public class ProjectLoader {
 		return loadBindings(path);
     }
 
-	protected boolean fileExists(Path p) {
-	    return Files.exists(p);
-    }
-
-	public List<P2<Identifier, CoreExpr>> loadLocalAndLibraryBindings(String sourceFilePath) {
+	public List<P2<Identifier, CoreExpr>> loadLocalAndLibraryBindings(Path sourceFilePath) {
 		return loadBanjoPath().append(loadLocalBindings(sourceFilePath));
 	}
 }

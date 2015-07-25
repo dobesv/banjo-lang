@@ -1,1 +1,2 @@
 banjo.event.source.StartupEventSource
+banjo.ui.javafx.JavaFXEventSource

@@ -1,6 +1,8 @@
 package banjo.expr.source;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import banjo.expr.ParenType;
 import banjo.expr.source.BadSourceExpr.MissingCloseParen;
@@ -22,7 +24,7 @@ import fj.data.List;
  */
 public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	private static final String DEFAULT_ID_PREFIX = "/temp/";
-	public final String sourceFile;
+	public final Path sourceFile;
 	public final List<PartialOp> opStack;
 	public final SourceExpr operand;
 	public final SourceExpr result;
@@ -168,7 +170,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		}
 	}
 
-	public SourceExprFactory(String sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentColumn) {
+	public SourceExprFactory(Path sourceFile, List<PartialOp> opStack, SourceExpr operand, SourceExpr result, int operandIndentColumn) {
 		super();
 		this.sourceFile = sourceFile;
 		this.opStack = opStack;
@@ -182,9 +184,14 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	 * reporting errors.
 	 */
 	public SourceExprFactory(String sourceFile) {
-		this(sourceFile, List.nil(), null, null, 0);
+		this(Paths.get(sourceFile), List.nil(), null, null, 0);
 	}
 
+	
+	public SourceExprFactory(Path sourcePath) {
+		this(sourcePath, List.nil(), null, null, 0);
+	}
+	
 	/**
 	 * Constructor that doesn't take a filename, for when you don't care about filenames
 	 */

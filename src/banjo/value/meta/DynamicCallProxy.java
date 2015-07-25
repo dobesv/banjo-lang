@@ -44,6 +44,11 @@ public class DynamicCallProxy implements Value {
 	}
 	
 	@Override
+	public boolean isReactive() {
+		return f.isReactive();
+	}
+	
+	@Override
 	public boolean isDefined() {
 		return f.isDefined();
 	}

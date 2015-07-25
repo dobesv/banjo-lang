@@ -1,6 +1,6 @@
 package banjo.eval.expr;
 
-import banjo.eval.environment.Environment;
+import banjo.eval.Environment;
 import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
@@ -24,7 +24,7 @@ public class RecursiveSlotInstance implements SlotInstance {
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("<banjo code>",
 				sourceObjectBinding+"."+name,
-				name.getSourceFileRanges().toOption().map(x -> x.getSourceFile()).toNull(),
+				name.getSourceFileRanges().toOption().map(x -> x.getSourceFile().toString()).toNull(),
 				name.getSourceFileRanges().toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 
@@ -32,7 +32,7 @@ public class RecursiveSlotInstance implements SlotInstance {
 	public Value apply(Value self, Value prevSlotValue) {
 		final BindingInstance binding = BindingInstance.slotSourceObject(self, name.id, prevSlotValue);
 		Environment slotEnv =
-				new SingleBindingEnvironment(sourceObjectBinding.id, binding, environment);
+				environment.bind(sourceObjectBinding.id, binding);
 		return valueFactory.apply(slotEnv);
 	}
 
@@ -41,6 +41,11 @@ public class RecursiveSlotInstance implements SlotInstance {
 		return environment.react(event).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return environment.isReactive();
+	}
+	
 	public SlotInstance update(Environment newEnvironment) {
 		if(newEnvironment == environment)
 			return this;

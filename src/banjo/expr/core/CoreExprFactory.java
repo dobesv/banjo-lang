@@ -1110,6 +1110,39 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		}
 	}
 
+	/**
+	 * For comparisons we allow chaining, like
+	 *
+	 * x == a == b means (x == a) && (a == b)
+	 * a < b <= c means (a < b) && (b < c)
+	 */
+	protected DesugarResult<CoreExpr> comparisonOpToCall(final BinaryOp op) {
+		return op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
+			@Override
+			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
+				return binaryOpToCall(op, false);
+			}
+			
+			@Override
+			public DesugarResult<CoreExpr> binaryOp(BinaryOp leftBOp) {
+				switch(leftBOp.getOperator()) {
+				case EQ:
+				case NEQ:
+				case LE:
+				case LT:
+				case GE:
+				case GT:
+					BinaryOp newRight = new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), leftBOp.getRight(), op.getRight());
+					BinaryOp and = new BinaryOp(leftBOp.getSourceFileRanges(), Operator.LOGICAL_AND, List.nil(), leftBOp, newRight);
+					return binaryOpToCall(and, false);
+					
+				default: 
+					return binaryOpToCall(op, false);
+				}
+			}
+		});
+	}
+
 	protected DesugarResult<CoreExpr> binaryOpToMethodCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, List<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
 		final DesugarResult<CoreExpr> leftDs = expr(leftSourceExpr);
 		final DesugarResult<CoreExpr> rightDs = leftDs.expr(rightSourceExpr);
@@ -1174,6 +1207,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case LE:
 		case NEQ:
 		case EQ:
+			return comparisonOpToCall(op);
+		case MEMBER_OF:
 		case CMP:
 		case POW:
 		case MUL:
@@ -1183,7 +1218,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case INTERSECT:
 		case XOR:
 		case UNION:
-		case MEMBER_OF:
 		case LOGICAL_AND:
 		case LOGICAL_OR:
 		case FALLBACK:

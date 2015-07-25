@@ -9,4 +9,9 @@ public interface Reactive<T> {
 	 * return the same object again.
 	 */
 	public Reaction<T> react(Event event);
+	
+	/**
+	 * If isReactive() returns false, that means that calling react() will always be a no-op (returns this) for this value.
+	 */
+	public boolean isReactive();
 }

@@ -44,6 +44,11 @@ public class SlotMapper implements Value {
 	}
 	
 	@Override
+	public boolean isReactive() {
+		return f.isReactive() || source.isReactive();
+	}
+	
+	@Override
 	public boolean isDefined() {
 		return f.isDefined() && source.isDefined();
 	}

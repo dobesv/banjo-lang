@@ -1,7 +1,5 @@
 package banjo.eval.expr.test;
 
-import junit.framework.AssertionFailedError;
-
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -19,9 +17,11 @@ import banjo.expr.core.Slot;
 import banjo.expr.core.SlotReference;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
+import banjo.expr.util.SourceFileRange;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import junit.framework.AssertionFailedError;
 
 @RunWith(Parameterized.class)
 public class TestRunCoreLibraryExamples extends BaseExprTest {
@@ -190,7 +190,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	    afe.setStackTrace(new StackTraceElement[] {
 	    	new StackTraceElement("<examples>",
 	    		x.toSource(),
-	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getSourceFile()).toNull(),
+	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getSourceFile().toString()).toNull(),
 	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
 	    });
     }
@@ -198,5 +198,10 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	@Override
 	public String exprSource() {
 		return withoutScope.toSource();
+	}
+	
+	@Override
+	public List<SourceFileRange> exprRanges() {
+		return withoutScope.getSourceFileRanges();
 	}
 }

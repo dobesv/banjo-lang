@@ -1,24 +1,33 @@
 package banjo.expr.util;
 
 import static java.util.Objects.requireNonNull;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import fj.Ord;
 import fj.data.List;
 
 public class SourceFileRange {
 	public static final List<SourceFileRange> EMPTY_LIST = List.nil();
-	public static final Ord<SourceFileRange> ORD = Ord.ord(
-			(a) -> (b) -> a.sourceFile.equals(b.sourceFile) ? FileRange.ORD.compare(a.fileRange, b.fileRange) : Ord.stringOrd.compare(a.sourceFile, b.sourceFile)
+	public static final Ord<SourceFileRange> ORD = OrdUtil.chain(
+			Ord.<Path>comparableOrd().contramap(sfr -> sfr.sourceFile),
+			FileRange.ORD.contramap(sfr -> sfr.fileRange)
 	);
 	public static final Ord<List<SourceFileRange>> LIST_ORD = Ord.listOrd(SourceFileRange.ORD);
 
-	final String sourceFile;
-	final FileRange fileRange;
-	public SourceFileRange(String sourceFile, FileRange fileRange) {
+	public final Path sourceFile;
+	public final FileRange fileRange;
+	public SourceFileRange(Path sourceFile, FileRange fileRange) {
 		super();
 		this.sourceFile = requireNonNull(sourceFile);
 		this.fileRange = requireNonNull(fileRange);
 	}
-	public String getSourceFile() {
+	public SourceFileRange(FileRange fileRange) {
+		this(Paths.get(""), fileRange);
+	}
+	
+	public Path getSourceFile() {
 		return this.sourceFile;
 	}
 	public FileRange getFileRange() {

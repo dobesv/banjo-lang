@@ -4,12 +4,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.function.Supplier;
+
 import org.junit.Test;
 
+import banjo.eval.Environment;
 import banjo.eval.Fail;
-import banjo.eval.environment.Environment;
-import banjo.eval.environment.LetEnvironment;
-import banjo.eval.environment.ProjectEnvironment;
+import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
@@ -19,6 +20,7 @@ import banjo.expr.core.SlotReference;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;
@@ -59,12 +61,12 @@ public abstract class BaseExprTest {
 			List<P2<String, FreeExpression>> bindings = let.bindings
 					.map(P2.map2_(e -> e.acceptVisitor(FreeExpressionFactory.INSTANCE)))
 					.map(P2.map1_(e -> e.id));
-			Environment innerEnvironment = new LetEnvironment(environment, bindings);
+			Environment innerEnvironment = environment.append(environment.let(bindings));
 			return let.body.acceptVisitor(new ValueDebugStringCalculator(innerEnvironment));
 		}
 	}
 
-	final static ProjectEnvironment environment = ProjectEnvironment.forSourceFile("(test)");
+	final static Environment environment = Environment.forCurrentDirectory();
 
 	CoreExpr expr;
 	Value value;
@@ -84,21 +86,31 @@ public abstract class BaseExprTest {
 	@Test
     public void evaluates() {
 		noParseErrors();
-		freeExpr = FreeExpressionFactory.apply(expr);
-		intermediateValue = environment.bind(freeExpr);
-		Value tmp;
-    	try {
-			tmp = intermediateValue.force();
-    	} catch (Fail f) {
-    		tmp = f;
-        } catch (Throwable e) {
-        	tmp = new Fail(e);
-        }
-    	this.value = tmp;
-    	assertNotNull(value);
-    	if(value instanceof Error)
-    		throw (Error)value;
-    	assertTrue(value.isDefined());
+		List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
+		try {
+			List<SourceFileRange> ranges = exprRanges();
+			if(ranges.isNotEmpty()) {
+				JavaRuntimeSupport.stack.set(List.single(()->new StackTraceElement("tests", exprSource(), ranges.head().getSourceFile().toString(), ranges.head().getStartLine())));
+			}
+			
+			freeExpr = FreeExpressionFactory.apply(expr);
+			intermediateValue = environment.eval(freeExpr);
+			Value tmp;
+	    	try {
+				tmp = intermediateValue.force();
+	    	} catch (Fail f) {
+	    		tmp = f;
+	        } catch (Throwable e) {
+	        	tmp = new Fail(e);
+	        }
+	    	this.value = tmp;
+	    	assertNotNull(value);
+	    	if(value instanceof Error)
+	    		throw (Error)value;
+	    	assertTrue(value.isDefined());
+		} finally {
+			JavaRuntimeSupport.stack.set(oldStack);
+		}
     }
 
 	@Test
@@ -110,7 +122,10 @@ public abstract class BaseExprTest {
 	public String exprSource() {
 		return expr.toSource();
 	}
-	
+	public List<SourceFileRange> exprRanges() {
+		return expr.getSourceFileRanges();
+	}
+
 	@Test
     public void isTruthy() throws Throwable {
     	evaluates();

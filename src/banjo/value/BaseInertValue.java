@@ -11,4 +11,9 @@ public class BaseInertValue implements Value {
 	public Reaction<Value> react(Event event) {
 		return Reaction.none(this);
 	}
+
+	@Override
+	public boolean isReactive() {
+		return false;
+	}
 }

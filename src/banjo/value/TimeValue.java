@@ -5,22 +5,30 @@ import banjo.event.Event;
 
 public class TimeValue implements Value {
 	final long timestamp;
+	final long period;
 	
-	public TimeValue(long timestamp) {
+	/**
+	 * Create a time value with a given time and maximum time between polls
+	 * 
+	 * @param timestamp Time of last update
+	 * @param period Maximum time between updates
+	 */
+	public TimeValue(long timestamp, long period) {
 		super();
 		this.timestamp = timestamp;
+		this.period = period;
 	}
 
 	@Override
 	public Reaction<Value> react(Event event) {
 		long newTimestamp = event.timestamp;
-		return Reaction.none(update(newTimestamp));
+		return new Reaction<Value>(update(newTimestamp), newTimestamp+period);
 	}
 
 	public Value update(long newTimestamp) {
 		if(newTimestamp == timestamp)
 			return this;
-		return new TimeValue(newTimestamp);
+		return new TimeValue(newTimestamp, period);
 	}
 
 	@SlotName("epoch seconds")
@@ -39,5 +47,10 @@ public class TimeValue implements Value {
 			return JavaObjectValue.readJavaObjectSlot(self, fallback, name, this); 
 		}
 		return Value.super.slot(self, name, fallback);
+	}
+	
+	@Override
+	public boolean isReactive() {
+		return true;
 	}
 }

@@ -145,7 +145,8 @@ public interface Value extends Reactive<Value> {
 
 	/**
 	 * Wrap a java object as a Value.  Reflection will be used
-	 * to access the slots of the java object or call it.
+	 * to access the slots of the java object or call it.  Note
+	 * that the value will NOT update in response to events.
 	 */
 	public static Value fromJava(Object x) {
 		return new SlotMemoizer(new JavaObjectValue(x));
@@ -188,8 +189,9 @@ public interface Value extends Reactive<Value> {
 	 */
 	public default boolean isTruthy() {
 		try {
-			final Value callResult = callMethod(Operator.LOGICAL_AND.methodName, this, fromJava(Boolean.FALSE), List.single(fromJava(Boolean.TRUE)));
-			return callResult.convertToJava(Boolean.class).either(x -> x.booleanValue(), x -> false);
+			Value fallbackValue = fromJava(Boolean.FALSE); // If no such method, it's not truthy
+			final Value callResult = callMethod(Operator.LOGICAL_AND.methodName, this, fallbackValue, List.single(fromJava(Boolean.TRUE)));
+			return callResult.convertToJava(Boolean.class).either(x -> x.booleanValue(), x -> false); // Doesn't return a boolean? not truthy
 		} catch(Exception e) {
 			return false; // Failure is not truthy
 		}
@@ -214,12 +216,4 @@ public interface Value extends Reactive<Value> {
 	public default String toStringFallback() {
 	    return "<"+getClass().getSimpleName()+"(Value)>";
     }
-
-	/**
-	 * Create a lazy value from a nullary function.
-	 */
-	public static Value lazy(Supplier<Value> calculation) {
-		return new CalculatedValue(new MemoizingSupplier<Value>(() -> calculation.get().force()));
-	}
-
 }

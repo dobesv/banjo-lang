@@ -1,6 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.environment.Environment;
+import banjo.eval.Environment;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 
 
@@ -17,8 +18,7 @@ public class FreeSlotReference implements FreeExpression {
 
 	@Override
 	public Value apply(Environment env) {
-		Value value = object.apply(env);
-		return Value.lazy(() -> value.slot(slotName));
+		return new SlotValue(object.apply(env), slotName);
 	}
 
 	@Override

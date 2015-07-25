@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
+import banjo.eval.Environment;
 import banjo.eval.UnresolvedCodeError;
-import banjo.eval.environment.Environment;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.token.Identifier;
@@ -36,7 +36,7 @@ public class FreeExpressionFactory implements
     }
 
 	public static Value javaHelpers(Environment env) {
-	    return env.apply("java").value;
+	    return env.get("java").value;
     }
 
 	private FreeExpression _callJavaHelper(String name, List<Value> args) {

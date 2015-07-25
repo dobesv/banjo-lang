@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
-import banjo.eval.util.OverloadedJavaMethodCaller;
+import banjo.eval.util.JavaMethodCallResult;
 import fj.data.Either;
 import fj.data.List;
 
@@ -27,7 +27,7 @@ public class FunctionValue extends JavaObjectValue {
 		if(arguments.isEmpty()) {
 			return new ArgumentNotSupplied("Missing argument to function");
 		}
-    	return OverloadedJavaMethodCaller.callJavaMethod(object, instanceMethodsWithName(object.getClass(), "apply"), arguments.take(1));
+		return new JavaMethodCallResult(object, instanceMethodsWithName(object.getClass(), "apply"), arguments.take(1));
 	}
 
 	@Override

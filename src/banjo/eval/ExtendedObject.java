@@ -2,7 +2,9 @@ package banjo.eval;
 
 import banjo.event.Event;
 import banjo.expr.source.Operator;
+import banjo.value.MethodCallResultValue;
 import banjo.value.Reaction;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 import banjo.value.ValueToStringTrait;
 import fj.P2;
@@ -27,6 +29,11 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 		public Reaction<Value> react(Event event) {
 			return Reaction.to(base, prevImpl, event).map(P2.tuple(this::update));
 		}
+		
+		@Override
+		public boolean isReactive() {
+			return base.isReactive() || prevImpl.isReactive();
+		}
 
 		public Value update(Value newBase, Value newPrevImpl) {
 			return (newBase == base && newPrevImpl == prevImpl) ? this : new ChainedBaseFunctionImpl(newBase, newPrevImpl);
@@ -35,17 +42,18 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 
 	public final Value base;
 	public final Value extension;
+	public final boolean reactive;
 
 	public ExtendedObject(Value base, Value extension) {
 	    super();
 	    this.base = base;
 	    this.extension = extension;
+	    this.reactive = base.isReactive() || extension.isReactive();
     }
 
 	@Override
 	public Value slot(Value targetObject, String name, Value baseSlotValue) {
-		final Value newBaseSlotValue =
-			Value.lazy(() -> base.slot(targetObject, name, baseSlotValue));
+		final Value newBaseSlotValue = new SlotValue(base, targetObject, name, baseSlotValue);
 		return extension.slot(targetObject, name, newBaseSlotValue);
 	}
 
@@ -60,7 +68,7 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 
 	@Override
 	public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-		final Value newFallback = Value.lazy(() -> base.callMethod(name, targetObject, fallback, args));
+		final Value newFallback = new MethodCallResultValue(base, name, targetObject, fallback, args);
 		return extension.callMethod(name, targetObject, newFallback, args);
 	}
 
@@ -72,6 +80,11 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 	@Override
 	public Reaction<Value> react(Event event) {
 		return Reaction.to(base, extension, event).map(P2.tuple(this::update));
+	}
+	
+	@Override
+	public boolean isReactive() {
+		return reactive;
 	}
 
 	public Value update(Value newBase, Value newExtenstion) {

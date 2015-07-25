@@ -1,11 +1,12 @@
 package banjo.expr.free;
 
-import banjo.eval.environment.Environment;
-import banjo.eval.environment.LetEnvironment;
+import banjo.eval.Environment;
 import banjo.expr.source.Operator;
 import banjo.value.Value;
+import fj.Ord;
 import fj.P2;
 import fj.data.List;
+import fj.data.TreeMap;
 
 public class FreeLet implements FreeExpression {
 	public final List<P2<String, FreeExpression>> bindings;
@@ -18,7 +19,7 @@ public class FreeLet implements FreeExpression {
     }
 	@Override
 	public Value apply(Environment env) {
-	    return body.apply(new LetEnvironment(env, bindings));
+	    return body.apply(env.let(TreeMap.treeMap(Ord.stringOrd, bindings)));
 	}
 
 	@Override

@@ -4,10 +4,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.function.Function;
 
 import banjo.eval.Fail;
 import banjo.event.Event;
 import banjo.value.FunctionTrait;
+import banjo.value.JavaObjectValue;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import banjo.value.meta.WrapperValue;
@@ -15,18 +17,27 @@ import fj.P2;
 import fj.data.Either;
 import fj.data.List;
 
-public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
+public class JavaMethodCaller extends FunctionTrait implements Value {
 	public final Object target;
 	public final Method[] methods;
-	public OverloadedJavaMethodCaller(Object target, Method[] methods) {
+	public JavaMethodCaller(Object target, Method[] methods) {
         super();
         this.target = target;
         this.methods = methods;
     }
 
+	public JavaMethodCaller(Object target, String slotName) {
+		this(target, JavaObjectValue.instanceMethodsWithName(target.getClass(), slotName));
+	}
+	
 	@Override
 	public Reaction<Value> react(Event event) {
 		return Reaction.none(this); // No stepping this one, it's all plain java objects
+	}
+	
+	@Override
+	public boolean isReactive() {
+		return false;
 	}
 	
 	@Override
@@ -39,37 +50,7 @@ public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
 	    return methods.toString();
 	}
 
-	public static class JavaMethodCallResult extends WrapperValue implements Value {
-		final Object javaObject;
-		final Executable[] methods;
-		final List<Value> arguments;
-		
-		public JavaMethodCallResult(Object javaObject, Executable[] methods, List<Value> arguments, Value value) {
-			super(value);
-			this.javaObject = javaObject;
-			this.methods = methods;
-			this.arguments = arguments;
-		}
-		
-		public JavaMethodCallResult(Object target, Executable[] methods, List<Value> arguments) {
-			this(target, methods, arguments, callJavaMethod(target, methods, arguments));
-		}
-		
-		@Override
-		public Reaction<Value> react(Event event) {
-			return Reaction.p(Reaction.to(target, event), Reaction.to(arguments, event)).map(P2.tuple(this::update2)); 
-		}
-		public Value update2(Value newTarget, List<Value> newArguments) {
-			return new JavaMethodCallResult(javaObject, methods, newArguments, newTarget);
-		}
-
-		
-		@Override
-		protected Value rewrap(Value newValue) {
-			throw new Error();
-		}
-	}
-	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments) {
+	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments, Function<Object,Value> valueFactory) {
 		Value[] argumentArray = arguments.array(Value[].class);
 		int argumentCount = argumentArray.length;
 		methodLoop: for(Executable method : methods) {
@@ -106,7 +87,7 @@ public class OverloadedJavaMethodCaller extends FunctionTrait implements Value {
 				}
 				return (result instanceof Value) ?
 					(Value)result :
-					Value.fromJava(result);
+						valueFactory.apply(result);
 	        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 	        	return new Fail(e);
 	        }

@@ -60,6 +60,11 @@ public class BindingInstance implements Reactive<BindingInstance> {
 		return Reaction.to(value, baseSlotValue, baseFunction, event).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return value.isReactive() || (baseSlotValue != null && baseSlotValue.isReactive()) || (baseFunction != null && baseFunction.isReactive());
+	}
+	
 	public BindingInstance update(P3<Value,Value,Value> values) {
 		return update(values._1(), values._2(), values._3());
 	}

@@ -68,6 +68,11 @@ public abstract class WrapperValue implements Value {
 		return target.react(event).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return target.isReactive();
+	}
+	
 	public Value update(Value newValue) {
 		if(newValue == target)
 			return this;

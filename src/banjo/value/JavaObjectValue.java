@@ -17,7 +17,8 @@ import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.util.OverloadedJavaMethodCaller;
+import banjo.eval.util.JavaMethodCallResult;
+import banjo.eval.util.JavaMethodCaller;
 import banjo.eval.util.Selector;
 import banjo.eval.util.SlotName;
 import banjo.event.Event;
@@ -142,10 +143,10 @@ public class JavaObjectValue implements Value {
 						instanceMethodsWithName(objClass, name);
 				// Automatically call getters
 				if(methods.length == 1 && methods[0].getParameterCount() == 0) {
-					return OverloadedJavaMethodCaller.callJavaMethod(obj, methods, List.nil());
+					return JavaMethodCaller.callJavaMethod(obj, methods, List.nil(), Value::fromJava);
 				}
 				if(methods.length > 0) {
-					return new OverloadedJavaMethodCaller(obj, methods);
+					return new JavaMethodCaller(obj, methods);
 				} else {
 					// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
 					// can be used in simple logical operations without conversion.
@@ -199,7 +200,7 @@ public class JavaObjectValue implements Value {
 	        }
 		}
     }
-	private static Stream<Method> staticMethodsWithName(Class<?> clazz,
+	public static Stream<Method> staticMethodsWithName(Class<?> clazz,
             String name) {
 	    return Stream.<Method>stream(clazz.getDeclaredMethods())
 	    		.filter(m ->
@@ -207,7 +208,7 @@ public class JavaObjectValue implements Value {
 	    		&& (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == (Modifier.STATIC | Modifier.PUBLIC));
     }
 
-	private static Stream<Method> instanceMethodsWithName_(
+	public static Stream<Method> instanceMethodsWithName_(
             final Class<? extends Object> objClass, String name) {
 	    return Stream.<Method>stream(objClass.getMethods())
 	    		.filter(m -> name.equals(methodSlotName(m)) && (m.getModifiers() & (Modifier.STATIC | Modifier.PUBLIC)) == Modifier.PUBLIC);
@@ -246,10 +247,10 @@ public class JavaObjectValue implements Value {
                 }
 	        }
 	        if(f instanceof Function) {
-	        	return new OverloadedJavaMethodCaller.JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(1));
+	        	return new JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(1));
 	        }
 	        if(f instanceof BiFunction) {
-	        	return new OverloadedJavaMethodCaller.JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(2));
+	        	return new JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(2));
 	        }
 	        if(f instanceof Supplier) {
 	        	return maybeWrap(((Supplier<?>)f).get());
@@ -257,7 +258,7 @@ public class JavaObjectValue implements Value {
 	        if(f instanceof Class) {
 	        	if(args.isEmpty())
 	        		return maybeWrap(((Class<?>)f).newInstance());
-	        	return new OverloadedJavaMethodCaller.JavaMethodCallResult(null, ((Class<?>)f).getConstructors(), args);
+	        	return new JavaMethodCallResult(null, ((Class<?>)f).getConstructors(), args);
 	        }
         } catch (IllegalAccessException
                 | SecurityException | InstantiationException e) {
@@ -280,6 +281,11 @@ public class JavaObjectValue implements Value {
 			return Reaction.to(a, event).map(this::update);
 		}
 		return Reaction.none(this);
+	}
+	
+	@Override
+	public boolean isReactive() {
+		return (object instanceof Reactive) && ((Reactive)object).isReactive();
 	}
 	
 	public Value update(Object newObject) {

@@ -3,17 +3,14 @@ package banjo.value;
 import java.util.function.Supplier;
 
 import banjo.eval.Fail;
+import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.Event;
 import fj.data.Either;
 import fj.data.List;
 
-public class CalculatedValue extends ValueToStringTrait implements Value {
-	public final Supplier<Value> calculation;
-
-	public CalculatedValue(Supplier<Value> calculation) {
-	    super();
-	    this.calculation = calculation;
-    }
+public abstract class CalculatedValue extends ValueToStringTrait implements Value {
+	final List<Supplier<StackTraceElement>> stack = JavaRuntimeSupport.stack.get();
+	public Value memo;
 
 	@Override
     public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
@@ -52,7 +49,10 @@ public class CalculatedValue extends ValueToStringTrait implements Value {
 
 	@Override
 	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
-	    return get().convertToJava(clazz);
+	    Value value = get();
+	    if(value == this)
+	    	throw new Error();
+		return value.convertToJava(clazz);
     }
 
 	@Override
@@ -67,13 +67,45 @@ public class CalculatedValue extends ValueToStringTrait implements Value {
 
 	@Override
 	public Reaction<Value> react(Event event) {
-		return get().react(event);
+		if(this.memo == null)
+			return calculationReact(event);
+		else
+			return memo.react(event);
+	}
+	
+	@Override
+	public boolean isReactive() {
+		if(this.memo == null)
+			return isCalculationReactive();
+		else
+			return memo.isReactive();
 	}
 
 	public Value get() {
-	    final Value value = calculation.get();
-	    if(value == null)
-	    	return new Fail("null value - probably a self-referential calculation");
-		return value;
-    }
+		if(this.memo == null) {
+			List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
+			try {
+				Value value = calculate();
+				while((value instanceof CalculatedValue) && !((CalculatedValue)value).isCalculationReactive())
+					value = ((CalculatedValue)value).get();
+				this.memo = value;
+			} finally {
+				JavaRuntimeSupport.stack.set(oldStack);
+			}
+		}
+		return this.memo;
+	}
+	
+	public abstract Value calculate();
+	
+	/**
+	 * Determine whether the result of this lazy operation depends on a reactive value,
+	 * without calculating it.
+	 */
+	public abstract boolean isCalculationReactive();
+	
+	/**
+	 * Have the calculation result react to an event, without actually calculating it.
+	 */
+	public abstract Reaction<Value> calculationReact(Event event);
 }

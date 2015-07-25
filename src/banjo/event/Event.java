@@ -2,6 +2,7 @@ package banjo.event;
 
 import java.util.function.Function;
 
+import banjo.eval.util.JavaMethodCaller;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.OrdUtil;
 import banjo.value.FunctionTrait;
@@ -38,22 +39,21 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 	
 	@Override
 	public Value apply(Value t) {
-		return t.callMethod(variant, t, null, args);
+		return t.callMethod(variant, t, null, args.cons(Value.fromJava(timestamp)));
 	}
 	
 	@Override
 	public Reaction<Value> react(Event event) {
-		return Reaction.to(args, event).map(this::updateArgs);
+		return Reaction.none(this);
 	}
 	
 	public Reaction<Event> reactE(Event event) {
-		return Reaction.to(args, event).map(this::updateArgs);
+		return Reaction.none(this);
 	}
 	
-	public Event updateArgs(List<Value> args) {
-		if(args == this.args)
-			return this;
-		return new Event(timestamp, variant, args);
+	@Override
+	public boolean isReactive() {
+		return false;
 	}
 	
 	public Event delay(long ms) {
@@ -64,8 +64,20 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 		return new Event(currentTimeMillis, variant, args);
 	}
 
+	public Event map(String newVariant, Value f) {
+		return new Event(timestamp, newVariant, f.call(args));
+	}
+	
 	@Override
 	public String toString() {
 		return "."+variant+(args.isEmpty()?"":"("+ListUtil.insertCommas(args)+")");
+	}
+	
+	@Override
+	public Value slot(Value self, String name, Value fallback) {
+		if("map".equals(name) || "at".equals(name)) {
+			return new JavaMethodCaller(this, name);
+		}
+		return super.slot(self, name, fallback);
 	}
 }

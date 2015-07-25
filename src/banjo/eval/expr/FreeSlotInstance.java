@@ -28,14 +28,24 @@ public class FreeSlotInstance implements SlotInstance {
 		return value.react(event).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return value.isReactive();
+	}
+	
 	private SlotInstance update(Value newValue) {
-		return (value == newValue)? this :new FreeSlotInstance(newValue);
+		return (value == newValue)? this : new FreeSlotInstance(newValue);
 	}
 
 	public SlotInstance withValue(Value newValue) {
 		if(newValue == this.value)
 			return this;
 		return new FreeSlotInstance(newValue);
+	}
+	
+	@Override
+	public String toString() {
+		return value.toString();
 	}
 
 }

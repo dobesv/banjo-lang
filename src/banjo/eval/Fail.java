@@ -85,6 +85,11 @@ public class Fail extends Error implements Value {
 	}
 	
 	@Override
+	public boolean isReactive() {
+		return false;
+	}
+	
+	@Override
 	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
 		if(clazz.isAssignableFrom(Fail.class)) {
 			return Either.left(clazz.cast(this));

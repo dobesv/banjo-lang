@@ -25,7 +25,7 @@ public class TokenCollector implements TokenVisitor<TokenCollector> {
 	}
 
 	public SourceFileRange sfr(FileRange range) {
-		return new SourceFileRange("", range);
+		return new SourceFileRange(range);
 	}
 
 	public TokenCollector token(Token token) {

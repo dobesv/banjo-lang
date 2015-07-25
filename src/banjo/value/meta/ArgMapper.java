@@ -41,6 +41,11 @@ public class ArgMapper implements Value {
 	}
 	
 	@Override
+	public boolean isReactive() {
+		return f.isReactive() || target.isReactive();
+	}
+	
+	@Override
 	public boolean isDefined() {
 		return f.isDefined() && target.isDefined();
 	}	

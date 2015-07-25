@@ -2,6 +2,7 @@ package banjo.eval.expr;
 
 import banjo.event.Event;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
@@ -13,23 +14,30 @@ import fj.data.Option;
 import fj.data.TreeMap;
 
 public class ObjectInstance extends ValueToStringTrait implements Value {
+	public final List<SourceFileRange> ranges;
 	public final TreeMap<String, SlotInstance> slots;
 
-	public ObjectInstance(
-            TreeMap<String, SlotInstance> slots) {
+
+	public ObjectInstance(List<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
+		super();
+		this.ranges = ranges;
 		this.slots = slots;
-    }
+	}
 
 	@Override
 	public Value slot(Value sourceObject, String name, Value fallback) {
 		final Option<SlotInstance> value = slots.get(name);
 		if(value.isSome())
-			return maybeAnnotateAsMethod(value.some().apply(sourceObject, fallback), name);
+			return maybeAnnotateAsMethod(value.some().apply(sourceObject, fallback), sourceObject, name);
 		return Value.super.slot(sourceObject, name, fallback);
 	}
 
-	public class MethodInstance extends FunctionTrait implements Value {
-		FunctionInstance f;
+	public static class MethodInstance extends FunctionTrait implements Value {
+		public final FunctionInstance f;
+		public final Value sourceObject;
+		public final String name;
+		
+		
 		public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
 			return f.call(recurse, prevImpl, arguments);
 		}
@@ -42,16 +50,15 @@ public class ObjectInstance extends ValueToStringTrait implements Value {
 			return f.apply(args);
 		}
 
-		public final String name;
-		
-		public MethodInstance(FunctionInstance f, String name) {
+		public MethodInstance(FunctionInstance f, Value sourceObject, String name) {
 			this.f = f;
+			this.sourceObject = sourceObject;
 			this.name = name;
 		}
 
 		@Override
 		public String toStringFallback() {
-			return ObjectInstance.this + "." + name;
+			return sourceObject + "." + name;
 		}
 		
 		
@@ -60,10 +67,15 @@ public class ObjectInstance extends ValueToStringTrait implements Value {
 			return f.react(event).map(this::update);
 		}
 		
+		@Override
+		public boolean isReactive() {
+			return f.isReactive();
+		}
+		
 		public MethodInstance update(Value newF) {
 			if(newF == f)
 				return this;
-			return new MethodInstance(f, this.name);
+			return new MethodInstance(f, sourceObject, this.name);
 		}
 		
 		@Override
@@ -71,9 +83,9 @@ public class ObjectInstance extends ValueToStringTrait implements Value {
 			return f.isDefined();
 		}
 	}
-	private Value maybeAnnotateAsMethod(Value value, String name) {
+	private Value maybeAnnotateAsMethod(Value value, Value sourceObject, String name) {
 		if(value instanceof FunctionInstance) {
-			return new MethodInstance((FunctionInstance)value, name);
+			return new MethodInstance((FunctionInstance)value, sourceObject, name);
 		}
 		return value;
 	}
@@ -101,7 +113,12 @@ public class ObjectInstance extends ValueToStringTrait implements Value {
 		return reactions.from(newSlots).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return slots.values().exists(si -> si.isReactive());
+	}
+	
 	private Value update(TreeMap<String, SlotInstance> newSlots) {
-		return (slots == newSlots) ? this : new ObjectInstance(newSlots);
+		return (slots == newSlots) ? this : new ObjectInstance(ranges, newSlots);
 	}
 }

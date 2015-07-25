@@ -17,6 +17,7 @@ import banjo.value.meta.DynamicCallProxy;
 import banjo.value.meta.DynamicSlotProxy;
 import banjo.value.meta.FunctionComposition;
 import banjo.value.meta.SlotMapper;
+import banjo.value.meta.SlotNames;
 import fj.data.List;
 
 public class JavaRuntimeSupport {
@@ -363,5 +364,10 @@ public class JavaRuntimeSupport {
 	@SlotName("default event sink")
 	public static EventSink defaultEventSink() {
 		return EventSink.discoveredEventSinksSink();
+	}
+	
+	@SlotName("slot names")
+	public static Value slotNames() {
+		return SlotNames.INSTANCE;
 	}
 }

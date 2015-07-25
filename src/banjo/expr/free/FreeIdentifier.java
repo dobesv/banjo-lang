@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.environment.Environment;
+import banjo.eval.Environment;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.data.List;
@@ -16,7 +16,7 @@ public class FreeIdentifier implements FreeExpression {
 
 	@Override
 	public Value apply(Environment t) {
-	    return t.apply(id).value;
+	    return t.getValue(id);
 	}
 
 	@Override

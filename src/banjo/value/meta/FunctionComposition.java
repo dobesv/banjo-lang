@@ -2,6 +2,7 @@ package banjo.value.meta;
 
 import banjo.event.Event;
 import banjo.expr.source.Operator;
+import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
@@ -12,7 +13,7 @@ import fj.data.List;
  * arguments to this function.  The result of calling first is passed to second.
  * The result of second is the result of the composed function.
  */
-public class FunctionComposition implements Value {
+public class FunctionComposition extends FunctionTrait implements Value {
 	final Value first;
 	final Value second;
 	public FunctionComposition(Value second, Value first) {
@@ -42,6 +43,11 @@ public class FunctionComposition implements Value {
 		return Reaction.to(first, second, event).map(P2.tuple(this::update));
 	}
 
+	@Override
+	public boolean isReactive() {
+		return first.isReactive() || second.isReactive();
+	}
+	
 	public Value update(Value newFirst, Value newSecond) {
 		return (first == newFirst && second == newSecond) ? this : new FunctionComposition(newSecond, newFirst);
 	}

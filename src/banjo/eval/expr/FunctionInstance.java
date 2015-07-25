@@ -3,8 +3,7 @@ package banjo.eval.expr;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import banjo.eval.environment.Environment;
-import banjo.eval.environment.FunctionEnvironment;
+import banjo.eval.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
@@ -36,6 +35,11 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public Reaction<Value> react(Event event) {
 		return closure.react(event).map(this::update);
 	}
+	
+	@Override
+	public boolean isReactive() {
+		return closure.isReactive();
+	}
 
 	private Value update(Environment newEnvironment) {
 		return (newEnvironment == closure)? this : new FunctionInstance(ranges, args, body, sourceObjectBinding, newEnvironment);
@@ -46,7 +50,7 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
 		JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
 		try {
-			Environment env = new FunctionEnvironment(args, arguments, sourceObjectBinding, recurse, prevImpl, closure);
+			Environment env = closure.enterFunction(args, arguments, sourceObjectBinding, recurse, prevImpl);
 			return body.apply(env);
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);
@@ -56,7 +60,7 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("<banjo code>",
 				sourceObjectBinding.map(x -> x.id).orSome("<function>"),
-				ranges.toOption().map(x -> x.getSourceFile()).toNull(),
+				ranges.toOption().map(x -> x.getSourceFile().toString()).toNull(),
 				ranges.toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 	@Override

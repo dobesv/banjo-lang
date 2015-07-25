@@ -33,6 +33,11 @@ public class DynamicSlotProxy implements Value {
 		return delegate.react(event).map(this::update);
 	}
 
+	@Override
+	public boolean isReactive() {
+		return delegate.isReactive();
+	}
+	
 	public Value update(Value newInterceptor) {
 		if(newInterceptor == delegate)
 			return this;

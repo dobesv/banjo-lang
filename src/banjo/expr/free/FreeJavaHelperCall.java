@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.environment.Environment;
+import banjo.eval.Environment;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.ListUtil;
 import banjo.value.Value;
