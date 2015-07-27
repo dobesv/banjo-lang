@@ -87,13 +87,22 @@ public class JavaRuntimeSupport {
 	public static double infinity() {
 		return Double.POSITIVE_INFINITY;
 	}
+	
+	@SlotName("NaN")
+	public static double NaN() {
+		return Double.NaN;
+	}
 
 	@SlotName("integer")
 	public static class Integers {
 		public static int sum(int a, int b) { return a + b; }
 		public static int difference(int a, int b) { return a - b; }
 		public static int product(int a, int b) { return a * b; }
-		public static int quotient(int a, int b) { return a / b; }
+		public static Number quotient(int a, int b) {
+			if(b == 0)
+				return Double.NaN;
+			return a / b; 
+		}
 		public static int neg(int a) { return -a; }
 		public static int abs(int a) { return java.lang.Math.abs(a); }
 		public static boolean eq(int a, int b) { return a == b; }
@@ -126,7 +135,10 @@ public class JavaRuntimeSupport {
 		public static long sum(long a, long b) { return a + b; }
 		public static long difference(long a, long b) { return a - b; }
 		public static long product(long a, long b) { return a * b; }
-		public static long quotient(long a, long b) { return a / b; }
+		public static Number quotient(long a, long b) {
+			if(b == 0) return Double.NaN;
+			return a / b; 
+		}
 		public static long neg(long a) { return -a; }
 		public static long abs(long a) { return java.lang.Math.abs(a); }
 		public static boolean eq(long a, long b) { return a == b; }
@@ -213,7 +225,11 @@ public class JavaRuntimeSupport {
 		public static BigInteger sum(BigInteger a, BigInteger b) { return a.add(b); }
 		public static BigInteger difference(BigInteger a, BigInteger b) { return a.subtract(b); }
 		public static BigInteger product(BigInteger a, BigInteger b) { return a.multiply(b); }
-		public static BigInteger quotient(BigInteger a, BigInteger b) { return a.divide(b); }
+		public static Number quotient(BigInteger a, BigInteger b) {
+			if(b.equals(BigInteger.ZERO))
+				return Double.NaN;
+			return a.divide(b); 
+		}
 		public static BigInteger neg(BigInteger a) { return a.negate(); }
 		public static BigInteger abs(BigInteger a) { return a.abs(); }
 		public static boolean eq(BigInteger a, BigInteger b) { return a.compareTo(b) == 0; }
@@ -247,7 +263,12 @@ public class JavaRuntimeSupport {
 		public static BigDecimal sum(BigDecimal a, BigDecimal b) { return a.add(b); }
 		public static BigDecimal difference(BigDecimal a, BigDecimal b) { return a.subtract(b); }
 		public static BigDecimal product(BigDecimal a, BigDecimal b) { return a.multiply(b); }
-		public static BigDecimal quotient(BigDecimal a, BigDecimal b) { return a.divide(b); }
+		public static Number quotient(BigDecimal a, BigDecimal b) {
+			if(a.equals(BigDecimal.ZERO)) {
+				return Double.NaN;
+			}
+			return a.divide(b); 
+		}
 		public static BigDecimal neg(BigDecimal a) { return a.negate(); }
 		public static BigDecimal abs(BigDecimal a) { return a.abs(); }
 		public static boolean eq(BigDecimal a, BigDecimal b) { return a.compareTo(b) == 0; }

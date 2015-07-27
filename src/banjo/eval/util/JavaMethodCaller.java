@@ -4,10 +4,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.function.Function;
 
 import banjo.eval.Fail;
 import banjo.event.Event;
+import banjo.expr.util.ListUtil;
 import banjo.value.FunctionTrait;
 import banjo.value.JavaObjectValue;
 import banjo.value.Reaction;
@@ -47,7 +49,7 @@ public class JavaMethodCaller extends FunctionTrait implements Value {
 
 	@Override
 	public String toStringFallback() {
-	    return methods.toString();
+	    return "java method caller(["+ListUtil.insertCommas(Arrays.asList(methods))+"])";
 	}
 
 	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments, Function<Object,Value> valueFactory) {
@@ -92,6 +94,6 @@ public class JavaMethodCaller extends FunctionTrait implements Value {
 	        	return new Fail(e);
 	        }
 		}
-		return new Fail(new NoSuchMethodError("Failed to find a compatible method for args "+arguments+" among "+methods));
+		return new Fail(new NoSuchMethodError("Failed to find a compatible method for args "+arguments+" among "+ListUtil.insertCommas(Arrays.asList(methods))));
 	}
 }

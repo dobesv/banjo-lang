@@ -18,8 +18,8 @@ public enum Precedence {
 	XOR, // ^
 	UNION, // |
 	MATCH, // #, #?
-	LAZY_AND, // &&
-	LAZY_OR, // ||
+	LOGICAL_AND, // &&
+	LOGICAL_OR, // ||
 	LET, // =>
 	ALTERNATIVE, // |||
 	TERNARY, // ? :
