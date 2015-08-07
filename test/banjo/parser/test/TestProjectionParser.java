@@ -15,7 +15,7 @@ public class TestProjectionParser extends BaseParserTest {
 		super(source, expectedToString, expectedClass);
     }
 
-	@Parameters(name="{0}")
+	@Parameters(name="{1}")
 	public static Stream<Object[]> parameters() {
 		return Stream.stream(
 				test("a.b", Projection.class),
@@ -26,12 +26,12 @@ public class TestProjectionParser extends BaseParserTest {
 				test("a.{b,c}", "{b = a.b, c = a.c}", ObjectLiteral.class),
 				test("a.{bb = b,c}", "{bb = a.b, c = a.c}", ObjectLiteral.class),
 				test("a.{f(x) = g(x)}", "{f(x) = a.g(x)}", ObjectLiteral.class),
+				test("{t = [x, y].map((z) -> (x)).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
+				test("{t = [\n x, \n y].length\n}", "{t = [x, y].length}", ObjectLiteral.class),
 				test("a.\\-\\-", Projection.class),
 				test("a.\\.\\.", Projection.class),
 				test("a.\\.", Projection.class),
-				test("a*.b", "a *> (.b)", Call.class),
-				test("{t = [x, y].map((z) ↦ (x)).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
-				test("{t = [\nx, \ny].length\n}", "{t = [x, y].length}", ObjectLiteral.class)
+				test("a*.b", "a *> (.b)", Call.class)
 		);
 	}
 }
