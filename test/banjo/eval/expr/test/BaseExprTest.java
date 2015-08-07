@@ -16,7 +16,7 @@ import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.Let;
-import banjo.expr.core.SlotReference;
+import banjo.expr.core.Projection;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
 import banjo.expr.util.ListUtil;
@@ -43,14 +43,14 @@ public abstract class BaseExprTest {
 
 		@Override
 		public String call(Call n) {
-			if(n.target instanceof SlotReference) {
-				final SlotReference methodReceiver = (SlotReference)n.target;
-				final Object lhs = environment.eval(methodReceiver.object);
+			if(n.target instanceof Projection) {
+				final Projection methodReceiver = (Projection)n.target;
+				final Value lhs = environment.eval(methodReceiver.object);
 				return n.getBinaryOperator().map(x -> {
 					final Object rhs = environment.eval(n.args.head());
 					return "(" + n.toSource() + ") == ("+lhs+" "+x.getOp()+" "+rhs+")"+ " --> " + value;
 				}).orSome(P.lazy(() -> {
-					return "(" + n.toSource() + ") == ("+lhs+"."+methodReceiver.slotName+"("+ListUtil.insertCommas(n.args.toStream().map(environment::eval))+")" + "==" + value;
+					return "(" + n.toSource() + ") == ("+lhs+"."+methodReceiver.projection+"("+ListUtil.insertCommas(n.args.toStream().map(environment::eval))+")" + "==" + value;
 				}));
 			}
 		    return fallback();
@@ -61,7 +61,7 @@ public abstract class BaseExprTest {
 			List<P2<String, FreeExpression>> bindings = let.bindings
 					.map(P2.map2_(e -> e.acceptVisitor(FreeExpressionFactory.INSTANCE)))
 					.map(P2.map1_(e -> e.id));
-			Environment innerEnvironment = environment.append(environment.let(bindings));
+			Environment innerEnvironment = environment.let(bindings);
 			return let.body.acceptVisitor(new ValueDebugStringCalculator(innerEnvironment));
 		}
 	}

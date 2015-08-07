@@ -18,6 +18,6 @@ public interface CoreExprVisitor<T> {
 	T extend(Extend extend);
 	T let(Let let);
 	T functionLiteral(FunctionLiteral f);
-	T slotReference(SlotReference slotReference);
 	T baseFunctionRef(BaseFunctionRef baseFunctionRef);
+	T projection(Projection projection);
 }

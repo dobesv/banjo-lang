@@ -60,6 +60,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 				@Override
 				public String identifier(Identifier n) {
+					assert n.eql(args.head());
 				    return "";
 				}
 				@Override
@@ -68,9 +69,9 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				}
 
 				@Override
-				public String slotReference(SlotReference slotReference) {
+				public String projection(Projection slotReference) {
 					return slotReference.object.acceptVisitor(this) +
-							slotReference.slotName.toString();
+							slotReference.projection.toString();
 				}
 			});
 		} else {
@@ -102,9 +103,9 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				}
 
 				@Override
-				public Void slotReference(SlotReference slotReference) {
+				public Void projection(Projection slotReference) {
 					slotReference.object.acceptVisitor(this);
-					slotReference.slotName.toSource(sb);
+					slotReference.projection.toSource(sb);
 				    return null;
 				}
 			});
@@ -166,7 +167,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 					return n.target.eql(args.head()) || n.target.acceptVisitor(this);
 				}
 
-				public Boolean slotReference(SlotReference slotReference) {
+				public Boolean projection(Projection slotReference) {
 					return slotReference.object.eql(args.head()) || slotReference.object.acceptVisitor(this);
 				}
 

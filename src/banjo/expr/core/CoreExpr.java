@@ -75,8 +75,8 @@ public interface CoreExpr extends Expr {
 			}
 
 			@Override
-			public Ordering slotReference(SlotReference slotReference) {
-			    return SlotReference.ORD.compare(slotReference, (SlotReference)a2);
+			public Ordering projection(Projection slotReference) {
+			    return Projection.ORD.compare(slotReference, (Projection)a2);
 			}
 			@Override
             public Ordering stringLiteral(StringLiteral stringLiteral) {

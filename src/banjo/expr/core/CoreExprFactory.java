@@ -231,7 +231,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 	protected DesugarResult<CoreExpr> slotReference(final SourceExpr sourceExpr,
             final CoreExpr targetObjectExpr, Identifier slotName, boolean base) {
-        return withDesugared(sourceExpr, new SlotReference(sourceExpr.getSourceFileRanges(), targetObjectExpr, slotName, base));
+        return withDesugared(sourceExpr, new Projection(sourceExpr.getSourceFileRanges(), targetObjectExpr, slotName, base));
     }
 
 	/**
@@ -477,7 +477,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		if(combiningOp == null || combiningOp == Operator.ASSIGNMENT)
 			return slot;
 		Identifier selfBinding = slot.sourceObjectBinding.orSome(Identifier.__TMP);
-		final CoreExpr base = SlotReference.base(selfBinding, slot.name);
+		final CoreExpr base = Projection.baseSlot(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTENSION ?
 				new Extend(base, slot.value) :
@@ -1037,7 +1037,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	 */
 	protected CoreExpr insertContract(CoreExpr currentPrecondition, Identifier parameterName,
 			Operator operator, CoreExpr constraint) {
-		Call check = new Call(constraint.getSourceFileRanges(), new SlotReference(parameterName, opMethodName(operator)), List.single(constraint));
+		Call check = new Call(constraint.getSourceFileRanges(), new Projection(parameterName, opMethodName(operator)), List.single(constraint));
 		return composePreconditions(currentPrecondition, check);
 	}
 
@@ -1154,7 +1154,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final CoreExpr target = rightAssoc?rightCoreExpr:leftCoreExpr;
 		final CoreExpr parameter = rightAssoc?leftCoreExpr:rightCoreExpr;
 		final Identifier methodName = opMethodName(operatorRanges, operator);
-		final CoreExpr callTarget = operator == Operator.CALL? target : new SlotReference(target, methodName);
+		final CoreExpr callTarget = operator == Operator.CALL? target : new Projection(target, methodName);
 		return new Call(ranges, callTarget, List.single(parameter));
 	}
 
@@ -1678,8 +1678,18 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 	}
 
                 	@Override
-                	public CoreExpr slotReference(SlotReference n) {
-                	    return new SlotReference(n.getSourceFileRanges(), n.object, concatNameParts(n.slotName, keyOnRight));
+                	public CoreExpr projection(Projection n) {
+                		return n.projection.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
+                			@Override
+                			public CoreExpr identifier(Identifier slotName) {
+                        	    return new Projection(n.getSourceFileRanges(), n.object, concatNameParts(slotName, keyOnRight));
+                			}
+                			
+                			@Override
+                			public CoreExpr fallback() {
+                        	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
+                			}
+						});
                 	}
 
                 	@Override
@@ -1698,7 +1708,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	 */
 	private DesugarResult<CoreExpr> unaryOpToSlotReference(final UnaryOp op) {
 	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
-	    return operandCoreExpr.withDesugared(op, new SlotReference(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
+	    return operandCoreExpr.withDesugared(op, new Projection(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
     }
 
 	/**

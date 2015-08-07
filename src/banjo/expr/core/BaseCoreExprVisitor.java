@@ -74,12 +74,12 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T slotReference(SlotReference slotReference) {
-	    return fallback();
-	}
-
-	@Override
 	public T baseFunctionRef(BaseFunctionRef baseFunctionRef) {
 	    return fallback();
+	}
+	
+	@Override
+	public T projection(Projection projection) {
+		return fallback();
 	}
 }

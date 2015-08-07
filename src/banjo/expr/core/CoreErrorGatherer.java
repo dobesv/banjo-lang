@@ -79,9 +79,9 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
     }
 
 	@Override
-    public List<BadExpr> slotReference(List<SourceFileRange> ranges,
-            List<BadExpr> object, Identifier slotName, boolean base) {
-	    return object.append(slotName.acceptVisitor(this));
+    public List<BadExpr> projection(List<SourceFileRange> ranges,
+            List<BadExpr> object, List<BadExpr> projection, boolean base) {
+	    return object.append(projection);
     }
 
 	@Override

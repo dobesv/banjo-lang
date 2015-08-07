@@ -105,8 +105,9 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 	    return analyse(f.body).minus(Set.set(Identifier.ORD, f.args)); // "__self" always defined in a function
     }
 	@Override
-    public Set<Identifier> slotReference(SlotReference slotReference) {
-	    return analyse(slotReference.object);
+    public Set<Identifier> projection(Projection projection) {
+		// Only the left side of the projection is considered, the right side requires knowledge of the type of the object
+	    return analyse(projection.object);
     }
 
 	@Override

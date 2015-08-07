@@ -11,9 +11,10 @@ import org.junit.Test;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.FunctionLiteral;
-import banjo.expr.core.SlotReference;
+import banjo.expr.core.Projection;
 import banjo.expr.source.Operator;
 import banjo.expr.source.OperatorType;
+import banjo.expr.token.Identifier;
 
 public class TestOperator {
 
@@ -42,15 +43,15 @@ public class TestOperator {
 	public void memberOfOperator() {
 		Call e = (Call)CoreExpr.fromString("a ∈ b");
 		assertEquals("a", e.args.head().toSource());
-		assertEquals("b", ((SlotReference)e.target).object.toSource());
-		assertEquals("\\∈", ((SlotReference)e.target).slotName.toSource());
+		assertEquals("b", ((Projection)e.target).object.toSource());
+		assertEquals("\\∈", ((Projection)e.target).projection.toSource());
 	}
 
 	@Test
 	public void mapProjection() {
 		Call e = (Call)CoreExpr.fromString("a*.b");
-		assertEquals("a", ((SlotReference)e.target).object.toSource());
+		assertEquals("a", ((Projection)e.target).object.toSource());
 		assertEquals(1, e.args.length());
-		assertEquals("b", ((SlotReference)((FunctionLiteral)e.args.head()).body).slotName.id);
+		assertEquals("b", ((Identifier)((Projection)((FunctionLiteral)e.args.head()).body).projection).id);
 	}
 }

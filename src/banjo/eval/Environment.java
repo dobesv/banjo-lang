@@ -24,14 +24,20 @@ import fj.data.TreeMap;
 
 public class Environment implements Function<String, Option<BindingInstance>>, Reactive<Environment> {
 
+	public final Value rootObject;
 	public final TreeMap<String, BindingInstance> bindings;
 	public final boolean reactive;
 
-	public Environment(TreeMap<String, BindingInstance> bindings) {
+	public Environment(Value rootObject, TreeMap<String, BindingInstance> bindings) {
 		this.bindings = bindings;
 		this.reactive = checkReactive(bindings);
+		this.rootObject = rootObject;
 	}
-
+	
+	public Environment(Value rootObject) {
+		this(rootObject, TreeMap.empty(Ord.stringOrd));
+	}
+	
 	public boolean checkReactive(TreeMap<String, BindingInstance> bindings) {
 		boolean reactive = false;
 		for(P2<String, BindingInstance> p : bindings) {
@@ -46,13 +52,22 @@ public class Environment implements Function<String, Option<BindingInstance>>, R
 	public Environment(TreeMap<String, FreeExpression> letBindings, Environment parentEnv) {
 		// The trick here is that we mustn't "force" or calculate any value in the let until after we've set bindings
 		this.bindings = letBindings.map(this::bindLazy).map(BindingInstance::let).union(parentEnv.bindings);
-		this.reactive = checkReactive(bindings);
+		this.rootObject = parentEnv.rootObject;
+		this.reactive = parentEnv.isReactive() || checkReactive(bindings);
 	}
 
 	@Override
     public Option<BindingInstance> apply(String t) {
-    	return bindings.get(t);
+    	return bindings.get(t).orElse(() -> trySlot(t));
     }
+	
+	public Option<BindingInstance> trySlot(String t) {
+		Value v = rootObject.slot(t);
+		if(v instanceof SlotNotFound && ((SlotNotFound)v).id.equals(t)) {
+			return Option.none();
+		}
+		return Option.some(BindingInstance.let(v));
+	}
 
 	@Override
 	public String toString() {
@@ -68,7 +83,7 @@ public class Environment implements Function<String, Option<BindingInstance>>, R
 		TreeMap<String, BindingInstance> newSlots = 
 				changedSlots ? TreeMap.treeMap(Ord.stringOrd, pairs.map(P2.__1()).zip(reactions.v)) :
 				this.bindings;
-		return reactions.from(newSlots).map(this::update);
+		return Reaction.p(rootObject.react(event), reactions.from(newSlots)).map(P2.tuple(this::update));
 	}
 
 	@Override
@@ -76,10 +91,10 @@ public class Environment implements Function<String, Option<BindingInstance>>, R
 		return reactive;
 	}
 	
-	public Environment update(TreeMap<String, BindingInstance> newBindings) {
-		if(newBindings == bindings)
+	public Environment update(Value newRootObject, TreeMap<String, BindingInstance> newBindings) {
+		if(newBindings == bindings && newRootObject == this.rootObject)
 			return this;
-		return new Environment(newBindings);
+		return new Environment(newRootObject, newBindings);
 	}
 	
 	public Value eval(CoreExpr ast) {
@@ -112,10 +127,6 @@ public class Environment implements Function<String, Option<BindingInstance>>, R
 	    return new UnboundIdentifier("No variable in scope named '"+id+"'");
     }
 
-	public Environment append(Environment child) {
-		return update(child.bindings.union(bindings));
-	}
-
 	public Environment let(List<P2<String, FreeExpression>> letBindings) {
 		return let(TreeMap.treeMap(Ord.stringOrd, letBindings));
 	}
@@ -129,20 +140,15 @@ public class Environment implements Function<String, Option<BindingInstance>>, R
 
 	public static final String JAVA_RUNTIME_ID = "java runtime";
 	public static Environment javaRoot() {
-		return single(JAVA_RUNTIME_ID, BindingInstance.let(Value.fromJava(JavaRuntimeSupport.class)));		
+		return new Environment(Value.fromClass(JavaRuntimeSupport.RootObject.class), TreeMap.empty(Ord.stringOrd));		
 	}
 	
-	public static Environment single(String id, BindingInstance binding) {
-		TreeMap<String, BindingInstance> b = TreeMap.<String,BindingInstance>empty(Ord.stringOrd).set(id, binding);
-		return new Environment(b);
-	}
-
 	public Environment bind(List<P2<String, BindingInstance>> bindings) {
 		return bind(TreeMap.<String,BindingInstance>treeMap(Ord.stringOrd, bindings));
 	}
 	
 	public Environment bind(TreeMap<String, BindingInstance> bindings) {
-		return update(bindings.union(this.bindings));
+		return update(rootObject, bindings.union(this.bindings));
 	}
 	
 	public static Environment forSourceFile(Path sourceFilePath) {

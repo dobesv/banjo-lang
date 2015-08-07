@@ -110,23 +110,11 @@ public class JavaObjectValue implements Value {
 	    return readJavaObjectSlot(this, null, name, object);
 	}
 
-	static Properties slotMappings = new Properties();
-
-	static {
-		try {
-	        final InputStream stream = JavaRuntimeSupport.class.getResourceAsStream("library slot names.properties");
-			final InputStreamReader reader = new InputStreamReader(stream, "UTF-8");
-			slotMappings.load(reader);
-        } catch (IOException e) {
-        	throw new UncheckedIOException(e);
-        }
-	}
-
 	public static String methodSlotName(Method method) {
 		SlotName slotAnn = method.getAnnotation(SlotName.class);
 		if(slotAnn != null)
 			return slotAnn.value();
-		return slotMappings.getProperty(method.getClass().getName()+":"+method.getName(), method.getName());
+		return method.getName();
 	}
 	public static Value readJavaObjectSlot(Value self, Value baseValue, String name, Object obj) {
 	    if(name.equals("java string") && obj instanceof String) {

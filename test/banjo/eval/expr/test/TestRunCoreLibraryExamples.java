@@ -13,8 +13,8 @@ import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.Let;
 import banjo.expr.core.ListLiteral;
 import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.Projection;
 import banjo.expr.core.Slot;
-import banjo.expr.core.SlotReference;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
@@ -152,9 +152,10 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 				return result;
 			}
 
+			
 			@Override
-			public List<CoreExpr> slotReference(SlotReference slotReference) {
-			    return slotReference.object.acceptVisitor(this);
+			public List<CoreExpr> projection(Projection projection) {
+			    return projection.object.acceptVisitor(this);
 			}
 			
 			

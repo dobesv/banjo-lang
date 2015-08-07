@@ -42,7 +42,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 				first = ((Call)target).args.head();
 				second = args.head();
 			} else {
-				first = ((SlotReference)target).object;
+				first = ((Projection)target).object;
 				second = args.head();
 			}
 			boolean switched = op.isSelfOnRightMethodOperator();
@@ -72,8 +72,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	    		Operator op = Operator.fromMethodName((Identifier)subcall.target, true);
 	    		return Option.fromNull(op);
 	    	}
-	    } else if(target instanceof SlotReference) {
-			SlotReference slotRef = (SlotReference)target;
+	    } else if(target instanceof Projection) {
+	    	Projection slotRef = (Projection)target;
 			return slotRef.getBinaryOperator();
 	    }
     	return Option.none();
@@ -89,8 +89,8 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public String toString() {
 		return getBinaryOperator().map(op ->
 		   op.isSelfOnRightMethodOperator() ?
-				   args.head().toString() + " " + op.getOp() + " " + ((SlotReference)target).object :
-		   ((SlotReference)target).object + " " + op.getOp() + " " + args.head().toString()
+				   args.head().toString() + " " + op.getOp() + " " + ((Projection)target).object :
+		   ((Projection)target).object + " " + op.getOp() + " " + args.head().toString()
 	    ).orSome(target+argsToString());
 	}
 
@@ -109,13 +109,13 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static Call slot(CoreExpr target, Identifier name, List<CoreExpr> args) {
-		return new Call(new SlotReference(target, name), args);
+		return new Call(new Projection(target, name), args);
 	}
 	public static Call slot(CoreExpr target, Identifier name, CoreExpr arg) {
-		return new Call(new SlotReference(target, name), List.single(arg));
+		return new Call(new Projection(target, name), List.single(arg));
 	}
 	public static Call slot(CoreExpr target, Identifier name) {
-		return new Call(new SlotReference(target, name), List.nil());
+		return new Call(new Projection(target, name), List.nil());
 	}
 	public static Call slot(CoreExpr target, String name, List<CoreExpr> args) {
 		return slot(target, new Identifier(name), args);

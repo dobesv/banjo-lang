@@ -117,11 +117,11 @@ public class FreeExpressionFactory implements
     }
 
 	@Override
-    public FreeExpression slotReference(List<SourceFileRange> ranges, FreeExpression object, Identifier slotName, boolean base) {
+    public FreeExpression projection(List<SourceFileRange> ranges, FreeExpression object, FreeExpression projection, boolean base) {
 	    if(base) {
-	    	return new FreeBaseSlotReference(object, slotName.id);
+	    	return new FreeBaseProjection(object, projection);
 	    } else {
-	    	return new FreeSlotReference(object, slotName.id);
+	    	return new FreeProjection(object, projection);
 	    }
     }
 

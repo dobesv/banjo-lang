@@ -13,12 +13,12 @@ import fj.data.List;
 import fj.data.Option;
 import fj.data.TreeMap;
 
-public class ObjectInstance extends ValueToStringTrait implements Value {
+public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	public final List<SourceFileRange> ranges;
 	public final TreeMap<String, SlotInstance> slots;
 
 
-	public ObjectInstance(List<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
+	public ObjectLiteralInstance(List<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
 		super();
 		this.ranges = ranges;
 		this.slots = slots;
@@ -119,6 +119,6 @@ public class ObjectInstance extends ValueToStringTrait implements Value {
 	}
 	
 	private Value update(TreeMap<String, SlotInstance> newSlots) {
-		return (slots == newSlots) ? this : new ObjectInstance(ranges, newSlots);
+		return (slots == newSlots) ? this : new ObjectLiteralInstance(ranges, newSlots);
 	}
 }

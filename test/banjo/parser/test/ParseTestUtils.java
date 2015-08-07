@@ -29,7 +29,7 @@ public class ParseTestUtils {
 	}
 
 	public static <T extends Expr> void test(String source, int expectedErrors, Class<? extends BadExpr> expectedErrorClass, Class<T> expectedClass, String normalizedSource) {
-		final SourceExprFactory parser = new SourceExprFactory("<test>");
+		final SourceExprFactory parser = new SourceExprFactory("test");
 		test(source, expectedErrors, expectedErrorClass, expectedClass, normalizedSource, parser);
 	}
 

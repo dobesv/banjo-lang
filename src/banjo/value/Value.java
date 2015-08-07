@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
@@ -178,7 +179,7 @@ public interface Value extends Reactive<Value> {
 	public static Value staticJavaObject(Class<?> clazz, final String name) {
 	    Value v = staticJavaObjectCache.get(name);
 		if(v == null) {
-			staticJavaObjectCache.put(clazz.getName(), v = fromJava(clazz));
+			staticJavaObjectCache.put(name, v = fromJava(clazz));
 		}
 		return v;
     }
@@ -216,4 +217,8 @@ public interface Value extends Reactive<Value> {
 	public default String toStringFallback() {
 	    return "<"+getClass().getSimpleName()+"(Value)>";
     }
+
+	public default Value extendedWith(Value extension) {
+		return new ExtendedObject(this, extension);
+	}
 }

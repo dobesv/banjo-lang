@@ -88,7 +88,7 @@ public class TokensToString implements TokenVisitor<String> {
 	public static void testScanner(String src, final int rangeStart,
 			final int rangeEnd, String[] expectedTokens,
 			final TokensToString testVisitor) throws Error {
-		final ParserReader in = ParserReader.fromSubstring("<test>", src, rangeStart, rangeEnd);
+		final ParserReader in = ParserReader.fromSubstring("test", src, rangeStart, rangeEnd);
 		final TokenScanner scanner = new TokenScanner();
 		List<String> foundTokens;
 		try {

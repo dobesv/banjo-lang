@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.function.Function;
 
 import banjo.eval.Environment;
+import banjo.eval.Environment;
 import banjo.eval.Fail;
 import banjo.event.Event;
 import banjo.event.sink.EventSink;

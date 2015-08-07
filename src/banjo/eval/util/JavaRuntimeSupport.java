@@ -22,7 +22,15 @@ import fj.data.List;
 
 public class JavaRuntimeSupport {
 
-
+	public static class RootObject {
+		public static final Value javaRuntime = Value.fromClass(JavaRuntimeSupport.class);
+		
+		@SlotName("java runtime")
+		public static Value getJavaRuntime() {
+			return javaRuntime;
+		}
+	}
+	
 	@SlotName("fail")
 	public static Error fail(String message) {
 		return new Fail(message);
