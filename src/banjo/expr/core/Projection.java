@@ -54,7 +54,11 @@ public class Projection extends AbstractCoreExpr {
 		
 		if(unaryOperatorOption.isSome()) {
 			Operator unaryOperator = unaryOperatorOption.some();
-			if(unaryOperator.isPrefix()) {
+			if(unaryOperator.isParen()) { // e.g. |x|
+				sb.append(unaryOperator.getParenType().getStartChar());
+				object.toSource(sb, unaryOperator.getRightPrecedence());
+				sb.append(unaryOperator.getParenType().getEndChar());
+			} else if(unaryOperator.isPrefix()) {
 				unaryOperator.toSource(sb);
 				object.toSource(sb, unaryOperator.getRightPrecedence());
 			} else {
