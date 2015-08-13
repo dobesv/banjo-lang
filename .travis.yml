@@ -10,3 +10,4 @@ before_install:
  - tar -zxvf banjo-core-lib-master.tar.gz
  - wget https://github.com/dobesv/banjo-java-lib/archive/master.tar.gz -O banjo-java-lib-master.tar.gz
  - tar -zxvf banjo-java-lib-master.tar.gz
+ - sudo apt-get update && sudo apt-get install oracle-java8-installer
