@@ -1,5 +1,4 @@
 language: java
-sudo: false
 jdk:
   - oraclejdk8
 env:
@@ -10,10 +9,5 @@ before_install:
  - tar -zxvf banjo-core-lib-master.tar.gz
  - wget https://github.com/dobesv/banjo-java-lib/archive/master.tar.gz -O banjo-java-lib-master.tar.gz
  - tar -zxvf banjo-java-lib-master.tar.gz
- - rm -rf ~/.linuxbrew
- - yes | ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/linuxbrew/go/install)"
- - export PATH="$HOME/.linuxbrew/bin:$PATH"
- - export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"
- - export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
- - brew install jdk
-
+ - sudo apt-get update && sudo apt-get install oracle-java8-installer
+ 
