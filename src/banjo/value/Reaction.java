@@ -30,9 +30,15 @@ public class Reaction<T> {
 		return new Reaction<>(P.p(v(a), v(b), v(c)), Math.min(Math.min(expiry(a), expiry(b)), expiry(c)));
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static <A> Reaction<A> to(Reactive<A> a, Event event) {
 		if(a == null) return null;
-		return a.react(event);
+		Reaction<A> result = (Reaction<A>) event.reactionCache.get(a);
+		if(result != null)
+			return result;
+		result = a.react(event);
+		event.reactionCache.put((Object)a, (Reaction<Object>)result);
+		return result;
 	}
 	
 	/**
@@ -49,6 +55,10 @@ public class Reaction<T> {
 	
 	/**
 	 * Check reactions on a list of dependent values.
+	 * 
+	 * If none of the values in the list change, the original list is returned.  This
+	 * allows for an "==" check to be used as a kind of conservative but efficient
+	 * no-change detection algorithm even on lists.
 	 */
 	public static <A extends Reactive<A>> Reaction<List<A>> to(List<A> deps, Event event) {
 		List<Reaction<A>> reactions = deps.map(dep -> dep.react(event));
@@ -59,7 +69,7 @@ public class Reaction<T> {
 	}
 	
 	/**
-	 * Replace the value in the reaction, but leave the events and expiry as-is.
+	 * Replace the value in the reaction, but leave the expiry as-is.
 	 */
 	public <A> Reaction<A> from(A a) {
 		return new Reaction<A>(a, expiry);
@@ -68,7 +78,7 @@ public class Reaction<T> {
 	/**
 	 * Reaction of a non-reactive value.
 	 */
-	public static <T> Reaction<T> none(T t) {
+	public static <T> Reaction<T> of(T t) {
 		return new Reaction<T>(t, Long.MAX_VALUE);
 	}
 
@@ -76,17 +86,10 @@ public class Reaction<T> {
 		return new Reaction<B>(f.f(v), expiry);
 	}
 
-	public Reaction<T> withEvent(Event event) {
-		return new Reaction<>(v, expiry);
-	}
-
-	public Reaction<T> withEvents(List<Event> events) {
-		return new Reaction<>(v, expiry);
-	}
-	
 	public Reaction<T> maybeExpiring(long minExpiry) {
 		if(minExpiry < expiry)
 			return new Reaction<T>(v, minExpiry);
 		return this;
 	}
+
 }

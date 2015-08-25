@@ -1,8 +1,9 @@
 package banjo.event;
 
+import java.util.IdentityHashMap;
 import java.util.function.Function;
 
-import banjo.eval.util.JavaMethodCaller;
+import banjo.eval.util.JavaMethodValue;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.OrdUtil;
 import banjo.value.FunctionTrait;
@@ -21,6 +22,7 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 	public final long timestamp;
 	public final String variant;
 	public final List<Value> args;
+	public final IdentityHashMap<Object, Reaction<Object>> reactionCache = new IdentityHashMap<>();
 	
 	public Event(long timestamp, String variant, List<Value> args) {
 		super();
@@ -44,11 +46,11 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 	
 	@Override
 	public Reaction<Value> react(Event event) {
-		return Reaction.none(this);
+		return Reaction.of(this);
 	}
 	
 	public Reaction<Event> reactE(Event event) {
-		return Reaction.none(this);
+		return Reaction.of(this);
 	}
 	
 	@Override
@@ -75,8 +77,8 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 	
 	@Override
 	public Value slot(Value self, String name, Value fallback) {
-		if("map".equals(name) || "at".equals(name)) {
-			return new JavaMethodCaller(this, name);
+		if("timestamp".equals(name)) {
+			return Value.fromJava(timestamp);
 		}
 		return super.slot(self, name, fallback);
 	}
