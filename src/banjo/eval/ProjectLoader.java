@@ -267,7 +267,7 @@ public class ProjectLoader {
 			return EMPTY_BINDINGS;
 		Path tryPath = path;
 	    while(tryPath != null) {
-			if(Files.exists(tryPath.resolve(".banjo")) || Files.exists(tryPath.resolve(".project")))
+			if(Files.exists(tryPath.resolve(".banjo")))
 				return loadBindings(tryPath);
 
 			tryPath = tryPath.getParent();

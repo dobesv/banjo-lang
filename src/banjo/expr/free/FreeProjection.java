@@ -18,7 +18,7 @@ public class FreeProjection implements FreeExpression {
 
 	@Override
 	public Value apply(Environment env) {
-		return projection.apply(new Environment(object.apply(env)));
+		return projection.apply(new Environment(object.apply(env), env.rootEnvironment));
 	}
 
 	@Override

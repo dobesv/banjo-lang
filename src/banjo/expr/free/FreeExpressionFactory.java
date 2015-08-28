@@ -36,7 +36,7 @@ public class FreeExpressionFactory implements
     }
 
 	public static Value javaHelpers(Environment env) {
-	    return env.get("java").value;
+	    return env.rootEnvironment.get("java").value;
     }
 
 	private FreeExpression _callJavaHelper(String name, List<Value> args) {

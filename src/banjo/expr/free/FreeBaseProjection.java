@@ -25,7 +25,7 @@ public class FreeBaseProjection implements FreeExpression {
 		String id = ((FreeIdentifier)object).id;
 		final BindingInstance binding = env.get(id);
 		if(binding.slotName != null) {
-			Environment projectionEnvironment = new Environment(new ObjectBaseValue(id, binding.slotName, binding.baseSlotValue));
+			Environment projectionEnvironment = new Environment(new ObjectBaseValue(id, binding.slotName, binding.baseSlotValue), env.rootEnvironment);
 			return projection.apply(projectionEnvironment);
 		} else {
 			return new UnboundFunctionSelfName("Not a slot self-name: '"+id+"'");
