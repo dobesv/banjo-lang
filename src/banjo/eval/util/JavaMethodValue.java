@@ -5,7 +5,6 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.function.Function;
 
 import banjo.eval.Fail;
 import banjo.event.Event;
@@ -19,22 +18,22 @@ import fj.P2;
 import fj.data.Either;
 import fj.data.List;
 
-public class JavaMethodCaller extends FunctionTrait implements Value {
+/**
+ * Represents a reference to an actual java method, which can be called
+ * to invoke the java method.
+ */
+public class JavaMethodValue extends FunctionTrait implements Value {
 	public final Object target;
 	public final Method[] methods;
-	public JavaMethodCaller(Object target, Method[] methods) {
+	public JavaMethodValue(Object target, Method[] methods) {
         super();
         this.target = target;
         this.methods = methods;
     }
 
-	public JavaMethodCaller(Object target, String slotName) {
-		this(target, JavaObjectValue.instanceMethodsWithName(target.getClass(), slotName));
-	}
-	
 	@Override
 	public Reaction<Value> react(Event event) {
-		return Reaction.none(this); // No stepping this one, it's all plain java objects
+		return Reaction.of(this); // No stepping this one, it's all plain java objects
 	}
 	
 	@Override
@@ -44,7 +43,7 @@ public class JavaMethodCaller extends FunctionTrait implements Value {
 	
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
-		return new JavaMethodCallResult(target, methods, arguments);
+		return new JavaMethodCall(target, methods, arguments);
 	}
 
 	@Override
@@ -52,7 +51,7 @@ public class JavaMethodCaller extends FunctionTrait implements Value {
 	    return "java method caller(["+ListUtil.insertCommas(Arrays.asList(methods))+"])";
 	}
 
-	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments, Function<Object,Value> valueFactory) {
+	public static Value callJavaMethod(Object target, Executable[] methods, List<Value> arguments) {
 		Value[] argumentArray = arguments.array(Value[].class);
 		int argumentCount = argumentArray.length;
 		methodLoop: for(Executable method : methods) {
@@ -89,7 +88,7 @@ public class JavaMethodCaller extends FunctionTrait implements Value {
 				}
 				return (result instanceof Value) ?
 					(Value)result :
-						valueFactory.apply(result);
+						Value.fromJava(result);
 	        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | IllegalArgumentException e) {
 	        	return new Fail(e);
 	        }
