@@ -29,7 +29,7 @@ public class MethodCallResultValue extends CalculatedValue {
 	@Override
 	public Reaction<Value> calculationReact(Event event) {
 		if(!reactive)
-			return Reaction.none(this);
+			return Reaction.of(this);
 		return Reaction.p(Reaction.to(targetObject, event), Reaction.to(fallback, event), Reaction.to(args, event)).map(p -> this.update(p._1(), p._2(), p._3()));
 	}
 	

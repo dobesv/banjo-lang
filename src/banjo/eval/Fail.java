@@ -81,7 +81,7 @@ public class Fail extends Error implements Value {
 
 	@Override
 	public Reaction<Value> react(Event event) {
-		return Reaction.none(this);
+		return Reaction.of(this);
 	}
 	
 	@Override

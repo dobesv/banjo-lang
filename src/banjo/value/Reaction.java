@@ -17,7 +17,11 @@ public class Reaction<T> {
 	}
 	
 	public static <A,B> Reaction<P2<A,B>> p(Reaction<A> a, Reaction<B> b) {
-		return new Reaction<>(P.p(a.v, b.v), Math.min(a.expiry, b.expiry));
+		return new Reaction<>(P.p(a.v, b.v), minExpiry(a, b));
+	}
+
+	public static <A, B> long minExpiry(Reaction<A> a, Reaction<B> b) {
+		return Math.min(expiry(a), expiry(b));
 	}
 
 	private static <A> A v(Reaction<A> a) {
@@ -27,7 +31,11 @@ public class Reaction<T> {
 		return a == null ? Long.MAX_VALUE : a.expiry;
 	}
 	public static <A,B,C> Reaction<P3<A,B,C>> p(Reaction<A> a, Reaction<B> b, Reaction<C> c) {
-		return new Reaction<>(P.p(v(a), v(b), v(c)), Math.min(Math.min(expiry(a), expiry(b)), expiry(c)));
+		return new Reaction<>(P.p(v(a), v(b), v(c)), minExpiry(a, b, c));
+	}
+
+	public static <A, B, C> long minExpiry(Reaction<A> a, Reaction<B> b, Reaction<C> c) {
+		return Math.min(Math.min(expiry(a), expiry(b)), expiry(c));
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -60,12 +68,18 @@ public class Reaction<T> {
 	 * allows for an "==" check to be used as a kind of conservative but efficient
 	 * no-change detection algorithm even on lists.
 	 */
+	@SuppressWarnings("unchecked")
 	public static <A extends Reactive<A>> Reaction<List<A>> to(List<A> deps, Event event) {
+		Reaction<List<A>> result = (Reaction<List<A>>) event.reactionCache.get(deps);
+		if(result != null)
+			return result;
 		List<Reaction<A>> reactions = deps.map(dep -> dep.react(event));
 		long expiry = reactions.map(r -> r.expiry).foldRight(Math::min, Long.MAX_VALUE);
 		List<A> newDeps = reactions.map(r -> r.v);
-		boolean changed = newDeps.zipWith(deps, (a,b)-> (a != b)).foldRight((a,b) -> a || b, false);
-		return new Reaction<List<A>>(changed?newDeps:deps, expiry);
+		boolean changed = newDeps.zipWith(deps, (a,b)-> (a != b)).foldRight((a,b) -> a || b, false);		
+		result = new Reaction<List<A>>(changed?newDeps:deps, expiry);
+		event.reactionCache.put(deps, result);
+		return result;
 	}
 	
 	/**

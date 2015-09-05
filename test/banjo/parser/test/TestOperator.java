@@ -33,12 +33,17 @@ public class TestOperator {
 		for(Map.Entry<String, EnumSet<Operator>> pair : methodOperatorMap.entrySet()) {
 			EnumSet<Operator> ops = pair.getValue();
 			
-			// Ignore function composition
-			if(ops.size() == 2 && ops.contains(Operator.FUNCTION_COMPOSITION_LEFT) && ops.contains(Operator.FUNCTION_COMPOSITION_RIGHT))
+			// Ignore cases where one operator is just the "switched around" version of the other
+			if(opsAreJustSwitchedAroundVersionsOfEachOther(ops))
 				continue;
 			
 			assertEquals("Method name "+pair.getKey()+" maps to multiple operators: "+ops, 1, ops.size());
 		}
+	}
+
+	public boolean opsAreJustSwitchedAroundVersionsOfEachOther(EnumSet<Operator> ops) {
+		return ops.size() == 2 && 
+				EnumSet.of(ops.iterator().next().operatorType, ops.stream().map(op -> op.getOperatorType()).toArray(OperatorType[]::new)).equals(EnumSet.of(OperatorType.METHOD, OperatorType.METHOD_SWITCHED));
 	}
 
 	/**

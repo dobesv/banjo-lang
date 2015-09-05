@@ -8,6 +8,11 @@ import banjo.event.Event;
 import fj.data.Either;
 import fj.data.List;
 
+/**
+ * Represents a value that is calculated from some dependent values.  This
+ * not is used as a "thunk" for lazy values and for reactive values that
+ * change in response to events. 
+ */
 public abstract class CalculatedValue extends ValueToStringTrait implements Value {
 	final List<Supplier<StackTraceElement>> stack = JavaRuntimeSupport.stack.get();
 	public Value memo;

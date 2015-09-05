@@ -9,7 +9,7 @@ public class BaseInertValue implements Value {
 
 	@Override
 	public Reaction<Value> react(Event event) {
-		return Reaction.none(this);
+		return Reaction.of(this);
 	}
 
 	@Override

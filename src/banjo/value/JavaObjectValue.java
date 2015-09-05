@@ -1,12 +1,7 @@
 package banjo.value;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -16,9 +11,8 @@ import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
-import banjo.eval.util.JavaRuntimeSupport;
-import banjo.eval.util.JavaMethodCallResult;
-import banjo.eval.util.JavaMethodCaller;
+import banjo.eval.util.JavaMethodCall;
+import banjo.eval.util.JavaMethodValue;
 import banjo.eval.util.Selector;
 import banjo.eval.util.SlotName;
 import banjo.event.Event;
@@ -131,10 +125,10 @@ public class JavaObjectValue implements Value {
 						instanceMethodsWithName(objClass, name);
 				// Automatically call getters
 				if(methods.length == 1 && methods[0].getParameterCount() == 0) {
-					return JavaMethodCaller.callJavaMethod(obj, methods, List.nil(), Value::fromJava);
+					return JavaMethodValue.callJavaMethod(obj, methods, List.nil());
 				}
 				if(methods.length > 0) {
-					return new JavaMethodCaller(obj, methods);
+					return new JavaMethodValue(obj, methods);
 				} else {
 					// Special support for Boolean, just implement "&&", "||", and "?:" so java booleans
 					// can be used in simple logical operations without conversion.
@@ -235,10 +229,10 @@ public class JavaObjectValue implements Value {
                 }
 	        }
 	        if(f instanceof Function) {
-	        	return new JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(1));
+	        	return new JavaMethodCall(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(1));
 	        }
 	        if(f instanceof BiFunction) {
-	        	return new JavaMethodCallResult(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(2));
+	        	return new JavaMethodCall(f, instanceMethodsWithName(f.getClass(), "apply"), args.take(2));
 	        }
 	        if(f instanceof Supplier) {
 	        	return maybeWrap(((Supplier<?>)f).get());
@@ -246,7 +240,7 @@ public class JavaObjectValue implements Value {
 	        if(f instanceof Class) {
 	        	if(args.isEmpty())
 	        		return maybeWrap(((Class<?>)f).newInstance());
-	        	return new JavaMethodCallResult(null, ((Class<?>)f).getConstructors(), args);
+	        	return new JavaMethodCall(null, ((Class<?>)f).getConstructors(), args);
 	        }
         } catch (IllegalAccessException
                 | SecurityException | InstantiationException e) {
@@ -268,7 +262,7 @@ public class JavaObjectValue implements Value {
 			Reactive<?> a = (Reactive<?>)object;
 			return Reaction.to(a, event).map(this::update);
 		}
-		return Reaction.none(this);
+		return Reaction.of(this);
 	}
 	
 	@Override

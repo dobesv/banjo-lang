@@ -221,4 +221,17 @@ public interface Value extends Reactive<Value> {
 	public default Value extendedWith(Value extension) {
 		return new ExtendedObject(this, extension);
 	}
+
+	public default <T> T readAndConvertSlot(String slotName, Class<T> clazz, Function<Fail,T> onFailure) {
+		Value slotValue = this.slot(slotName);
+		if(!slotValue.isDefined()) {
+			Fail err = Either.reduce(slotValue.convertToJava(Fail.class));
+			return onFailure.apply(err);
+		}
+		Either<T, Fail> conversion = slotValue.convertToJava(clazz);
+		if(conversion.isLeft()) {
+			return conversion.left().value();
+		}
+		return onFailure.apply(conversion.right().value());
+	}
 }

@@ -10,11 +10,11 @@ public class TestMathParser {
 
 	@Test public void t1() { test("1 + 2 × 3", "1 + 2 × 3"); }
 	@Test public void t2() { test("3 * 2 + 1", "3 × 2 + 1"); }
-	@Test public void t3() { test("2 + 2 > 1 + 1", "2 + 2 > 1 + 1"); }
-	@Test public void t4() { test("2 + 2 >\n1 + 1", "2 + 2 > 1 + 1"); }
-	@Test public void t5() { test("2 +\n2 >\n1 +\n1", "2 + 2 > 1 + 1"); }
+	@Test public void t3() { test("2 + 2 > 1 + 1", "1 + 1 < 2 + 2"); }
+	@Test public void t4() { test("2 + 2 >\n1 + 1", "1 + 1 < 2 + 2"); }
+	@Test public void t5() { test("2 +\n2 >\n1 +\n1", "1 + 1 < 2 + 2"); }
 
-	@Test public void multiline1() { test("2 + 2 >\n 1 +\n 1", "2 + 2 > 1 + 1"); }
+	@Test public void multiline1() { test("2 + 2 >\n 1 +\n 1", "1 + 1 < 2 + 2"); }
 	//@Test public void multiline2() { test("2 + 2\n > 1 + 1", "2 + 2 > 1 + 1"); }
 	//@Test public void multiline3() { test("2\n + 2\n  > 1\n   + 1", "2 + 2 > 1 + 1"); }
 	//@Test public void multiline4() { test("  2\n+ 2", "2 + 2"); }
@@ -22,7 +22,7 @@ public class TestMathParser {
 	// Note how indentation is overriding the operator precedence here; feature or bug ?
 	//@Test public void multiline5() { test("  2\n+ 2\n× 4\n", "(2 + 2) × 4"); }
 
-	@Test public void gt() { test("3 > 2", "3 > 2"); }
+	@Test public void gt() { test("3 > 2", "2 < 3"); }
 	@Test public void lt() { test("3 < 2", "3 < 2"); }
 	@Test public void ge() { test("3 >= 2", "3 ≥ 2"); }
 	@Test public void le() { test("3 <= 2", "3 ≤ 2"); }

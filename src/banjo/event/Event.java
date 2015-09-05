@@ -22,7 +22,7 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 	public final long timestamp;
 	public final String variant;
 	public final List<Value> args;
-	public final IdentityHashMap<Object, Reaction<Object>> reactionCache = new IdentityHashMap<>();
+	public final IdentityHashMap<Object, Reaction<?>> reactionCache = new IdentityHashMap<>();
 	
 	public Event(long timestamp, String variant, List<Value> args) {
 		super();
