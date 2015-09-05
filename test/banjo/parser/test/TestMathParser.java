@@ -24,7 +24,7 @@ public class TestMathParser {
 
 	@Test public void gt() { test("3 > 2", "2 < 3"); }
 	@Test public void lt() { test("3 < 2", "3 < 2"); }
-	@Test public void ge() { test("3 >= 2", "3 ≥ 2"); }
+	@Test public void ge() { test("3 >= 2", "2 ≤ 3"); }
 	@Test public void le() { test("3 <= 2", "3 ≤ 2"); }
 
 	@Test public void extend() { test("a @ b", "a Φ b"); }
