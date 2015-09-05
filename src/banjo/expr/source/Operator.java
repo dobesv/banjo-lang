@@ -39,10 +39,10 @@ public enum Operator {
 	DIV("÷ /", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
 	ADD("+", OperatorType.METHOD, Position.INFIX, Precedence.ADDSUB),
 	SUB("-", OperatorType.METHOD, Position.INFIX, Precedence.ADDSUB),
-	GT(">", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
-	GE("≥ >=", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
 	LT("<", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
+	GT(">", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.ORDERING, "<"),
 	LE("≤ <=", OperatorType.METHOD, Position.INFIX, Precedence.ORDERING),
+	GE("≥ >=", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.ORDERING, "≤"),
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	NEQ("≠ !=", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
@@ -144,6 +144,9 @@ public enum Operator {
 
 	Operator(String ops, OperatorType operatorType, Position position, Precedence p) {
 		this(ops, operatorType, position, p, defaultAssociativity(position));
+	}
+	Operator(String ops, OperatorType operatorType, Position position, Precedence p, String methodName) {
+		this(ops, operatorType, null, position, defaultAssociativity(position), p, p, methodName);
 	}
 	Operator(String ops, OperatorType operatorType, Position position, Precedence precedence, Associativity associativity) {
 		this(ops, operatorType, position, precedence, precedence, associativity);
