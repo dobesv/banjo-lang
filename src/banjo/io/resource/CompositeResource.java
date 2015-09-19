@@ -1,7 +1,6 @@
 package banjo.io.resource;
 
 import banjo.event.Event;
-import banjo.event.source.CompositeEventSource;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;

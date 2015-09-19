@@ -8,11 +8,9 @@ import java.util.function.Supplier;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
-import banjo.event.source.EventSource;
 import banjo.expr.token.StringLiteral;
 import banjo.io.resource.Resource;
 import banjo.value.CustomReactor;
-import banjo.value.EventChainValue;
 import banjo.value.Value;
 import banjo.value.meta.ArgMapper;
 import banjo.value.meta.DynamicCallProxy;
