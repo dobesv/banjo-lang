@@ -1,6 +1,8 @@
 package banjo.io.resource;
 
+import banjo.eval.SlotNotFound;
 import banjo.event.Event;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;
@@ -13,6 +15,14 @@ public class CompositeResource extends BaseResource {
 		this.resources = resources;
 	}
 
+	@Override
+	public Value slot(Value self, String name, Value fallback) {
+		Value v = resources.foldLeft((temp, res) -> (Value)new SlotValue(res, self, name, temp), fallback);
+		if(v == null)
+			return new SlotNotFound(name, this);
+		return v;
+	}
+	
 	@Override
 	public void accept(Value output) {
 		for(Resource sink : resources) {
