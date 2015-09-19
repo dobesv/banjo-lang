@@ -1,5 +1,7 @@
 package banjo.event.source;
 
+import java.util.Objects;
+
 import banjo.event.Event;
 import banjo.value.BaseInertValue;
 import banjo.value.Reaction;
@@ -13,6 +15,7 @@ public class OneOffEventSource extends BaseInertValue implements EventSource, Va
 
 	public OneOffEventSource(Event event) {
 		super();
+		Objects.requireNonNull(event);
 		this.event = event;
 	}
 

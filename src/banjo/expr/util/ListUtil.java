@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+import banjo.value.Value;
 import fj.Ord;
 
 public class ListUtil {
@@ -106,6 +107,31 @@ public class ListUtil {
 		StringBuffer sb = new StringBuffer();
 		insertCommas(sb, list, x -> sb.append(x.toString()));
 		return sb.toString();
+	}
+
+	/**
+	 * Check if the elements of the two arrays are identity-equal.
+	 */
+	public static <T> boolean elementsEq(Iterable<T> args, Iterable<T> args2) {
+		if(args == args2)
+			return true;
+		Iterator<T> i1 = args.iterator();
+		Iterator<T> i2 = args2.iterator();
+		for(;;) {
+			if(i1.hasNext()) {
+				if(i2.hasNext()) {
+					if(i1.next() != i2.next()) {
+						return false;
+					}
+				} else {
+					// i2 is shorter
+					return false;
+				}
+			} else {
+				// i1 might be shorter
+				return !i2.hasNext();
+			}
+		}		
 	}
 
 }

@@ -2,7 +2,7 @@ package banjo.expr.free;
 
 import java.util.function.Function;
 
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.value.Value;
 
 /**

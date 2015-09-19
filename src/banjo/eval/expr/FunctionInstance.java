@@ -3,7 +3,7 @@ package banjo.eval.expr;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
@@ -14,6 +14,8 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.List;
 import fj.data.Option;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 public class FunctionInstance extends FunctionTrait implements Value, Function<List<Value>, Value> {
 	public final List<SourceFileRange> ranges;
@@ -21,6 +23,7 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public final FreeExpression body;
 	public final Option<Identifier> sourceObjectBinding;
 	public final Environment closure;
+	private ObservableFunctionInstance observable;
 
 	public FunctionInstance(List<SourceFileRange> ranges, List<Identifier> args,
 			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment closure) {
@@ -41,10 +44,39 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 		return closure.isReactive();
 	}
 
-	private Value update(Environment newEnvironment) {
+	private FunctionInstance update(Environment newEnvironment) {
 		return (newEnvironment == closure)? this : new FunctionInstance(ranges, args, body, sourceObjectBinding, newEnvironment);
 	}
 
+	public static final class ObservableFunctionInstance extends ObjectBinding<Value> {
+		public final ObservableValue<Environment> closureBinding;
+		public FunctionInstance functionInstance;
+		public ObservableFunctionInstance(FunctionInstance functionInstance) {
+			super();
+			closureBinding = functionInstance.closure.toObservableValue();
+			bind(closureBinding);
+			this.functionInstance = functionInstance;
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return functionInstance = functionInstance.update(closureBinding.getValue());
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(closureBinding);
+		}
+		
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		if(observable == null)
+			observable = new ObservableFunctionInstance(this);
+		return observable;
+	}
+	
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
 		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();

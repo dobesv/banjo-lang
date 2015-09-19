@@ -8,8 +8,8 @@ import java.util.function.Supplier;
 
 import org.junit.Test;
 
-import banjo.eval.Environment;
 import banjo.eval.Fail;
+import banjo.eval.environment.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;

@@ -7,6 +7,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.sun.javafx.binding.ObjectConstant;
+
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
@@ -20,6 +22,7 @@ import banjo.expr.source.Operator;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Stream;
+import javafx.beans.value.ObservableValue;
 
 public class JavaObjectValue implements Value {
 
@@ -267,12 +270,17 @@ public class JavaObjectValue implements Value {
 	
 	@Override
 	public boolean isReactive() {
-		return (object instanceof Reactive) && ((Reactive)object).isReactive();
+		return (object instanceof Reactive) && ((Reactive<?>)object).isReactive();
 	}
 	
 	public Value update(Object newObject) {
 		if(newObject == this.object)
 			return this;
 		return new JavaObjectValue(newObject);
+	}
+
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return ObjectConstant.valueOf(this);
 	}
 }

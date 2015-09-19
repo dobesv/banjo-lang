@@ -1,6 +1,8 @@
 package banjo.value;
 
 import banjo.event.Event;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * An object with a single slot - which is the base slot value
@@ -11,6 +13,7 @@ public class ObjectBaseValue implements Value {
 	public final String selfName;
 	public final String slotName;
 	public final Value slotValue;
+	private ObservableObjectBaseValue observable;
 	
 	public ObjectBaseValue(String selfName, String slotName, Value slotValue) {
 		this.selfName = selfName;
@@ -42,7 +45,7 @@ public class ObjectBaseValue implements Value {
 		return slotValue.react(event).map(this::update);
 	}
 	
-	public Value update(Value newSlotValue) {
+	public ObjectBaseValue update(Value newSlotValue) {
 		if(newSlotValue == slotValue)
 			return this;
 		return new ObjectBaseValue(selfName, slotName, newSlotValue);
@@ -53,4 +56,28 @@ public class ObjectBaseValue implements Value {
 		return selfName+":"+slotName;
 	}
 
+	public static final class ObservableObjectBaseValue extends ObjectBinding<Value> {
+		public final ObservableValue<Value> slotValueBinding;
+		ObjectBaseValue objectBaseValue;
+		
+		public ObservableObjectBaseValue(ObjectBaseValue objectBaseValue) {
+			slotValueBinding = objectBaseValue.toObservableValue();
+			this.objectBaseValue = objectBaseValue;
+			
+			bind(slotValueBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return objectBaseValue = objectBaseValue.update(slotValueBinding.getValue());
+		}
+		
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		if(observable == null)
+			observable = new ObservableObjectBaseValue(this);
+		return observable;
+	}
 }

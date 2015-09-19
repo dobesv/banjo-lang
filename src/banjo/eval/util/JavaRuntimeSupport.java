@@ -8,9 +8,11 @@ import java.util.function.Supplier;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
-import banjo.event.sink.EventSink;
 import banjo.event.source.EventSource;
 import banjo.expr.token.StringLiteral;
+import banjo.io.resource.Resource;
+import banjo.value.CustomReactor;
+import banjo.value.EventChainValue;
 import banjo.value.Value;
 import banjo.value.meta.ArgMapper;
 import banjo.value.meta.DynamicCallProxy;
@@ -385,18 +387,18 @@ public class JavaRuntimeSupport {
 		return Clock.systemUTC();
 	}
 	
-	@SlotName("default event source")
-	public static EventSource defaultEventSource() {
-		return EventSource.discoveredEventSourcesSource();
-	}
-	
-	@SlotName("default event sink")
-	public static EventSink defaultEventSink() {
-		return EventSink.discoveredEventSinksSink();
+	@SlotName("default resource")
+	public static Resource defaultResource() {
+		return Resource.discovered();
 	}
 	
 	@SlotName("slot names")
 	public static Value slotNames() {
 		return SlotNames.INSTANCE;
+	}
+	
+	@SlotName("reactor")
+	public static Value reactor(Value reactor) {
+		return new CustomReactor(reactor);
 	}
 }

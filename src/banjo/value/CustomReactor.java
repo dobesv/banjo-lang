@@ -2,6 +2,7 @@ package banjo.value;
 
 import banjo.event.Event;
 import fj.data.List;
+import javafx.beans.value.ObservableValue;
 
 public class CustomReactor implements Value {
 	public final Value reactor;
@@ -39,4 +40,8 @@ public class CustomReactor implements Value {
 		return reactor.callMethod(name, args);
 	}
 
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		throw new Error("Not implemented");
+	}
 }

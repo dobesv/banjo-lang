@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.value.SlotValue;
 import banjo.value.Value;
 

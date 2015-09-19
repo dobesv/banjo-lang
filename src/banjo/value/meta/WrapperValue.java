@@ -6,6 +6,8 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Utility base class that wraps another object
@@ -18,6 +20,7 @@ import fj.data.List;
 public abstract class WrapperValue implements Value {
 
 	public final Value target;
+	private ObservableWrapperValue observable;
 
 	public WrapperValue(Value target) {
 		this.target = target;
@@ -73,12 +76,41 @@ public abstract class WrapperValue implements Value {
 		return target.isReactive();
 	}
 	
-	public Value update(Value newValue) {
+	public WrapperValue update(Value newValue) {
 		if(newValue == target)
 			return this;
 		return this.rewrap(newValue);
 	}
 	
-	protected abstract Value rewrap(Value newValue);
+	protected abstract WrapperValue rewrap(Value newValue);
+	
+	public static final class ObservableWrapperValue extends ObjectBinding<Value> {
+		final ObservableValue<Value> targetBinding;
+		WrapperValue wrapperValue;
+		
+		public ObservableWrapperValue(WrapperValue wrapperValue) {
+			super();
+			targetBinding = wrapperValue.target.toObservableValue();
+			bind(targetBinding);
+			this.wrapperValue = wrapperValue;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(targetBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return wrapperValue = wrapperValue.update(targetBinding.getValue());
+		}
+		
+	}
 
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		if(observable == null)
+			observable = new ObservableWrapperValue(this);
+		return observable;
+	}
 }

@@ -1,11 +1,14 @@
 package banjo.eval;
 
+import com.sun.javafx.binding.ObjectConstant;
+
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.Event;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import javafx.beans.value.ObservableValue;
 
 
 public class Fail extends Error implements Value {
@@ -100,5 +103,10 @@ public class Fail extends Error implements Value {
 	@Override
 	public String javaLabel() {
 		return this.toString();
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return ObjectConstant.valueOf(this);
 	}
 }

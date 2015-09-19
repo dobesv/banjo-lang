@@ -41,14 +41,14 @@ public class AsyncValue extends WrapperValue {
 		return update(newTarget, newPredicate, newCtor);
 	}
 
-	public Value update(Value newTarget, Value newPredicate, Value newCtor) {
+	public AsyncValue update(Value newTarget, Value newPredicate, Value newCtor) {
 		if(newPredicate == this.eventPredicate && newTarget == this.target && newCtor == this.valueConstructor)
 			return this;
 		return new AsyncValue(newTarget, newPredicate, newCtor);
 	}
 
 	@Override
-	protected Value rewrap(Value newValue) {
+	protected AsyncValue rewrap(Value newValue) {
 		return update(newValue, this.eventPredicate, this.valueConstructor);
 	}
 	

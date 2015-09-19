@@ -1,51 +1,50 @@
 package banjo.eval.util;
 
 import java.time.Clock;
-import java.util.function.Function;
 
-import banjo.eval.Environment;
-import banjo.eval.Environment;
 import banjo.eval.Fail;
+import banjo.eval.environment.Environment;
 import banjo.event.Event;
-import banjo.event.sink.EventSink;
-import banjo.event.sink.NullEventSink;
-import banjo.event.source.EventSource;
 import banjo.expr.core.CoreExpr;
+import banjo.io.resource.Resource;
+import banjo.value.EventChainValue;
 import banjo.value.Reaction;
+import banjo.value.SlotValue;
 import banjo.value.TimeValue;
 import banjo.value.Value;
 import fj.P2;
-import fj.data.Either;
 import fj.data.List;
 
 public class JavaApplication implements Runnable {
 	public final TimeValue time;
-	public final EventSource source;
-	public final EventSink sink;
-	public final Reaction<Value> handler;
+	public final Resource resource;
+	public final Reaction<Value> output;
 	public final Clock clock;
-
+	public final EventChainValue eventChain;
 	
-	public JavaApplication(TimeValue time, EventSource source, EventSink sink, Clock clock,
-			Reaction<Value> handler) {
+	public JavaApplication(TimeValue time, Resource resource, Clock clock, EventChainValue eventChain, Reaction<Value> output) {
 		super();
 		this.time = time;
-		this.source = source;
-		this.sink = sink;
-		this.handler = handler;
+		this.resource = resource;
+		this.output = output;
 		this.clock = clock;
+		this.eventChain = eventChain;
+	}
+	public JavaApplication(Resource source, Clock clock, long fps, EventChainValue eventChain, Reaction<Value> output) {
+		this(new TimeValue(clock.millis(), 1000L/fps),
+				source, clock, eventChain, output);
 	}
 
-	public static EventSource fatalErrorEventSource(Fail f) {
-		return EventSource.of(new Event(0, "fatal error", f));
+	public static Resource fatalErrorStartupEventEmitter(Fail f) {
+		return Resource.startupEventEmitter(new Event(0, "fatal error", f));
 	}
-	public JavaApplication(Value applicationSpec) {
-		this.source = readAndConvertSlot(applicationSpec, "source", EventSource.class, JavaApplication::fatalErrorEventSource);
-		this.sink = readAndConvertSlot(applicationSpec, "sink", EventSink.class, (f) -> NullEventSink.INSTANCE);
-		this.clock = readAndConvertSlot(applicationSpec, "clock", Clock.class, (f) -> Clock.systemUTC());
-		long fps = readAndConvertSlot(applicationSpec, "fps", Long.class, (f) -> 60L);
+	public JavaApplication(Value app) {
+		this.clock = app.readAndConvertSlot("clock", Clock.class, (f) -> Clock.systemUTC());
+		long fps = app.readAndConvertSlot("fps", Long.class, (f) -> 60L);
 		this.time = new TimeValue(clock.millis(), 1000L/fps);
-		this.handler = Reaction.none(applicationSpec.slot("handler"));
+		this.resource = app.readAndConvertSlot("resource", Resource.class, JavaApplication::fatalErrorStartupEventEmitter);
+		this.eventChain = new EventChainValue(app.slot("pending event"), app.slot("event occurrence"));
+		this.output = Reaction.of(app.call1(Value.fromJava(this)));
 	}
 
 	public static void defaultSleep(long millis) {
@@ -57,27 +56,31 @@ public class JavaApplication implements Runnable {
 
 	@SlotName("epoch seconds")
 	public Value epochSeconds() {
-		return time.slot("epoch seconds");
+		// Return SlotValue so that it updates as time passes
+		return new SlotValue(time, "epoch seconds");
 	}
 
-	@SlotName("epoch millis")
+	@SlotName("timestamp")
 	public Value epochMillis() {
+		return new SlotValue(time, "epoch millis");
+	}
+
+	@SlotName("start timestamp")
+	public Value startTimestamp() {
+		// This value will not update on events
 		return time.slot("epoch millis");
 	}
-
-	public void prompt(String message) {
-		System.out.print(message);
-	}
-
-	@SlotName("no action")
-	public void noAction() {
-	}
-
+	
 	@SlotName("time")
-	public Value time() {
+	public Value getTime() {
 		return time;
 	}
 
+	@SlotName("event chain")
+	public EventChainValue getEventChain() {
+		return eventChain;
+	}
+	
 	public static JavaApplication fromExpr(final String rootExpr) {
 		CoreExpr ast = CoreExpr.fromString(rootExpr);
 		Environment environment = Environment.forCurrentDirectory();
@@ -85,57 +88,25 @@ public class JavaApplication implements Runnable {
 		return new JavaApplication(program);
 	}
 	
-	public static <T> T readAndConvertSlot(Value program, String slotName, Class<T> clazz, Function<Fail,T> onFailure) {
-		Value slotValue = program.slot(slotName);
-		if(!slotValue.isDefined()) {
-			Fail err = Either.reduce(slotValue.convertToJava(Fail.class));
-			return onFailure.apply(err);
-		}
-		Either<T, Fail> conversion = slotValue.convertToJava(clazz);
-		if(conversion.isLeft()) {
-			return conversion.left().value();
-		}
-		return onFailure.apply(conversion.right().value());
-	}
-	
 	public JavaApplication step() {
 		long timestamp = clock.millis();
-		P2<EventSource, List<Event>> p = source.poll(timestamp);
-		EventSource newSource = p._1();
+		P2<Resource, List<Event>> p = resource.poll(timestamp);
+		Resource newResource = p._1();
 		List<Event> newEvents = p._2();
 		List<Event> newEventsSorted = newEvents.isEmpty() ? List.single(new Event(timestamp, "null")) : newEvents.sort(Event.ORD);
-		Reaction<Value> newHandler = handler;
-		while (!newEventsSorted.isEmpty()) {
-			Event event = newEventsSorted.head();
-			newEventsSorted = newEventsSorted.tail();
-			sink.accept(event);
-
-			newHandler = newHandler.v.react(event);
-			
-			Value updatedHandlerPlusAppEvents = newHandler.v.call(List.single(event));
-			Value appEventsValue = updatedHandlerPlusAppEvents.slot("events");
-			
-			newHandler = Reaction.none(updatedHandlerPlusAppEvents.slot("handler"));
-			
-			@SuppressWarnings("rawtypes")
-			Either<List, Fail> a = appEventsValue.convertToJava(List.class);
-			readAndConvertSlot(appEventsValue, "events", List.class, (failure) -> { throw failure; });
-			if(a.isLeft()) {
-				@SuppressWarnings("unchecked")
-				List<Object> b = (List<Object>) a.left().value();
-				List<Event> appEvents = b.map((Object x) -> (Event)x);
-				newEventsSorted = appEvents.foldLeft((q,e) -> q.insertBy(Event.ORD.compare(), e), newEventsSorted);
-			} else {
-				throw a.right().value();
-			}
+		long nextPollTime = resource.nextPollTime(timestamp);
+		Reaction<Value> newOutput = new Reaction<Value>(output.v, nextPollTime);
+		for(Event event : newEventsSorted) {
+			// Update event and possibly reduce the expiry time
+			newOutput = newOutput.v.react(event).maybeExpiring(newOutput.expiry);
+			resource.accept(newOutput.v);
 		}
-		newHandler = newHandler.maybeExpiring(source.nextPollTime(timestamp));
-		return update(newSource, newHandler);
+		return update(newResource, newOutput);
 	}
-	private JavaApplication update(EventSource newSource, Reaction<Value> newHandler) {
-		if(newSource == this.source && newHandler == this.handler)
+	private JavaApplication update(Resource newResource, Reaction<Value> newOutput) {
+		if(newResource == this.resource && newOutput == this.output)
 			return this;
-		return new JavaApplication(time, newSource, sink, clock, newHandler);
+		return new JavaApplication(time, newResource, clock, eventChain, newOutput);
 	}
 
 	@Override
@@ -146,13 +117,14 @@ public class JavaApplication implements Runnable {
 	public static void run(JavaApplication app) {
 		while (true) {
 			app = app.step();
-			long nextPollTime = app.handler.expiry;
+			long nextPollTime = app.output.expiry;
 			if(nextPollTime == Long.MAX_VALUE) {
 				// Probably done
 				return;
 			}
 			long timestamp = app.clock.millis();
 			if (nextPollTime > timestamp) {
+				// TODO Custom sleep function for unit tests
 				defaultSleep(nextPollTime - timestamp);
 			}
 		}

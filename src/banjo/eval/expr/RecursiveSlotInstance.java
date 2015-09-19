@@ -1,17 +1,23 @@
 package banjo.eval.expr;
 
-import banjo.eval.Environment;
+import java.awt.image.RescaleOp;
+
+import banjo.eval.environment.Binding;
+import banjo.eval.environment.Environment;
 import banjo.event.Event;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 public class RecursiveSlotInstance implements SlotInstance {
 	public final Identifier name;
 	public final Identifier sourceObjectBinding;
 	public final FreeExpression valueFactory;
 	public final Environment environment;
+	private ObservableRecursiveSlotInstance observable;
 
 	public RecursiveSlotInstance(Identifier name, Identifier sourceObjectBinding,
             FreeExpression valueFactory, Environment environment) {
@@ -30,7 +36,9 @@ public class RecursiveSlotInstance implements SlotInstance {
 
 	@Override
 	public Value apply(Value self, Value prevSlotValue) {
-		final BindingInstance binding = BindingInstance.slotSourceObject(self, name.id, prevSlotValue);
+		final Binding binding = prevSlotValue == null ? 
+				Binding.slot(self, name.id) :
+				Binding.slotWithBase(self, name.id, prevSlotValue);
 		Environment slotEnv =
 				environment.bind(sourceObjectBinding.id, binding);
 		return valueFactory.apply(slotEnv);
@@ -46,12 +54,40 @@ public class RecursiveSlotInstance implements SlotInstance {
 		return environment.isReactive();
 	}
 	
-	public SlotInstance update(Environment newEnvironment) {
+	public RecursiveSlotInstance update(Environment newEnvironment) {
 		if(newEnvironment == environment)
 			return this;
 		return new RecursiveSlotInstance(name, sourceObjectBinding, valueFactory, newEnvironment);
 	}
 
+	public static final class ObservableRecursiveSlotInstance extends ObjectBinding<SlotInstance> {
+		final ObservableValue<Environment> environmentBinding;
+		RecursiveSlotInstance recursiveSlotInstance;
+		public ObservableRecursiveSlotInstance(RecursiveSlotInstance recursiveSlotInstance) {
+			super();
+			environmentBinding = recursiveSlotInstance.environment.toObservableValue();
+			bind(environmentBinding);
+			this.recursiveSlotInstance = recursiveSlotInstance;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(environmentBinding);
+		}
+		
+		@Override
+		protected SlotInstance computeValue() {
+			return recursiveSlotInstance = recursiveSlotInstance.update(environmentBinding.getValue());
+		}
+	}
+	
+	@Override
+	public ObservableValue<SlotInstance> toObservableValue() {
+		if(observable == null)
+			observable = new ObservableRecursiveSlotInstance(this);
+		return observable;
+	}
+	
 	@Override
 	public String toString() {
 	    return sourceObjectBinding+"."+name;

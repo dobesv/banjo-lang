@@ -2,6 +2,7 @@ package banjo.value;
 
 import banjo.eval.util.SlotName;
 import banjo.event.Event;
+import javafx.beans.value.ObservableValue;
 
 public class TimeValue implements Value {
 	final long timestamp;
@@ -52,5 +53,10 @@ public class TimeValue implements Value {
 	@Override
 	public boolean isReactive() {
 		return true;
+	}
+
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return new ObservableReactive<Value>(this);
 	}
 }

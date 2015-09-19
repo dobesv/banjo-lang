@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
 import banjo.eval.UnresolvedCodeError;
+import banjo.eval.environment.Environment;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.token.Identifier;
@@ -36,7 +36,7 @@ public class FreeExpressionFactory implements
     }
 
 	public static Value javaHelpers(Environment env) {
-	    return env.rootEnvironment.get("java").value;
+	    return env.rootEnvironment.get("java").getValue();
     }
 
 	private FreeExpression _callJavaHelper(String name, List<Value> args) {
@@ -119,7 +119,8 @@ public class FreeExpressionFactory implements
 	@Override
     public FreeExpression projection(List<SourceFileRange> ranges, FreeExpression object, FreeExpression projection, boolean base) {
 	    if(base) {
-	    	return new FreeBaseProjection(object, projection);
+	    	// Object must be the identifier of the bound slot self-name
+	    	return new FreeBaseProjection((FreeIdentifier)object, projection);
 	    } else {
 	    	return new FreeProjection(object, projection);
 	    }

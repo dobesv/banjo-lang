@@ -6,6 +6,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import com.sun.javafx.binding.ObjectConstant;
+
 import banjo.eval.Fail;
 import banjo.event.Event;
 import banjo.expr.util.ListUtil;
@@ -17,6 +19,7 @@ import banjo.value.meta.WrapperValue;
 import fj.P2;
 import fj.data.Either;
 import fj.data.List;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Represents a reference to an actual java method, which can be called
@@ -39,6 +42,11 @@ public class JavaMethodValue extends FunctionTrait implements Value {
 	@Override
 	public boolean isReactive() {
 		return false;
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return ObjectConstant.valueOf(this);
 	}
 	
 	@Override

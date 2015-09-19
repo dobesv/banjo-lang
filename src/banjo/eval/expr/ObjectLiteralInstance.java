@@ -12,10 +12,14 @@ import fj.P2;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.TreeMap;
+import javafx.beans.Observable;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	public final List<SourceFileRange> ranges;
 	public final TreeMap<String, SlotInstance> slots;
+	private ObservableObjectLiteralInstance observable;
 
 
 	public ObjectLiteralInstance(List<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
@@ -78,6 +82,32 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 			return new MethodInstance(f, sourceObject, this.name);
 		}
 		
+		public static final class ObservableMethodInstance extends ObjectBinding<Value> {
+			final ObservableValue<Value> fBinding;
+			MethodInstance methodInstance;
+			public ObservableMethodInstance(MethodInstance methodInstance) {
+				super();
+				fBinding = methodInstance.f.toObservableValue();
+				bind(fBinding);
+				this.methodInstance = methodInstance;
+			}
+			
+			@Override
+			public void dispose() {
+				unbind(fBinding);
+			}
+			
+			@Override
+			protected Value computeValue() {
+				return methodInstance = methodInstance.update(fBinding.getValue());
+			}
+		}
+		
+		@Override
+		public ObservableValue<Value> toObservableValue() {
+			return new ObservableMethodInstance(this);
+		}
+		
 		@Override
 		public boolean isDefined() {
 			return f.isDefined();
@@ -118,7 +148,35 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		return slots.values().exists(si -> si.isReactive());
 	}
 	
-	private Value update(TreeMap<String, SlotInstance> newSlots) {
-		return (slots == newSlots) ? this : new ObjectLiteralInstance(ranges, newSlots);
+	private ObjectLiteralInstance update(TreeMap<String, SlotInstance> newSlots) {
+		return ListUtil.elementsEq(slots.values(), newSlots.values()) ? this : new ObjectLiteralInstance(ranges, newSlots);
+	}
+	
+	public static final class ObservableObjectLiteralInstance extends ObjectBinding<Value> {
+		final TreeMap<String, ObservableValue<SlotInstance>> slotBindings;
+		ObjectLiteralInstance objectLiteralInstance;
+		public ObservableObjectLiteralInstance(ObjectLiteralInstance objectLiteralInstance) {
+			super();
+			slotBindings = objectLiteralInstance.slots.map(SlotInstance::toObservableValue);
+			bind(slotBindings.values().map(Observable.class::cast).array(Observable[].class));
+			this.objectLiteralInstance = objectLiteralInstance;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(slotBindings.values().map(Observable.class::cast).array(Observable[].class));
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return objectLiteralInstance = objectLiteralInstance.update(slotBindings.map(ObservableValue::getValue));
+		}
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		if(observable == null)
+			observable = new ObservableObjectLiteralInstance(this);
+		return observable;
 	}
 }

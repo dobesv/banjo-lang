@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.eval.expr.FunctionInstance;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;

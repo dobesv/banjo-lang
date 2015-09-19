@@ -4,7 +4,10 @@ import banjo.eval.util.Selector;
 import banjo.event.Event;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.meta.FunctionComposition.ObservableFunctionComposition;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Catch all slot accesses to this object and give them to a function
@@ -38,7 +41,7 @@ public class DynamicSlotProxy implements Value {
 		return delegate.isReactive();
 	}
 	
-	public Value update(Value newInterceptor) {
+	public DynamicSlotProxy update(Value newInterceptor) {
 		if(newInterceptor == delegate)
 			return this;
 		return new DynamicSlotProxy(newInterceptor);
@@ -48,6 +51,32 @@ public class DynamicSlotProxy implements Value {
 	public boolean isDefined() {
 		return delegate.isDefined();
 	}
+	public static final class ObservableDynamicSlotProxy extends ObjectBinding<Value> {
+		final ObservableValue<Value> delegateBinding;
+		DynamicSlotProxy wrapperValue;
+		
+		public ObservableDynamicSlotProxy(DynamicSlotProxy wrapperValue) {
+			super();
+			delegateBinding = wrapperValue.delegate.toObservableValue();
+			bind(delegateBinding);
+			this.wrapperValue = wrapperValue;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(delegateBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return wrapperValue = wrapperValue.update(delegateBinding.getValue());
+		}
+		
+	}
 	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return new ObservableDynamicSlotProxy(this);
+	}
 	
 }

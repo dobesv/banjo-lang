@@ -1,18 +1,20 @@
 package banjo.value;
 
 import java.util.HashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
-import banjo.eval.util.MemoizingSupplier;
 import banjo.expr.source.Operator;
 import banjo.value.meta.SlotMemoizer;
+import fj.F3;
 import fj.data.Either;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 public interface Value extends Reactive<Value> {
 	public static final Value IDENTITY_FUNCTION = function(Function.identity());
@@ -234,4 +236,6 @@ public interface Value extends Reactive<Value> {
 		}
 		return onFailure.apply(conversion.right().value());
 	}
+	
+	public ObservableValue<Value> toObservableValue();
 }

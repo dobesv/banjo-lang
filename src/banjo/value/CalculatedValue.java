@@ -7,6 +7,8 @@ import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.Event;
 import fj.data.Either;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Represents a value that is calculated from some dependent values.  This
@@ -113,4 +115,5 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	 * Have the calculation result react to an event, without actually calculating it.
 	 */
 	public abstract Reaction<Value> calculationReact(Event event);
+
 }

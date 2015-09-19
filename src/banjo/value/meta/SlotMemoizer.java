@@ -26,7 +26,7 @@ public class SlotMemoizer extends WrapperValue {
 	}
 	
 	@Override
-	protected Value rewrap(Value newValue) {
+	protected SlotMemoizer rewrap(Value newValue) {
 		return new SlotMemoizer(newValue);
 	}
 	

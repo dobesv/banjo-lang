@@ -5,6 +5,8 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Create an object by applying a function to each slot in the original
@@ -37,7 +39,7 @@ public class SlotMapper implements Value {
 		return Reaction.to(f,  source, event).map(P2.tuple(this::update));
 	}
 
-	public Value update(Value newF, Value newSource) {
+	public SlotMapper update(Value newF, Value newSource) {
 		if(f == newF && source == newSource)
 			return this;
 		return new SlotMapper(newF, newSource);
@@ -51,5 +53,35 @@ public class SlotMapper implements Value {
 	@Override
 	public boolean isDefined() {
 		return f.isDefined() && source.isDefined();
+	}
+	
+	public static final class ObservableSlotMapper extends ObjectBinding<Value> {
+		final ObservableValue<Value> fBinding;
+		final ObservableValue<Value> sourceBinding;
+		SlotMapper slotMapper;
+		public ObservableSlotMapper(SlotMapper slotMapper) {
+			super();
+			fBinding = slotMapper.f.toObservableValue();
+			sourceBinding = slotMapper.source.toObservableValue();
+			bind(fBinding, sourceBinding);
+			this.slotMapper = slotMapper;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(fBinding, sourceBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return slotMapper = slotMapper.update(fBinding.getValue(), sourceBinding.getValue());
+		}
+		
+		
+	}
+
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return new ObservableSlotMapper(this);
 	}
 }

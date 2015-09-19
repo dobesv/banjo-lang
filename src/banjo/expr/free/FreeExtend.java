@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
 import banjo.eval.ExtendedObject;
+import banjo.eval.environment.Environment;
 import banjo.expr.source.Operator;
 import banjo.value.Value;
 import banjo.value.meta.SlotMemoizer;

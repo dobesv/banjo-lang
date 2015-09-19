@@ -5,8 +5,11 @@ import banjo.expr.source.Operator;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.meta.SlotMapper.ObservableSlotMapper;
 import fj.P2;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Implement function composition.  The first function is called with with the
@@ -48,7 +51,7 @@ public class FunctionComposition extends FunctionTrait implements Value {
 		return first.isReactive() || second.isReactive();
 	}
 	
-	public Value update(Value newFirst, Value newSecond) {
+	public FunctionComposition update(Value newFirst, Value newSecond) {
 		return (first == newFirst && second == newSecond) ? this : new FunctionComposition(newSecond, newFirst);
 	}
 
@@ -57,4 +60,34 @@ public class FunctionComposition extends FunctionTrait implements Value {
 		return first.isDefined() && second.isDefined();
 	}
 
+	public static final class ObservableFunctionComposition extends ObjectBinding<Value> {
+		final ObservableValue<Value> firstBinding;
+		final ObservableValue<Value> secondBinding;
+		FunctionComposition functionComposition;
+		public ObservableFunctionComposition(FunctionComposition functionComposition) {
+			super();
+			firstBinding = functionComposition.first.toObservableValue();
+			secondBinding = functionComposition.second.toObservableValue();
+			bind(firstBinding, secondBinding);
+			this.functionComposition = functionComposition;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(firstBinding, secondBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return functionComposition = functionComposition.update(firstBinding.getValue(), secondBinding.getValue());
+		}
+		
+		
+	}
+
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return new ObservableFunctionComposition(this);
+	}
+	
 }

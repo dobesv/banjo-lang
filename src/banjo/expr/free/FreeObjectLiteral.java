@@ -1,7 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.eval.expr.FreeSlotInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.eval.expr.RecursiveSlotInstance;

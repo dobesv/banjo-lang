@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.Environment;
+import banjo.eval.environment.Environment;
 import banjo.eval.expr.CallInstance;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;

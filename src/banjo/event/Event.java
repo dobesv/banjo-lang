@@ -3,6 +3,8 @@ package banjo.event;
 import java.util.IdentityHashMap;
 import java.util.function.Function;
 
+import com.sun.javafx.binding.ObjectConstant;
+
 import banjo.eval.util.JavaMethodValue;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.OrdUtil;
@@ -11,6 +13,7 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.Ord;
 import fj.data.List;
+import javafx.beans.value.ObservableValue;
 
 public class Event extends FunctionTrait implements Value, Function<Value,Value> {
 	public static final Ord<Event> ORD = OrdUtil.chain(
@@ -81,5 +84,10 @@ public class Event extends FunctionTrait implements Value, Function<Value,Value>
 			return Value.fromJava(timestamp);
 		}
 		return super.slot(self, name, fallback);
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return ObjectConstant.valueOf(this);
 	}
 }

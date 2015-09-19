@@ -5,7 +5,10 @@ import java.util.function.Function;
 import banjo.event.Event;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.meta.DynamicSlotProxy.ObservableDynamicSlotProxy;
 import fj.data.List;
+import javafx.beans.binding.ObjectBinding;
+import javafx.beans.value.ObservableValue;
 
 /**
  * Wrap a function with a call interceptor.
@@ -37,7 +40,7 @@ public class DynamicCallProxy implements Value {
 		return f.react(event).map(this::update);
 	}
 
-	public Value update(Value newF) {
+	public DynamicCallProxy update(Value newF) {
 		if(newF == f)
 			return this;
 		return new DynamicCallProxy(newF);
@@ -52,4 +55,33 @@ public class DynamicCallProxy implements Value {
 	public boolean isDefined() {
 		return f.isDefined();
 	}
+	
+	public static final class ObservableDynamicCallProxy extends ObjectBinding<Value> {
+		final ObservableValue<Value> fBinding;
+		DynamicCallProxy wrapperValue;
+		
+		public ObservableDynamicCallProxy(DynamicCallProxy wrapperValue) {
+			super();
+			fBinding = wrapperValue.f.toObservableValue();
+			bind(fBinding);
+			this.wrapperValue = wrapperValue;
+		}
+		
+		@Override
+		public void dispose() {
+			unbind(fBinding);
+		}
+		
+		@Override
+		protected Value computeValue() {
+			return wrapperValue = wrapperValue.update(fBinding.getValue());
+		}
+		
+	}
+	
+	@Override
+	public ObservableValue<Value> toObservableValue() {
+		return new ObservableDynamicCallProxy(this);
+	}
+	
 }
