@@ -31,7 +31,7 @@ public class TestProjectionParser extends BaseParserTest {
 				test("a.\\-\\-", Projection.class),
 				test("a.\\.\\.", Projection.class),
 				test("a.\\.", Projection.class),
-				test("a*.b", "a *> (.b)", Call.class)
+				test("a*.b", "(.b) ∘ a", Call.class)
 		);
 	}
 }
