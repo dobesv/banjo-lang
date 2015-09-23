@@ -4,7 +4,7 @@ import java.util.function.Supplier;
 
 import banjo.eval.Fail;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import fj.data.Either;
 import fj.data.List;
 import javafx.beans.binding.ObjectBinding;
@@ -73,7 +73,7 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
     }
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		if(this.memo == null)
 			return calculationReact(event);
 		else
@@ -114,6 +114,6 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	/**
 	 * Have the calculation result react to an event, without actually calculating it.
 	 */
-	public abstract Reaction<Value> calculationReact(Event event);
+	public abstract Reaction<Value> calculationReact(PastEvent event);
 
 }

@@ -5,6 +5,7 @@ import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class BinaryOp extends AbstractOp implements SourceExpr {
 	public static final Ord<BinaryOp> _leftRightOrd = OrdUtil.chain(
@@ -18,19 +19,19 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	private final SourceExpr left;
 	private final SourceExpr right;
 
-	public BinaryOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
+	public BinaryOp(Set<SourceFileRange> ranges, Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
 		super(ranges, operator, operatorRanges, left, right);
 		this.left = left;
 		this.right = right;
 	}
 
-	public BinaryOp(Operator operator, List<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
-		this(left.getSourceFileRanges().append(right.getSourceFileRanges()).append(operatorRanges).sort(SourceFileRange.ORD),
+	public BinaryOp(Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
+		this(left.getSourceFileRanges().union(right.getSourceFileRanges()).union(operatorRanges),
 				operator, operatorRanges, left, right);
 	}
 	public BinaryOp(Operator operator, SourceExpr left, SourceExpr right) {
-		this(left.getSourceFileRanges().append(right.getSourceFileRanges()).sort(SourceFileRange.ORD),
-				operator, SourceFileRange.EMPTY_LIST, left, right);
+		this(left.getSourceFileRanges().union(right.getSourceFileRanges()),
+				operator, SourceFileRange.EMPTY_SET, left, right);
 	}
 	public SourceExpr getLeft() {
 		return this.left;

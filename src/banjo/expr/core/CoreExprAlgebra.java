@@ -7,19 +7,20 @@ import fj.P2;
 import fj.P3;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
-	T objectLiteral(List<SourceFileRange> ranges, List<P3<Identifier, Option<Identifier>, T>> slots);
-	T numberLiteral(List<SourceFileRange> ranges, Number value);
-	T stringLiteral(List<SourceFileRange> ranges, String text);
-	T listLiteral(List<SourceFileRange> ranges, List<T> elements);
-	T call(List<SourceFileRange> ranges, T function, List<T> args);
-	T extend(List<SourceFileRange> ranges, T base, T extension);
-	T inspect(List<SourceFileRange> ranges, T target);
-	T identifier(List<SourceFileRange> ranges, String id);
-	T let(List<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
-	T functionLiteral(List<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> sourceObjectBinding);
-	T baseFunctionRef(List<SourceFileRange> ranges, Identifier name);
-	T projection(List<SourceFileRange> ranges, T object, T projection, boolean base);
+	T objectLiteral(Set<SourceFileRange> ranges, List<P3<Identifier, Option<Identifier>, T>> slots);
+	T numberLiteral(Set<SourceFileRange> ranges, Number value);
+	T stringLiteral(Set<SourceFileRange> ranges, String text);
+	T listLiteral(Set<SourceFileRange> ranges, List<T> elements);
+	T call(Set<SourceFileRange> ranges, T function, List<T> args);
+	T extend(Set<SourceFileRange> ranges, T base, T extension);
+	T inspect(Set<SourceFileRange> ranges, T target);
+	T identifier(Set<SourceFileRange> ranges, String id);
+	T let(Set<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
+	T functionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> sourceObjectBinding);
+	T baseFunctionRef(Set<SourceFileRange> ranges, Identifier name);
+	T projection(Set<SourceFileRange> ranges, T object, T projection, boolean base);
 }

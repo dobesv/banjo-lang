@@ -2,15 +2,18 @@ package banjo.expr.token;
 
 
 import static java.util.Objects.requireNonNull;
+
 import banjo.expr.BadExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.core.CoreExprVisitor;
 import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExprAlgebra;
 import banjo.expr.source.SourceExprVisitor;
+import banjo.expr.util.FileRange;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Ord<Identifier> ORD = Ord.stringOrd.contramap(x -> x.id);
@@ -32,17 +35,17 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 
 	public final String id;
 
-	public Identifier(List<SourceFileRange> ranges, int indentColumn, String id) {
+	public Identifier(Set<SourceFileRange> ranges, int indentColumn, String id) {
 		super(ranges, indentColumn);
 		this.id = requireNonNull(id);
 	}
 
 	public Identifier(SourceFileRange range, int indentColumn, String id) {
-		this(List.single(range), indentColumn, id);
+		this(Set.single(SourceFileRange.ORD, range), indentColumn, id);
 	}
 
 	public Identifier(String id) {
-		this(List.nil(), 0, id);
+		this(SourceFileRange.EMPTY_SET, 0, id);
 	}
 
 	public String getId() {
@@ -104,7 +107,9 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.identifier(getSourceFileRanges().head().getFileRange(), indentColumn, id);
+		// Note that we are assuming this HAS a file range at all ...
+		FileRange fileRange = getSourceFileRanges().toStream().head().getFileRange();
+		return parser.identifier(fileRange, indentColumn, id);
 	}
 }
 

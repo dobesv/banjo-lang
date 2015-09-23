@@ -2,7 +2,7 @@ package banjo.eval;
 
 import com.sun.javafx.binding.ObjectConstant;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
 import banjo.value.MethodCallResultValue;
 import banjo.value.Reaction;
@@ -30,7 +30,7 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 	    }
 		
 		@Override
-		public Reaction<Value> react(Event event) {
+		public Reaction<Value> react(PastEvent event) {
 			return Reaction.to(base, prevImpl, event).map(P2.tuple(this::update));
 		}
 		
@@ -111,7 +111,7 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		if(!reactive)
 			return Reaction.of(this);
 		return Reaction.to(base, extension, event).map(P2.tuple(this::update));

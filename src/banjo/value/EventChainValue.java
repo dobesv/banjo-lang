@@ -1,7 +1,7 @@
 package banjo.value;
 
 import banjo.eval.Fail;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import fj.data.Either;
 import fj.data.List;
 import javafx.beans.value.ObservableValue;
@@ -29,7 +29,7 @@ public class EventChainValue implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.of(occurredValueFactory.call(List.list((Value)event, this)));
 	}
 

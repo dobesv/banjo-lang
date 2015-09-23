@@ -5,18 +5,18 @@ import java.util.Objects;
 
 import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
+import fj.data.Set;
 
 public abstract class AbstractExpr implements Expr {
-	final List<SourceFileRange> sourceFileRanges;
+	final Set<SourceFileRange> sourceFileRanges;
 
-	public AbstractExpr(List<SourceFileRange> sourceFileRanges) {
+	public AbstractExpr(Set<SourceFileRange> sourceFileRanges) {
 		if(sourceFileRanges == null) throw new NullPointerException();
 		this.sourceFileRanges = sourceFileRanges;
 	}
 
 	@Override
-	public List<SourceFileRange> getSourceFileRanges() {
+	public Set<SourceFileRange> getSourceFileRanges() {
 		return this.sourceFileRanges;
 	}
 

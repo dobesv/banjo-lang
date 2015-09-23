@@ -1,7 +1,7 @@
 package banjo.value.meta;
 
 import banjo.eval.Fail;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
@@ -67,7 +67,7 @@ public abstract class WrapperValue implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return target.react(event).map(this::update);
 	}
 

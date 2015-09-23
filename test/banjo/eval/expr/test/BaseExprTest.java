@@ -25,6 +25,7 @@ import banjo.value.Value;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public abstract class BaseExprTest {
 
@@ -88,9 +89,9 @@ public abstract class BaseExprTest {
 		noParseErrors();
 		List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
 		try {
-			List<SourceFileRange> ranges = exprRanges();
-			if(ranges.isNotEmpty()) {
-				JavaRuntimeSupport.stack.set(List.single(()->new StackTraceElement("tests", exprSource(), ranges.head().getSourceFile().toString(), ranges.head().getStartLine())));
+			Set<SourceFileRange> ranges = exprRanges();
+			if(!ranges.isEmpty()) {
+				JavaRuntimeSupport.stack.set(List.single(()->new StackTraceElement("tests", exprSource(), ranges.toStream().head().getSourceFile().toString(), ranges.toStream().head().getStartLine())));
 			}
 			
 			freeExpr = FreeExpressionFactory.apply(expr);
@@ -122,7 +123,7 @@ public abstract class BaseExprTest {
 	public String exprSource() {
 		return expr.toSource();
 	}
-	public List<SourceFileRange> exprRanges() {
+	public Set<SourceFileRange> exprRanges() {
 		return expr.getSourceFileRanges();
 	}
 

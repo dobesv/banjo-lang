@@ -9,7 +9,7 @@ import java.util.Arrays;
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.Fail;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.value.FunctionTrait;
 import banjo.value.JavaObjectValue;
@@ -35,7 +35,7 @@ public class JavaMethodValue extends FunctionTrait implements Value {
     }
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.of(this); // No stepping this one, it's all plain java objects
 	}
 	

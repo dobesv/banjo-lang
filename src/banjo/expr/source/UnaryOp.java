@@ -5,6 +5,7 @@ import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class UnaryOp extends AbstractOp implements SourceExpr {
 	public static final Ord<UnaryOp> ORD = OrdUtil.chain(
@@ -13,12 +14,12 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	);
 	private final SourceExpr operand;
 
-	public UnaryOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr operand) {
+	public UnaryOp(Set<SourceFileRange> ranges, Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr operand) {
 		super(ranges, operator, operatorRanges, operand);
 		this.operand = operand;
 	}
-    public UnaryOp(Operator operator, List<SourceFileRange> operatorRanges, SourceExpr operand) {
-    	this(operatorRanges.append(operand.getSourceFileRanges()).sort(SourceFileRange.ORD),
+    public UnaryOp(Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr operand) {
+    	this(operatorRanges.union(operand.getSourceFileRanges()),
     			operator, operatorRanges, operand);
     }
 	public SourceExpr getOperand() {

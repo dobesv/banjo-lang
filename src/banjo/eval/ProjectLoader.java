@@ -21,11 +21,14 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import banjo.expr.core.BadCoreExpr;
+import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprFactory;
 import banjo.expr.core.Extend;
+import banjo.expr.core.Let;
 import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Slot;
+import banjo.expr.source.Operator;
 import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprFactory;
 import banjo.expr.token.Identifier;
@@ -34,44 +37,60 @@ import banjo.expr.util.FilePos;
 import banjo.expr.util.FileRange;
 import banjo.expr.util.ParserReader;
 import banjo.expr.util.SourceFileRange;
-import fj.P;
-import fj.P2;
+import banjo.value.CalculatedValue;
+import banjo.value.Value;
+import fj.Ord;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 public class ProjectLoader {
 	private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
 	private static final String LIB_PATH_ENV_NAME = "BANJO_PATH";
-	public static final List<P2<Identifier, CoreExpr>> EMPTY_BINDINGS = List.nil();
+	public static final List<Slot> EMPTY_BINDINGS = List.nil();
+
+	
+	private static Slot makeSlot(SourceExpr lhs, CoreExpr value) {
+		return new CoreExprFactory().addMethod(lhs, lhs, value, Identifier.TRUE, List.nil(), Operator.ASSIGNMENT).getValue().head(); 
+	}
 
 	/**
 	 * Load a single binding
 	 * @param path
 	 * @return
 	 */
-	public List<P2<Identifier, CoreExpr>> loadBinding(Path path) {
+	public List<Slot> loadBinding(Path path) {
 		String[] baseExt = path.getFileName().toString().split("\\.", 2);
 		String base = baseExt[0];
+		
+		// Ignore paths starting with a '.', like ".git", ".banjo", etc.
+		if(base.isEmpty())
+			return EMPTY_BINDINGS;
+		
 		String ext = Files.isRegularFile(path) ? baseExt.length == 2 ? baseExt[1] : "txt" : "";
-		Identifier key = new Identifier(base);
+		SourceExpr lhs = SourceExpr.fromString(base);
 		CoreExpr value;
 		if(Files.isDirectory(path)) {
-			value = loadFolder(path, key);
+			value = loadFolder(path);
+			// TODO Lazy loading
+			//value = new Call(new Identifier("load object from folder"), new StringLiteral(path.toString()));
 		} else if(Files.isRegularFile(path)) {
 			// System.out.println("Trying to load "+path+" ext = "+ext);
-			if(base.isEmpty())
-				return EMPTY_BINDINGS;
 			if("txt".equals(ext)) {
 				value = loadText(path);
+				// TODO Lazy loading
+				//value = new Call(new Identifier("load string from text source file"), new StringLiteral(path.toString()));
 			} else if("banjo".equals(ext)) {
 				value = loadSourceCode(path);
+				// TODO Lazy loading
+				//value = new Call(new Identifier("load value from source file"), new StringLiteral(path.toString()));
 			} else {
 				// Skip for now
 				return EMPTY_BINDINGS;
 			}
 		} else return EMPTY_BINDINGS;
-		return List.single(P.p(key, value));
+		return List.single(makeSlot(lhs, value));
 	}
 
 	/**
@@ -81,14 +100,15 @@ public class ProjectLoader {
 	 * @param key Name to use for the self-binding of slots in the folder
 	 * @return
 	 */
-	public ObjectLiteral loadFolder(Path path, Identifier key) {
-		final List<SourceFileRange> ranges = List.single(new SourceFileRange(path, FileRange.EMPTY));
+	public ObjectLiteral loadFolder(Path path) {
+		final Set<SourceFileRange> ranges = Set.single(SourceFileRange.ORD, new SourceFileRange(path, FileRange.EMPTY));
 		try {
-			Option<Identifier> selfBinding = Option.some(key);
-			return new ObjectLiteral(ranges, mergeBindings(listFilesInFolder(path)
-					.map(p -> loadBinding(p))
+			List<Slot> slots = mergeBindings(
+					listFilesInFolder(path)
+					.map(this::loadBinding)
 					.reduce(EMPTY_BINDINGS, (b1, b2) -> b1.append(b2))
-			).map(p -> new Slot(p._1(), selfBinding, p._2())));
+			);
+			return new ObjectLiteral(ranges, slots);
 		} catch (IOException e) {
 			return new ObjectLiteral(ranges, List.nil());
 		}
@@ -193,21 +213,44 @@ public class ProjectLoader {
 	 *
 	 * The result does not maintain the original sort order of the list.
 	 */
-	public static List<P2<Identifier, CoreExpr>> mergeBindings(
-            List<P2<Identifier, CoreExpr>> bindings) {
-		final TreeMap<Identifier, CoreExpr> newBindingMap = bindings.foldLeft(ProjectLoader::mergeBinding, TreeMap.empty(Identifier.ORD));
-		return newBindingMap.toStream().toList();
+	public static List<Slot> mergeBindings(
+            List<Slot> bindings) {
+		final TreeMap<String, Slot> newBindingMap = bindings.foldLeft(ProjectLoader::mergeBinding, TreeMap.empty(Ord.stringOrd));
+		return newBindingMap.values();
     }
 
-	protected static TreeMap<Identifier, CoreExpr> mergeBinding(
-            TreeMap<Identifier, CoreExpr> bindingMap, P2<Identifier, CoreExpr> binding) {
-	    return bindingMap.set(binding._1(),
-	    		bindingMap.get(binding._1())
-	    		.map(prevValue -> (CoreExpr) new Extend((CoreExpr)prevValue, binding._2()))
-	    		.orSome((CoreExpr)binding._2()));
+	static CoreExpr slotToExpr(Slot slot, Identifier newName) {
+		if(slot.sourceObjectBinding.isNone() || slot.sourceObjectBinding.some().id.equals(newName.id))
+			return slot.value;
+		return Let.single(slot.sourceObjectBinding.some(), newName, slot.value);
+	}
+	/**
+	 * Create a new slot which contains the old slot value extended with 
+	 * the new one, without messing up self-name bindings.
+	 */
+	static Slot mergeSlots(Slot base, Slot extension) {
+		
+		// No source object binding, no problems
+		if(base.sourceObjectBinding.isNone() && extension.sourceObjectBinding.isNone()) {
+			return new Slot(base.name, new Extend(base.value, extension.value));
+		}
+		
+		// If there's a source object binding, we have to make sure neither side sees the other's self-binding
+		// Ideally instead of __tmp we'd be using some kind of hygienic name.  Hm.
+		return new Slot(base.name, Option.some(Identifier.__TMP), 
+				new Extend(
+						slotToExpr(base, Identifier.__TMP),
+						slotToExpr(extension, Identifier.__TMP)));
+	}
+	protected static TreeMap<String, Slot> mergeBinding(
+            TreeMap<String, Slot> bindingMap, Slot binding) {
+	    return bindingMap.set(binding.name.id,
+	    		bindingMap.get(binding.name.id)
+	    		.map(prevSlot -> mergeSlots(prevSlot, binding))
+	    		.orSome(binding));
     }
 
-	public List<P2<Identifier, CoreExpr>> loadBindings(final Path root) {
+	public List<Slot> loadBindings(final Path root) {
 	    try {
 			return mergeBindings(listFilesInFolder(root)
 					.map(p -> loadBinding(p))
@@ -217,13 +260,13 @@ public class ProjectLoader {
 		}
     }
 
-	public List<P2<Identifier, CoreExpr>> loadBanjoPath() {
+	public List<Slot> loadBanjoPath() {
 		String path = getBanjoPathFromEnvironment();
 		if(path == null) return EMPTY_BINDINGS;
 		return loadImportedBindings(path, false);
 	}
 
-	public List<P2<Identifier, CoreExpr>> loadClassPathBindings() {
+	public List<Slot> loadClassPathBindings() {
 		return loadImportedBindings(System.getProperty("java.class.path", ""), true);
 	}
 	
@@ -247,7 +290,7 @@ public class ProjectLoader {
 			return Stream.empty();
 		}
 	}
-	public List<P2<Identifier, CoreExpr>> loadImportedBindings(String searchPath, boolean requireDotBanjoFile) {
+	public List<Slot> loadImportedBindings(String searchPath, boolean requireDotBanjoFile) {
 		if(searchPath == null || searchPath.isEmpty())
 			return EMPTY_BINDINGS;
 		
@@ -258,11 +301,11 @@ public class ProjectLoader {
 				.flatMap(ProjectLoader::maybeReadZipFile);
 		if(requireDotBanjoFile)
 			pathStream = pathStream.filter(p -> Files.exists(p.resolve(".banjo")));
-		Stream<List<P2<Identifier, CoreExpr>>> bindingsStream = pathStream.map(this::loadBindings);
+		Stream<List<Slot>> bindingsStream = pathStream.map(this::loadBindings);
 		return mergeBindings(bindingsStream.reduce(EMPTY_BINDINGS, (a,b) -> a.append(b)));
 	}
 
-	protected List<P2<Identifier, CoreExpr>> loadLocalBindings(final Path path) {
+	protected List<Slot> loadLocalBindings(final Path path) {
 		if(path == null)
 			return EMPTY_BINDINGS;
 		Path tryPath = path;
@@ -275,7 +318,7 @@ public class ProjectLoader {
 		return loadBindings(path);
     }
 
-	public List<P2<Identifier, CoreExpr>> loadLocalAndLibraryBindings(Path sourceFilePath) {
+	public List<Slot> loadLocalAndLibraryBindings(Path sourceFilePath) {
 		return loadBanjoPath().append(loadLocalBindings(sourceFilePath));
 	}
 }

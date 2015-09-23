@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import fj.data.List;
 import javafx.beans.value.ObservableValue;
 
@@ -12,7 +12,7 @@ public class CustomReactor implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		Value newFunction = this.reactor.call1(event);
 		if(newFunction == this.reactor)
 			return Reaction.of(this);

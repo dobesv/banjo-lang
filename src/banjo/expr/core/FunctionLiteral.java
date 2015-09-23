@@ -1,6 +1,7 @@
 package banjo.expr.core;
 
 import static java.util.Objects.requireNonNull;
+
 import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
@@ -12,6 +13,7 @@ import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
@@ -34,7 +36,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	 * @param body Method body expression
 	 * @param postcondition Expression that checks postconditions on the result of the body expression
 	 */
-	public FunctionLiteral(List<SourceFileRange> ranges, List<Identifier> args, CoreExpr body, Option<Identifier> sourceObjectBinding) {
+	public FunctionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, CoreExpr body, Option<Identifier> sourceObjectBinding) {
 		super(ranges.hashCode() + (31 * args.hashCode()) + (97 * body.hashCode()), ranges);
 		this.args = requireNonNull(args);
 		this.body = requireNonNull(body);
@@ -42,11 +44,11 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public FunctionLiteral(List<Identifier> args, CoreExpr body) {
-		this(List.nil(), args, body, Option.none());
+		this(SourceFileRange.EMPTY_SET, args, body, Option.none());
     }
 
 	public FunctionLiteral(Identifier arg, CoreExpr body) {
-		this(List.nil(), List.single(arg), body, Option.none());
+		this(SourceFileRange.EMPTY_SET, List.single(arg), body, Option.none());
     }
 
 	@Override
@@ -143,7 +145,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static FunctionLiteral function(Identifier arg, CoreExpr body) {
-		return new FunctionLiteral(SourceFileRange.EMPTY_LIST, List.single(arg), body, Option.none());
+		return new FunctionLiteral(SourceFileRange.EMPTY_SET, List.single(arg), body, Option.none());
 	}
 
 	public FunctionLiteral withBody(CoreExpr body) {

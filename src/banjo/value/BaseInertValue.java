@@ -2,7 +2,7 @@ package banjo.value;
 
 import com.sun.javafx.binding.ObjectConstant;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.value.ObservableValue;
 
 /**
@@ -11,7 +11,7 @@ import javafx.beans.value.ObservableValue;
 public class BaseInertValue implements Value {
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.of(this);
 	}
 

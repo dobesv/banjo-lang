@@ -17,7 +17,7 @@ import banjo.eval.util.JavaMethodCall;
 import banjo.eval.util.JavaMethodValue;
 import banjo.eval.util.Selector;
 import banjo.eval.util.SlotName;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
 import fj.data.Either;
 import fj.data.List;
@@ -260,7 +260,7 @@ public class JavaObjectValue implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		if(object instanceof Reactive) {
 			Reactive<?> a = (Reactive<?>)object;
 			return Reaction.to(a, event).map(this::update);

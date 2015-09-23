@@ -1,6 +1,6 @@
 package banjo.eval.expr;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
@@ -11,21 +11,26 @@ import fj.Ord;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import fj.data.TreeMap;
 import javafx.beans.Observable;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
-	public final List<SourceFileRange> ranges;
+	public final Set<SourceFileRange> ranges;
 	public final TreeMap<String, SlotInstance> slots;
 	private ObservableObjectLiteralInstance observable;
 
 
-	public ObjectLiteralInstance(List<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
+	public ObjectLiteralInstance(Set<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
 		super();
 		this.ranges = ranges;
 		this.slots = slots;
+	}
+
+	public ObjectLiteralInstance(TreeMap<String, Value> slotValues) {
+		this(SourceFileRange.EMPTY_SET, slotValues.map(FreeSlotInstance::new));
 	}
 
 	@Override
@@ -67,7 +72,7 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		
 		
 		@Override
-		public Reaction<Value> react(Event event) {
+		public Reaction<Value> react(PastEvent event) {
 			return f.react(event).map(this::update);
 		}
 		
@@ -132,7 +137,7 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		List<P2<String, SlotInstance>> pairs = List.iterableList(slots);
 		List<SlotInstance> deps = pairs.map(P2.__2());
 		Reaction<List<SlotInstance>> reactions = Reaction.to(deps, event);

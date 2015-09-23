@@ -1,7 +1,7 @@
 package banjo.value.meta;
 
 import banjo.eval.util.Selector;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import banjo.value.meta.FunctionComposition.ObservableFunctionComposition;
@@ -32,7 +32,7 @@ public class DynamicSlotProxy implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return delegate.react(event).map(this::update);
 	}
 

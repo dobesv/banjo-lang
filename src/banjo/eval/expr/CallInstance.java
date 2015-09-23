@@ -3,7 +3,7 @@ package banjo.eval.expr;
 import java.util.function.Supplier;
 
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.CalculatedValue;
@@ -11,16 +11,17 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public class CallInstance extends CalculatedValue implements Value {
-	public final List<SourceFileRange> ranges;
+	public final Set<SourceFileRange> ranges;
 	public final Value callee;
 	public final List<Value> args;
 	private ObservableCallInstance observable;
 	
-	public CallInstance(List<SourceFileRange> ranges, Value callee, List<Value> args) {
+	public CallInstance(Set<SourceFileRange> ranges, Value callee, List<Value> args) {
 		super();
 		this.ranges = ranges;
 		this.callee = callee;
@@ -41,8 +42,8 @@ public class CallInstance extends CalculatedValue implements Value {
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("function",
 				"apply",
-				ranges.toOption().map(x -> x.getSourceFile().toString()).toNull(),
-				ranges.toOption().map(x -> x.getStartLine()).orSome(-1));
+				ranges.toStream().toOption().map(x -> x.getSourceFile().toString()).toNull(),
+				ranges.toStream().toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 	
 	@Override
@@ -56,7 +57,7 @@ public class CallInstance extends CalculatedValue implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> calculationReact(Event event) {
+	public Reaction<Value> calculationReact(PastEvent event) {
 		return Reaction.p(Reaction.to(callee, event), Reaction.to(args, event)).map(P2.tuple(this::update));
 	}
 	

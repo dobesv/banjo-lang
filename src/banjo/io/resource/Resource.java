@@ -4,17 +4,19 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
+import banjo.value.Reaction;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.Equal;
 import fj.P;
 import fj.P2;
 import fj.data.List;
 
-public interface Resource extends Consumer<Value>, Value {
+public interface Resource extends Value {
 	public long nextPollTime(long lastPollTime);
 
-	public P2<Resource, List<Event>> poll(long timestamp);
+	public P2<Resource, List<PastEvent>> poll(long timestamp);
 	
 	public static Resource discovered() {
 		List<Resource> resources = List.iterableList(ServiceLoader.load(Resource.class));
@@ -47,12 +49,17 @@ public interface Resource extends Consumer<Value>, Value {
 		return new BaseResource() {
 			
 			@Override
-			public void accept(Value t) {
-				delegate.accept(t.slot(name));
+			public void watchValue(Value t) {
+				delegate.watchValue(new SlotValue(t, name));
 			}
 			
 			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
+			public void handleEvent(PastEvent event) {
+				delegate.handleEvent(event);
+			}
+			
+			@Override
+			public P2<Resource, List<PastEvent>> poll(long timestamp) {
 				return delegate.poll(timestamp).map1(r -> Resource.inSlot(name, r));
 			}
 			
@@ -87,12 +94,17 @@ public interface Resource extends Consumer<Value>, Value {
 		return new BaseResource() {
 			
 			@Override
-			public void accept(Value t) {
-				delegate.accept(t.call1(arg));
+			public void watchValue(Value t) {
+				delegate.watchValue(t.call1(arg));
 			}
 			
 			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
+			public void handleEvent(PastEvent event) {
+				delegate.handleEvent(event);
+			}
+			
+			@Override
+			public P2<Resource, List<PastEvent>> poll(long timestamp) {
 				return delegate.poll(timestamp).map1(r -> Resource.call1(r, arg));
 			}
 			
@@ -111,93 +123,23 @@ public interface Resource extends Consumer<Value>, Value {
 		return new BaseResource() {
 			
 			@Override
-			public void accept(Value t) {
-				delegate.accept(t.call(args));
+			public void watchValue(Value t) {
+				delegate.watchValue(t.call(args));
 			}
 			
 			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
+			public void handleEvent(PastEvent event) {
+				delegate.handleEvent(event);
+			}
+			
+			@Override
+			public P2<Resource, List<PastEvent>> poll(long timestamp) {
 				return delegate.poll(timestamp).map1(r -> Resource.call(r, args));
 			}
 			
 			@Override
 			public long nextPollTime(long lastPollTime) {
 				return delegate.nextPollTime(lastPollTime);
-			}
-		};
-	}
-	
-	/**
-	 * Create a resource which remembers its previous value (if any) and
-	 * if a new value comes (checked using the eqCheck provided) then
-	 * it passes it to this resource.  Otherwise it just throws it away.
-	 */
-	public default Resource ignoreRepeats(Equal<Value> eqCheck) {
-		final Resource delegate = this;
-		return new BaseResource() {
-			Value lastValue = null;
-			
-			@Override
-			public void accept(Value t) {
-				if(lastValue == null || !(eqCheck.eq(lastValue, t)))
-					delegate.accept(t);
-				lastValue = t;
-			}
-			
-			@Override
-			public long nextPollTime(long lastPollTime) {
-				return delegate.nextPollTime(lastPollTime);
-			}
-			
-			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
-				return delegate.poll(timestamp).map1(r -> r.ignoreRepeats(eqCheck));
-			}
-		};
-	}
-	
-	/**
-	 * Create a resource which discards any "undefined" or "error" values
-	 * and simply does not propagate them to this Sink.
-	 */
-	public default Resource ignoreUndefined() {
-		final Resource delegate = this;
-		return new BaseResource() {
-			@Override
-			public void accept(Value t) {
-				if(t != null && t.isDefined())
-					delegate.accept(t);
-			}
-			
-			@Override
-			public long nextPollTime(long lastPollTime) {
-				return delegate.nextPollTime(lastPollTime);
-			}
-			
-			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
-				return delegate.poll(timestamp).map1(r -> r.ignoreUndefined());
-			}
-		};
-	}
-	
-	public default Resource ignoreIf(Predicate<Value> check) {
-		final Resource delegate = this;
-		return new BaseResource() {
-			@Override
-			public void accept(Value t) {
-				if(check.test(t))
-					delegate.accept(t);
-			}
-			
-			@Override
-			public long nextPollTime(long lastPollTime) {
-				return delegate.nextPollTime(lastPollTime);
-			}
-			
-			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
-				return delegate.poll(timestamp).map1(r -> r.ignoreUndefined());
 			}
 		};
 	}
@@ -210,13 +152,24 @@ public interface Resource extends Consumer<Value>, Value {
 	 * 
 	 * This resource will not emit any events.
 	 */
-	public static <T> Resource pipeTo(Consumer<T> target, Class<T> clazz, T conversionFailureValue) {
+	public static <T> Resource passChangesTo(Consumer<T> target, Class<T> clazz, T conversionFailureValue) {
 		return new BaseResource() {
+			private Reaction<Value> output;
+
+			@Override
+			public void watchValue(Value output) {
+				this.output = Reaction.of(output);
+			}
 			
 			@Override
-			public void accept(Value v) {
-				target.accept(v.convertToJava(clazz).left().orValue(conversionFailureValue));
+			public void handleEvent(PastEvent event) {
+				Value oldValue = output.v;
+				output = Reaction.to(output.v, event);
+				if(oldValue != output.v) {
+					target.accept(output.v.convertToJava(clazz).left().orValue(conversionFailureValue));
+				}
 			}
+			
 		};
 	}
 	
@@ -224,23 +177,41 @@ public interface Resource extends Consumer<Value>, Value {
 	 * Create a resource which converts any value it receives to the given Java class
 	 * and sends it to the given target.
 	 * 
-	 * If the value cannot be converted, the value is thrown away.
+	 * If the value cannot be converted, the value is thrown away and the target is not invoked.
+	 * 
+	 * This resource does not emit any events.
 	 */
-	public static <T> Resource pipeTo(Consumer<T> target, Class<T> clazz) {
+	public static <T> Resource passChangesTo(Consumer<T> target, Class<T> clazz) {
 		return new BaseResource() {
+			private Reaction<Value> output;
+
+			@Override
+			public void watchValue(Value output) {
+				this.output = Reaction.of(output);
+			}
 			
 			@Override
-			public void accept(Value v) {
-				v.convertToJava(clazz).left().forEach(target);
+			public void handleEvent(PastEvent event) {
+				Value oldValue = output.v;
+				output = Reaction.to(output.v, event);
+				if(oldValue != output.v) {
+					output.v.convertToJava(clazz).left().forEach(target);
+				}
 			}
 		};
 	}
 	
-	public static Resource startupEventEmitter(Event initialEvent) {
+	public static Resource startupEventEmitter(PastEvent initialEvent) {
 		return new BaseResource() {
+			
 			@Override
-			public void accept(Value t) {
-				// Ignore
+			public void handleEvent(PastEvent event) {
+				// Ignore ...
+			}
+			
+			@Override
+			public void watchValue(Value output) {
+				// Ignore ...
 			}
 			
 			@Override
@@ -249,9 +220,12 @@ public interface Resource extends Consumer<Value>, Value {
 			}
 			
 			@Override
-			public P2<Resource, List<Event>> poll(long timestamp) {
+			public P2<Resource, List<PastEvent>> poll(long timestamp) {
 				return P.p(NullResource.INSTANCE, List.single(initialEvent));
 			}
 		};
 	}
+
+	public void watchValue(Value output);
+	public void handleEvent(PastEvent event);
 }

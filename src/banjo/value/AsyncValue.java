@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.meta.WrapperValue;
 import fj.data.List;
 
@@ -30,11 +30,11 @@ public class AsyncValue extends WrapperValue {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.to(target, eventPredicate, valueConstructor, event).map(p -> this.update(p._1(), p._2(), p._3(), event));
 	}
 	
-	public Value update(Value newTarget, Value newPredicate, Value newCtor, Event event) {
+	public Value update(Value newTarget, Value newPredicate, Value newCtor, PastEvent event) {
 		if(newPredicate.call(List.single(event)).isTruthy()) {
 			return newCtor.call(List.single(event));
 		}

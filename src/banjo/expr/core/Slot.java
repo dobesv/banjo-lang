@@ -2,6 +2,7 @@ package banjo.expr.core;
 
 import static java.util.Objects.requireNonNull;
 import banjo.expr.source.Operator;
+import banjo.expr.source.SourceExpr;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.OrdUtil;
 import fj.Ord;
@@ -20,6 +21,9 @@ public class Slot {
         this.sourceObjectBinding = requireNonNull(sourceObjectBinding);
         this.value = requireNonNull(value);
     }
+	public Slot(Identifier name, CoreExpr value) {
+		this(name, Option.none(), value);
+	}
 
 	static final Ord<Slot> ORD = OrdUtil.chain(
 			Identifier.ORD.contramap(slot -> slot.name),
@@ -114,4 +118,5 @@ public class Slot {
 	public String toString() {
 	    return toSource(new StringBuffer()).toString();
 	}
+	
 }

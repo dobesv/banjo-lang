@@ -18,12 +18,12 @@ public class TestParseErrors {
 		SourceExpr parsed = SourceExpr.fromString(source);
 		final List<BadExpr> problems = SourceErrorGatherer.getProblems(parsed);
 		for(final BadExpr e : problems) {
-			final FileRange range = e.getSourceFileRanges().head().getFileRange();
+			final FileRange range = e.getSourceFileRanges().toStream().head().getFileRange();
 			System.out.println("  "+range+": "+e.getMessage());
 		}
 		assertEquals(1, problems.length());
 		for(final BadExpr e : problems) {
-			final FileRange range = e.getSourceFileRanges().head().getFileRange();
+			final FileRange range = e.getSourceFileRanges().toStream().head().getFileRange();
 			assertEquals(errorStart + " - " + errorEnd, range.getStartOffset() + " - " + range.getEndOffset());
 		}
 	}

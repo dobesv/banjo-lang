@@ -3,7 +3,7 @@ package banjo.eval.util;
 import java.util.function.BiFunction;
 
 import banjo.eval.environment.Environment;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.free.FreeExpression;
 import banjo.value.CalculatedValue;
 import banjo.value.Reaction;
@@ -37,7 +37,7 @@ public class LazyBoundValue extends CalculatedValue {
 	}
 	
 	@Override
-	public Reaction<Value> calculationReact(Event event) {
+	public Reaction<Value> calculationReact(PastEvent event) {
 		return environment.react(event).map(this::updateEnv);
 	}
 	

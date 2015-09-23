@@ -11,6 +11,7 @@ import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	public static final Ord<BadIdentifier> ORD = OrdUtil.chain(
@@ -20,7 +21,7 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	public final String message;
 	public final String originalSource;
 
-	public BadIdentifier(List<SourceFileRange> ranges, String message, String originalSource) {
+	public BadIdentifier(Set<SourceFileRange> ranges, String message, String originalSource) {
 		super(ranges, 0, originalSource);
 		this.message = message;
 		this.originalSource = originalSource;
@@ -31,7 +32,7 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	}
 
 	public BadIdentifier(SourceFileRange sfr, String message, String originalSource) {
-		this(List.single(sfr), message, originalSource);
+		this(Set.single(SourceFileRange.ORD, sfr), message, originalSource);
     }
 
 	@Override

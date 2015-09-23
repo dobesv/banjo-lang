@@ -10,6 +10,7 @@ import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public class Let extends AbstractCoreExpr implements CoreExpr {
 
@@ -21,7 +22,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 	public final List<P2<Identifier, CoreExpr>> bindings;
 	public final CoreExpr body;
 
-	public Let(List<SourceFileRange> sourceFileRanges,
+	public Let(Set<SourceFileRange> sourceFileRanges,
             List<P2<Identifier, CoreExpr>> bindings, CoreExpr body) {
 	    super(sourceFileRanges.hashCode() + bindings.hashCode() + body.hashCode(), sourceFileRanges);
 	    this.bindings = bindings;
@@ -29,7 +30,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
     }
 
 	public Let(List<P2<Identifier, CoreExpr>> bindings, CoreExpr body) {
-		this(SourceFileRange.EMPTY_LIST, bindings, body);
+		this(SourceFileRange.EMPTY_SET, bindings, body);
 	}
 
 	@Override

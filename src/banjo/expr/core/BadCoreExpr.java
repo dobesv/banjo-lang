@@ -4,20 +4,21 @@ import banjo.expr.AbstractBadExpr;
 import banjo.expr.BadExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 
 public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 	public static final class UnknownType extends BadCoreExpr {
-		public UnknownType(List<SourceFileRange> ranges) {
+		public UnknownType(Set<SourceFileRange> ranges) {
 			super(ranges, "Unable to determine type");
 		}
 	}
 
-	public BadCoreExpr(List<SourceFileRange> ranges, String messageTemplate, Object ... args) {
+	public BadCoreExpr(Set<SourceFileRange> ranges, String messageTemplate, Object ... args) {
 		super(ranges, messageTemplate, args);
 	}
 
 	public BadCoreExpr(SourceFileRange sourceFileRange, String messageTemplate, Object ... args) {
-		this(List.single(sourceFileRange), messageTemplate, args);
+		this(Set.single(SourceFileRange.ORD, sourceFileRange), messageTemplate, args);
 	}
 
 	@Override

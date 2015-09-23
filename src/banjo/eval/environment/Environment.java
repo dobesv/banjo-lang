@@ -13,7 +13,7 @@ import banjo.eval.expr.RecursiveSlotInstance;
 import banjo.eval.expr.SlotInstance;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.eval.util.LazyBoundValue;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
@@ -21,8 +21,10 @@ import banjo.expr.free.FreeIdentifier;
 import banjo.expr.free.FreeProjection;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Reactive;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.Ord;
 import fj.P;
@@ -33,7 +35,7 @@ import fj.data.TreeMap;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
-public class Environment implements Function<String, Option<Binding>>, Reactive<Environment> {
+public class Environment implements Reactive<Environment> {
 
 	public final Environment rootEnvironment;
 	public final Value rootObject;
@@ -72,25 +74,12 @@ public class Environment implements Function<String, Option<Binding>>, Reactive<
 	}
 
 	@Override
-    public Option<Binding> apply(String t) {
-    	return bindings.get(t).orElse(() -> trySlot(t));
-    }
-	
-	public Option<Binding> trySlot(String t) {
-		Value v = rootObject.slot(t);
-		if(v instanceof SlotNotFound && ((SlotNotFound)v).id.equals(t)) {
-			return Option.none();
-		}
-		return Option.some(Binding.let(v));
-	}
-
-	@Override
 	public String toString() {
 	    return "("+bindings+") ⇒ ";
 	}
 	
 	@Override
-	public Reaction<Environment> react(Event event) {
+	public Reaction<Environment> react(PastEvent event) {
 		if(!reactive)
 			return Reaction.of(this);
 		List<P2<String, Binding>> pairs = List.iterableList(bindings);
@@ -127,18 +116,9 @@ public class Environment implements Function<String, Option<Binding>>, Reactive<
 		return new LazyBoundValue(fe, this);
 	}
 	
-	public Binding get(String id) {
-		Option<Binding> result = this.apply(id);
-		if(result.isNone())
-			return Binding.let(unboundIdentifier(id));
-		return result.some();
-	}
-
 	public Value getValue(String id) {
-		Option<Binding> result = this.apply(id);
-		if(result.isNone())
-			return unboundIdentifier(id);
-		return result.some().getValue();
+		// TODO Ideally this unbound identifier fallback value wouldn't be constructed unless it was really needed
+		return bindings.get(id).map(Binding::getValue).orSome(() -> new SlotValue(rootObject, rootObject, id, unboundIdentifier(id)));
 	}
 	
 	public static UnboundIdentifier unboundIdentifier(String id) {
@@ -152,10 +132,6 @@ public class Environment implements Function<String, Option<Binding>>, Reactive<
 		return new Environment(letBindings, this);
 	}
 	
-	public static List<P2<String, FreeExpression>> bindingsForPath(Path sourceFilePath) {
-		return new ProjectLoader().loadLocalAndLibraryBindings(sourceFilePath).map(x -> P.p(x._1().id, FreeExpressionFactory.apply(x._2())));
-	}
-
 	public static final String JAVA_RUNTIME_ID = "java runtime";
 	
 	public Environment bind(List<P2<String, Binding>> bindings) {
@@ -171,18 +147,19 @@ public class Environment implements Function<String, Option<Binding>>, Reactive<
 		this.rootEnvironment = this;
 		this.reactive = false;
 		Value runtime = Value.fromClass(JavaRuntimeSupport.RootObject.class);
-		List<P2<String, FreeExpression>> bindingPairs = bindingsForPath(sourceFilePath);
-		FreeIdentifier freeEnvRef = new FreeIdentifier(List.nil(), Identifier.ENVIRONMENT.id);
-		List<P2<String, SlotInstance>> rootSlots = bindingPairs.map(p -> P.p(
-				p._1(), 
-				new RecursiveSlotInstance(
-						new Identifier(p._1()),
-						Identifier.ENVIRONMENT,
-						new FreeProjection(freeEnvRef, p._2()),
-						this
-				)
+		List<P2<String, SlotInstance>> rootSlots =
+				new ProjectLoader().loadLocalAndLibraryBindings(sourceFilePath).map(slot -> P.p(
+							slot.name.id,
+							new RecursiveSlotInstance(
+								slot.name,
+								// We need an identifier for the object so we can project into it, so we use this "special" identifier
+								// TODO Ideally this would be a hygienic name instead
+								slot.sourceObjectBinding.orSome(Identifier.ENVIRONMENT),
+								new FreeProjection(new FreeIdentifier(slot.sourceObjectBinding.orSome(Identifier.ENVIRONMENT)), FreeExpressionFactory.apply(slot.value)),
+								this
+							)	
 		));
-		Value projectRootObject = new ObjectLiteralInstance(List.nil(),
+		Value projectRootObject = new ObjectLiteralInstance(SourceFileRange.EMPTY_SET, 
 				TreeMap.treeMap(Ord.stringOrd, rootSlots));
 		this.rootObject = runtime.extendedWith(projectRootObject);
 	}

@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -54,7 +54,7 @@ public class SlotValue extends CalculatedValue {
 	}
 	
 	@Override
-	public Reaction<Value> calculationReact(Event event) {
+	public Reaction<Value> calculationReact(PastEvent event) {
 		return Reaction.to(object, self, fallback, event).map(p -> this.update(p._1(), p._2(), p._3()));
 	}
 	

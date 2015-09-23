@@ -1,6 +1,6 @@
 package banjo.io.resource;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;
@@ -12,10 +12,14 @@ import fj.data.List;
  */
 public class NullResource extends BaseResource {
 	public static final NullResource INSTANCE = new NullResource();
-	public static final P2<Resource, List<Event>> POLL_RESULT = P.p(INSTANCE, List.nil());
+	public static final P2<Resource, List<PastEvent>> POLL_RESULT = P.p(INSTANCE, List.nil());
 	
 	@Override
-	public void accept(Value output) {
+	public void watchValue(Value output) {
+	}
+	
+	@Override
+	public void handleEvent(PastEvent event) {
 	}
 	
 	@Override
@@ -24,7 +28,7 @@ public class NullResource extends BaseResource {
 	}
 	
 	@Override
-	public P2<Resource, List<Event>> poll(long timestamp) {
+	public P2<Resource, List<PastEvent>> poll(long timestamp) {
 		return POLL_RESULT;
 	}
 	

@@ -4,7 +4,7 @@ import java.time.Clock;
 
 import banjo.eval.Fail;
 import banjo.eval.environment.Environment;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.core.CoreExpr;
 import banjo.io.resource.Resource;
 import banjo.value.EventChainValue;
@@ -15,26 +15,25 @@ import fj.data.List;
 
 public class JavaApplication implements Runnable {
 	public final Resource resource;
-	public final Reaction<Value> output;
 	public final Clock clock;
 	public final EventChainValue eventChain;
 	
-	public JavaApplication(Resource resource, Clock clock, EventChainValue eventChain, Reaction<Value> output) {
+	public JavaApplication(Resource resource, Clock clock, EventChainValue eventChain) {
 		super();
 		this.resource = resource;
-		this.output = output;
 		this.clock = clock;
 		this.eventChain = eventChain;
 	}
 
 	public static Resource fatalErrorStartupEventEmitter(Fail f) {
-		return Resource.startupEventEmitter(new Event(0, "fatal error", f));
+		return Resource.startupEventEmitter(new PastEvent(0, "fatal error", f));
 	}
 	public JavaApplication(Value app) {
 		this.clock = app.readAndConvertSlot("clock", Clock.class, (f) -> Clock.systemUTC());
 		this.resource = app.readAndConvertSlot("resource", Resource.class, JavaApplication::fatalErrorStartupEventEmitter);
 		this.eventChain = new EventChainValue(app.slot("pending event"), app.slot("event occurrence"));
-		this.output = Reaction.of(app.call1(resource));
+		Value output = app.call1(resource);
+		resource.watchValue(output);
 	}
 
 	public static void defaultSleep(long millis) {
@@ -58,23 +57,17 @@ public class JavaApplication implements Runnable {
 	
 	public JavaApplication step() {
 		long timestamp = clock.millis();
-		P2<Resource, List<Event>> p = resource.poll(timestamp);
+		P2<Resource, List<PastEvent>> p = resource.poll(timestamp);
 		Resource newResource = p._1();
-		List<Event> newEvents = p._2();
-		List<Event> newEventsSorted = newEvents.isEmpty() ? List.single(new Event(timestamp, "null")) : newEvents.sort(Event.ORD);
-		long nextPollTime = resource.nextPollTime(timestamp);
-		Reaction<Value> newOutput = new Reaction<Value>(output.v, nextPollTime);
-		for(Event event : newEventsSorted) {
-			// Update event and possibly reduce the expiry time
-			newOutput = newOutput.v.react(event).maybeExpiring(newOutput.expiry);
-			resource.accept(newOutput.v);
-		}
-		return update(newResource, newOutput);
+		List<PastEvent> newEvents = p._2();
+		List<PastEvent> newEventsSorted = newEvents.sort(PastEvent.ORD);
+		newEventsSorted.forEach(newResource::handleEvent);
+		return update(newResource);
 	}
-	private JavaApplication update(Resource newResource, Reaction<Value> newOutput) {
-		if(newResource == this.resource && newOutput == this.output)
+	private JavaApplication update(Resource newResource) {
+		if(newResource == this.resource)
 			return this;
-		return new JavaApplication(newResource, clock, eventChain, newOutput);
+		return new JavaApplication(newResource, clock, eventChain);
 	}
 
 	@Override
@@ -84,8 +77,9 @@ public class JavaApplication implements Runnable {
 	
 	public static void run(JavaApplication app) {
 		while (true) {
+			long lastPollTime = app.clock.millis();
 			app = app.step();
-			long nextPollTime = app.output.expiry;
+			long nextPollTime = app.resource.nextPollTime(lastPollTime);
 			if(nextPollTime == Long.MAX_VALUE) {
 				// Probably done
 				return;

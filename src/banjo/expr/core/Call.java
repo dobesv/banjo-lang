@@ -10,6 +10,7 @@ import fj.Ord;
 import fj.P;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
 	public static final Ord<Call> callOrd = OrdUtil.chain(
@@ -19,15 +20,19 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public final CoreExpr target;
 	public final List<CoreExpr> args;
 
-	public Call(List<SourceFileRange> ranges, CoreExpr target, List<CoreExpr> args) {
+	public Call(Set<SourceFileRange> ranges, CoreExpr target, List<CoreExpr> args) {
 		super(target.hashCode() + args.hashCode(), ranges);
 		this.target = target;
 		this.args = args;
 	}
 
 	public Call(CoreExpr target, List<CoreExpr> args) {
-		this(SourceFileRange.EMPTY_LIST, target, args);
+		this(SourceFileRange.EMPTY_SET, target, args);
     }
+	public Call(CoreExpr target, CoreExpr arg) {
+		this(target, List.single(arg));
+	}
+	
 	@Override
 	public Precedence getPrecedence() {
 		return Operator.CALL.getPrecedence();

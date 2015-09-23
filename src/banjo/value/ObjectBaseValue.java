@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -41,7 +41,7 @@ public class ObjectBaseValue implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return slotValue.react(event).map(this::update);
 	}
 	

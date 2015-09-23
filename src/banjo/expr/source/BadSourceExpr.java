@@ -5,18 +5,19 @@ import banjo.expr.BadExpr;
 import banjo.expr.ParenType;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 
 public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExpr {
 	public static class ExpectedOperator extends BadSourceExpr {
 
-		public ExpectedOperator(List<SourceFileRange> ranges) {
+		public ExpectedOperator(Set<SourceFileRange> ranges) {
 			super(ranges, "Expected an operator here");
 		}
 
 	}
 	public static class IncorrectIndentation extends BadSourceExpr {
 
-		public IncorrectIndentation(List<SourceFileRange> ranges, int actualIndent, int expectedMinIndent) {
+		public IncorrectIndentation(Set<SourceFileRange> ranges, int actualIndent, int expectedMinIndent) {
 			super(ranges, "Incorrect indentation; expected at least %d columns, got only %d", expectedMinIndent, actualIndent);
 		}
 
@@ -24,12 +25,12 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class MismatchedCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType openParenType, ParenType closeParenType) {
+		public MismatchedCloseParen(Set<SourceFileRange> ranges, ParenType openParenType, ParenType closeParenType) {
 			super(ranges, "Mismatched close paren; expecting '%s' but got '%s'", openParenType.getEndChar(), closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
 
-		public MismatchedCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
+		public MismatchedCloseParen(Set<SourceFileRange> ranges, ParenType closeParenType) {
 			super(ranges, "Mismatched close paren '%s'; no matching open paren found", closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
@@ -41,7 +42,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class MissingCloseParen extends BadSourceExpr {
 		private final ParenType closeParenType;
 
-		public MissingCloseParen(List<SourceFileRange> ranges, ParenType closeParenType) {
+		public MissingCloseParen(Set<SourceFileRange> ranges, ParenType closeParenType) {
 			super(ranges, "Missing close paren %s", closeParenType.getEndChar());
 			this.closeParenType = closeParenType;
 		}
@@ -53,7 +54,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 	public static class UnsupportedOperator extends BadSourceExpr {
 		private final String op;
 
-		public UnsupportedOperator(List<SourceFileRange> ranges, String op) {
+		public UnsupportedOperator(Set<SourceFileRange> ranges, String op) {
 			super(ranges, "Unsupported operator '"+op+"'");
 			this.op = op;
 		}
@@ -65,7 +66,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 
 	public static class InvalidProjection extends BadSourceExpr {
 
-		public InvalidProjection(List<SourceFileRange> ranges, String message,
+		public InvalidProjection(Set<SourceFileRange> ranges, String message,
                 Object... args) {
 	        super(ranges, message, args);
         }
@@ -76,12 +77,12 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 
 	}
 
-	protected BadSourceExpr(List<SourceFileRange> ranges, String message, Object ... args) {
+	protected BadSourceExpr(Set<SourceFileRange> ranges, String message, Object ... args) {
 		super(ranges, message, args);
 	}
 
 	public BadSourceExpr(SourceFileRange sfr, String message) {
-		this(List.single(sfr), message);
+		this(Set.single(SourceFileRange.ORD, sfr), message);
 	}
 
 	@Override

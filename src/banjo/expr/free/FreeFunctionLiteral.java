@@ -7,15 +7,16 @@ import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 public class FreeFunctionLiteral implements FreeExpression {
 
-	private List<SourceFileRange> ranges;
+	private Set<SourceFileRange> ranges;
 	private List<Identifier> args;
 	private FreeExpression body;
 	private Option<Identifier> sourceObjectBinding;
 
-	public FreeFunctionLiteral(List<SourceFileRange> ranges,
+	public FreeFunctionLiteral(Set<SourceFileRange> ranges,
             List<Identifier> args, FreeExpression body,
             Option<Identifier> sourceObjectBinding) {
 		this.ranges = ranges;
@@ -32,7 +33,7 @@ public class FreeFunctionLiteral implements FreeExpression {
 
 	@Override
 	public String toString() {
-		final Option<SourceFileRange> loc = ranges.toOption();
+		final Option<SourceFileRange> loc = ranges.toStream().toOption();
 		Option<Identifier> bindingName = sourceObjectBinding;
 		StringBuffer sb = new StringBuffer();
 		sb.append("<function");

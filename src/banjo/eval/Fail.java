@@ -3,7 +3,7 @@ package banjo.eval;
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
@@ -83,7 +83,7 @@ public class Fail extends Error implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.of(this);
 	}
 	

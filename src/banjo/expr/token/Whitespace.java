@@ -22,7 +22,7 @@ public class Whitespace extends AbstractAtom implements Token {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.whitespace(getSourceFileRanges().head().getFileRange(), text);
+		return parser.whitespace(getSourceFileRanges().toStream().head().getFileRange(), text);
 	}
 
 }

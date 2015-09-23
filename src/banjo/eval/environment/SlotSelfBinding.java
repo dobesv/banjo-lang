@@ -1,6 +1,6 @@
 package banjo.eval.environment;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
@@ -18,7 +18,7 @@ public class SlotSelfBinding implements Binding {
 	}
 
 	@Override
-	public Reaction<Binding> react(Event event) {
+	public Reaction<Binding> react(PastEvent event) {
 		return Reaction.to(sourceObject, event).map(this::update);
 	}
 

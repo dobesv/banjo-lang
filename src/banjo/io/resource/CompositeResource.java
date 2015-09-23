@@ -1,7 +1,7 @@
 package banjo.io.resource;
 
 import banjo.eval.SlotNotFound;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.P;
@@ -24,16 +24,24 @@ public class CompositeResource extends BaseResource {
 	}
 	
 	@Override
-	public void accept(Value output) {
-		for(Resource sink : resources) {
-			sink.accept(output);
+	public void handleEvent(PastEvent event) {
+		for(Resource res : resources) {
+			res.handleEvent(event);
 		}
 	}
+	
 	@Override
-	public P2<Resource, List<Event>> poll(long timestamp) {
-		List<P2<Resource, List<Event>>> a = resources.map(s -> s.poll(timestamp));
+	public void watchValue(Value output) {
+		for(Resource res : resources) {
+			res.watchValue(output);
+		}
+	}
+	
+	@Override
+	public P2<Resource, List<PastEvent>> poll(long timestamp) {
+		List<P2<Resource, List<PastEvent>>> a = resources.map(s -> s.poll(timestamp));
 		List<Resource> newSources = a.map(P2.__1());
-		List<Event> newEvents = List.join(a.map(P2.__2()));
+		List<PastEvent> newEvents = List.join(a.map(P2.__2()));
 		CompositeResource newThis = this.update(newSources);
 		return P.p(newThis, newEvents);
 	}

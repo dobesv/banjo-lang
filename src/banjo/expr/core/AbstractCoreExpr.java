@@ -2,10 +2,10 @@ package banjo.expr.core;
 
 import banjo.expr.AbstractExpr;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
+import fj.data.Set;
 
 public abstract class AbstractCoreExpr extends AbstractExpr implements CoreExpr {
-	public AbstractCoreExpr(int hashCode, List<SourceFileRange> sourceFileRanges) {
+	public AbstractCoreExpr(int hashCode, Set<SourceFileRange> sourceFileRanges) {
 		super(sourceFileRanges);
 	}
 }

@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.NotCallable;
 import banjo.eval.UnboundFunctionSelfName;
+import banjo.eval.environment.Binding;
 import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
 import banjo.value.Value;
@@ -18,7 +19,7 @@ public class FreeBaseFunctionRef implements FreeExpression {
 
 	@Override
 	public Value apply(Environment env) {
-		return env.get(name).acceptVisitor(new BindingVisitor<Value>() {
+		return env.bindings.get(name).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
 			public Value functionRecursive(Value function) {
@@ -46,6 +47,6 @@ public class FreeBaseFunctionRef implements FreeExpression {
 			}
 			
 			
-		});
+		})).orSome(() -> new UnboundFunctionSelfName("Not a function self-name: '"+name+"' is not a locally defined name"));
 	}
 }

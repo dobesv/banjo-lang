@@ -1,6 +1,6 @@
 package banjo.eval.expr;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import javafx.beans.binding.ObjectBinding;
@@ -27,7 +27,7 @@ public class FreeSlotInstance implements SlotInstance {
 	}
 	
 	@Override
-	public Reaction<SlotInstance> react(Event event) {
+	public Reaction<SlotInstance> react(PastEvent event) {
 		return value.react(event).map(this::update);
 	}
 

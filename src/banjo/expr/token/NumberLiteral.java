@@ -21,6 +21,7 @@ import banjo.expr.util.SourceFileRange;
 import banjo.expr.util.SourceNumber;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom {
@@ -29,15 +30,15 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	private final Number number;
 
 	public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number) {
-		this(List.single(sfr), indentColumn, number);
+		this(Set.single(SourceFileRange.ORD, sfr), indentColumn, number);
 	}
-	public NumberLiteral(List<SourceFileRange> ranges, int indentColumn, Number number) {
+	public NumberLiteral(Set<SourceFileRange> ranges, int indentColumn, Number number) {
 		super(ranges, indentColumn);
 		this.number = requireNonNull(number);
 	}
 
 	public NumberLiteral(Number n) {
-		this(List.nil(), 0, n);
+		this(SourceFileRange.EMPTY_SET, 0, n);
 	}
 
 	public Number getNumber() {
@@ -117,7 +118,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.numberLiteral(getSourceFileRanges().head().getFileRange(), indentColumn, number);
+		return parser.numberLiteral(getSourceFileRanges().toStream().head().getFileRange(), indentColumn, number);
 	}
 
 	public CoreExpr toConstructionExpression() {
@@ -204,7 +205,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 		} else throw new Error("TODO: "+n.getClass().getSimpleName());
 		return ctor;
 	}
-	public SourceExpr negate(List<SourceFileRange> ranges) {
+	public SourceExpr negate(Set<SourceFileRange> ranges) {
 	    return new NumberLiteral(ranges, indentColumn, negateNumber(number));
     }
 

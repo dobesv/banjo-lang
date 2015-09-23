@@ -6,8 +6,8 @@ import banjo.expr.token.Identifier;
 import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
-import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 public class Projection extends AbstractCoreExpr {
 	public static final Ord<Projection> ORD = OrdUtil.chain(
@@ -20,17 +20,17 @@ public class Projection extends AbstractCoreExpr {
 	public final CoreExpr projection;
 	public final boolean base;
 
-	public Projection(List<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection, boolean base) {
+	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection, boolean base) {
 		super(object.hashCode() ^ projection.hashCode() ^ (base ? 13 : 7), sourceFileRanges);
 		this.object = object;
 		this.projection = projection;
 		this.base = base;
 	}
-	public Projection(List<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection) {
+	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection) {
 		this(sourceFileRanges, object, projection, false);
 	}
 	public Projection(CoreExpr object, CoreExpr projection) {
-		this(SourceFileRange.EMPTY_LIST, object, projection, false);
+		this(SourceFileRange.EMPTY_SET, object, projection, false);
 	}
 
 
@@ -113,6 +113,6 @@ public class Projection extends AbstractCoreExpr {
 		});
 	}
 	public static CoreExpr baseSlot(Identifier selfBinding, Identifier name) {
-		return new Projection(SourceFileRange.EMPTY_LIST, selfBinding, name, true);
+		return new Projection(SourceFileRange.EMPTY_SET, selfBinding, name, true);
 	}
 }

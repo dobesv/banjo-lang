@@ -2,7 +2,7 @@ package banjo.eval.util;
 
 import java.lang.reflect.Executable;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.value.CalculatedValue;
 import banjo.value.Reaction;
@@ -33,7 +33,7 @@ public class JavaMethodCall extends CalculatedValue implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> calculationReact(Event event) {
+	public Reaction<Value> calculationReact(PastEvent event) {
 		return Reaction.to(arguments, event).map(this::updateArguments); 
 	}
 	

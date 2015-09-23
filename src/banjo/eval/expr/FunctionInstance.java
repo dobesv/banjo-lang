@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 
 import banjo.eval.environment.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
@@ -14,18 +14,19 @@ import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public class FunctionInstance extends FunctionTrait implements Value, Function<List<Value>, Value> {
-	public final List<SourceFileRange> ranges;
+	public final Set<SourceFileRange> ranges;
 	public final List<Identifier> args;
 	public final FreeExpression body;
 	public final Option<Identifier> sourceObjectBinding;
 	public final Environment closure;
 	private ObservableFunctionInstance observable;
 
-	public FunctionInstance(List<SourceFileRange> ranges, List<Identifier> args,
+	public FunctionInstance(Set<SourceFileRange> ranges, List<Identifier> args,
 			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment closure) {
 		this.ranges = ranges;
 		this.args = args;
@@ -35,7 +36,7 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
     }
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return closure.react(event).map(this::update);
 	}
 	
@@ -92,12 +93,12 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("<banjo code>",
 				sourceObjectBinding.map(x -> x.id).orSome("<function>"),
-				ranges.toOption().map(x -> x.getSourceFile().toString()).toNull(),
-				ranges.toOption().map(x -> x.getStartLine()).orSome(-1));
+				ranges.toStream().toOption().map(x -> x.getSourceFile().toString()).toNull(),
+				ranges.toStream().toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 	@Override
     public String toStringFallback() {
-		final Option<SourceFileRange> loc = ranges.toOption();
+		final Option<SourceFileRange> loc = ranges.toStream().toOption();
 		Option<Identifier> bindingName = sourceObjectBinding;
 		StringBuffer sb = new StringBuffer();
 		sb.append("<function");

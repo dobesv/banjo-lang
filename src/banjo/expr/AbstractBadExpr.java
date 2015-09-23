@@ -6,7 +6,7 @@ import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.Ordering;
-import fj.data.List;
+import fj.data.Set;
 
 public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	public static final Ord<Object[]> ARGS_ORD = Ord.ord((a) -> (b) -> Ordering.fromInt(AbstractBadExpr.compareArgs(a, b)));
@@ -22,7 +22,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 		return this.args;
 	}
 
-	public AbstractBadExpr(List<SourceFileRange> ranges, String message, Object ... args) {
+	public AbstractBadExpr(Set<SourceFileRange> ranges, String message, Object ... args) {
 		super(ranges);
 		this.messageTemplate = message;
 		this.args = args;
@@ -31,8 +31,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append("fail(");
-		if(sourceFileRanges.isNotEmpty()) {
-			sb.append(sourceFileRanges.head().toString()).append(": ");
+		if(!sourceFileRanges.isEmpty()) {
+			sourceFileRanges.toStream().take(1).forEach(s -> sb.append(s.toString()).append(": "));
 		}
 		StringLiteral.toSource(this.getMessage(), sb);
 		sb.append(")");

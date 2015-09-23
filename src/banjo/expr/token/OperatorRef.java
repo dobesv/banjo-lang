@@ -9,6 +9,7 @@ import banjo.expr.source.SourceExprVisitor;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class OperatorRef extends AbstractAtom implements Atom {
 
@@ -19,14 +20,14 @@ public class OperatorRef extends AbstractAtom implements Atom {
 	public final String op;
 	public final int indentColumn;
 
-	public OperatorRef(List<SourceFileRange> ranges, int indentColumn, String op) {
+	public OperatorRef(Set<SourceFileRange> ranges, int indentColumn, String op) {
 		super(ranges, indentColumn);
 		this.op = op;
 		this.indentColumn = indentColumn;
 	}
 
 	public OperatorRef(SourceFileRange operatorRange, int indentColumn, String op) {
-		this(List.single(operatorRange), indentColumn, op);
+		this(Set.single(SourceFileRange.ORD, operatorRange), indentColumn, op);
 	}
 
 	@Override
@@ -55,7 +56,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.operator(getSourceFileRanges().head().getFileRange(), 0, op);
+		return parser.operator(getSourceFileRanges().toStream().head().getFileRange(), 0, op);
 	}
 
 	@Override

@@ -1,10 +1,10 @@
 package banjo.expr;
 
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
+import fj.data.Set;
 
 public interface ExprAlgebra<T> {
 
-	T badExpr(List<SourceFileRange> ranges, String message, Object... args);
+	T badExpr(Set<SourceFileRange> ranges, String message, Object... args);
 
 }

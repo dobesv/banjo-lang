@@ -13,6 +13,7 @@ import fj.P2;
 import fj.P3;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 public class FreeExpressionFactory implements
         CoreExprAlgebra<FreeExpression> {
@@ -24,19 +25,19 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression badExpr(
-            List<SourceFileRange> ranges, String message, Object... args) {
+            Set<SourceFileRange> ranges, String message, Object... args) {
 		return (e) -> new UnresolvedCodeError(message, ranges);
     }
 
 	@Override
     public FreeExpression objectLiteral(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             List<P3<Identifier, Option<Identifier>, FreeExpression>> slots) {
 	    return new FreeObjectLiteral(ranges, slots);
     }
 
 	public static Value javaHelpers(Environment env) {
-	    return env.rootEnvironment.get("java").getValue();
+	    return env.rootEnvironment.getValue("java");
     }
 
 	private FreeExpression _callJavaHelper(String name, List<Value> args) {
@@ -49,7 +50,7 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression numberLiteral(
-            List<SourceFileRange> ranges, Number number) {
+            Set<SourceFileRange> ranges, Number number) {
 		if(number instanceof SourceNumber) number = ((SourceNumber)number).getValue();
 		FreeExpression result = callJavaHelper("number", Value.fromJava(number));
 		return result;
@@ -57,21 +58,21 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression stringLiteral(
-            List<SourceFileRange> ranges, String text) {
+            Set<SourceFileRange> ranges, String text) {
 		FreeExpression result = callJavaHelper("string", Value.fromJava(text));
 		return result;
     }
 
 	@Override
     public FreeExpression listLiteral(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             List<FreeExpression> elements) {
 		return new FreeListLiteral(elements);
     }
 
 	@Override
     public FreeExpression call(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             FreeExpression function,
             List<FreeExpression> args) {
 		return new FreeCall(ranges, function, args);
@@ -79,7 +80,7 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression extend(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             FreeExpression base,
             FreeExpression extension) {
 
@@ -88,19 +89,19 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression inspect(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             FreeExpression target) {
 		return (env) -> javaHelpers(env).callMethod("mirror", List.single(target.apply(env)));
     }
 
 	@Override
-    public FreeExpression identifier(List<SourceFileRange> ranges, String id) {
+    public FreeExpression identifier(Set<SourceFileRange> ranges, String id) {
 	    return new FreeIdentifier(ranges, id);
     }
 
 	@Override
     public FreeExpression let(
-            List<SourceFileRange> ranges,
+            Set<SourceFileRange> ranges,
             List<P2<Identifier, FreeExpression>> bindings,
             FreeExpression body) {
 	    final List<P2<String, FreeExpression>> _bindings = bindings.map(p -> P.p(p._1().id, p._2()));
@@ -109,7 +110,7 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression functionLiteral(
-            List<SourceFileRange> ranges, List<Identifier> args,
+            Set<SourceFileRange> ranges, List<Identifier> args,
             FreeExpression body,
             Option<Identifier> sourceObjectBinding) {
 	    final FreeFunctionLiteral f = new FreeFunctionLiteral(ranges, args, body, sourceObjectBinding);
@@ -117,7 +118,7 @@ public class FreeExpressionFactory implements
     }
 
 	@Override
-    public FreeExpression projection(List<SourceFileRange> ranges, FreeExpression object, FreeExpression projection, boolean base) {
+    public FreeExpression projection(Set<SourceFileRange> ranges, FreeExpression object, FreeExpression projection, boolean base) {
 	    if(base) {
 	    	// Object must be the identifier of the bound slot self-name
 	    	return new FreeBaseProjection((FreeIdentifier)object, projection);
@@ -127,7 +128,7 @@ public class FreeExpressionFactory implements
     }
 
 	@Override
-    public FreeExpression baseFunctionRef(List<SourceFileRange> sourceFileRanges, Identifier name) {
+    public FreeExpression baseFunctionRef(Set<SourceFileRange> sourceFileRanges, Identifier name) {
 	    return new FreeBaseFunctionRef(name.id);
     }
 

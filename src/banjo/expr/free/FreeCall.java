@@ -6,12 +6,13 @@ import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.data.List;
+import fj.data.Set;
 
 public class FreeCall implements FreeExpression {
-	public final List<SourceFileRange> ranges;
+	public final Set<SourceFileRange> ranges;
 	public final FreeExpression function;
 	public final List<FreeExpression> args;
-	public FreeCall(List<SourceFileRange> ranges, FreeExpression function,
+	public FreeCall(Set<SourceFileRange> ranges, FreeExpression function,
             List<FreeExpression> args) {
         super();
         this.ranges = ranges;

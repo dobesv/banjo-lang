@@ -2,7 +2,7 @@ package banjo.eval.environment;
 
 import com.sun.javafx.binding.ObjectConstant;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
@@ -25,7 +25,7 @@ public class FunctionRecursiveBindingWithBase implements Binding {
 	}
 	
 	@Override
-	public Reaction<Binding> react(Event event) {
+	public Reaction<Binding> react(PastEvent event) {
 		return Reaction.to(function, baseFunction, event).map(P2.tuple(this::update));
 	}
 

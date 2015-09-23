@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.value.ObservableValue;
 
 public interface Reactive<T> {
@@ -9,7 +9,7 @@ public interface Reactive<T> {
 	 * object if the event doesn't affect this value.  The default implementation
 	 * return the same object again.
 	 */
-	public Reaction<T> react(Event event);
+	public Reaction<T> react(PastEvent event);
 	
 	/**
 	 * If isReactive() returns false, that means that calling react() will always be a no-op (returns this) for this value.

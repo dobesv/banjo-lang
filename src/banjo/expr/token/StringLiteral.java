@@ -10,24 +10,26 @@ import banjo.expr.core.ListLiteral;
 import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExprAlgebra;
 import banjo.expr.source.SourceExprVisitor;
+import banjo.expr.util.FileRange;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class StringLiteral extends AbstractAtom implements Atom {
 	public static final Ord<StringLiteral> ORD = Ord.stringOrd.contramap((StringLiteral x) -> x.string);
 	public final String string;
 
-	public StringLiteral(List<SourceFileRange> ranges, int indentColumn, String string) {
+	public StringLiteral(Set<SourceFileRange> ranges, int indentColumn, String string) {
 		super(ranges, indentColumn);
 		this.string = string;
 	}
 
 	public StringLiteral(SourceFileRange range, int indentColumn, String string) {
-		this(List.single(range), indentColumn, string);
+		this(Set.single(SourceFileRange.ORD, range), indentColumn, string);
 	}
 	public StringLiteral(String string) {
-		this(List.nil(), 0, string);
+		this(SourceFileRange.EMPTY_SET, 0, string);
 	}
 
 	public String getString() {
@@ -81,7 +83,8 @@ public class StringLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.stringLiteral(getSourceFileRanges().head().getFileRange(), indentColumn, string);
+		FileRange fileRange = getSourceFileRanges().toStream().head().getFileRange();
+		return parser.stringLiteral(fileRange, indentColumn, string);
 	}
 
 	@Override

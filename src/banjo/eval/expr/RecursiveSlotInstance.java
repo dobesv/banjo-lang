@@ -4,7 +4,7 @@ import java.awt.image.RescaleOp;
 
 import banjo.eval.environment.Binding;
 import banjo.eval.environment.Environment;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.token.Identifier;
 import banjo.value.Reaction;
@@ -30,8 +30,8 @@ public class RecursiveSlotInstance implements SlotInstance {
 	public StackTraceElement makeStackTraceElement() {
 		return new StackTraceElement("<banjo code>",
 				sourceObjectBinding+"."+name,
-				name.getSourceFileRanges().toOption().map(x -> x.getSourceFile().toString()).toNull(),
-				name.getSourceFileRanges().toOption().map(x -> x.getStartLine()).orSome(-1));
+				name.getSourceFileRanges().toStream().toOption().map(x -> x.getSourceFile().toString()).toNull(),
+				name.getSourceFileRanges().toStream().toOption().map(x -> x.getStartLine()).orSome(-1));
 	}
 
 	@Override
@@ -45,7 +45,7 @@ public class RecursiveSlotInstance implements SlotInstance {
 	}
 
 	@Override
-	public Reaction<SlotInstance> react(Event event) {
+	public Reaction<SlotInstance> react(PastEvent event) {
 		return environment.react(event).map(this::update);
 	}
 

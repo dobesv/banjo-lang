@@ -3,16 +3,16 @@ package banjo.expr.source;
 import banjo.expr.AbstractExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
-import fj.data.List;
+import fj.data.Set;
 
 public abstract class AbstractOp extends AbstractExpr {
 	protected static final <T extends AbstractOp> Ord<T> _operatorOrd() { return Operator.ORD.contramap((x) -> x.operator); }
 			
 	public final Operator operator;
 	public final SourceExpr[] operands;
-	public final List<SourceFileRange> operatorRanges;
+	public final Set<SourceFileRange> operatorRanges;
 
-	public AbstractOp(List<SourceFileRange> ranges, Operator operator, List<SourceFileRange> operatorRanges, SourceExpr ... operands) {
+	public AbstractOp(Set<SourceFileRange> ranges, Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr ... operands) {
 		super(ranges);
 		this.operator = operator;
 		this.operands = operands;
@@ -28,7 +28,7 @@ public abstract class AbstractOp extends AbstractExpr {
 		return this.operator.getPrecedence();
 	}
 
-	public List<SourceFileRange> getOperatorRanges() {
+	public Set<SourceFileRange> getOperatorRanges() {
 		return operatorRanges;
 	}
 

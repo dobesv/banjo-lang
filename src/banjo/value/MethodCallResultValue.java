@@ -2,7 +2,7 @@ package banjo.value;
 
 import java.util.Observable;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import fj.data.List;
 import javafx.beans.binding.ObjectBinding;
@@ -33,7 +33,7 @@ public class MethodCallResultValue extends CalculatedValue {
 	}
 	
 	@Override
-	public Reaction<Value> calculationReact(Event event) {
+	public Reaction<Value> calculationReact(PastEvent event) {
 		if(!reactive)
 			return Reaction.of(this);
 		return Reaction.p(Reaction.to(targetObject, event), Reaction.to(fallback, event), Reaction.to(args, event)).map(p -> this.update(p._1(), p._2(), p._3()));

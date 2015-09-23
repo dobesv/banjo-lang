@@ -5,7 +5,7 @@ import banjo.expr.source.Precedence;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
-import fj.data.List;
+import fj.data.Set;
 
 /**
  * A primitive operation for reading the metadata of an object.
@@ -16,7 +16,7 @@ public class BaseFunctionRef extends AbstractCoreExpr implements CoreExpr {
 	public static final Ord<BaseFunctionRef> ORD = Identifier.ORD.contramap((x) -> x.name);
 	public final Identifier name;
 
-	public BaseFunctionRef(List<SourceFileRange> sourceFileRanges, Identifier name) {
+	public BaseFunctionRef(Set<SourceFileRange> sourceFileRanges, Identifier name) {
 	    super(name.hashCode(), sourceFileRanges);
 	    this.name = name;
     }

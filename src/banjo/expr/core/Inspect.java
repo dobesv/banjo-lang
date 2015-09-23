@@ -4,7 +4,7 @@ import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
-import fj.data.List;
+import fj.data.Set;
 
 /**
  * A primitive operation for reading the metadata of an object.
@@ -19,7 +19,7 @@ public class Inspect extends AbstractCoreExpr implements CoreExpr {
 		return this.target;
 	}
 
-	public Inspect(List<SourceFileRange> ranges, CoreExpr target) {
+	public Inspect(Set<SourceFileRange> ranges, CoreExpr target) {
 		super(target.hashCode()+ranges.hashCode(), ranges);
 		this.target = target;
 	}

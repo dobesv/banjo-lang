@@ -2,7 +2,7 @@ package banjo.io.resource;
 
 import com.sun.javafx.binding.ObjectConstant;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P;
@@ -17,7 +17,7 @@ public abstract class BaseResource implements Resource {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.of(this);
 	}
 
@@ -32,8 +32,19 @@ public abstract class BaseResource implements Resource {
 	}
 
 	@Override
-	public P2<Resource, List<Event>> poll(long timestamp) {
+	public P2<Resource, List<PastEvent>> poll(long timestamp) {
 		return P.p(this, List.nil());
 	}
 
+	@Override
+	public void watchValue(Value output) {
+		// N/A
+	}
+
+	@Override
+	public void handleEvent(PastEvent event) {
+		// N/A
+	}
+	
+	
 }

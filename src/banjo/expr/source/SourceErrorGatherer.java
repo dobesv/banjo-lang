@@ -1,9 +1,11 @@
 package banjo.expr.source;
 
 import static fj.data.List.single;
+
 import banjo.expr.BadExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 
 public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 
@@ -12,41 +14,41 @@ public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> badExpr(List<SourceFileRange> sourceFileRanges,
+	public List<BadExpr> badExpr(Set<SourceFileRange> sourceFileRanges,
 			String messageTemplate, Object... args) {
 		return single((BadExpr)new BadSourceExpr(sourceFileRanges, messageTemplate, args));
 	}
 
 	@Override
-	public List<BadExpr> binaryOp(List<SourceFileRange> sourceFileRanges,
-			Operator operator, List<SourceFileRange> operatorRanges, List<BadExpr> left,
+	public List<BadExpr> binaryOp(Set<SourceFileRange> sourceFileRanges,
+			Operator operator, Set<SourceFileRange> operatorRanges, List<BadExpr> left,
 			List<BadExpr> right) {
 		return left.append(right);
 	}
 
 	@Override
-	public List<BadExpr> unaryOp(List<SourceFileRange> sourceFileRanges,
-			Operator operator, List<SourceFileRange> operatorRanges, List<BadExpr> operand) {
+	public List<BadExpr> unaryOp(Set<SourceFileRange> sourceFileRanges,
+			Operator operator, Set<SourceFileRange> operatorRanges, List<BadExpr> operand) {
 		return operand;
 	}
 
 	@Override
-	public List<BadExpr> emptyExpr(List<SourceFileRange> sourceFileRanges) {
+	public List<BadExpr> emptyExpr(Set<SourceFileRange> sourceFileRanges) {
 		return List.nil();
 	}
 
 	@Override
-	public List<BadExpr> identifier(List<SourceFileRange> sourceFileRanges, String id) {
+	public List<BadExpr> identifier(Set<SourceFileRange> sourceFileRanges, String id) {
 		return List.nil();
 	}
 
 	@Override
-	public List<BadExpr> numberLiteral(List<SourceFileRange> sourceFileRanges, Number number) {
+	public List<BadExpr> numberLiteral(Set<SourceFileRange> sourceFileRanges, Number number) {
 		return List.nil();
 	}
 
 	@Override
-	public List<BadExpr> stringLiteral(List<SourceFileRange> sourceFileRanges, String string) {
+	public List<BadExpr> stringLiteral(Set<SourceFileRange> sourceFileRanges, String string) {
 		return List.nil();
 	}
 

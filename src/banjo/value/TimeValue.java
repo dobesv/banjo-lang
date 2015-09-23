@@ -1,7 +1,7 @@
 package banjo.value;
 
 import banjo.eval.util.SlotName;
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.value.ObservableValue;
 
 public class TimeValue implements Value {
@@ -21,7 +21,7 @@ public class TimeValue implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		long newTimestamp = event.timestamp;
 		return new Reaction<Value>(update(newTimestamp), newTimestamp+period);
 	}

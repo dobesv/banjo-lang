@@ -5,7 +5,7 @@ import banjo.expr.source.Precedence;
 import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
-import fj.data.List;
+import fj.data.Set;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
 	protected static final Ord<Extend> extendOrd = OrdUtil.chain(
@@ -15,17 +15,17 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	public final CoreExpr base;
 	public final CoreExpr extension;
 
-	public Extend(List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
+	public Extend(Set<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
 		super(base.hashCode() ^ extension.hashCode(), ranges);
 		this.base = base;
 		this.extension = extension;
 	}
 
 	public Extend(CoreExpr base, CoreExpr extension) {
-		this(SourceFileRange.EMPTY_LIST, base, extension);
+		this(SourceFileRange.EMPTY_SET, base, extension);
 	}
 
-	public Extend(int hashCode, List<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
+	public Extend(int hashCode, Set<SourceFileRange> ranges, CoreExpr base, CoreExpr extension) {
 		super(hashCode+ranges.hashCode()+base.hashCode()+extension.hashCode(), ranges);
 		this.base = base;
 		this.extension = extension;

@@ -4,6 +4,7 @@ import banjo.expr.AbstractExpr;
 import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 
 
 
@@ -11,12 +12,12 @@ import fj.data.List;
 public abstract class AbstractAtom extends AbstractExpr {
 	public final int indentColumn;
 
-	public AbstractAtom(List<SourceFileRange> ranges, int indentColumn) {
+	public AbstractAtom(Set<SourceFileRange> ranges, int indentColumn) {
 		super(ranges);
 		this.indentColumn = indentColumn;
 	}
 	public AbstractAtom(SourceFileRange range, int indentColumn) {
-		this(List.single(range), indentColumn);
+		this(Set.single(SourceFileRange.ORD, range), indentColumn);
 	}
 
 	@Override

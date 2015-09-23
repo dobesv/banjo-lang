@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundFunctionSelfName;
+import banjo.eval.UnboundSlotSelfName;
 import banjo.eval.environment.Binding;
 import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
@@ -32,7 +33,7 @@ public class FreeBaseProjection implements FreeExpression {
 	@Override
 	public Value apply(Environment env) {
 		String id = object.id;
-		return env.get(id).acceptVisitor(new BindingVisitor<Value>() {
+		return env.bindings.get(id).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
 			public Value slot(Value sourceObject, String slotName) {
@@ -51,19 +52,19 @@ public class FreeBaseProjection implements FreeExpression {
 			
 			@Override
 			public Value functionRecursive(Value function) {
-				return new UnboundFunctionSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
+				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
 			}
 			
 			@Override
 			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
-				return new UnboundFunctionSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
+				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
 			}
 			
 			@Override
 			public Value let(Value value) {
-				return new UnboundFunctionSelfName("Not a slot self-name: '"+id+"' is a regular let binding");
+				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a regular let binding");
 			}
-		});
+		})).orSome(() -> new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is not defined"));
 	}
 
 	@Override

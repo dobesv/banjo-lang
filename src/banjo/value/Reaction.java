@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import fj.F;
 import fj.P;
 import fj.P2;
@@ -39,7 +39,7 @@ public class Reaction<T> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <A> Reaction<A> to(Reactive<A> a, Event event) {
+	public static <A> Reaction<A> to(Reactive<A> a, PastEvent event) {
 		if(a == null) return null;
 		Reaction<A> result = (Reaction<A>) event.reactionCache.get(a);
 		if(result != null)
@@ -53,11 +53,11 @@ public class Reaction<T> {
 	 * Call react on a pair of values and return a reaction with the resulting
 	 * pair.
 	 */
-	public static <A,B> Reaction<P2<A,B>> to(Reactive<A> a, Reactive<B> b, Event event) {
+	public static <A,B> Reaction<P2<A,B>> to(Reactive<A> a, Reactive<B> b, PastEvent event) {
 		return p(to(a, event), to(b, event));
 	}
 
-	public static <A,B,C> Reaction<P3<A,B,C>> to(Reactive<A> a, Reactive<B> b, Reactive<C> c, Event event) {
+	public static <A,B,C> Reaction<P3<A,B,C>> to(Reactive<A> a, Reactive<B> b, Reactive<C> c, PastEvent event) {
 		return p(to(a, event), to(b, event), to(c, event));
 	}
 	
@@ -69,7 +69,7 @@ public class Reaction<T> {
 	 * no-change detection algorithm even on lists.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <A extends Reactive<A>> Reaction<List<A>> to(List<A> deps, Event event) {
+	public static <A extends Reactive<A>> Reaction<List<A>> to(List<A> deps, PastEvent event) {
 		Reaction<List<A>> result = (Reaction<List<A>>) event.reactionCache.get(deps);
 		if(result != null)
 			return result;
@@ -104,6 +104,12 @@ public class Reaction<T> {
 		if(minExpiry < expiry)
 			return new Reaction<T>(v, minExpiry);
 		return this;
+	}
+
+	public Reaction<T> withExpiry(long expiry) {
+		if(expiry == this.expiry)
+			return this;
+		return new Reaction<T>(this.v, expiry);
 	}
 
 }

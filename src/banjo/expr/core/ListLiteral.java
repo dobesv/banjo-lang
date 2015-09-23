@@ -6,20 +6,21 @@ import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	public static final Ord<ListLiteral> ORD = CoreExpr.listOfCoreExprOrd.contramap(x -> x.elements);
 
-	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.nil(), List.nil());
+	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.nil());
 	public final List<CoreExpr> elements;
 
-	public ListLiteral(List<SourceFileRange> ranges, List<CoreExpr> elements) {
+	public ListLiteral(Set<SourceFileRange> ranges, List<CoreExpr> elements) {
 		super(elements.hashCode()+ranges.hashCode(), ranges);
 		this.elements = elements;
 	}
 
 	public ListLiteral(List<CoreExpr> elements) {
-		this(SourceFileRange.EMPTY_LIST, elements);
+		this(SourceFileRange.EMPTY_SET, elements);
 	}
 
 	public List<CoreExpr> getElements() {

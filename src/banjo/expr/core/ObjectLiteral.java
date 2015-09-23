@@ -12,6 +12,7 @@ import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 
@@ -26,13 +27,13 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 		this(List.nil());
     }
 
-	public ObjectLiteral(List<SourceFileRange> ranges, List<Slot> slots) {
+	public ObjectLiteral(Set<SourceFileRange> ranges, List<Slot> slots) {
 		super(slots.hashCode()+ranges.hashCode(), ranges);
 		this.slots = slots;
 	}
 
 	@SafeVarargs
-	public ObjectLiteral(List<SourceFileRange> ranges, Slot ... slots) {
+	public ObjectLiteral(Set<SourceFileRange> ranges, Slot ... slots) {
 		this(ranges, List.list(slots));
 	}
 
@@ -41,7 +42,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public ObjectLiteral(List<Slot> slots) {
-		this(SourceFileRange.EMPTY_LIST, slots);
+		this(SourceFileRange.EMPTY_SET, slots);
 	}
 
 	@Override

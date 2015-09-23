@@ -21,6 +21,7 @@ import banjo.expr.util.SourceFileRange;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 import junit.framework.AssertionFailedError;
 
 @RunWith(Parameterized.class)
@@ -172,7 +173,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 
 	public static List<CoreExpr> findAllExamples() {
 		return List.join((new ProjectLoader()).loadBanjoPath()
-				.map(P2.__2())
+				.map(slot -> slot.value)
 				.<List<CoreExpr>>map(TestRunCoreLibraryExamples::findExamples));
 	}
 
@@ -191,8 +192,8 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	    afe.setStackTrace(new StackTraceElement[] {
 	    	new StackTraceElement("<examples>",
 	    		x.toSource(),
-	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getSourceFile().toString()).toNull(),
-	    		x.getSourceFileRanges().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
+	    		x.getSourceFileRanges().toStream().toOption().map(sfr -> sfr.getSourceFile().toString()).toNull(),
+	    		x.getSourceFileRanges().toStream().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
 	    });
     }
 	
@@ -202,7 +203,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	}
 	
 	@Override
-	public List<SourceFileRange> exprRanges() {
+	public Set<SourceFileRange> exprRanges() {
 		return withoutScope.getSourceFileRanges();
 	}
 }

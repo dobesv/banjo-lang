@@ -1,6 +1,6 @@
 package banjo.value.meta;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
@@ -42,7 +42,7 @@ public class FunctionComposition extends FunctionTrait implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.to(first, second, event).map(P2.tuple(this::update));
 	}
 

@@ -55,7 +55,6 @@ public enum Operator {
 	FALLBACK("?:", OperatorType.METHOD, Position.INFIX, Precedence.LOGICAL_OR),
 
 	PIPE_TO("|>", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
-	APPLICATION_TO_MEMBERS("*>", OperatorType.METHOD, Position.INFIX, Precedence.LOGICAL_OR),
 	PIPE_FROM("<|", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
 	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.LOGICAL_OR),
 	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.METHOD, null, Position.INFIX, Associativity.LEFT, Precedence.LOGICAL_OR, Precedence.LOGICAL_OR, "∘"),

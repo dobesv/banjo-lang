@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 
 import com.sun.javafx.binding.ExpressionHelper;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -13,7 +13,7 @@ import javafx.beans.value.ObservableValue;
  * Create an ObservableValue<T> for a Reactive<T>.  The reactive value will be updated in response
  * to events, which are provided by calling accept() on the instance of ObservableReactive.
  */
-public final class ObservableReactive<T extends Reactive<T>> implements ObservableValue<T>, Consumer<Event> {
+public final class ObservableReactive<T extends Reactive<T>> implements ObservableValue<T>, Consumer<PastEvent> {
     private ExpressionHelper<T> helper = null;
 	
 	T value;
@@ -48,7 +48,7 @@ public final class ObservableReactive<T extends Reactive<T>> implements Observab
 	}
 	
 	@Override
-	public void accept(Event t) {
+	public void accept(PastEvent t) {
 		value = value.react(t).v;
 		ExpressionHelper.fireValueChangedEvent(helper);
 		

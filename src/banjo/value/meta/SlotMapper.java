@@ -1,6 +1,6 @@
 package banjo.value.meta;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
@@ -35,7 +35,7 @@ public class SlotMapper implements Value {
 	}
 
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		return Reaction.to(f,  source, event).map(P2.tuple(this::update));
 	}
 

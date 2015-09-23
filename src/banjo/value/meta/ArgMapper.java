@@ -1,6 +1,6 @@
 package banjo.value.meta;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
@@ -34,7 +34,7 @@ public class ArgMapper implements Value {
 	}
 	
 	@Override
-	public Reaction<Value> react(Event event) {
+	public Reaction<Value> react(PastEvent event) {
 		Reaction<P2<Value, Value>> r = Reaction.to(f, target, event);
 		Value newF = r.v._1();
 		Value newTarget = r.v._2();

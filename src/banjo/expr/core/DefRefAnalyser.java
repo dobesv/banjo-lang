@@ -55,12 +55,12 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	}
 
 	@Override
-    public DefRefAnalyser badExpr(List<SourceFileRange> ranges, String message, Object... args) {
+    public DefRefAnalyser badExpr(Set<SourceFileRange> ranges, String message, Object... args) {
 	    return EMPTY;
     }
 
 	@Override
-    public DefRefAnalyser objectLiteral(List<SourceFileRange> ranges,
+    public DefRefAnalyser objectLiteral(Set<SourceFileRange> ranges,
             List<P3<Identifier, Option<Identifier>, DefRefAnalyser>> slots) {
 	    DefRefAnalyser x = unionList(slots.map(p -> p._3().defs(p._2().toList())));
 	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P3.__1()));
@@ -68,46 +68,46 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
-    public DefRefAnalyser numberLiteral(List<SourceFileRange> ranges,
+    public DefRefAnalyser numberLiteral(Set<SourceFileRange> ranges,
             Number value) {
 	    return EMPTY;
     }
 
 	@Override
-    public DefRefAnalyser stringLiteral(List<SourceFileRange> ranges, String text) {
+    public DefRefAnalyser stringLiteral(Set<SourceFileRange> ranges, String text) {
 	    return EMPTY;
     }
 
 	@Override
-    public DefRefAnalyser listLiteral(List<SourceFileRange> ranges,
+    public DefRefAnalyser listLiteral(Set<SourceFileRange> ranges,
             List<DefRefAnalyser> elements) {
 	    return unionList(elements);
     }
 
 	@Override
-    public DefRefAnalyser call(List<SourceFileRange> ranges,
+    public DefRefAnalyser call(Set<SourceFileRange> ranges,
             DefRefAnalyser function, List<DefRefAnalyser> args) {
 	    return append(function, unionList(args));
     }
 
 	@Override
-    public DefRefAnalyser extend(List<SourceFileRange> ranges,
+    public DefRefAnalyser extend(Set<SourceFileRange> ranges,
             DefRefAnalyser base, DefRefAnalyser extension) {
 	    return append(base, extension);
     }
 
 	@Override
-    public DefRefAnalyser inspect(List<SourceFileRange> ranges, DefRefAnalyser target) {
+    public DefRefAnalyser inspect(Set<SourceFileRange> ranges, DefRefAnalyser target) {
 	    return target;
     }
 
 	@Override
-    public DefRefAnalyser identifier(List<SourceFileRange> ranges, String id) {
+    public DefRefAnalyser identifier(Set<SourceFileRange> ranges, String id) {
 	    return new DefRefAnalyser(List.single(new Identifier(ranges, 0, id)), EMPTY_LOCAL_REFS, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST);
     }
 
 	@Override
-    public DefRefAnalyser let(List<SourceFileRange> ranges,
+    public DefRefAnalyser let(Set<SourceFileRange> ranges,
             List<P2<Identifier, DefRefAnalyser>> bindings, DefRefAnalyser body) {
 		DefRefAnalyser t = append(unionList(bindings.map(P2.__2())), body);
 		return t.defs(bindings.map(P2.__1()));
@@ -125,19 +125,19 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
-    public DefRefAnalyser functionLiteral(List<SourceFileRange> ranges,
+    public DefRefAnalyser functionLiteral(Set<SourceFileRange> ranges,
             List<Identifier> args, DefRefAnalyser body, Option<Identifier> sourceObjectBinding) {
 	    return body.defs(args.append(sourceObjectBinding.toList()));
     }
 
 	@Override
 	public DefRefAnalyser baseFunctionRef(
-	        List<SourceFileRange> sourceFileRanges, Identifier name) {
+	        Set<SourceFileRange> sourceFileRanges, Identifier name) {
 	    return name.acceptVisitor(this);
 	}
 
 	@Override
-    public DefRefAnalyser projection(List<SourceFileRange> ranges, DefRefAnalyser object, DefRefAnalyser projection, boolean base) {
+    public DefRefAnalyser projection(Set<SourceFileRange> ranges, DefRefAnalyser object, DefRefAnalyser projection, boolean base) {
 		return new DefRefAnalyser(
 				object.unresolvedLocalRefs,
 				object.localRefs.append(projection.localRefs),
@@ -181,8 +181,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	 * @param bindings
 	 * @return
 	 */
-	public static List<BadExpr> problems(CoreExpr ast, List<P2<Identifier, CoreExpr>> bindings) {
+	public static List<BadExpr> problems(CoreExpr ast, List<Slot> bindings) {
 		// TODO ... actually only return problems from the given AST
-		return problems(new Let(bindings, ast));
+		return problems(new Projection(new ObjectLiteral(bindings), ast));
     }
 }

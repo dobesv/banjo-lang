@@ -1,6 +1,6 @@
 package banjo.eval.environment;
 
-import banjo.event.Event;
+import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import javafx.beans.binding.ObjectBinding;
@@ -20,7 +20,7 @@ public class LetBinding implements Binding {
 	}
 
 	@Override
-	public Reaction<Binding> react(Event event) {
+	public Reaction<Binding> react(PastEvent event) {
 		return value.react(event).map(this::update);
 	}
 

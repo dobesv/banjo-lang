@@ -1,13 +1,13 @@
 package banjo.eval;
 
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
+import fj.data.Set;
 
 public class UnresolvedCodeError extends Fail {
-	public final List<SourceFileRange> sourceFileRanges;
+	public final Set<SourceFileRange> sourceFileRanges;
 
 	public UnresolvedCodeError(String message,
-            List<SourceFileRange> sourceFileRanges) {
+            Set<SourceFileRange> sourceFileRanges) {
 	    super(message);
 	    this.sourceFileRanges = sourceFileRanges;
     }
@@ -15,7 +15,7 @@ public class UnresolvedCodeError extends Fail {
 	@Override
 	public String getMessage() {
 	    final String message = super.getMessage();
-	    if(sourceFileRanges.isNotEmpty()) return sourceFileRanges.head()+": "+message;
+	    if(!sourceFileRanges.isEmpty()) return sourceFileRanges.toStream().head()+": "+message;
 		return message;
 	}
 

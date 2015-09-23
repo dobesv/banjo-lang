@@ -4,6 +4,7 @@ import banjo.expr.AbstractExpr;
 import banjo.expr.BadExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 
 /**
  * Empty expressions help with the special case of empty parentheses: (), [], and {}.  These
@@ -11,17 +12,17 @@ import fj.data.List;
  * a list with consecutive or trailing separators.
  */
 public class EmptyExpr extends AbstractExpr implements SourceExpr {
-	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.EMPTY_LIST);
+	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.EMPTY_SET);
 
-	public EmptyExpr(List<SourceFileRange> ranges) {
+	public EmptyExpr(Set<SourceFileRange> ranges) {
 		super(ranges);
 	}
 	public EmptyExpr(SourceFileRange range) {
-		this(List.single(range));
+		this(Set.single(SourceFileRange.ORD, range));
 	}
 
 	public EmptyExpr() {
-		this(List.nil());
+		this(SourceFileRange.EMPTY_SET);
 	}
 
 	@Override
