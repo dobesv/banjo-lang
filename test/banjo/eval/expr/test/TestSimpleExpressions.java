@@ -47,6 +47,7 @@ public class TestSimpleExpressions extends BaseSourceExprTest {
 			"[1, 2, 3, 4, 5].slice(2, 4) == [3, 4]",
 			"[1, 2, 3, 4, 5].slice(2, 2) == []",
 			"[1, 2, 3, 4, 5, 6].slice(2, -1) == [3, 4, 5]",
+			"[false, false, true].from(1) == [false, true]",
 			"(not = (x -> !x), not not = not ; not) ⇒ not not(true)",
 			"(not = (x -> !x), not not = (not ; not), not not not = (not not ; not)) ⇒ not not not(true) == false"
 		).append(Stream.join(Stream.range(1, 10).map(i -> Stream.stream(
