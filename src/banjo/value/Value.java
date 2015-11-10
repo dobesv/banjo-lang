@@ -1,19 +1,17 @@
 package banjo.value;
 
 import java.util.HashMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
+import banjo.eval.FailWithMessage;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.expr.source.Operator;
 import banjo.value.meta.SlotMemoizer;
-import fj.F3;
 import fj.data.Either;
 import fj.data.List;
-import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public interface Value extends Reactive<Value> {
@@ -72,7 +70,7 @@ public interface Value extends Reactive<Value> {
 		return slot(this, name, null);
 	}
 
-	static final Value MISSING_METHOD_PLACEHOLDER = new Fail("Missing slot for method");
+	static final Value MISSING_METHOD_PLACEHOLDER = new FailWithMessage("Missing slot for method");
 
 	/**
 	 * Call a function in a slot.  A subclass may provide an optimized

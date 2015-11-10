@@ -45,7 +45,7 @@ public enum Operator {
 	GE("≥ >=", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.ORDERING, "≤"),
 	EQ("==", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	NEQ("≠ !=", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
-	CMP("<=>", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
+	CMP("<=> ⋚ ⋛", OperatorType.METHOD, Position.INFIX, Precedence.EQUALITY),
 	MEMBER_OF("∈ <++", OperatorType.METHOD_SWITCHED, null, Position.INFIX, Associativity.NA, Precedence.MEMBER_OF, Precedence.MEMBER_OF, "∈"),
 	INTERSECT("∩ &", OperatorType.METHOD, Position.INFIX, Precedence.INTERSECT),
 	XOR("⊻ ><", OperatorType.METHOD, Position.INFIX, Precedence.XOR),

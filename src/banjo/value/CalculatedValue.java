@@ -1,14 +1,10 @@
 package banjo.value;
 
-import java.util.function.Supplier;
-
 import banjo.eval.Fail;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.PastEvent;
 import fj.data.Either;
 import fj.data.List;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Represents a value that is calculated from some dependent values.  This
@@ -16,7 +12,7 @@ import javafx.beans.value.ObservableValue;
  * change in response to events. 
  */
 public abstract class CalculatedValue extends ValueToStringTrait implements Value {
-	final List<Supplier<StackTraceElement>> stack = JavaRuntimeSupport.stack.get();
+	final List<Value> stack = JavaRuntimeSupport.stack.get();
 	public Value memo;
 
 	@Override
@@ -90,7 +86,7 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 
 	public Value get() {
 		if(this.memo == null) {
-			List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
+			List<Value> oldStack = JavaRuntimeSupport.stack.get();
 			try {
 				Value value = calculate();
 				while((value instanceof CalculatedValue) && !((CalculatedValue)value).isCalculationReactive())

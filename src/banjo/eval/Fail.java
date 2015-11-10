@@ -1,5 +1,7 @@
 package banjo.eval;
 
+import java.util.function.Supplier;
+
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.util.JavaRuntimeSupport;
@@ -11,35 +13,12 @@ import fj.data.List;
 import javafx.beans.value.ObservableValue;
 
 
-public class Fail extends Error implements Value {
-	@Override
-	public synchronized Throwable fillInStackTrace() {
-		Throwable t = super.fillInStackTrace();
-		final StackTraceElement[] trace = Fail.makeTrace();
-		if(trace.length > 0)
-			t.setStackTrace(trace);
-		return t;
-	}
-
-	public static StackTraceElement[] makeTrace() {
-		List<StackTraceElement> trace = JavaRuntimeSupport.stack.get().map(x -> x.get());
-		return trace.array(StackTraceElement[].class);
-	}
-
+public class Fail implements Value {
+	
+	final List<Value> trace = JavaRuntimeSupport.stack.get();
+	
 	public Fail() {
 	}
-
-	public Fail(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-	public Fail(String message) {
-        super(message);
-    }
-
-	public Fail(Throwable cause) {
-        super(cause);
-    }
 
 	@Override
 	public Value slot(String name) {
@@ -109,4 +88,22 @@ public class Fail extends Error implements Value {
 	public ObservableValue<Value> toObservableValue() {
 		return ObjectConstant.valueOf(this);
 	}
+
+	public String getMessage() {
+		return getClass().getName();
+	}
+
+	public Throwable getCause() {
+		return null;
+	}
+
+	public List<Value> getTrace() {
+		return trace;
+	}
+	
+	@Override
+	public String toString() {
+		return getClass().getSimpleName()+": "+getMessage();
+	}
+	
 }

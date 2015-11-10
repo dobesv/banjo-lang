@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
+import banjo.eval.Fail;
 import banjo.eval.ProjectLoader;
 import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundIdentifier;
@@ -121,8 +122,10 @@ public class Environment implements Reactive<Environment> {
 		return bindings.get(id).map(Binding::getValue).orSome(() -> new SlotValue(rootObject, rootObject, id, unboundIdentifier(id)));
 	}
 	
-	public static UnboundIdentifier unboundIdentifier(String id) {
-	    return new UnboundIdentifier("No variable in scope named '"+id+"'");
+	public Fail unboundIdentifier(String id) {
+		if(this.rootObject == this.rootEnvironment.rootObject)
+			return new UnboundIdentifier(id);
+		return new SlotNotFound(id, rootObject);
     }
 
 	public Environment let(List<P2<String, FreeExpression>> letBindings) {

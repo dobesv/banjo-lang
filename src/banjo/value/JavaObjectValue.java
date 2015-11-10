@@ -11,6 +11,7 @@ import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
+import banjo.eval.FailWithException;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.eval.util.JavaMethodCall;
@@ -64,7 +65,7 @@ public class JavaObjectValue implements Value {
 		try {
 			return Either.left(clazz.cast(object));
 		} catch(ClassCastException cce) {
-			return Either.right(new Fail("Cannot convert object "+object+" of "+object.getClass()+" to "+clazz, cce));
+			return Either.right(new FailWithException(new Error("Cannot convert object "+object+" of "+object.getClass()+" to "+clazz, cce)));
 		}
 	}
 
@@ -181,7 +182,7 @@ public class JavaObjectValue implements Value {
 				}
 
 	        } catch (IllegalArgumentException | SecurityException e) {
-	        	return new Fail(e);
+	        	return new FailWithException(e);
 	        }
 		}
     }
@@ -228,7 +229,7 @@ public class JavaObjectValue implements Value {
 	        	try {
 	                return maybeWrap(((Callable<?>)f).call());
                 } catch (Exception e) {
-                	return new Fail(e);
+                	return new FailWithException(e);
                 }
 	        }
 	        if(f instanceof Function) {
@@ -247,7 +248,7 @@ public class JavaObjectValue implements Value {
 	        }
         } catch (IllegalAccessException
                 | SecurityException | InstantiationException e) {
-        	return new Fail(e);
+        	return new FailWithException(e);
         }
 		if(baseFunction == null)
 			return new NotCallable(f);

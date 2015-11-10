@@ -4,10 +4,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.function.Supplier;
 
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
+import banjo.eval.FailWithMessage;
 import banjo.expr.token.StringLiteral;
 import banjo.io.resource.Resource;
 import banjo.value.CustomReactor;
@@ -32,8 +32,8 @@ public class JavaRuntimeSupport {
 	}
 	
 	@SlotName("fail")
-	public static Error fail(String message) {
-		return new Fail(message);
+	public static Fail fail(String message) {
+		return new FailWithMessage(message);
 	}
 
 	public static Object applyBoolean(boolean a, Object ifTrue, Object ifFalse) {
@@ -316,7 +316,7 @@ public class JavaRuntimeSupport {
 	public static final Boolean TRUE = Boolean.TRUE;
 	public static final Boolean FALSE = Boolean.FALSE;
 
-	public static final ThreadLocal<List<Supplier<StackTraceElement>>> stack = ThreadLocal.<List<Supplier<StackTraceElement>>>withInitial(List::nil);
+	public static final ThreadLocal<List<Value>> stack = ThreadLocal.<List<Value>>withInitial(List::nil);
 
 	@SlotName("package")
 	public static PackageValue getJavaPackage(String name) {

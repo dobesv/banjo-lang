@@ -80,8 +80,8 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
-		final List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
-		JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
+		final List<Value> oldStack = JavaRuntimeSupport.stack.get();
+		JavaRuntimeSupport.stack.set(oldStack.cons(this));
 		try {
 			Environment env = closure.enterFunction(args, arguments, sourceObjectBinding, recurse, prevImpl);
 			return body.apply(env);

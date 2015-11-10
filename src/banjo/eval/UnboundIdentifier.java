@@ -2,15 +2,14 @@ package banjo.eval;
 
 
 public class UnboundIdentifier extends Fail {
-	public UnboundIdentifier(String message, Throwable cause) {
-        super(message, cause);
+	public final String id;
+	
+	public UnboundIdentifier(String id) {
+        this.id = id;
     }
-
-	public UnboundIdentifier(String message) {
-        super(message);
-    }
-
-	public UnboundIdentifier(Throwable cause) {
-        super(cause);
-    }
+	
+	@Override
+	public String getMessage() {
+		return "The name "+id+" is not defined / bound here";
+	}
 }

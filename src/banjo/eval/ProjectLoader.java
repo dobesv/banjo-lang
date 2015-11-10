@@ -61,14 +61,13 @@ public class ProjectLoader {
 	 * @return
 	 */
 	public List<Slot> loadBinding(Path path) {
-		String[] baseExt = path.getFileName().toString().split("\\.", 2);
-		String base = baseExt[0];
-		
+		String filename = path.getFileName().toString();
+		int dot = filename.lastIndexOf('.');
 		// Ignore paths starting with a '.', like ".git", ".banjo", etc.
-		if(base.isEmpty())
-			return EMPTY_BINDINGS;
-		
-		String ext = Files.isRegularFile(path) ? baseExt.length == 2 ? baseExt[1] : "txt" : "";
+		if(dot == 0)
+			return List.nil();
+		String base = (dot > 0 ? filename.substring(0, dot) : filename);
+		String ext = (dot > 0 ? filename.substring(dot+1) : "txt");
 		SourceExpr lhs = SourceExpr.fromString(base);
 		CoreExpr value;
 		if(Files.isDirectory(path)) {

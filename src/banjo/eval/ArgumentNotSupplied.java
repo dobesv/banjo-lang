@@ -2,8 +2,15 @@ package banjo.eval;
 
 public class ArgumentNotSupplied extends Fail {
 
-	public ArgumentNotSupplied(String message) {
-	    super(message);
+	private String arg;
+
+	public ArgumentNotSupplied(String arg) {
+	    this.arg = arg;
     }
+	
+	@Override
+	public String getMessage() {
+		return "Missing argument: "+arg;
+	}
 
 }

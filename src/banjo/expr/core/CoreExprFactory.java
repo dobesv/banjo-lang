@@ -11,6 +11,7 @@ import banjo.expr.source.BaseSourceExprVisitor;
 import banjo.expr.source.BinaryOp;
 import banjo.expr.source.EmptyExpr;
 import banjo.expr.source.Operator;
+import banjo.expr.source.OperatorType;
 import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprVisitor;
 import banjo.expr.source.UnaryOp;
@@ -518,18 +519,20 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 					return targetOp.getOperand().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<Slot>>() {
 						@Override
 						public DesugarResult<Slot> binaryOp(BinaryOp op) {
-							switch(op.getOperator()) {
-							case COMMA:
-							case NEWLINE:
-							case JUXTAPOSITION:
+							Operator operator = op.getOperator();
+							switch(operator.getOperatorType()) {
+							case BUILTIN:
+							case FUNCTION:
+							case FUNCTION_SWITCHED:
 								return fallback(op);
 							default:
 							}
-							boolean selfOnRight = op.getOperator().isSelfOnRightMethodOperator();
+							
+							boolean selfOnRight = operator.isSelfOnRightMethodOperator();
 							Option<SourceExpr> selfBinding = Option.some(selfOnRight ? op.getRight(): op.getLeft());
 							SourceExpr other = selfOnRight ? op.getLeft() : op.getRight();
-							Identifier name = opMethodName(op.getOperator());
-							return method(methodSourceExpr, op.getOperator(), other, selfBinding, body)
+							Identifier name = opMethodName(operator);
+							return method(methodSourceExpr, operator, other, selfBinding, body)
 									.mapValue(s -> s.withName(name));
 						}
 

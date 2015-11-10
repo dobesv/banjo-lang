@@ -4,11 +4,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.function.Supplier;
-
+import org.junit.Assert;
 import org.junit.Test;
 
 import banjo.eval.Fail;
+import banjo.eval.FailWithException;
 import banjo.eval.environment.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.expr.core.BaseCoreExprVisitor;
@@ -78,43 +78,43 @@ public abstract class BaseExprTest {
 
 	public abstract CoreExpr getAst();
 	
-	@Test
 	public void noParseErrors() {
 		this.expr = getAst();
     	assertEquals(List.nil(), CoreErrorGatherer.problems(this.expr));
 	}
 
-	@Test
     public void evaluates() {
 		noParseErrors();
-		List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
+		List<Value> oldStack = JavaRuntimeSupport.stack.get();
 		try {
 			Set<SourceFileRange> ranges = exprRanges();
-			if(!ranges.isEmpty()) {
-				JavaRuntimeSupport.stack.set(List.single(()->new StackTraceElement("tests", exprSource(), ranges.toStream().head().getSourceFile().toString(), ranges.toStream().head().getStartLine())));
-			}
 			
 			freeExpr = FreeExpressionFactory.apply(expr);
 			intermediateValue = environment.eval(freeExpr);
+			if(!ranges.isEmpty()) {
+				JavaRuntimeSupport.stack.set(List.single(intermediateValue));
+			}
 			Value tmp;
 	    	try {
-				tmp = intermediateValue.force();
-	    	} catch (Fail f) {
-	    		tmp = f;
+	    		this.value = intermediateValue.force();
 	        } catch (Throwable e) {
-	        	tmp = new Fail(e);
+	        	this.value = new FailWithException(e);
 	        }
-	    	this.value = tmp;
 	    	assertNotNull(value);
-	    	if(value instanceof Error)
-	    		throw (Error)value;
+	    	if(value instanceof Fail) {
+	    		Fail failure = (Fail) value;
+	    		System.err.println(value.toString());
+	    		if(failure.getCause() != null)
+	    			System.err.println("  Exception: "+failure.getCause().toString());
+	    		failure.getTrace().forEach(t -> { System.err.println("  at "+t); });
+				Assert.fail(failure.getMessage());
+	    	}
 	    	assertTrue(value.isDefined());
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);
 		}
     }
 
-	@Test
 	public void printable() {
 		evaluates();
 		value.toString();

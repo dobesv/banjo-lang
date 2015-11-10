@@ -30,9 +30,9 @@ public class CallInstance extends CalculatedValue implements Value {
 
 	@Override
 	public Value calculate() {
-		List<Supplier<StackTraceElement>> oldStack = JavaRuntimeSupport.stack.get();
+		List<Value> oldStack = JavaRuntimeSupport.stack.get();
 		try {
-			JavaRuntimeSupport.stack.set(oldStack.cons(this::makeStackTraceElement));
+			JavaRuntimeSupport.stack.set(oldStack.cons(this));
 			return callee.call(args);
 		} finally {
 			JavaRuntimeSupport.stack.set(oldStack);

@@ -6,15 +6,16 @@ import banjo.value.Value;
 public class SlotNotFound extends Fail {
 	public final String id;
 	public final Value object;
+	public final Throwable cause;
 
 	public SlotNotFound(String id, Value object) {
 		this(id, object, null);
     }
 
 	public SlotNotFound(String id, Value object, Throwable cause) {
-		super(cause);
 		this.id = id;
 		this.object = object;
+		this.cause = cause;
     }
 
 	@Override
@@ -35,4 +36,8 @@ public class SlotNotFound extends Fail {
 		return "No slot named '"+id+"' in "+objectStr;
 	}
 
+	@Override
+	public Throwable getCause() {
+		return cause;
+	}
 }

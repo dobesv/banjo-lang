@@ -9,14 +9,12 @@ import java.util.Arrays;
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.Fail;
+import banjo.eval.FailWithException;
 import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.value.FunctionTrait;
-import banjo.value.JavaObjectValue;
 import banjo.value.Reaction;
 import banjo.value.Value;
-import banjo.value.meta.WrapperValue;
-import fj.P2;
 import fj.data.Either;
 import fj.data.List;
 import javafx.beans.value.ObservableValue;
@@ -98,9 +96,9 @@ public class JavaMethodValue extends FunctionTrait implements Value {
 					(Value)result :
 						Value.fromJava(result);
 	        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | IllegalArgumentException e) {
-	        	return new Fail(e);
+	        	return new FailWithException(e);
 	        }
 		}
-		return new Fail(new NoSuchMethodError("Failed to find a compatible method for args "+arguments+" among "+ListUtil.insertCommas(Arrays.asList(methods))));
+		return new FailWithException(new NoSuchMethodError("Failed to find a compatible method for args "+arguments+" among "+ListUtil.insertCommas(Arrays.asList(methods))));
 	}
 }
