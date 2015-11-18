@@ -3,6 +3,7 @@ package banjo.value;
 import java.util.HashMap;
 import java.util.function.Function;
 
+import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
 import banjo.eval.FailWithMessage;
@@ -235,5 +236,10 @@ public interface Value extends Reactive<Value> {
 		return onFailure.apply(conversion.right().value());
 	}
 	
-	public ObservableValue<Value> toObservableValue();
+	@Override
+    public ObservableValue<Value> toObservableValue();
+
+    public default ClosedObject closed() {
+        return new ClosedObject(this);
+    }
 }
