@@ -6,7 +6,8 @@ apply plugin: "osgi"
 
 version = "0.1"
 group = "banjo"
-sourceCompatibility = "1.8"
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 archivesBaseName = "banjo.banjo-lang"
 
 // Set file encoding to UTF-8 for all java files
