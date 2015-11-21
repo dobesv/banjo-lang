@@ -487,8 +487,9 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		// If there is a trailing comma, semicolon, or newline we can pop it off the stack
 		final ParenType closeParenType = closeParenTypeMaybe;
 
-		// When the open and close paren are the same, we can't match, so only check for
-		// a close paren if we're previously encountered an open paren.
+        // When the open and close paren are the same, we can't match pairs, so
+        // only check for a close paren if we're previously encountered an open
+        // paren.
 		List<PartialOp> opStack = this.opStack;
 		if(closeParenType.getStartChar() == closeParenType.getEndChar()) {
 			boolean found = false;
@@ -520,15 +521,16 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				return update(opStack, po.closeParen(operand, range, operandIndentColumn), po.indentColumn);
 			}
 			if(po.isParen()) {
-				operand = new BadSourceExpr.MismatchedCloseParen(Set.single(SourceFileRange.ORD, sfr(range)), po.getParenType(), closeParenType);
+                Set<SourceFileRange> ranges = po.ranges.insert(sfr(range));
+                operand = new BadSourceExpr.MismatchedCloseParen(ranges, po.getParenType(), closeParenType);
 				operandIndentColumn = po.indentColumn;
-				break;
+                // break;
 			} else {
 				operand = po.rhs(operand, operandIndentColumn);
 				operandIndentColumn = po.indentColumn;
 			}
 		}
-		operand = new BadSourceExpr.MismatchedCloseParen(Set.single(SourceFileRange.ORD, sfr(range)), closeParenType);
+        operand = new BadSourceExpr.MismatchedCloseParen(Set.single(SourceFileRange.ORD, sfr(range)), closeParenType);
 		return update(opStack, operand, operandIndentColumn);
 	}
 
