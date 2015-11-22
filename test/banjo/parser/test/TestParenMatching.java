@@ -23,9 +23,6 @@ import fj.data.Stream;
 
 @RunWith(Parameterized.class)
 public class TestParenMatching {
-    // TODO Make sure we're smart about paren mismatches and report the "right"
-    // error somehow
-
     public static Object[] t(String src, int expectedErrorCount, int... expectedErrorOffsets) {
         return new Object[] { src, expectedErrorCount, expectedErrorOffsets };
     }
