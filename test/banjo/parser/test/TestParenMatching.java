@@ -32,7 +32,9 @@ public class TestParenMatching {
 
     @Parameters(name = "{0}")
     public static Stream<Object[]> parameters() {
-        return Stream.stream(t("{(}", 1, 1, 2), t("({)", 1, 1, 2), t("[(]", 1, 1, 2));
+        return Stream.stream(t("{(}", 1, 1, 2), t("({)", 1, 1, 2), t("[(]", 1, 1, 2), t(")", 1, 0), t("(", 1, 0),
+            t("[[))", 1, 3),
+            t("{(})", 1, 3));
     }
 
     private String src;
