@@ -8,6 +8,9 @@ import java.util.stream.StreamSupport;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 
 import banjo.expr.BadExpr;
 import banjo.expr.source.SourceErrorGatherer;
@@ -16,20 +19,34 @@ import banjo.expr.source.SourceExprFactory;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 import fj.data.Set;
+import fj.data.Stream;
 
+@RunWith(Parameterized.class)
 public class TestParenMatching {
     // TODO Make sure we're smart about paren mismatches and report the "right"
     // error somehow
 
-    @Test
-    public void test1() {
-        final SourceExprFactory parser = new SourceExprFactory("test");
-        String src = "{(}";
-        testParens(parser, src, 1, 1, 2);
+    public static Object[] t(String src, int expectedErrorCount, int... expectedErrorOffsets) {
+        return new Object[] { src, expectedErrorCount, expectedErrorOffsets };
     }
 
-    public void testParens(final SourceExprFactory parser, String src, int expectedErrorCount,
-            int... expectedErrorOffsets) {
+    @Parameters(name = "{0}")
+    public static Stream<Object[]> parameters() {
+        return Stream.stream(t("{(}", 1, 1, 2), t("({)", 1, 1, 2), t("[(]", 1, 1, 2));
+    }
+
+    private String src;
+    private int expectedErrorCount;
+    private int[] expectedErrorOffsets;
+
+    public TestParenMatching(String src, int expectedErrorCount, int... expectedErrorOffsets) {
+        this.src = src;
+        this.expectedErrorCount = expectedErrorCount;
+        this.expectedErrorOffsets = expectedErrorOffsets;
+    }
+    @Test
+    public void testParens() {
+        final SourceExprFactory parser = new SourceExprFactory("test");
         System.out.println("Source input:\n  "+src.replace("\n", "\n  "));
         try {
         	final SourceExpr parseTree = parser.parse(src);
