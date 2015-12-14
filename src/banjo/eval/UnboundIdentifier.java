@@ -10,6 +10,6 @@ public class UnboundIdentifier extends Fail {
 	
 	@Override
 	public String getMessage() {
-		return "The name "+id+" is not defined / bound here";
+        return "The name \"" + id + "\" is not defined / bound here";
 	}
 }
