@@ -1,6 +1,13 @@
 package banjo.expr.core;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.WeakHashMap;
 
 import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
@@ -14,6 +21,7 @@ public class CoreExprFromFile implements CoreExpr {
 
     public final Path path;
     public CoreExpr memo;
+    public FileTime memoFileTime;
 
     @Override
     public void toSource(StringBuffer sb) {
@@ -55,8 +63,17 @@ public class CoreExprFromFile implements CoreExpr {
         return load().acceptVisitor(visitor);
     }
 
-    public CoreExpr load() {
-        if(this.memo == null) {
+    public synchronized CoreExpr load() {
+        // Try to get the current file time; if there's an error, use
+        // null for the file time.
+        FileTime currentFileTime;
+        try {
+            currentFileTime = Files.getLastModifiedTime(path);
+        } catch(IOException e) {
+            currentFileTime = null;
+        }
+        if(this.memo == null || !Objects.equals(currentFileTime, this.memoFileTime)) {
+            this.memoFileTime = currentFileTime;
             this.memo = CoreExprFactory.INSTANCE.loadFromPath(this.path);
         }
         return this.memo;
@@ -66,4 +83,21 @@ public class CoreExprFromFile implements CoreExpr {
         this.path = path;
     }
 
+    public static final Map<Path, CoreExprFromFile> internedValues = Collections.synchronizedMap(new WeakHashMap<Path, CoreExprFromFile>());
+
+    /**
+     * Get a CoreExprFromFile instance that will be shared within the same VM,
+     * so that if the same file is loaded twice it won't have to load
+     * 
+     * @param path
+     * @return
+     */
+    public static CoreExprFromFile forPath(Path path) {
+        CoreExprFromFile cached = internedValues.get(path);
+        if(cached == null) {
+            cached = new CoreExprFromFile(path);
+            internedValues.put(path, cached);
+        }
+        return cached;
+    }
 }

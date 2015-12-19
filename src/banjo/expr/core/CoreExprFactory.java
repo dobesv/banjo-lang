@@ -1855,7 +1855,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         } catch(IOException e) {
             throw new UncheckedIOException(e);
         }
-        CoreExpr value = new CoreExprFromFile(p);
+        CoreExpr value = CoreExprFromFile.forPath(p);
         return addMethod(lhs, lhs, value, Identifier.TRUE, List.nil(), Operator.ASSIGNMENT).getValue().head();
     }
 
@@ -1938,7 +1938,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         try {
             FileSystem fs = FileSystems.newFileSystem(path, Thread.currentThread().getContextClassLoader());
             Path root = fs.getRootDirectories().iterator().next();
-            return new CoreExprFromFile(root);
+            return CoreExprFromFile.forPath(root);
         } catch(IOException e) {
             return new BadCoreExpr(
                 new SourceFileRange(path, FileRange.EMPTY),
