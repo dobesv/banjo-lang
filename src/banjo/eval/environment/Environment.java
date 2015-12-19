@@ -44,21 +44,21 @@ public class Environment implements Reactive<Environment> {
     public static final Environment EMPTY = new Environment(EmptyEnvironmentRoot.INSTANCE);
     private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
 
-	public final Environment rootEnvironment;
+    public final Value projectRootObject;
 	public final Value rootObject;
 	public final TreeMap<String, Binding> bindings;
 	public final boolean reactive;
 	private ObservableEnvironment observable;
 
-	public Environment(Value rootObject, TreeMap<String, Binding> bindings, Environment rootEnvironment) {
+    public Environment(Value rootObject, TreeMap<String, Binding> bindings, Value projectRootObject) {
         this.bindings = requireNonNull(bindings);
         this.rootObject = requireNonNull(rootObject);
 		this.reactive = rootObject.isReactive() || checkReactive(bindings);
-        this.rootEnvironment = requireNonNull(rootEnvironment);
+        this.projectRootObject = requireNonNull(projectRootObject);
 	}
 	
-	public Environment(Value rootObject, Environment rootEnvironment) {
-		this(rootObject, TreeMap.empty(Ord.stringOrd), rootEnvironment);
+    public Environment(Value rootObject, Value projectRootObject) {
+        this(rootObject, TreeMap.empty(Ord.stringOrd), projectRootObject);
 	}
 
     /**
@@ -67,7 +67,7 @@ public class Environment implements Reactive<Environment> {
     public Environment(Value rootObject) {
         this.bindings = TreeMap.empty(Ord.stringOrd);
         this.rootObject = rootObject;
-        this.rootEnvironment = this;
+        this.projectRootObject = rootObject;
         this.reactive = false;
     }
 	
@@ -168,7 +168,7 @@ public class Environment implements Reactive<Environment> {
 		this.bindings = letBindings.map(this::bindLazy).map(Binding::let).union(parentEnv.bindings);
 		this.rootObject = parentEnv.rootObject;
 		this.reactive = parentEnv.isReactive() || checkReactive(bindings);
-		this.rootEnvironment = parentEnv.rootEnvironment;
+        this.projectRootObject = parentEnv.projectRootObject;
 	}
 
 	@Override
@@ -199,7 +199,7 @@ public class Environment implements Reactive<Environment> {
 		// TODO This check is O(n) space and time, but should be done in O(1) space
 		if(ListUtil.elementsEq(newBindings.values(), bindings.values()) && newRootObject == this.rootObject)
 			return this;
-		return new Environment(newRootObject, newBindings, rootEnvironment);
+        return new Environment(newRootObject, newBindings, projectRootObject);
 	}
 	
 	public Value eval(CoreExpr ast) {
@@ -224,7 +224,7 @@ public class Environment implements Reactive<Environment> {
 	}
 	
     public Fail unboundIdentifier(String id, Set<SourceFileRange> ranges) {
-		if(this.rootObject == this.rootEnvironment.rootObject)
+        if(this.rootObject == this.projectRootObject)
             return new UnboundIdentifier(id, ranges);
         return new SlotNotFound(id, ranges, rootObject);
     }

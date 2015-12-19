@@ -90,7 +90,7 @@ public abstract class BaseExprTest {
 			Set<SourceFileRange> ranges = exprRanges();
 			
             freeExpr = FreeExpressionFactory.apply(expr);
-            intermediateValue = environment.eval(freeExpr);
+            intermediateValue = freeExpr.apply(environment);
 			Value tmp;
 	    	try {
 	    		this.value = intermediateValue.force();

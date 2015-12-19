@@ -47,9 +47,9 @@ public class FreeBaseProjection implements FreeExpression {
 				// Create a special environment for the project, with all the slots for the object except
 				// that the base slot value replaces the binding for slotName in that context.
 				return projection.apply(new Environment(
-						object.apply(env), 
-						TreeMap.treeMap(Ord.stringOrd, List.single(P.p(slotName, Binding.let(baseSlotValue)))), 
-						env.rootEnvironment));
+                    object.apply(env),
+                    TreeMap.treeMap(Ord.stringOrd, List.single(P.p(slotName, Binding.let(baseSlotValue)))),
+                    env.projectRootObject));
 			}
 			
 			@Override

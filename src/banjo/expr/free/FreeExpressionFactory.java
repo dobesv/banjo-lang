@@ -37,7 +37,7 @@ public class FreeExpressionFactory implements
     }
 
     public static Value javaHelpers(Environment env, Set<SourceFileRange> ranges) {
-        return env.rootEnvironment.getValue("java", ranges);
+        return env.projectRootObject.slot("java", ranges);
     }
 
     public static FreeExpression _callJavaHelper(String name, Set<SourceFileRange> ranges, List<Value> args) {
