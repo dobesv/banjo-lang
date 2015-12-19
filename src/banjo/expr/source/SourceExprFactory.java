@@ -98,8 +98,9 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		}
 		ParenType getParenType() { return getOperator().getParenType(); }
 		Precedence getPrecedence() { return getOperator().getPrecedence(); }
-		public boolean isOpenParen(ParenType closeParenType) {
-			return isParen() && closeParenType == getParenType();
+
+        public boolean isOpenParen(ParenType closeParenType, int indentColumn) {
+            return isParen() && closeParenType == getParenType() && indentColumn == this.indentColumn;
 		}
 		public boolean isParen() {
 			return getOperator().isParen();
@@ -332,7 +333,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	}
 
 	private SourceExprFactory operator_(FileRange range, String op, int indentColumn) {
-	    SourceExprFactory cp = tryCloseParen(range, op);
+        SourceExprFactory cp = tryCloseParen(range, op, indentColumn);
 		if(cp != null) {
 			return cp;
 		}
@@ -474,7 +475,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		return update(opStack, operand, operandIndentColumn);
 	}
 
-	private SourceExprFactory tryCloseParen(FileRange range, String op) {
+    private SourceExprFactory tryCloseParen(FileRange range, String op, int indent) {
 		if(op.length() != 1)
 			return null;
 
@@ -494,10 +495,10 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		if(closeParenType.getStartChar() == closeParenType.getEndChar()) {
 			boolean found = false;
 			for(final PartialOp po : opStack) {
-				if(po.isOpenParen(closeParenType)) {
+                if(po.isOpenParen(closeParenType, indent)) {
 					found = true;
 					break;
-				}
+                }
 			}
 			if(!found)
 				return null;
@@ -517,7 +518,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				}
 				operandIndentColumn = po.indentColumn;
 			}
-			if(po.isOpenParen(closeParenType)) {
+            if(po.isOpenParen(closeParenType, indent)) {
 				return update(opStack, po.closeParen(operand, range, operandIndentColumn), po.indentColumn);
 			}
 			if(po.isParen()) {

@@ -24,21 +24,34 @@ import fj.data.Stream;
 @RunWith(Parameterized.class)
 public class TestParenMatching {
     public static Object[] t(String src, int expectedErrorCount, int... expectedErrorOffsets) {
-        return new Object[] { src, expectedErrorCount, expectedErrorOffsets };
+        return new Object[] {
+            src.replace("\n", "\\n"), src, expectedErrorCount, expectedErrorOffsets
+        };
     }
 
     @Parameters(name = "{0}")
     public static Stream<Object[]> parameters() {
-        return Stream.stream(t("{(}", 1, 1, 2), t("({)", 1, 1, 2), t("[(]", 1, 1, 2), t(")", 1, 0), t("(", 1, 0),
+        return Stream.stream(
+            t("{(}", 1, 1, 2), 
+            t("({)", 1, 1, 2), 
+            t("[(]", 1, 1, 2), 
+            t(")", 1, 0), 
+            t("(", 1, 0),
             t("[[))", 1, 3),
-            t("{(})", 1, 3));
+            t("{(})", 1, 3),
+            t("[]", 0),
+            t("({})", 0),
+            t("(\n{\n}\n)\n", 0),
+            t("[\n{\n]\n", 1, 2, 4),
+            t("[\n  [\n]\n", 1, 4, 6)
+            );
     }
 
     private String src;
     private int expectedErrorCount;
     private int[] expectedErrorOffsets;
 
-    public TestParenMatching(String src, int expectedErrorCount, int... expectedErrorOffsets) {
+    public TestParenMatching(String label, String src, int expectedErrorCount, int... expectedErrorOffsets) {
         this.src = src;
         this.expectedErrorCount = expectedErrorCount;
         this.expectedErrorOffsets = expectedErrorOffsets;

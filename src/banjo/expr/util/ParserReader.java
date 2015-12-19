@@ -26,7 +26,7 @@ public class ParserReader extends Reader {
 		int line = 1;
 		int col = 1;
 		int offset = 0;
-		int indentColumn = 0;
+        int indentColumn = 1;
 		boolean startOfLine = true;
 
 		public Pos() {
@@ -56,6 +56,8 @@ public class ParserReader extends Reader {
 				if(this.col != 1) {
 					this.line++;
 					this.col = 1;
+                    this.indentColumn = 1;
+                    this.startOfLine = true;
 				}
 				return;
 			}
@@ -63,14 +65,15 @@ public class ParserReader extends Reader {
 			if(ch == '\n') {
 				this.line++;
 				this.col = 1;
-				this.indentColumn = 0;
+                this.indentColumn = 1;
 				this.startOfLine = true;
 			} else {
+                if(this.startOfLine) {
+                    this.indentColumn = this.col;
+                    if(ch != ' ')
+                        this.startOfLine = false;
+                }
 				this.col++;
-				if(this.startOfLine) {
-					this.indentColumn = this.col;
-					if(ch != ' ') this.startOfLine = false;
-				}
 			}
 			this.offset++;
 		}
@@ -104,7 +107,7 @@ public class ParserReader extends Reader {
 		public void moveToStartOfLine() {
 			this.offset -= this.col-1;
 			this.col = 1;
-			this.indentColumn = 1;
+            this.indentColumn = 1;
 			this.startOfLine = true;
 		}
 
@@ -333,6 +336,13 @@ public class ParserReader extends Reader {
 	public int getCurrentColumnNumber() {
 		return this.current.col;
 	}
+
+    /**
+     * Get the previous column number in the source. This starts at 1.
+     */
+    public int getPreviousColumnNumber() {
+        return this.previous.col;
+    }
 
 	public int getCurrentIndentColumn() {
 		return this.current.indentColumn;

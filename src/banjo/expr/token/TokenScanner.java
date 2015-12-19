@@ -478,6 +478,7 @@ public class TokenScanner {
      */
 
     private <T extends TokenVisitor<T>> List<T> stringLiteral(ParserReader in, TokenVisitor<T> visitor) throws IOException {
+        int openQuoteIndentColumn = in.getCurrentIndentColumn();
         int cp = in.read();
         if(cp == '`') {
             return backtick(in, visitor);
@@ -489,7 +490,6 @@ public class TokenScanner {
         final int quoteType = cp;
 
         // Minimum indent column
-        int openQuoteIndentColumn = in.getCurrentIndentColumn();
         int indentColumn = openQuoteIndentColumn;
         boolean multiline = false;
         this.buf.setLength(0);
@@ -526,7 +526,7 @@ public class TokenScanner {
 
                 // Each first line should be indented beyond the one
                 // with the open quote
-                if(currentColumnNumber < indentColumn) {
+                if(currentColumnNumber <= indentColumn) {
                     // If we got whitespace, throw it away
                     if(cp == ' ') {
                         continue;
@@ -609,7 +609,7 @@ public class TokenScanner {
             errs = errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
         if(errs.isNotEmpty())
             return errs;
-        return List.<T> single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), indentColumn, this.buf.toString()));
+        return List.<T> single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), openQuoteIndentColumn, this.buf.toString()));
     }
 
     private <T extends TokenVisitor<T>> List<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
