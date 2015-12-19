@@ -43,7 +43,8 @@ public class TestParenMatching {
             t("({})", 0),
             t("(\n{\n}\n)\n", 0),
             t("[\n{\n]\n", 1, 2, 4),
-            t("[\n  [\n]\n", 1, 4, 6)
+            t("[\n  [\n]\n", 1, 4),
+            t("{\n  }}\n}\n", 1, 5)
             );
     }
 

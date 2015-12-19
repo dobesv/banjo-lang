@@ -499,6 +499,12 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 					found = true;
 					break;
                 }
+
+                // If we pass an expression with a higher indent than the line
+                // we are on, abort the search
+                if(po.indentColumn < indent) {
+                    return null;
+                }
 			}
 			if(!found)
 				return null;
@@ -506,7 +512,10 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 
 		SourceExpr operand = this.getOperand();
 		int operandIndentColumn = this.operandIndentColumn;
-		while(!opStack.isEmpty()) {
+
+        // Close expressions with an indent >= the indent level of the line
+        // with the close paren on it until we find a matching open paren.
+        while(!opStack.isEmpty() && opStack.head().indentColumn >= indent) {
 			final PartialOp po = opStack.head();
 			opStack = opStack.tail();
 			if(operand == null) {
@@ -521,16 +530,22 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
             if(po.isOpenParen(closeParenType, indent)) {
 				return update(opStack, po.closeParen(operand, range, operandIndentColumn), po.indentColumn);
 			}
-			if(po.isParen()) {
-                Set<SourceFileRange> ranges = po.ranges.insert(sfr(range));
-                operand = new BadSourceExpr.MismatchedCloseParen(ranges, po.getParenType(), closeParenType);
+            if(po.isParen()) {
+                if(po.indentColumn == indent) {
+                    Set<SourceFileRange> ranges = po.operatorExpr.getSourceFileRanges().insert(sfr(range));
+                    operand = new BadSourceExpr.MismatchedCloseParen(ranges, po.getParenType(), closeParenType);
+                } else {
+                    operand = new BadSourceExpr.MissingCloseParen(po.operatorExpr.getSourceFileRanges(), closeParenType);
+                }
 				operandIndentColumn = po.indentColumn;
-                // break;
 			} else {
 				operand = po.rhs(operand, operandIndentColumn);
 				operandIndentColumn = po.indentColumn;
 			}
 		}
+
+        // We didn't find a matching open paren with enough indentation, so
+        // return an error node
         operand = new BadSourceExpr.MismatchedCloseParen(Set.single(SourceFileRange.ORD, sfr(range)), closeParenType);
 		return update(opStack, operand, operandIndentColumn);
 	}
