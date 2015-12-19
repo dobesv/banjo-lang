@@ -22,7 +22,7 @@ public class TestStringLiteralParser {
 	@Test public void testMultiline2() {
 
         ParseTestUtils.test(
-            "{ x.is positive = (\n    \"\n      Return `true` if this number is positive.\n    \"\n  ) ⇒ !x.negative\n}",
+            "{\n  x.is positive = (\n    \"\n      Return `true` if this number is positive.\n    \"\n  ) ⇒ !x.negative\n}",
             "{x.is positive = ((_ = \"Return `true` if this number is positive.\\n\") ⇒ ¬x.negative)}");
 	}
 

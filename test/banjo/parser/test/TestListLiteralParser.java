@@ -10,9 +10,17 @@ public class TestListLiteralParser {
 	//	@Test public void bullets() { list("\u2022 1\n\u2022 2\n\u2022 3", 0); }
 	//	@Test public void stars() { list("* 1\n* 2\n* 3", 0); }
 	@Test public void singletonList() { ParseTestUtils.test("[a]", "[a]", ListLiteral.class); }
-	@Test public void bracketsNewlines() { list("[1\n 2\n 3]", 0); }
+
+    @Test
+    public void bracketsNewlines() {
+        list("[\n 1\n 2\n 3\n]", 0);
+    }
 	@Test public void bracketsCommas() { list("[1,2,3]", 0); }
-	@Test public void bracketsMixedNewlinesCommas() { list("[1\n 2,\n 3]", 0); }
+
+    @Test
+    public void bracketsMixedNewlinesCommas() {
+        list("[\n 1\n 2,\n 3\n]", 0);
+    }
 	// @Test public void invalidDedent() { list("[1,2,\n3]", 1); } // Expect an error since the 3 is at less indentation than the 1 and 2
 	@Test public void bracketsTrailingComma() {  list("[1,2,3,]", 0); }
 	//	@Test public void table1() { parse("#::a,b\n* 1,2\n* 3,4\n* 5,6", 0, "[{a: 1, b: 2}, {a: 3, b: 4}, {a: 5, b: 6}]"); }

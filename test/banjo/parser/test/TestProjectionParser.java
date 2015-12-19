@@ -26,12 +26,12 @@ public class TestProjectionParser extends BaseParserTest {
 				test("a.{b,c}", "{b = a.b, c = a.c}", ObjectLiteral.class),
 				test("a.{bb = b,c}", "{bb = a.b, c = a.c}", ObjectLiteral.class),
 				test("a.{f(x) = g(x)}", "{f(x) = a.g(x)}", ObjectLiteral.class),
-				test("{t = [x, y].map((z) -> (x)).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
-				test("{t = [\n x, \n y].length\n}", "{t = [x, y].length}", ObjectLiteral.class),
+            test("{t = [x, y].map((z) -> (x)).min\n}", "{t = [x, y].map((z) ↦ x).min}", ObjectLiteral.class),
+            test("{\n t = [\n x, \n y].length\n}", "{t = [x, y].length}", ObjectLiteral.class),
 				test("a.\\-\\-", Projection.class),
 				test("a.\\.\\.", Projection.class),
 				test("a.\\.", Projection.class),
-				test("a*.b", "(.b) ∘ a", Call.class)
+            test("a*.b", "(.b) ∘ a", Call.class)
 		);
 	}
 }

@@ -9,7 +9,11 @@ public class TestLetParser {
 
 	@Test public void oneLine()         { test("( hello = \"world\" ) => hello", HELLO_WORLD_NORMALIZED); }
 	@Test public void twoLine1()         { test("(hello = \"world\"\n)=>hello", HELLO_WORLD_NORMALIZED); }
-	@Test public void twoLine2()         { test("(hello = \"world\"\n )=>hello", HELLO_WORLD_NORMALIZED); }
+
+    @Test
+    public void twoLine2() {
+        test("(\n hello = \"world\"\n)=>hello", HELLO_WORLD_NORMALIZED);
+    }
 //	@Test public void twoLineIndented() { test("   (hello = \"world\")\n   => hello", HELLO_WORLD_NORMALIZED); }
 //	@Test public void badBackdent()     { test("   (hello = \"world\") =>\nhello", 1, ExpectedOperator.class, null, null); } // Backdent here should be reported as an error
 //	@Test public void badIndent()       { test(" (hello = \"world\")\n   => hello", 1, ExpectedOperator.class, null, null); } // Indent here should be reported as an error

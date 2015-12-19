@@ -69,9 +69,16 @@ public class ParserReader extends Reader {
 				this.startOfLine = true;
 			} else {
                 if(this.startOfLine) {
-                    this.indentColumn = this.col;
-                    if(ch != ' ')
+                    if(ch == ' ') {
+                        // If we ask for the indent column when we just saw a
+                        // space we are really looking for the indent column
+                        // AFTER the space which presumably will not be a space
+                        // at the time that we look
+                        this.indentColumn = this.col + 1;
+                    } else {
+                        this.indentColumn = this.col;
                         this.startOfLine = false;
+                    }
                 }
 				this.col++;
 			}

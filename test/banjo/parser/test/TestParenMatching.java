@@ -25,7 +25,7 @@ import fj.data.Stream;
 public class TestParenMatching {
     public static Object[] t(String src, int expectedErrorCount, int... expectedErrorOffsets) {
         return new Object[] {
-            src.replace("\n", "\\n"), src, expectedErrorCount, expectedErrorOffsets
+            src.replace("\n", " "), src, expectedErrorCount, expectedErrorOffsets
         };
     }
 
