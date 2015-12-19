@@ -95,7 +95,7 @@ public interface CoreExpr extends Expr {
 	/**
 	 * Visitor pattern
 	 */
-	<T> T acceptVisitor(CoreExprVisitor<T> visitor);
+    <T> T acceptVisitor(CoreExprVisitor<T> visitor);
 
 	/**
 	 * Object algebra pattern (kind of a bottom-up visitor pattern)
@@ -113,6 +113,9 @@ public interface CoreExpr extends Expr {
 		return fromSourceExpr(parseTree);
 	}
 
+    /**
+     * Parse a SourceExpr syntax tree into a CoreExpr AST.
+     */
 	public static CoreExpr fromSourceExpr(final SourceExpr parseTree) {
 	    return new CoreExprFactory().desugar(parseTree).getValue();
     }

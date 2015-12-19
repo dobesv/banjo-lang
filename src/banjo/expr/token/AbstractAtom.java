@@ -3,7 +3,6 @@ package banjo.expr.token;
 import banjo.expr.AbstractExpr;
 import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Set;
 
 
@@ -31,7 +30,8 @@ public abstract class AbstractAtom extends AbstractExpr {
 		toSource(sb);
 	}
 
-	public void toSource(StringBuffer sb) {
+	@Override
+    public void toSource(StringBuffer sb) {
 		toSource(sb);
 	}
 }

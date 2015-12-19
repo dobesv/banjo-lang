@@ -2,8 +2,10 @@ package banjo.value;
 
 import banjo.eval.Fail;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 /**
@@ -43,39 +45,48 @@ public class EventChainValue implements Value {
 		return new ObservableReactive<Value>(this);
 	}
 
+    @Override
 	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
 		return pendingValue.call(recurse, baseImpl, arguments);
 	}
 
+    @Override
 	public Value call(List<Value> arguments) {
 		return pendingValue.call(arguments);
 	}
 
+    @Override
 	public Value call1(Value v) {
 		return pendingValue.call1(v);
 	}
 
-	public Value slot(Value self, String name, Value fallback) {
-		return pendingValue.slot(self, name, fallback);
+    @Override
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+		return pendingValue.slot(self, name, ranges, fallback);
 	}
 
-	public Value slot(String name) {
-		return pendingValue.slot(name);
+    @Override
+	public Value slot(String name, Set<SourceFileRange> ranges) {
+		return pendingValue.slot(name, ranges);
 	}
 
-	public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-		return pendingValue.callMethod(name, targetObject, fallback, args);
+    @Override
+	public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+		return pendingValue.callMethod(name, ranges, targetObject, fallback, args);
 	}
 
-	public Value callMethod(String name, List<Value> args) {
-		return pendingValue.callMethod(name, args);
+    @Override
+    public Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
+        return pendingValue.callMethod(name, ranges, args);
 	}
 
+    @Override
 	public boolean isDefined() {
 		return pendingValue.isDefined();
 	}
 
-	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
+	@Override
+    public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
 		return pendingValue.convertToJava(clazz);
 	}
 

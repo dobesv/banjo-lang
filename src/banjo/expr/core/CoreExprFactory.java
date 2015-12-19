@@ -3,7 +3,19 @@ package banjo.expr.core;
 import static fj.data.List.cons;
 import static fj.data.List.single;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Objects;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import banjo.expr.BadExpr;
 import banjo.expr.source.BadSourceExpr;
@@ -11,8 +23,8 @@ import banjo.expr.source.BaseSourceExprVisitor;
 import banjo.expr.source.BinaryOp;
 import banjo.expr.source.EmptyExpr;
 import banjo.expr.source.Operator;
-import banjo.expr.source.OperatorType;
 import banjo.expr.source.SourceExpr;
+import banjo.expr.source.SourceExprFactory;
 import banjo.expr.source.SourceExprVisitor;
 import banjo.expr.source.UnaryOp;
 import banjo.expr.token.BadIdentifier;
@@ -20,6 +32,8 @@ import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
+import banjo.expr.util.FileRange;
+import banjo.expr.util.ParserReader;
 import banjo.expr.util.SourceFileRange;
 import fj.F;
 import fj.F2;
@@ -64,6 +78,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	}
 	public static final TreeMap<SourceFileRange, Set<BadExpr>> EMPTY_ERROR_MAP = TreeMap.empty(SourceFileRange.ORD);
 	static final fj.data.Set<SourceExpr> EMPTY_SOURCE_EXPR_SET = fj.data.Set.empty(SourceExpr.sourceExprOrd);
+    public static final CoreExprFactory INSTANCE = new CoreExprFactory();
 
 	<TT> DesugarResult<TT> withValue(TT result) {
 		return withValue(result, null);
@@ -1026,19 +1041,19 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	}
 
 	/**
-	 *
-	 * (x ∈ y) -> x
-	 *
-	 * to
-	 *
-	 * (x) -> assert(x ∈ y) in (x)
-	 *
-	 * @param currentPrecondition
-	 * @param parameterName
-	 * @param operator
-	 * @param constraint
-	 * @return
-	 */
+     *
+     * (x ∈ y) -> x
+     *
+     * to
+     *
+     * (x) -> assert(x ∈ y) in (x)
+     *
+     * @param currentPrecondition
+     * @param parameterName
+     * @param operator
+     * @param constraint
+     * @return
+     */
 	protected CoreExpr insertContract(CoreExpr currentPrecondition, Identifier parameterName,
 			Operator operator, CoreExpr constraint) {
 		Call check = new Call(constraint.getSourceFileRanges(), new Projection(parameterName, opMethodName(operator)), List.single(constraint));
@@ -1284,12 +1299,12 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 	@Override
 	public DesugarResult<CoreExpr> stringLiteral(StringLiteral stringLiteral) {
-		return withDesugared(stringLiteral, (CoreExpr)stringLiteral);
+		return withDesugared(stringLiteral, stringLiteral);
 	}
 
 	@Override
 	public DesugarResult<CoreExpr> numberLiteral(NumberLiteral numberLiteral) {
-		return withDesugared(numberLiteral, (CoreExpr)numberLiteral);
+		return withDesugared(numberLiteral, numberLiteral);
 	}
 
 	@Override
@@ -1583,7 +1598,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				return function(identifier);
 			}
 
-			public CoreExprFactory.DesugarResult<fj.P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
+			@Override
+            public CoreExprFactory.DesugarResult<fj.P2<Identifier,CoreExpr>> fallback(SourceExpr other) {
 				return identifier(expectIdentifier(other));
 			}
 		});
@@ -1601,7 +1617,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				return nonMixfixCall();
 			}
 
-			public CoreExprFactory.DesugarResult<CoreExpr> identifier(Identifier keyOnRight) {
+			@Override
+            public CoreExprFactory.DesugarResult<CoreExpr> identifier(Identifier keyOnRight) {
 				return op.getLeft().acceptVisitor(new SourceExprVisitor<DesugarResult<CoreExpr>>() {
 					private DesugarResult<CoreExpr> makeMixfixCall(final BinaryOp opLeft) {
 		                return call(opLeft).mapValue(call -> addNamePartToCall(call, keyOnRight));
@@ -1771,6 +1788,217 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	    	}
 	    });
 	    return rightSide;
+    }
+
+    /**
+     * List all files at the given path which might be a source file.
+     */
+    public static Stream<Path> listSourceFiles(Path path) {
+        try {
+            return Files
+                .list(path)
+                .filter(p -> p.getFileName().toString().charAt(0) != '.').sorted(new Comparator<Path>() {
+                    @Override
+                    public int compare(Path o1, Path o2) {
+                        int cmp = -Boolean.compare(Files.isDirectory(o1), Files.isDirectory(o2));
+                        if(cmp != 0)
+                            return cmp;
+
+                        for(Iterator<Path> i1 = o1.iterator(), i2 = o2.iterator(); i1.hasNext() || i2.hasNext();) {
+                            if(!i1.hasNext())
+                                return 1; // i2 has more elements
+                            if(!i2.hasNext())
+                                return -1; // i1 has more elements
+                            final String s1 = i1.next().toString();
+                            final String s2 = i2.next().toString();
+                            cmp = s1.compareToIgnoreCase(s2);
+                            if(cmp != 0)
+                                return cmp;
+                            cmp = s1.compareTo(s2);
+                            if(cmp != 0)
+                                return cmp;
+                        }
+                        return cmp;
+                    }
+                });
+        } catch(IOException e) {
+            return Stream.empty();
+        }
+    }
+
+    public static TreeMap<String, Slot> extendSlots(TreeMap<String, Slot> a, TreeMap<String, Slot> b) {
+        return b.values().foldLeft(CoreExprFactory::extendSlot, a);
+    }
+
+    public static TreeMap<String, Slot> extendSlot(TreeMap<String, Slot> slots, Slot binding) {
+        return slots.set(
+            binding.name.id,
+            slots.get(binding.name.id)
+                .map(prevSlot -> mergeSlots(prevSlot, binding))
+                .orSome(binding));
+    }
+
+    /**
+     * Desugar a file path into a slot. The self-name may be taken from the
+     * filename, if present.
+     */
+    public Slot pathToSlot(Path p) {
+        SourceExprFactory parser = new SourceExprFactory(p.getParent());
+        String slotLhs = p.getFileName().toString();
+        SourceExpr lhs;
+        try {
+            // If it's not a folder, strip the file extension
+            if(!Files.isDirectory(p)) {
+                slotLhs = slotLhs.replaceFirst("\\.[^.]*$", "");
+            }
+            lhs = parser.parse(slotLhs);
+        } catch(IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        CoreExpr value = new CoreExprFromFile(p);
+        return addMethod(lhs, lhs, value, Identifier.TRUE, List.nil(), Operator.ASSIGNMENT).getValue().head();
+    }
+
+    /**
+     * Create a new slot which contains the old slot value extended with the new
+     * one, without messing up self-name bindings.
+     */
+    static Slot mergeSlots(Slot base, Slot extension) {
+    
+        // No source object binding, no problems
+        if(base.sourceObjectBinding.isNone() && extension.sourceObjectBinding.isNone()) {
+            return new Slot(base.name, new Extend(base.value, extension.value));
+        }
+    
+        // If there's a source object binding, we have to make sure neither side
+        // sees the other's self-binding
+        // Ideally instead of __tmp we'd be using some kind of hygienic name.
+        // Hm.
+        return new Slot(base.name, Option.some(Identifier.__TMP),
+            new Extend(
+                slotToExpr(base, Identifier.__TMP),
+                slotToExpr(extension, Identifier.__TMP)));
+    }
+
+    static CoreExpr slotToExpr(Slot slot, Identifier newName) {
+        if(slot.sourceObjectBinding.isNone() || slot.sourceObjectBinding.some().id.equals(newName.id))
+            return slot.value;
+        return Let.single(slot.sourceObjectBinding.some(), newName, slot.value);
+    }
+
+    static TreeMap<String, Slot> mergeBinding(
+        Slot binding, TreeMap<String, Slot> bindingMap) {
+        return extendSlot(bindingMap, binding);
+    }
+
+    /**
+     * Inspect a path to produce a CoreExpr. If the target path is a directory /
+     * folder this desugars into an object literal representation of the file.
+     * If it is a regular file, the file extension is used to determine the
+     * format of the file.
+     */
+    public CoreExpr loadFromPath(Path path) {
+        if(Files.isDirectory(path)) {
+            return loadFromDirectory(path);
+        }
+        if(Files.isRegularFile(path)) {
+            return loadFromFile(path);
+        }
+        return new BadCoreExpr(
+            new SourceFileRange(path, FileRange.EMPTY),
+            "Unsupported file type / extension at %s", path);
+    }
+
+    /**
+     * Desugar a file into a directory.
+     */
+    public CoreExpr loadFromFile(Path path) {
+        String filename = path.getFileName().toString();
+        int dot = filename.lastIndexOf('.');
+        String ext = (dot > 0 ? filename.substring(dot + 1) : "");
+        if("txt".equals(ext)) {
+            return loadTxtFile(path);
+        } else if("banjo".equals(ext)) {
+            return loadBanjoSourceFile(path);
+        } else if("jar".equals(ext) || "zip".equals(ext)) {
+            return loadZipFile(path);
+        } else {
+            // Don't know what to do with this type of file
+            return new BadCoreExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Unsupported file type / extension at %s", path);
+        }
+    }
+
+    /**
+     * Load a ZIP file as a folder - the root of the zip is treated as a folder
+     * and converted into an object literal.
+     */
+    public CoreExpr loadZipFile(Path path) {
+        try {
+            FileSystem fs = FileSystems.newFileSystem(path, Thread.currentThread().getContextClassLoader());
+            Path root = fs.getRootDirectories().iterator().next();
+            return new CoreExprFromFile(root);
+        } catch(IOException e) {
+            return new BadCoreExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Failed to read project from %s: %s", path.toString(), e.toString());
+        }
+    }
+
+    public CoreExpr loadTxtFile(Path path) {
+        try {
+            return new StringLiteral(new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
+        } catch(IOException e) {
+            return new BadCoreExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Failed to read text from %s: %s", path.toString(), e.toString());
+        }
+    }
+
+    public CoreExpr loadBanjoSourceFile(Path path) {
+        try {
+            int size = (int) Files.size(path);
+            if(size == 0)
+                return new BadCoreExpr(new SourceFileRange(path, FileRange.EMPTY), "Empty file '" + path + "'");
+            
+            try(BufferedReader in = Files.newBufferedReader(path)) {
+                final SourceExprFactory parser = new SourceExprFactory(path);
+                SourceExpr parsed = parser.parse(new ParserReader(in, size));
+                return desugar(parsed).getValue();
+            } catch(IOException e) {
+                return new BadCoreExpr(
+                    new SourceFileRange(path, FileRange.EMPTY),
+                    "Failed to read source code from %s: %s", path.toString(), e.toString());
+            }
+        } catch(IOException e) {
+            return new BadCoreExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Failed to read source code from %s: %s", path.toString(), e.toString());
+        }
+    }
+
+    /**
+     * Desugar a directory into an AST
+     */
+    public CoreExpr loadFromDirectory(Path path) {
+        return loadFromDirectories(List.single(path));
+    }
+
+    /**
+     * Desugar a directory search path into an AST
+     */
+    public ObjectLiteral loadFromDirectories(List<Path> paths) {
+        Stream<Path> slotFiles = StreamSupport
+            .stream(paths.spliterator(), false)
+            .flatMap(CoreExprFactory::listSourceFiles);
+        TreeMap<String, Slot> slots = slotFiles
+            .map(this::pathToSlot)
+            .reduce(
+                TreeMap.empty(Ord.stringOrd),
+                CoreExprFactory::extendSlot,
+                CoreExprFactory::extendSlots);
+        return new ObjectLiteral(slots.values());
     }
 
 }

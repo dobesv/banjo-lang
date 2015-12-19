@@ -5,7 +5,6 @@ import banjo.expr.source.Operator;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
-import banjo.value.meta.SlotMapper.ObservableSlotMapper;
 import fj.P2;
 import fj.data.List;
 import javafx.beans.binding.ObjectBinding;

@@ -5,7 +5,6 @@ import java.util.function.Function;
 import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
-import banjo.value.meta.DynamicSlotProxy.ObservableDynamicSlotProxy;
 import fj.data.List;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;

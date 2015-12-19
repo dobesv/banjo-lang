@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import banjo.value.Value;
 import fj.Ord;
 
 public class ListUtil {

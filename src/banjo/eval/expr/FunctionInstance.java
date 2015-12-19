@@ -1,7 +1,6 @@
 package banjo.eval.expr;
 
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import banjo.eval.environment.Environment;
 import banjo.eval.util.JavaRuntimeSupport;
@@ -80,13 +79,12 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
-		final List<Value> oldStack = JavaRuntimeSupport.stack.get();
-		JavaRuntimeSupport.stack.set(oldStack.cons(this));
+        final List<Value> oldStack = JavaRuntimeSupport.stackPush(this);
 		try {
 			Environment env = closure.enterFunction(args, arguments, sourceObjectBinding, recurse, prevImpl);
 			return body.apply(env);
 		} finally {
-			JavaRuntimeSupport.stack.set(oldStack);
+            JavaRuntimeSupport.setStack(oldStack);
 		}
 	}
 

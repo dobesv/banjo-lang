@@ -4,12 +4,14 @@ import java.util.ServiceLoader;
 import java.util.function.Consumer;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public interface Resource extends Value {
 	public static class StartEventEmitter extends BaseResource {
@@ -172,7 +174,7 @@ public interface Resource extends Value {
 
 		@Override
 		public void watchValue(Value t) {
-			delegate.watchValue(new SlotValue(t, name));
+            delegate.watchValue(new SlotValue(t, name, SourceFileRange.EMPTY_SET));
 		}
 
 		@Override
@@ -191,19 +193,19 @@ public interface Resource extends Value {
 		}
 
 		@Override
-		public Value slot(String slotName) {
+		public Value slot(String slotName, Set<SourceFileRange> ranges) {
 			if(slotName.equals(name)) {
 				return delegate;
 			}
-			return super.slot(slotName);
+			return super.slot(slotName, ranges);
 		}
 
 		@Override
-		public Value slot(Value self, String slotName, Value fallback) {
+		public Value slot(Value self, String slotName, Set<SourceFileRange> ranges, Value fallback) {
 			if(slotName.equals(name)) {
 				return delegate;
 			}
-			return super.slot(self, slotName, fallback);
+			return super.slot(self, slotName, ranges, fallback);
 		}
 	}
 	public long nextPollTime(long lastPollTime);
@@ -278,7 +280,7 @@ public interface Resource extends Value {
 	 * This resource does not emit any events.
 	 */
 	public static <T> Resource passChangesTo(Consumer<T> target, Class<T> clazz) {
-		return new ChangeWatcher(target, clazz);
+        return new ChangeWatcher<T>(target, clazz);
 	}
 	
 	public static Resource startupEventEmitter(PastEvent initialEvent) {

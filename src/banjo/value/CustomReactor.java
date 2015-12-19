@@ -1,7 +1,9 @@
 package banjo.value;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 public class CustomReactor implements Value {
@@ -24,20 +26,24 @@ public class CustomReactor implements Value {
 		return true;
 	}
 
-	public Value slot(Value self, String name, Value fallback) {
-		return reactor.slot(self, name, fallback);
+    @Override
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+		return reactor.slot(self, name, ranges, fallback);
 	}
 
-	public Value slot(String name) {
-		return reactor.slot(name);
+    @Override
+	public Value slot(String name, Set<SourceFileRange> ranges) {
+		return reactor.slot(name, ranges);
 	}
 
-	public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-		return reactor.callMethod(name, targetObject, fallback, args);
+    @Override
+	public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+		return reactor.callMethod(name, ranges, targetObject, fallback, args);
 	}
 
-	public Value callMethod(String name, List<Value> args) {
-		return reactor.callMethod(name, args);
+    @Override
+    public Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
+        return reactor.callMethod(name, ranges, args);
 	}
 
 	@Override

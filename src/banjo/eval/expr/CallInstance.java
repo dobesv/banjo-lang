@@ -1,7 +1,5 @@
 package banjo.eval.expr;
 
-import java.util.function.Supplier;
-
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
@@ -30,12 +28,11 @@ public class CallInstance extends CalculatedValue implements Value {
 
 	@Override
 	public Value calculate() {
-		List<Value> oldStack = JavaRuntimeSupport.stack.get();
+        List<Value> oldStack = JavaRuntimeSupport.stackPush(this);
 		try {
-			JavaRuntimeSupport.stack.set(oldStack.cons(this));
 			return callee.call(args);
 		} finally {
-			JavaRuntimeSupport.stack.set(oldStack);
+            JavaRuntimeSupport.setStack(oldStack);
 		}
 	}
 	

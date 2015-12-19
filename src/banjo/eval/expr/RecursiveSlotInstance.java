@@ -1,7 +1,5 @@
 package banjo.eval.expr;
 
-import java.awt.image.RescaleOp;
-
 import banjo.eval.environment.Binding;
 import banjo.eval.environment.Environment;
 import banjo.event.PastEvent;

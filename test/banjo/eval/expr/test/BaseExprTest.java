@@ -85,15 +85,12 @@ public abstract class BaseExprTest {
 
     public void evaluates() {
 		noParseErrors();
-		List<Value> oldStack = JavaRuntimeSupport.stack.get();
+        List<Value> oldStack = JavaRuntimeSupport.stack.get();
 		try {
 			Set<SourceFileRange> ranges = exprRanges();
 			
-			freeExpr = FreeExpressionFactory.apply(expr);
-			intermediateValue = environment.eval(freeExpr);
-			if(!ranges.isEmpty()) {
-				JavaRuntimeSupport.stack.set(List.single(intermediateValue));
-			}
+            freeExpr = FreeExpressionFactory.apply(expr);
+            intermediateValue = environment.eval(freeExpr);
 			Value tmp;
 	    	try {
 	    		this.value = intermediateValue.force();
@@ -106,8 +103,10 @@ public abstract class BaseExprTest {
 	    		System.err.println(value.toString());
 	    		if(failure.getCause() != null)
 	    			System.err.println("  Exception: "+failure.getCause().toString());
-	    		failure.getTrace().forEach(t -> { System.err.println("  at "+t); });
-				Assert.fail(failure.getMessage());
+                failure.getTrace().forEach(t -> {
+                    System.err.println("  at " + t.stackTraceElementString());
+                });
+                Assert.fail(failure.toString());
 	    	}
 	    	assertTrue(value.isDefined());
 		} finally {

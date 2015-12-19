@@ -4,15 +4,20 @@ import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseInertValue;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 
 public class Selector extends BaseInertValue implements Value, Function<Value,Value> {
 	public final String slotName;
-	public Selector(String slotName) {
+    public final Set<SourceFileRange> ranges;
+
+    public Selector(String slotName, Set<SourceFileRange> ranges) {
 		this.slotName = slotName;
+        this.ranges = ranges;
 	}
 
 	@Override
@@ -22,7 +27,7 @@ public class Selector extends BaseInertValue implements Value, Function<Value,Va
 
 	@Override
 	public Value apply(Value target) {
-		return target.slot(slotName);
+		return target.slot(slotName, ranges);
 	}
 
 	@Override

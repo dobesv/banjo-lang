@@ -1,7 +1,6 @@
 package banjo.expr.free;
 
 import banjo.eval.environment.Environment;
-import banjo.value.SlotValue;
 import banjo.value.Value;
 
 
@@ -18,7 +17,9 @@ public class FreeProjection implements FreeExpression {
 
 	@Override
 	public Value apply(Environment env) {
-		return projection.apply(new Environment(object.apply(env), env.rootEnvironment));
+		Value boundObject = object.apply(env);
+        Environment objectAsEnvironment = new Environment(boundObject, env.rootEnvironment);
+        return projection.apply(objectAsEnvironment);
 	}
 
 	@Override

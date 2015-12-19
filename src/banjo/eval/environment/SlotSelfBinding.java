@@ -3,7 +3,6 @@ package banjo.eval.environment;
 import banjo.event.PastEvent;
 import banjo.value.Reaction;
 import banjo.value.Value;
-import fj.P2;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 

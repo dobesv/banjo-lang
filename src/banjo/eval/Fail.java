@@ -1,15 +1,15 @@
 package banjo.eval;
 
-import java.util.function.Supplier;
-
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 
@@ -21,12 +21,12 @@ public class Fail implements Value {
 	}
 
 	@Override
-	public Value slot(String name) {
+	public Value slot(String name, Set<SourceFileRange> ranges) {
 		return this;
 	}
 
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 	    return this;
 	}
 
@@ -41,8 +41,8 @@ public class Fail implements Value {
 	}
 
 	@Override
-	public Value callMethod(String name, Value targetObject, Value fallback,
-	        List<Value> args) {
+	public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject,
+	        Value fallback, List<Value> args) {
 	    return this;
 	}
 
@@ -101,6 +101,10 @@ public class Fail implements Value {
 		return trace;
 	}
 	
+    public Set<SourceFileRange> getRanges() {
+        return SourceFileRange.EMPTY_SET;
+    }
+
 	@Override
 	public String toString() {
 		return getClass().getSimpleName()+": "+getMessage();

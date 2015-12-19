@@ -2,6 +2,8 @@ package banjo.expr.source;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
 
 import banjo.expr.BadExpr;
 import banjo.expr.Expr;
@@ -10,7 +12,10 @@ import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
+import banjo.expr.util.FileRange;
 import banjo.expr.util.OrdUtil;
+import banjo.expr.util.ParserReader;
+import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.Ordering;
 import fj.data.List;
@@ -88,5 +93,22 @@ public interface SourceExpr extends Expr, SourceNode {
 			throw new UncheckedIOException(e);
 		}
 	}
+
+    /**
+     * Load and parse a source file at the given path.
+     */
+    public static SourceExpr fromSourceFile(Path path) {
+        try(ParserReader in = new ParserReader(path.toUri().toURL())) {
+            return new SourceExprFactory(path).parse(in);
+        } catch(MalformedURLException e) {
+            return new BadSourceExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Source cannot be loaded: " + e);
+        } catch(IOException e) {
+            return new BadSourceExpr(
+                new SourceFileRange(path, FileRange.EMPTY),
+                "Source cannot be loaded: " + e);
+        }
+    }
 
 }

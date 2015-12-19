@@ -1,10 +1,12 @@
 package banjo.value.meta;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -25,13 +27,13 @@ public class SlotMapper implements Value {
 	}
 
 	@Override
-	public Value slot(String name) {
-		return f.call(List.single(source.slot(name)));
+	public Value slot(String name, Set<SourceFileRange> ranges) {
+		return f.call(List.single(source.slot(name, ranges)));
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
-		return slot(name);
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+		return slot(name, ranges);
 	}
 
 	@Override

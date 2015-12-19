@@ -10,8 +10,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.event.FutureEvent;
 import banjo.event.PastEvent;
-import banjo.expr.core.ObjectLiteral;
-import banjo.expr.core.Slot;
 import banjo.expr.util.SourceFileRange;
 import banjo.io.resource.BaseResource;
 import banjo.io.resource.CompositeResource;
@@ -21,6 +19,7 @@ import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 public class ConsoleResource extends CompositeResource {
@@ -126,12 +125,12 @@ public class ConsoleResource extends CompositeResource {
 		}
 
 		@Override
-		public Value slot(Value self, String name, Value fallback) {
+		public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 			if(name.equals("java console input lines")) {
 				// This should only be referenced on startup, I think ... but can I prove it ? Maybe not. 
 				return futureEvent;
 			}
-			return Resource.super.slot(self, name, fallback);
+			return Resource.super.slot(self, name, ranges, fallback);
 		}
 	}
 	

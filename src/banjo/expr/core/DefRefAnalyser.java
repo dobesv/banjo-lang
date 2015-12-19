@@ -150,7 +150,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	public List<Identifier> slotsReferencedButNeverDefined() {
 		Set<String> definedSlots = Set.set(Ord.stringOrd, slotDefs.map(Identifier::getId));
-		return slotRefs.filter(name -> !definedSlots.member(name.id));
+        return slotRefs.filter(name -> !definedSlots.member(name.id));
 	}
 
 	public List<BadExpr> getProblems() {

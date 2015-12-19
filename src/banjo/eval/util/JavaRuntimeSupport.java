@@ -25,10 +25,15 @@ public class JavaRuntimeSupport {
 	public static class RootObject {
 		public static final Value javaRuntime = Value.fromClass(JavaRuntimeSupport.class);
 		
-		@SlotName("java runtime")
-		public static Value getJavaRuntime() {
+        @SlotName("language core runtime")
+        public static Value getLanguageCoreRuntime() {
 			return javaRuntime;
 		}
+
+        @SlotName("label")
+        public static String label() {
+            return "global scope";
+        }
 	}
 	
 	@SlotName("fail")
@@ -91,7 +96,7 @@ public class JavaRuntimeSupport {
 	}
 
 	
-	@SlotName("∞")
+    @SlotName("∞")
 	public static double infinity() {
 		return Double.POSITIVE_INFINITY;
 	}
@@ -318,6 +323,12 @@ public class JavaRuntimeSupport {
 
 	public static final ThreadLocal<List<Value>> stack = ThreadLocal.<List<Value>>withInitial(List::nil);
 
+    public static List<Value> stackPush(Value frame) {
+        List<Value> oldStack = stack.get();
+        stack.set(oldStack.cons(frame));
+        return oldStack;
+    }
+
 	@SlotName("package")
 	public static PackageValue getJavaPackage(String name) {
 		return PackageValue.forName(name);
@@ -399,4 +410,11 @@ public class JavaRuntimeSupport {
 	public static Value reactor(Value reactor) {
 		return new CustomReactor(reactor);
 	}
+
+    public static List<Value> setStack(List<Value> newStack) {
+        List<Value> oldStack = stack.get();
+        stack.set(newStack);
+        return oldStack;
+    }
+
 }

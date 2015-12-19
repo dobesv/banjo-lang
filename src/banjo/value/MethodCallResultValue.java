@@ -1,26 +1,28 @@
 package banjo.value;
 
-import java.util.Observable;
-
 import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
+import banjo.expr.util.SourceFileRange;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public class MethodCallResultValue extends CalculatedValue {
 	public final Value object;
 	public final String name;
+    public final Set<SourceFileRange> ranges;
 	public final Value targetObject;
 	public final Value fallback;
 	public final List<Value> args;
 	public final boolean reactive;
 	private ObservableMethodCallResultValue observable;
 	
-	public MethodCallResultValue(Value object, String name, Value targetObject, Value fallback, List<Value> args) {
+    public MethodCallResultValue(Value object, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
 		super();
 		this.object = object;
 		this.name = name;
+        this.ranges = ranges;
 		this.targetObject = targetObject;
 		this.fallback = fallback;
 		this.args = args;
@@ -29,7 +31,7 @@ public class MethodCallResultValue extends CalculatedValue {
 	
 	@Override
 	public Value calculate() {
-		return object.callMethod(name, targetObject, fallback, args);
+		return object.callMethod(name, ranges, targetObject, fallback, args);
 	}
 	
 	@Override
@@ -43,7 +45,7 @@ public class MethodCallResultValue extends CalculatedValue {
 		if(targetObject == this.targetObject && fallback == this.fallback && 
 				ListUtil.elementsEq(args, this.args))
 			return this;
-		return new MethodCallResultValue(object, name, targetObject, fallback, args);
+        return new MethodCallResultValue(object, name, ranges, targetObject, fallback, args);
 	}
 	
 	@Override

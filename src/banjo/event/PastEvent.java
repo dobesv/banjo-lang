@@ -6,13 +6,14 @@ import java.util.function.Function;
 import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.expr.source.Operator;
-import banjo.expr.util.ListUtil;
 import banjo.expr.util.OrdUtil;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -37,7 +38,7 @@ public class PastEvent extends FunctionTrait implements Value, Function<Value,Va
 	
 	@Override
 	public Value apply(Value t) {
-		return t.callMethod(variant, List.single(this));
+        return t.callMethod(variant, SourceFileRange.EMPTY_SET, List.single(this));
 	}
 	
 	@Override
@@ -62,7 +63,7 @@ public class PastEvent extends FunctionTrait implements Value, Function<Value,Va
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		switch(Operator.fromMethodName(name, true)) {
 		case FALLBACK:
 			return Value.function(x -> arg);
@@ -73,7 +74,7 @@ public class PastEvent extends FunctionTrait implements Value, Function<Value,Va
 			if("timestamp".equals(name)) {
 				return Value.fromJava(timestamp);
 			}
-			return super.slot(self, name, fallback);
+			return super.slot(self, name, ranges, fallback);
 		}
 	}
 	

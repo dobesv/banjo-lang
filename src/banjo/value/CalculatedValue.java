@@ -3,8 +3,10 @@ package banjo.value;
 import banjo.eval.Fail;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 
 /**
  * Represents a value that is calculated from some dependent values.  This
@@ -21,18 +23,18 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
     }
 
 	@Override
-    public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-    	return get().callMethod(name, targetObject, fallback, args);
+    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+    	return get().callMethod(name, ranges, targetObject, fallback, args);
     }
 
 	@Override
-    public Value slot(Value self, String name, Value fallback) {
-    	return get().slot(self, name, fallback);
+    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+    	return get().slot(self, name, ranges, fallback);
     }
 
 	@Override
-	public Value slot(String name) {
-	    return get().slot(name);
+	public Value slot(String name, Set<SourceFileRange> ranges) {
+	    return get().slot(name, ranges);
 	}
 
 	@Override
@@ -86,7 +88,7 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 
 	public Value get() {
 		if(this.memo == null) {
-			List<Value> oldStack = JavaRuntimeSupport.stack.get();
+            List<Value> oldStack = JavaRuntimeSupport.setStack(this.stack);
 			try {
 				Value value = calculate();
 				while((value instanceof CalculatedValue) && !((CalculatedValue)value).isCalculationReactive())

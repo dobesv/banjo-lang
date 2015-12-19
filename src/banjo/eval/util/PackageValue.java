@@ -3,8 +3,10 @@ package banjo.eval.util;
 import java.util.HashMap;
 
 import banjo.eval.SlotNotFound;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseInertValue;
 import banjo.value.Value;
+import fj.data.Set;
 
 /**
  * A Value instance that provides dynamic access to the contents of a package.  This
@@ -24,7 +26,7 @@ public class PackageValue extends BaseInertValue implements Value {
     }
 
 	@Override
-	public Value slot(Value self, String slotName, Value fallbackValue) {
+	public Value slot(Value self, String slotName, Set<SourceFileRange> ranges, Value fallbackValue) {
 		if("label".equals(slotName))
 			return Value.fromJava(this.name);
 		String childName = this.name+"."+slotName;
@@ -39,7 +41,7 @@ public class PackageValue extends BaseInertValue implements Value {
         } catch (ClassNotFoundException | LinkageError e) {
         	if(fallbackValue != null)
         		return fallbackValue;
-        	return new SlotNotFound(slotName, self, e);
+            return new SlotNotFound(slotName, ranges, self, e);
         }
 	}
 

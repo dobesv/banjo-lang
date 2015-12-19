@@ -2,10 +2,12 @@ package banjo.value.meta;
 
 import banjo.eval.Fail;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -32,13 +34,13 @@ public abstract class WrapperValue implements Value {
     }
 
 	@Override
-    public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-    	return target.callMethod(name, targetObject, fallback, args);
+    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+    	return target.callMethod(name, ranges, targetObject, fallback, args);
     }
 
 	@Override
-    public Value slot(Value self, String name, Value fallback) {
-    	return target.slot(self, name, fallback);
+    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+    	return target.slot(self, name, ranges, fallback);
     }
 
 	@Override

@@ -6,11 +6,13 @@ import java.util.function.Function;
 import com.sun.javafx.binding.ExpressionHelper;
 
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import banjo.io.resource.BaseResource;
 import banjo.io.resource.Resource;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import fj.data.Set;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.value.ChangeListener;
@@ -39,11 +41,11 @@ public class FutureEvent extends FunctionTrait implements Value, Function<Value,
 
 	@Override
 	public Value apply(Value t) {
-		return t.slot("pending");
+        return t.slot("pending", SourceFileRange.EMPTY_SET);
 	}
 
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		switch(Operator.fromMethodName(name, true)) {
 		case FALLBACK:
 			return Value.function(Function.identity());
@@ -52,9 +54,10 @@ public class FutureEvent extends FunctionTrait implements Value, Function<Value,
 			return Value.function(x -> this);
 		default:		
 			if("timestamp".equals(name)) {
-				return Value.fromJava(Long.MAX_VALUE); // TODO Could/should be ∞  or -∞ instead ?
+                return Value.fromJava(Long.MAX_VALUE); // TODO Could/should be ∞
+                                                       // or -∞ instead ?
 			}
-			return super.slot(self, name, fallback);
+			return super.slot(self, name, ranges, fallback);
 		}
 	}
 	
@@ -111,7 +114,8 @@ public class FutureEvent extends FunctionTrait implements Value, Function<Value,
 			if(helper != null) {
 				ObservableValue<Value> po = pastEvent.toObservableValue();
 				po.addListener(new ChangeListener<Value>() {
-					public void changed(javafx.beans.value.ObservableValue<? extends Value> observable, Value oldValue, Value newValue) {
+					@Override
+                    public void changed(javafx.beans.value.ObservableValue<? extends Value> observable, Value oldValue, Value newValue) {
 						pastEvent = newValue;
 						ExpressionHelper.fireValueChangedEvent(helper);
 					};

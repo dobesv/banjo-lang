@@ -1,6 +1,7 @@
 package banjo.expr.core.test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -20,7 +21,7 @@ public class TestDefRefAnalyser {
     }
 
 	@Test public void functionLiteralSelfName() {
-		final String src = "string(cp) ↦ string(0)";
+        final String src = "string(cp) ↦ string(0)";
 		assertNoDefRefProblems(src);
 	}
 
@@ -35,4 +36,19 @@ public class TestDefRefAnalyser {
 	    final List<BadExpr> problems = getProblems(src);
 		assertEquals(1, problems.length());
 	}
+
+    @Test
+    public void exprProjection() {
+        final String src = "{a = 1}.(a + a)";
+        final List<BadExpr> problems = getProblems(src);
+        assertEquals(0, problems.length());
+    }
+
+    @Test
+    public void exprProjection2() {
+        final String src = "{a = 1}.(a + b)";
+        final List<BadExpr> problems = getProblems(src);
+        assertEquals(0, problems.length());
+    }
+
 }

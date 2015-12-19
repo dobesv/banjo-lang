@@ -33,12 +33,19 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		this(SourceFileRange.EMPTY_SET, slotValues.map(FreeSlotInstance::new));
 	}
 
-	@Override
-	public Value slot(Value sourceObject, String name, Value fallback) {
+    /**
+     * Create an empty object value
+     */
+    public ObjectLiteralInstance() {
+        this(TreeMap.empty(Ord.stringOrd));
+    }
+
+    @Override
+	public Value slot(Value sourceObject, String name, Set<SourceFileRange> ranges, Value fallback) {
 		final Option<SlotInstance> value = slots.get(name);
 		if(value.isSome())
 			return maybeAnnotateAsMethod(value.some().apply(sourceObject, fallback), sourceObject, name);
-		return Value.super.slot(sourceObject, name, fallback);
+		return Value.super.slot(sourceObject, name, ranges, fallback);
 	}
 
 	public static class MethodInstance extends FunctionTrait implements Value {
@@ -47,11 +54,13 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		public final String name;
 		
 		
-		public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
+		@Override
+        public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
 			return f.call(recurse, prevImpl, arguments);
 		}
 
-		public Value call(List<Value> arguments) {
+		@Override
+        public Value call(List<Value> arguments) {
 			return f.call(arguments);
 		}
 

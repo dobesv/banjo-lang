@@ -1,13 +1,10 @@
 package banjo.eval.util;
 
-import java.util.function.BiFunction;
-
 import banjo.eval.environment.Environment;
 import banjo.event.PastEvent;
 import banjo.expr.free.FreeExpression;
 import banjo.value.CalculatedValue;
 import banjo.value.Reaction;
-import banjo.value.Reactive;
 import banjo.value.Value;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;

@@ -4,6 +4,7 @@ import com.sun.javafx.binding.ObjectConstant;
 
 import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.MethodCallResultValue;
 import banjo.value.Reaction;
 import banjo.value.SlotValue;
@@ -11,6 +12,7 @@ import banjo.value.Value;
 import banjo.value.ValueToStringTrait;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -85,9 +87,9 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     }
 
 	@Override
-	public Value slot(Value targetObject, String name, Value baseSlotValue) {
-		final Value newBaseSlotValue = new SlotValue(base, targetObject, name, baseSlotValue);
-		return extension.slot(targetObject, name, newBaseSlotValue);
+	public Value slot(Value targetObject, String name, Set<SourceFileRange> ranges, Value baseSlotValue) {
+        final Value newBaseSlotValue = new SlotValue(base, targetObject, name, ranges, baseSlotValue);
+		return extension.slot(targetObject, name, ranges, newBaseSlotValue);
 	}
 
 	@Override
@@ -100,9 +102,9 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     }
 
 	@Override
-	public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-		final Value newFallback = new MethodCallResultValue(base, name, targetObject, fallback, args);
-		return extension.callMethod(name, targetObject, newFallback, args);
+	public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        final Value newFallback = new MethodCallResultValue(base, name, ranges, targetObject, fallback, args);
+		return extension.callMethod(name, ranges, targetObject, newFallback, args);
 	}
 
 	@Override

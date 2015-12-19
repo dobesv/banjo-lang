@@ -1,25 +1,28 @@
 package banjo.eval.environment;
 
+import static java.util.Objects.requireNonNull;
+
+import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
-import banjo.eval.ProjectLoader;
 import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundIdentifier;
-import banjo.eval.expr.ObjectLiteralInstance;
-import banjo.eval.expr.RecursiveSlotInstance;
-import banjo.eval.expr.SlotInstance;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.eval.util.LazyBoundValue;
 import banjo.event.PastEvent;
+import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.CoreExprFactory;
+import banjo.expr.core.FunctionLiteral;
+import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.Projection;
+import banjo.expr.core.Slot;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
-import banjo.expr.free.FreeIdentifier;
-import banjo.expr.free.FreeProjection;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
@@ -32,11 +35,14 @@ import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 import fj.data.TreeMap;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
 public class Environment implements Reactive<Environment> {
+    public static final Environment EMPTY = new Environment(EmptyEnvironmentRoot.INSTANCE);
+    private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
 
 	public final Environment rootEnvironment;
 	public final Value rootObject;
@@ -45,16 +51,107 @@ public class Environment implements Reactive<Environment> {
 	private ObservableEnvironment observable;
 
 	public Environment(Value rootObject, TreeMap<String, Binding> bindings, Environment rootEnvironment) {
-		this.bindings = bindings;
-		this.rootObject = rootObject;
+        this.bindings = requireNonNull(bindings);
+        this.rootObject = requireNonNull(rootObject);
 		this.reactive = rootObject.isReactive() || checkReactive(bindings);
-		this.rootEnvironment = rootEnvironment == null ? this : rootEnvironment;
+        this.rootEnvironment = requireNonNull(rootEnvironment);
 	}
 	
 	public Environment(Value rootObject, Environment rootEnvironment) {
 		this(rootObject, TreeMap.empty(Ord.stringOrd), rootEnvironment);
 	}
+
+    /**
+     * Constructor for the root environment of the project.
+     */
+    public Environment(Value rootObject) {
+        this.bindings = TreeMap.empty(Ord.stringOrd);
+        this.rootObject = rootObject;
+        this.rootEnvironment = this;
+        this.reactive = false;
+    }
 	
+	public static Slot rootObjectSlot(Slot slot) {
+        // The slot definitions in a project use the project root object
+	    // as their base scope.  So, we'll use the projection feature to
+	    // scope each slot to the "source object binding" for that slot.
+
+        // Temporary identifier for the project root; this isn't visible
+        // to the code because we use a projection to "reset" the
+        // environment to use this as the base object
+        Identifier projectBindingName = Identifier.__TMP;
+
+        // If the slot has a sourceObjectBinding we'll have to preserve
+        // that by making the slot a function that accepts the object
+        // and returns its value.
+        CoreExpr value = slot.sourceObjectBinding.map(
+            name -> (CoreExpr) new Call(new FunctionLiteral(name, slot.value), projectBindingName))
+            .orSome(slot.value);
+
+        // Now return the transformed slot
+        return new Slot(
+            slot.name,
+            Option.some(projectBindingName),
+            new Projection(projectBindingName, value));
+	    
+	}
+
+    public static Value createProjectRootObject(List<Path> rootPaths) {
+        // Construct the project root object
+        ObjectLiteral selfBoundObjectRoot = rootObjectFromPaths(rootPaths);
+        return FreeExpressionFactory
+            .apply(selfBoundObjectRoot)
+            .apply(Environment.EMPTY);
+    }
+
+    public static ObjectLiteral rootObjectFromPaths(List<Path> rootPaths) {
+        ObjectLiteral rootExpr = CoreExprFactory.INSTANCE.loadFromDirectories(rootPaths);
+        List<Slot> newSlots = rootExpr.slots.map(Environment::rootObjectSlot);
+        ObjectLiteral selfBoundObjectRoot = new ObjectLiteral(rootExpr.getSourceFileRanges(), newSlots);
+        return selfBoundObjectRoot;
+    }
+
+    /**
+     * Get the core library source search paths.
+     */
+    public static List<Path> getGlobalSourcePaths() {
+        String searchPath = System.getProperty(LIB_PATH_SYS_PROPERTY, "");
+        return List.list(searchPath.split(File.pathSeparator))
+            .filter(s -> !s.isEmpty())
+            .map(Paths::get);
+    }
+
+    /**
+     * Find the full project source search path list for the given source file;
+     * this includes the project the file is in plus the core library search
+     * paths.
+     */
+    public static List<Path> projectSourcePathsForFile(Path sourceFile) {
+        Option<Path> projectRoot = projectRootForPath(sourceFile);
+        List<Path> coreLibraryPaths = getGlobalSourcePaths();
+        return coreLibraryPaths.append(projectRoot.toList());
+    }
+
+    /**
+     * Try to find the first parent folder of the given path which contains a
+     * file/folder named ".banjo". This is considered to be the project root.
+     * 
+     * If no ".banjo" exists in the given path or a parent, this returns
+     * Option.none().
+     */
+    public static Option<Path> projectRootForPath(Path path) {
+        Path tryPath = path;
+        while(tryPath != null) {
+            if(Files.exists(tryPath.resolve(".banjo")))
+                return Option.some(tryPath);
+            tryPath = tryPath.getParent();
+        }
+        return Option.none();
+    }
+
+    /**
+     * Return true if any binding value in this environment is reactive.
+     */
 	public boolean checkReactive(TreeMap<String, Binding> bindings) {
 		boolean reactive = false;
 		for(P2<String, Binding> p : bindings) {
@@ -76,7 +173,7 @@ public class Environment implements Reactive<Environment> {
 
 	@Override
 	public String toString() {
-	    return "("+bindings+") ⇒ ";
+        return "(" + bindings + ") ⇒ ";
 	}
 	
 	@Override
@@ -117,15 +214,19 @@ public class Environment implements Reactive<Environment> {
 		return new LazyBoundValue(fe, this);
 	}
 	
-	public Value getValue(String id) {
-		// TODO Ideally this unbound identifier fallback value wouldn't be constructed unless it was really needed
-		return bindings.get(id).map(Binding::getValue).orSome(() -> new SlotValue(rootObject, rootObject, id, unboundIdentifier(id)));
+    public Value getValue(String id, Set<SourceFileRange> ranges) {
+        Option<Binding> binding = bindings.get(id);
+        if(binding.isSome()) {
+            return binding.some().getValue();
+        }
+
+        return new SlotValue(rootObject, rootObject, id, ranges, unboundIdentifier(id, ranges));
 	}
 	
-	public Fail unboundIdentifier(String id) {
+    public Fail unboundIdentifier(String id, Set<SourceFileRange> ranges) {
 		if(this.rootObject == this.rootEnvironment.rootObject)
-			return new UnboundIdentifier(id);
-		return new SlotNotFound(id, rootObject);
+            return new UnboundIdentifier(id, ranges);
+        return new SlotNotFound(id, ranges, rootObject);
     }
 
 	public Environment let(List<P2<String, FreeExpression>> letBindings) {
@@ -135,9 +236,7 @@ public class Environment implements Reactive<Environment> {
 		return new Environment(letBindings, this);
 	}
 	
-	public static final String JAVA_RUNTIME_ID = "java runtime";
-	
-	public Environment bind(List<P2<String, Binding>> bindings) {
+    public Environment bind(List<P2<String, Binding>> bindings) {
 		return bind(TreeMap.<String,Binding>treeMap(Ord.stringOrd, bindings));
 	}
 	
@@ -145,34 +244,16 @@ public class Environment implements Reactive<Environment> {
 		return update(rootObject, bindings.union(this.bindings));
 	}
 	
-	public Environment(Path sourceFilePath) {
-		this.bindings = TreeMap.empty(Ord.stringOrd);
-		this.rootEnvironment = this;
-		this.reactive = false;
-		Value runtime = Value.fromClass(JavaRuntimeSupport.RootObject.class);
-		List<P2<String, SlotInstance>> rootSlots =
-				new ProjectLoader().loadLocalAndLibraryBindings(sourceFilePath).map(slot -> P.p(
-							slot.name.id,
-							new RecursiveSlotInstance(
-								slot.name,
-								// We need an identifier for the object so we can project into it, so we use this "special" identifier
-								// TODO Ideally this would be a hygienic name instead
-								slot.sourceObjectBinding.orSome(Identifier.ENVIRONMENT),
-								new FreeProjection(new FreeIdentifier(slot.sourceObjectBinding.orSome(Identifier.ENVIRONMENT)), FreeExpressionFactory.apply(slot.value)),
-								this
-							)	
-		));
-		Value projectRootObject = new ObjectLiteralInstance(SourceFileRange.EMPTY_SET, 
-				TreeMap.treeMap(Ord.stringOrd, rootSlots));
-		this.rootObject = runtime.extendedWith(projectRootObject);
-	}
-
 	public static Environment forSourceFile(Path sourceFilePath) {
-		return new Environment(sourceFilePath);
+        List<Path> paths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
+        Value rootObject = createProjectRootObject(paths);
+        Value runtime = Value.fromClass(JavaRuntimeSupport.RootObject.class);
+        Value environmentRoot = EmptyEnvironmentRoot.INSTANCE.extendedWith(runtime).extendedWith(rootObject);
+        return new Environment(environmentRoot);
 	}
 	
 	public static Environment forCurrentDirectory() {
-		return forSourceFile(Paths.get("").toAbsolutePath());
+        return forSourceFile(Paths.get(""));
 	}
 
 	public Environment bind(String id, Binding binding) {
@@ -218,7 +299,8 @@ public class Environment implements Reactive<Environment> {
 		}
 		
 	}
-	public ObservableValue<Environment> toObservableValue() {
+	@Override
+    public ObservableValue<Environment> toObservableValue() {
 		if(observable == null)
 			observable = new ObservableEnvironment(this);
 		return observable;

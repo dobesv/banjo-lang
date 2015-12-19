@@ -2,10 +2,11 @@ package banjo.value.meta;
 
 import banjo.eval.util.Selector;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Value;
-import banjo.value.meta.FunctionComposition.ObservableFunctionComposition;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -26,8 +27,8 @@ public class DynamicSlotProxy implements Value {
     }
 
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
-		final Value sel = new Selector(name);
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        final Value sel = new Selector(name, ranges);
 		return delegate.call(List.list(sel, fallback));
 	}
 

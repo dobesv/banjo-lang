@@ -1,16 +1,17 @@
 package banjo.expr.free;
 
 import banjo.eval.SlotNotFound;
-import banjo.eval.UnboundFunctionSelfName;
 import banjo.eval.UnboundSlotSelfName;
 import banjo.eval.environment.Binding;
 import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.Ord;
 import fj.P;
 import fj.data.List;
+import fj.data.Set;
 import fj.data.TreeMap;
 
 /**
@@ -33,11 +34,12 @@ public class FreeBaseProjection implements FreeExpression {
 	@Override
 	public Value apply(Environment env) {
 		String id = object.id;
+        Set<SourceFileRange> ranges = object.ranges;
 		return env.bindings.get(id).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
 			public Value slot(Value sourceObject, String slotName) {
-				return slotWithBase(sourceObject, slotName, new SlotNotFound(id+":"+slotName, sourceObject));
+                return slotWithBase(sourceObject, slotName, new SlotNotFound(id + ":" + slotName, ranges, sourceObject));
 			}
 			
 			@Override
@@ -52,19 +54,19 @@ public class FreeBaseProjection implements FreeExpression {
 			
 			@Override
 			public Value functionRecursive(Value function) {
-				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
+                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			
 			@Override
 			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
-				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a function self-recursive name");
+                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			
 			@Override
 			public Value let(Value value) {
-				return new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is a regular let binding");
+                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a regular let binding", ranges);
 			}
-		})).orSome(() -> new UnboundSlotSelfName("Not a slot self-name: '"+id+"' is not defined"));
+        })).orSome(() -> new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is not defined", ranges));
 	}
 
 	@Override

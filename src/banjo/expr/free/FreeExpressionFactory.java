@@ -36,30 +36,30 @@ public class FreeExpressionFactory implements
 	    return new FreeObjectLiteral(ranges, slots);
     }
 
-	public static Value javaHelpers(Environment env) {
-	    return env.rootEnvironment.getValue("java");
+    public static Value javaHelpers(Environment env, Set<SourceFileRange> ranges) {
+        return env.rootEnvironment.getValue("java", ranges);
     }
 
-	private FreeExpression _callJavaHelper(String name, List<Value> args) {
-		return new FreeJavaHelperCall(name, args);
+    public static FreeExpression _callJavaHelper(String name, Set<SourceFileRange> ranges, List<Value> args) {
+        return new FreeJavaHelperCall(name, ranges, args);
 	}
 
-	private FreeExpression callJavaHelper(String name, Value arg1) {
-		return _callJavaHelper(name, List.single(arg1));
+    public static FreeExpression callJavaHelper(String name, Set<SourceFileRange> ranges, Value arg1) {
+        return _callJavaHelper(name, ranges, List.single(arg1));
 	}
 
 	@Override
     public FreeExpression numberLiteral(
             Set<SourceFileRange> ranges, Number number) {
 		if(number instanceof SourceNumber) number = ((SourceNumber)number).getValue();
-		FreeExpression result = callJavaHelper("number", Value.fromJava(number));
+        FreeExpression result = callJavaHelper("number", ranges, Value.fromJava(number));
 		return result;
     }
 
 	@Override
     public FreeExpression stringLiteral(
             Set<SourceFileRange> ranges, String text) {
-		FreeExpression result = callJavaHelper("string", Value.fromJava(text));
+        FreeExpression result = callJavaHelper("string", ranges, Value.fromJava(text));
 		return result;
     }
 
@@ -67,7 +67,7 @@ public class FreeExpressionFactory implements
     public FreeExpression listLiteral(
             Set<SourceFileRange> ranges,
             List<FreeExpression> elements) {
-		return new FreeListLiteral(elements);
+        return new FreeListLiteral(ranges, elements);
     }
 
 	@Override
@@ -91,7 +91,7 @@ public class FreeExpressionFactory implements
     public FreeExpression inspect(
             Set<SourceFileRange> ranges,
             FreeExpression target) {
-		return (env) -> javaHelpers(env).callMethod("mirror", List.single(target.apply(env)));
+        return (env) -> javaHelpers(env, ranges).callMethod("mirror", ranges, List.single(target.apply(env)));
     }
 
 	@Override
@@ -129,7 +129,7 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression baseFunctionRef(Set<SourceFileRange> sourceFileRanges, Identifier name) {
-	    return new FreeBaseFunctionRef(name.id);
+        return new FreeBaseFunctionRef(name.id, sourceFileRanges);
     }
 
 }

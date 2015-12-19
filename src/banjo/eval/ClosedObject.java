@@ -1,10 +1,12 @@
 package banjo.eval;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 /**
@@ -40,23 +42,23 @@ public class ClosedObject implements Value {
     }
 
     @Override
-    public Value slot(Value self, String name, Value fallback) {
-        return slot(name);
+    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        return slot(name, ranges);
     }
 
     @Override
-    public Value slot(String name) {
-        return object.slot(name);
+    public Value slot(String name, Set<SourceFileRange> ranges) {
+        return object.slot(name, ranges);
     }
 
     @Override
-    public Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-        return object.callMethod(name, args);
+    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return object.callMethod(name, ranges, args);
     }
 
     @Override
-    public Value callMethod(String name, List<Value> args) {
-        return object.callMethod(name, args);
+    public Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
+        return object.callMethod(name, ranges, args);
     }
 
     @Override

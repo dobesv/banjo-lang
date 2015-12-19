@@ -41,7 +41,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		 *
 		 */
 		public PartialOp(Set<SourceFileRange> ranges, Operator operator, SourceExpr operatorExpr, int indentColumn) {
-			this.ranges = ranges.union(operatorExpr.getSourceFileRanges());
+            this.ranges = SourceFileRange.union(ranges, operatorExpr.getSourceFileRanges());
 			this.operator = operator;
 			this.operatorExpr = operatorExpr;
 			this.indentColumn = indentColumn;
@@ -51,7 +51,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		 * Create a node for a non-parentheses operator with a right-hand expression.
 		 */
 		public SourceExpr rhs(SourceExpr rightOperand, int rightOperandIndentColumn) {
-			final Set<SourceFileRange> ranges = this.ranges.union(rightOperand.getSourceFileRanges());
+            final Set<SourceFileRange> ranges = SourceFileRange.union(this.ranges, rightOperand.getSourceFileRanges());
 			return _rhs(rightOperand, ranges, rightOperandIndentColumn, this.operatorExpr.getSourceFileRanges());
 		}
 
@@ -59,8 +59,8 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		 * Create a node for a parenthesized expression.
 		 */
 		public SourceExpr closeParen(SourceExpr rightOperand, FileRange closeParenRange, int rightOperandIndentColumn) {
-			final Set<SourceFileRange> operatorRanges = this.operatorExpr.getSourceFileRanges().insert(sfr(closeParenRange));
-			final Set<SourceFileRange> ranges = this.ranges.insert(sfr(closeParenRange));
+            final Set<SourceFileRange> operatorRanges = sfr(closeParenRange).insertInto(this.operatorExpr.getSourceFileRanges());
+            final Set<SourceFileRange> ranges = sfr(closeParenRange).insertInto(this.ranges);
 			return _rhs(rightOperand, ranges, rightOperandIndentColumn, operatorRanges);
 		}
 
@@ -114,7 +114,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		 * operand.
 		 */
 		public PartialBinaryOp(Operator operator, SourceExpr operand, SourceExpr operatorExpr, int indentColumn) {
-			super(operand.getSourceFileRanges().union(operatorExpr.getSourceFileRanges()),
+            super(SourceFileRange.union(operand.getSourceFileRanges(), operatorExpr.getSourceFileRanges()),
 					operator, operatorExpr, indentColumn);
 			this.leftOperand = operand;
 		}
@@ -156,7 +156,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		@Override
 		SourceExpr makeOp(SourceExpr rightOperand, Set<SourceFileRange> ranges, Set<SourceFileRange> operatorRanges) {
 			if(this.operator == Operator.NEGATE && rightOperand instanceof NumberLiteral) {
-				return ((NumberLiteral)rightOperand).negate(operatorRanges.union(ranges));
+                return ((NumberLiteral) rightOperand).negate(SourceFileRange.union(ranges, operatorRanges));
 			} else if(this.operator == Operator.PLUS && rightOperand instanceof NumberLiteral) {
 				return rightOperand;
 			}
@@ -424,33 +424,6 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 			return pushPartialOp(new PartialUnaryOp(sfr(range), operator, indentColumn));
 		}
 		return null;
-	}
-
-	private int operandIndentColumn(Operator operator, FileRange range) {
-		int indentColumn = range.getStartColumn();
-
-		// Paren allows its content to dedent past the left
-		// operand, but not past the start of the line the
-		// left operand is on.
-		final SourceExpr operand = this.operand;
-		final int startLine = range.getStartLine();
-		if(operand != null) {
-			for(SourceFileRange r : operand.getSourceFileRanges()) {
-				if(r.getStartLine() == startLine) {
-					indentColumn = this.operandIndentColumn;
-				}
-			}
-		}
-		if(!opStack.isEmpty()) {
-			for(final PartialOp pop : opStack) {
-				for(SourceFileRange r : pop.ranges) {
-					if(r.getStartLine() == startLine) {
-						indentColumn = pop.indentColumn;
-					}
-				}
-			}
-		}
-		return indentColumn;
 	}
 
 	private SourceExprFactory update(SourceExpr operand, int operandIndentColumn) {

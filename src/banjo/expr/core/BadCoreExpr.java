@@ -3,7 +3,6 @@ package banjo.expr.core;
 import banjo.expr.AbstractBadExpr;
 import banjo.expr.BadExpr;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Set;
 
 public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {

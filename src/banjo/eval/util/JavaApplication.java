@@ -6,9 +6,9 @@ import banjo.eval.Fail;
 import banjo.eval.environment.Environment;
 import banjo.event.PastEvent;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.util.SourceFileRange;
 import banjo.io.resource.Resource;
 import banjo.value.EventChainValue;
-import banjo.value.Reaction;
 import banjo.value.Value;
 import fj.P2;
 import fj.data.List;
@@ -31,7 +31,9 @@ public class JavaApplication implements Runnable {
 	public JavaApplication(Value app) {
 		this.clock = app.readAndConvertSlot("clock", Clock.class, (f) -> Clock.systemUTC());
 		this.resource = app.readAndConvertSlot("resource", Resource.class, JavaApplication::fatalErrorStartupEventEmitter);
-		this.eventChain = new EventChainValue(app.slot("pending event"), app.slot("event occurrence"));
+        this.eventChain = new EventChainValue(
+            app.slot("pending event", SourceFileRange.EMPTY_SET),
+            app.slot("event occurrence", SourceFileRange.EMPTY_SET));
 		Value output = app.call1(resource);
 		resource.watchValue(output);
 	}

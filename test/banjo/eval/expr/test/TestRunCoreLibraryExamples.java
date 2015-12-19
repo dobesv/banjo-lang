@@ -1,13 +1,17 @@
 package banjo.eval.expr.test;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import banjo.eval.ProjectLoader;
+import banjo.eval.environment.Environment;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.CoreExprFactory;
 import banjo.expr.core.Extend;
 import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.Let;
@@ -172,9 +176,9 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	}
 
 	public static List<CoreExpr> findAllExamples() {
-		return List.join((new ProjectLoader()).loadBanjoPath()
-				.map(slot -> slot.value)
-				.<List<CoreExpr>>map(TestRunCoreLibraryExamples::findExamples));
+        List<Path> paths = Environment.projectSourcePathsForFile(Paths.get(""));
+        ObjectLiteral ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
+        return findExamples(ast);
 	}
 
 	@Parameters(name="{1}")

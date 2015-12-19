@@ -50,6 +50,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 
 	@Override
 	public String getMessage() {
+        if(this.args.length == 0)
+            return this.messageTemplate;
 		return String.format(this.messageTemplate, this.args);
 	}
 

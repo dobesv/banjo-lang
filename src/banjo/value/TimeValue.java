@@ -2,6 +2,8 @@ package banjo.value;
 
 import banjo.eval.util.SlotName;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 public class TimeValue implements Value {
@@ -43,11 +45,11 @@ public class TimeValue implements Value {
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		if(name.equals("epoch seconds") || name.equals("epoch millis")) {
-			return JavaObjectValue.readJavaObjectSlot(self, fallback, name, this); 
+			return JavaObjectValue.readJavaObjectSlot(self, fallback, name, ranges, this); 
 		}
-		return Value.super.slot(self, name, fallback);
+		return Value.super.slot(self, name, ranges, fallback);
 	}
 	
 	@Override

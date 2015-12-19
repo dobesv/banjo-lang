@@ -2,11 +2,13 @@ package banjo.io.resource;
 
 import banjo.eval.SlotNotFound;
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public class CompositeResource extends BaseResource {
 	public final List<Resource> resources;
@@ -16,10 +18,10 @@ public class CompositeResource extends BaseResource {
 	}
 
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
-		Value v = resources.foldLeft((temp, res) -> (Value)new SlotValue(res, self, name, temp), fallback);
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        Value v = resources.foldLeft((temp, res) -> (Value) new SlotValue(res, self, name, ranges, temp), fallback);
 		if(v == null)
-			return new SlotNotFound(name, this);
+            return new SlotNotFound(name, ranges, this);
 		return v;
 	}
 	

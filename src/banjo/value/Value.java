@@ -10,9 +10,11 @@ import banjo.eval.FailWithMessage;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.meta.SlotMemoizer;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import javafx.beans.value.ObservableValue;
 
 public interface Value extends Reactive<Value> {
@@ -33,7 +35,7 @@ public interface Value extends Reactive<Value> {
 		if(baseImpl != null) {
 			return baseImpl.call(recurse, null, arguments);
 		}
-		return new NotCallable(recurse);
+        return new NotCallable(recurse, SourceFileRange.EMPTY_SET);
 	}
 
 	/**
@@ -54,44 +56,54 @@ public interface Value extends Reactive<Value> {
 	 *
 	 * @param self A reference to the object we are trying to get the slot from.  If the object is an extension
 	 * then this may not be equal to "this".
+	 * @param ranges TODO
 	 * @param fallback Value to return if the slot is not found
 	 */
-	public default Value slot(Value self, String name, Value fallback) {
+	public default Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		if(fallback != null)
 			return fallback;
-		return new SlotNotFound(name, self);
+        return new SlotNotFound(name, ranges, self);
 	}
 
 	/**
 	 * Get the value of a slot.
 	 *
 	 * Returns an instance of SlotNotFound if the slot is not defined.
+	 * @param ranges TODO
 	 */
-	public default Value slot(String name) {
-		return slot(this, name, null);
+	public default Value slot(String name, Set<SourceFileRange> ranges) {
+		return slot(this, name, ranges, null);
 	}
 
 	static final Value MISSING_METHOD_PLACEHOLDER = new FailWithMessage("Missing slot for method");
 
 	/**
-	 * Call a function in a slot.  A subclass may provide an optimized
-	 * implementation in some cases.  Otherwise, this just fetches the
-	 * slot and calls it.
-	 *
-	 * Note that in the case of a method call one optimization is already
-	 * in place - the given "fallback" parameter is a fallback for the
-	 * entire method call, not just the slot reference.  So if the slot
-	 * is not defined, the fallback can be returned without calling it.
-	 *
-	 * @param name Name of the method to call
-	 * @param targetObject Original target object of the call if this callee is part of an extended object
-	 * @param fallback If the method is not implemented, this lazily
-	 *     supplies a return value; null if no applicable fallback
-	 * @param args List of arguments to pass
-	 * @return
-	 */
-	public default Value callMethod(String name, Value targetObject, Value fallback, List<Value> args) {
-	    final Value f = slot(targetObject, name, MISSING_METHOD_PLACEHOLDER).force();
+     * Call a function in a slot. A subclass may provide an optimized
+     * implementation in some cases. Otherwise, this just fetches the slot and
+     * calls it.
+     *
+     * Note that in the case of a method call one optimization is already in
+     * place - the given "fallback" parameter is a fallback for the entire
+     * method call, not just the slot reference. So if the slot is not defined,
+     * the fallback can be returned without calling it.
+     *
+     * @param name
+     *            Name of the method to call
+     * @param ranges
+     *            Source file ranges of the method call, if available, otherwise
+     *            an empty set
+     * @param targetObject
+     *            Original target object of the call if this callee is part of
+     *            an extended object
+     * @param fallback
+     *            If the method is not implemented, this lazily supplies a
+     *            return value; null if no applicable fallback
+     * @param args
+     *            List of arguments to pass
+     * @return
+     */
+	public default Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+	    final Value f = slot(targetObject, name, ranges, MISSING_METHOD_PLACEHOLDER).force();
 	    if(fallback != null && !f.isDefined()) {
     		return fallback;
 	    }
@@ -101,8 +113,8 @@ public interface Value extends Reactive<Value> {
 	/**
 	 * Simple method call with defaults
 	 */
-	public default Value callMethod(String name, List<Value> args) {
-		return callMethod(name, this, null, args);
+    public default Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
+		return callMethod(name, ranges, this, null, args);
 	}
 
 	/**
@@ -137,9 +149,9 @@ public interface Value extends Reactive<Value> {
 			return Either.left(clazz.cast(this));
 		} catch(ClassCastException cce) {
 			clazz = JavaObjectValue.primitiveClassToNormalClass(clazz);
-			Value conversion = slot("conversions");
+            Value conversion = slot("conversions", SourceFileRange.EMPTY_SET);
 			for(String s : clazz.getName().split("\\.")) {
-				conversion = conversion.slot(s);
+                conversion = conversion.slot(s, SourceFileRange.EMPTY_SET);
 			}
 			return conversion.convertToJava(clazz);
 		}
@@ -192,7 +204,8 @@ public interface Value extends Reactive<Value> {
 	public default boolean isTruthy() {
 		try {
 			Value fallbackValue = fromJava(Boolean.FALSE); // If no such method, it's not truthy
-			final Value callResult = callMethod(Operator.LOGICAL_AND.methodName, this, fallbackValue, List.single(fromJava(Boolean.TRUE)));
+            final Value callResult =
+                callMethod(Operator.LOGICAL_AND.methodName, SourceFileRange.currentJavaThreadLoc(), this, fallbackValue, List.single(fromJava(Boolean.TRUE)));
 			return callResult.convertToJava(Boolean.class).either(x -> x.booleanValue(), x -> false); // Doesn't return a boolean? not truthy
 		} catch(Exception e) {
 			return false; // Failure is not truthy
@@ -200,12 +213,13 @@ public interface Value extends Reactive<Value> {
 	}
 
 	/**
-	 * Default implementation of toString().  Sadly we
-	 * cannot call this toString() here because we are an interface.
-	 */
+     * Default implementation of toString(). Sadly we cannot call this method
+     * "toString" here because we are an interface and interfaces cannot provide
+     * a default toString().
+     */
 	public default String javaLabel() {
 	    try {
-	    	return slot("label").convertToJava(String.class).either(
+            return slot("label", SourceFileRange.currentJavaThreadLoc()).convertToJava(String.class).either(
 	    			s -> s,
 	    			f -> toStringFallback()
 	    			);
@@ -219,12 +233,16 @@ public interface Value extends Reactive<Value> {
 	    return "<"+getClass().getSimpleName()+"(Value)>";
     }
 
+    public default String stackTraceElementString() {
+        return this.toString();
+    }
+
 	public default Value extendedWith(Value extension) {
 		return new ExtendedObject(this, extension);
 	}
 
 	public default <T> T readAndConvertSlot(String slotName, Class<T> clazz, Function<Fail,T> onFailure) {
-		Value slotValue = this.slot(slotName);
+        Value slotValue = this.slot(slotName, SourceFileRange.currentJavaThreadLoc());
 		if(!slotValue.isDefined()) {
 			Fail err = Either.reduce(slotValue.convertToJava(Fail.class));
 			return onFailure.apply(err);
@@ -242,4 +260,5 @@ public interface Value extends Reactive<Value> {
     public default ClosedObject closed() {
         return new ClosedObject(this);
     }
+
 }

@@ -1,6 +1,8 @@
 package banjo.value;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
+import fj.data.Set;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
@@ -22,17 +24,17 @@ public class ObjectBaseValue implements Value {
 	}
 	
 	@Override
-	public Value slot(String name) {
+	public Value slot(String name, Set<SourceFileRange> ranges) {
 		if(name.equals(slotName))
 			return slotValue;
-		return Value.super.slot(name);
+		return Value.super.slot(name, ranges);
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		if(name.equals(slotName))
 			return slotValue;
-		return Value.super.slot(self, name, fallback);
+		return Value.super.slot(self, name, ranges, fallback);
 	}
 
 	@Override

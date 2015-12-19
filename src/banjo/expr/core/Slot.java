@@ -1,8 +1,8 @@
 package banjo.expr.core;
 
 import static java.util.Objects.requireNonNull;
+
 import banjo.expr.source.Operator;
-import banjo.expr.source.SourceExpr;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.OrdUtil;
 import fj.Ord;
@@ -11,7 +11,7 @@ import fj.data.Option;
 
 public class Slot {
 	public final Identifier name;
-	public final Option<Identifier> sourceObjectBinding;
+    public final Option<Identifier> sourceObjectBinding;
 	public final CoreExpr value;
 
 	public Slot(Identifier name, Option<Identifier> sourceObjectBinding,
@@ -119,4 +119,16 @@ public class Slot {
 	    return toSource(new StringBuffer()).toString();
 	}
 	
+    public Identifier getName() {
+        return name;
+    }
+
+    public Option<Identifier> getSourceObjectBinding() {
+        return sourceObjectBinding;
+    }
+
+    public CoreExpr getValue() {
+        return value;
+    }
+
 }

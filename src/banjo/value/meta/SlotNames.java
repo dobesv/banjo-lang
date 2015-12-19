@@ -1,9 +1,11 @@
 package banjo.value.meta;
 
 import banjo.event.PastEvent;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseInertValue;
 import banjo.value.Reaction;
 import banjo.value.Value;
+import fj.data.Set;
 
 public class SlotNames extends BaseInertValue implements Value {
 
@@ -15,12 +17,12 @@ public class SlotNames extends BaseInertValue implements Value {
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 		return Value.fromJava(name);
 	}
 	
 	@Override
-	public Value slot(String name) {
+	public Value slot(String name, Set<SourceFileRange> ranges) {
 		return Value.fromJava(name);
 	}
 }

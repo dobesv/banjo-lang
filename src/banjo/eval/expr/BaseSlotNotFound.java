@@ -1,16 +1,18 @@
 package banjo.eval.expr;
 
 import banjo.eval.SlotNotFound;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import fj.data.Set;
 
 public class BaseSlotNotFound extends SlotNotFound {
 
-	public BaseSlotNotFound(String id, Value object) {
-		super(id, object);
+    public BaseSlotNotFound(String id, Set<SourceFileRange> ranges, Value object) {
+        super(id, ranges, object);
 	}
 
-	public BaseSlotNotFound(String id, Value object, Throwable cause) {
-		super(id, object, cause);
+    public BaseSlotNotFound(String id, Set<SourceFileRange> ranges, Value object, Throwable cause) {
+        super(id, ranges, object, cause);
 	}
 
 	@Override

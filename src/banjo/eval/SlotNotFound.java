@@ -1,19 +1,23 @@
 package banjo.eval;
 
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import fj.data.Set;
 
 
 public class SlotNotFound extends Fail {
 	public final String id;
+    private final Set<SourceFileRange> ranges;
 	public final Value object;
 	public final Throwable cause;
 
-	public SlotNotFound(String id, Value object) {
-		this(id, object, null);
+    public SlotNotFound(String id, Set<SourceFileRange> ranges, Value object) {
+        this(id, ranges, object, null);
     }
 
-	public SlotNotFound(String id, Value object, Throwable cause) {
+    public SlotNotFound(String id, Set<SourceFileRange> ranges, Value object, Throwable cause) {
 		this.id = id;
+        this.ranges = ranges;
 		this.object = object;
 		this.cause = cause;
     }
@@ -33,11 +37,20 @@ public class SlotNotFound extends Fail {
 	        	objectStr = actualObject.getClass().getName()+" instance";
 	        }
 		}
-		return "No slot named '"+id+"' in "+objectStr;
+        String msg = "No slot named '" + id + "' in " + objectStr;
+        if(!getRanges().isEmpty()) {
+            msg = getRanges().iterator().next() + ": " + msg;
+        }
+        return msg;
 	}
 
 	@Override
 	public Throwable getCause() {
 		return cause;
 	}
+
+    @Override
+    public Set<SourceFileRange> getRanges() {
+        return ranges;
+    }
 }

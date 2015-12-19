@@ -2,19 +2,20 @@ package banjo.expr.free;
 
 import banjo.eval.NotCallable;
 import banjo.eval.UnboundFunctionSelfName;
-import banjo.eval.environment.Binding;
 import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
-import fj.P;
-import fj.data.Option;
+import fj.data.Set;
 
 public class FreeBaseFunctionRef implements FreeExpression {
 	public final String name;
+    public final Set<SourceFileRange> ranges;
 
-	public FreeBaseFunctionRef(String name) {
+    public FreeBaseFunctionRef(String name, Set<SourceFileRange> ranges) {
         super();
         this.name = name;
+        this.ranges = ranges;
     }
 
 	@Override
@@ -23,7 +24,7 @@ public class FreeBaseFunctionRef implements FreeExpression {
 			
 			@Override
 			public Value functionRecursive(Value function) {
-				return new NotCallable("No base implementation for function '"+name+"'");
+                return new NotCallable("No base implementation for function '" + name + "'", ranges);
 			}
 			
 			@Override
@@ -33,20 +34,20 @@ public class FreeBaseFunctionRef implements FreeExpression {
 			
 			@Override
 			public Value let(Value value) {
-				return new UnboundFunctionSelfName("Not a function self-name: '"+name+"' is a regular let-bound variable");
+                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a regular let-bound variable", ranges);
 			}
 			
 			@Override
 			public Value slot(Value sourceObject, String slotName) {
-				return new UnboundFunctionSelfName("Not a function self-name: '"+name+"' is a slot object reference");
+                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a slot object reference", ranges);
 			}
 			
 			@Override
 			public Value slotWithBase(Value sourceObject, String slotName, Value baseSlotValue) {
-				return new UnboundFunctionSelfName("Not a function self-name: '"+name+"' is a slot object reference");
+                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a slot object reference", ranges);
 			}
 			
 			
-		})).orSome(() -> new UnboundFunctionSelfName("Not a function self-name: '"+name+"' is not a locally defined name"));
+        })).orSome(() -> new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is not a locally defined name", ranges));
 	}
 }

@@ -20,8 +20,10 @@ import banjo.eval.util.Selector;
 import banjo.eval.util.SlotName;
 import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Set;
 import fj.data.Stream;
 import javafx.beans.value.ObservableValue;
 
@@ -34,13 +36,15 @@ public class JavaObjectValue implements Value {
 		    this.clazz = clazz;
 	    }
 
-	    public Value apply(Value x) {
+	    @Override
+        public Value apply(Value x) {
 	    	Either<Object,Fail> res = x.convertToJava(Object.class);
 	    	boolean isInstance = res.isLeft() && clazz.isInstance(res.left().value());
 	    	return Value.fromJava(isInstance);
 	    }
 
-	    public Value call(List<Value> args) {
+	    @Override
+        public Value call(List<Value> args) {
 	    	if(args.isEmpty()) return new ArgumentNotSupplied("Missing argument to isInstance()");
 	    	return apply(args.head());
 	    }
@@ -89,8 +93,8 @@ public class JavaObjectValue implements Value {
     }
 
 	@Override
-	public Value slot(Value self, String name, Value fallback) {
-		return readJavaObjectSlot(self, fallback, name, object);
+	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+		return readJavaObjectSlot(self, fallback, name, ranges, object);
 	}
 
 	@Override
@@ -104,8 +108,8 @@ public class JavaObjectValue implements Value {
 	}
 
 	@Override
-	public Value slot(String name) {
-	    return readJavaObjectSlot(this, null, name, object);
+	public Value slot(String name, Set<SourceFileRange> ranges) {
+	    return readJavaObjectSlot(this, null, name, ranges, object);
 	}
 
 	public static String methodSlotName(Method method) {
@@ -114,11 +118,11 @@ public class JavaObjectValue implements Value {
 			return slotAnn.value();
 		return method.getName();
 	}
-	public static Value readJavaObjectSlot(Value self, Value baseValue, String name, Object obj) {
+	public static Value readJavaObjectSlot(Value self, Value baseValue, String name, Set<SourceFileRange> ranges, Object obj) {
 	    if(name.equals("java string") && obj instanceof String) {
 			return Value.fromJava(obj);
 		} else if(obj == null || obj instanceof Throwable) {
-			return baseValue != null ? baseValue : new SlotNotFound(name, self);
+            return baseValue != null ? baseValue : new SlotNotFound(name, ranges, self);
 		} else {
 
 			try {
@@ -139,7 +143,7 @@ public class JavaObjectValue implements Value {
 					if(obj instanceof Boolean) {
 						if(((Boolean)obj).booleanValue()) {
 							if(name.equals("if")) {
-								return new Selector("true");
+                                return new Selector("true", SourceFileRange.currentJavaThreadLoc());
 							} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
 	    						// Return the object that was provided
 								return Value.IDENTITY_FUNCTION;
@@ -149,7 +153,7 @@ public class JavaObjectValue implements Value {
 	    					}
 						} else {
 							if(name.equals("if")) {
-								return new Selector("false");
+                                return new Selector("false", SourceFileRange.currentJavaThreadLoc());
 							} else if(name.equals(Operator.LOGICAL_AND.methodName)) {
 	    						// Return the original object (Boolean.FALSE)
 								return Value.function(x -> self);
@@ -177,7 +181,7 @@ public class JavaObjectValue implements Value {
 					} else if(baseValue != null) {
 						return baseValue;
 					} else {
-						return new SlotNotFound(name, self);
+                        return new SlotNotFound(name, ranges, self);
 					}
 				}
 
@@ -251,7 +255,7 @@ public class JavaObjectValue implements Value {
         	return new FailWithException(e);
         }
 		if(baseFunction == null)
-			return new NotCallable(f);
+            return new NotCallable(f, SourceFileRange.EMPTY_SET);
 		return baseFunction.call(recurseFunction, null, args);
     }
 

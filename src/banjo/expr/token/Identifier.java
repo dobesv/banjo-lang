@@ -24,14 +24,15 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier NAN = new Identifier("NaN");
 	public static final Identifier EMPTY_STRING = new Identifier("empty string");
 	public static final Identifier EMPTY_LIST = new Identifier("[]");
-	public static final Identifier ENVIRONMENT = new Identifier("ε");
+    public static final Identifier ENVIRONMENT = new Identifier("ε");
 	public static final Identifier TRUE = new Identifier("true");
 	public static final Identifier FALSE = new Identifier("false");
 	public static final Identifier DATA = new Identifier("data");
-	public static final Identifier INFINITY = new Identifier("∞");
+    public static final Identifier INFINITY = new Identifier("∞");
 	public static final Identifier UNDERSCORE = new Identifier("_");
 	public static final Identifier __TMP = new Identifier("__tmp");
 	public static final Identifier USAGE_EXAMPLES = new Identifier("usage examples");
+    public static final Identifier LANGUAGE_CORE_RUNTIME = new Identifier("language core runtime");
 
 	public final String id;
 

@@ -21,7 +21,7 @@ public class FreeIdentifier implements FreeExpression {
 	
 	@Override
 	public Value apply(Environment t) {
-	    return t.getValue(id);
+	    return t.getValue(id, ranges);
 	}
 
 	@Override
