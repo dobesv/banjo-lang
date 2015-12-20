@@ -4,7 +4,7 @@ jdk:
   - oraclejdk8
 env:
   global:
-    - BANJO_PATH=banjo-core-lib-master/src:banjo-java-lib-master/src
+    - JAVA_TOOL_OPTIONS=-Dbanjo.path=banjo-core-lib-master/src:banjo-java-lib-master/src
 addons:
   apt:
     packages:
