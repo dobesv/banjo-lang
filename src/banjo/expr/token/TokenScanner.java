@@ -495,8 +495,9 @@ public class TokenScanner {
         this.buf.setLength(0);
         List<T> errs = List.nil();
         while((cp = in.read()) != -1) {
+            final int currentColumnNumber = in.getPreviousColumnNumber();
             // Check for the end of the string
-            if(cp == quoteType)
+            if(cp == quoteType && !(multiline && currentColumnNumber != indentColumn))
                 break;
 
             // Completely ignore/strip literal line feeds
@@ -518,7 +519,6 @@ public class TokenScanner {
                             "Missing close quote " + StringLiteral.toSource(String.valueOf(Character.toChars(quoteType)))));
                 }
             } else if(multiline) {
-                final int currentColumnNumber = in.getPreviousColumnNumber();
                 if(cp == ' ' && buf.length() == 0) {
                     indentColumn = Math.max(currentColumnNumber, indentColumn);
                     continue;
