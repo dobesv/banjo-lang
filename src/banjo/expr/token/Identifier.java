@@ -24,7 +24,7 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier NAN = new Identifier("NaN");
 	public static final Identifier EMPTY_STRING = new Identifier("empty string");
 	public static final Identifier EMPTY_LIST = new Identifier("[]");
-    public static final Identifier ENVIRONMENT = new Identifier("ε");
+    public static final Identifier PROJECT_ROOT = new Identifier("__project_root");
 	public static final Identifier TRUE = new Identifier("true");
 	public static final Identifier FALSE = new Identifier("false");
 	public static final Identifier DATA = new Identifier("data");
@@ -33,6 +33,15 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier __TMP = new Identifier("__tmp");
 	public static final Identifier USAGE_EXAMPLES = new Identifier("usage examples");
     public static final Identifier LANGUAGE_CORE_RUNTIME = new Identifier("language core runtime");
+    public static final Identifier MIRROR = new Identifier("mirror");
+    public static final Identifier STRING_LITERALS = new Identifier("string literals");
+    public static final Identifier LIST_FACTORY = new Identifier("list factory");
+    public static final Identifier JAVA = new Identifier("java");
+    public static final Identifier NUMBER = new Identifier("number");
+    public static final Identifier STRING = new Identifier("string");
+    public static final Identifier LIST = new Identifier("list");
+    public static final Identifier EMPTY = new Identifier("empty");
+    public static final Identifier SINGLETON = new Identifier("singleton");
 
 	public final String id;
 

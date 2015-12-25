@@ -14,13 +14,9 @@ import banjo.eval.UnboundIdentifier;
 import banjo.eval.util.JavaRuntimeSupport;
 import banjo.eval.util.LazyBoundValue;
 import banjo.event.PastEvent;
-import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprFactory;
-import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.ObjectLiteral;
-import banjo.expr.core.Projection;
-import banjo.expr.core.Slot;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
 import banjo.expr.token.Identifier;
@@ -40,8 +36,25 @@ import fj.data.TreeMap;
 import javafx.beans.binding.ObjectBinding;
 import javafx.beans.value.ObservableValue;
 
+/**
+ * An environment is used to resolve names to values when evaluating
+ * expressions.
+ * <p>
+ * Names are resolved first against any locally defined variables or
+ * function/method parameters, from the innermost "let" or function argument
+ * list outwards.
+ * <p>
+ * When resolving expressions life <code>foo.bar</code> the part after the dot
+ * is evaluated in an environment where all the slots of <code>foo</code> are
+ * used to put values to names in the expression <code>bar<bar> which could be a
+ * more complex expression, such as one in ()'s, {}'s, or []'s, possibly
+ * including local variable definitions.
+ * <p>
+ * When not inside a projection (i.e. to the right of the "." operator) the
+ * "project root object" is the default projection, allowing access to global
+ * variables defined in the project root from the project source search path.
+ */
 public class Environment implements Reactive<Environment> {
-    public static final Environment EMPTY = new Environment(EmptyEnvironmentRoot.INSTANCE);
     private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
 
     public final Value projectRootObject;
@@ -50,6 +63,19 @@ public class Environment implements Reactive<Environment> {
 	public final boolean reactive;
 	private ObservableEnvironment observable;
 
+    /**
+     * Construct an environment.
+     * 
+     * @param rootObject
+     *            Object whose slots become the toplevel bindings for the
+     *            environment
+     * @param bindings
+     *            Local parameter and variable binding for the environment
+     * @param projectRootObject
+     *            Root object of the whole project; this is needed by string and
+     *            number literals to construct objects, among other things
+     * 
+     */
     public Environment(Value rootObject, TreeMap<String, Binding> bindings, Value projectRootObject) {
         this.bindings = requireNonNull(bindings);
         this.rootObject = requireNonNull(rootObject);
@@ -57,62 +83,54 @@ public class Environment implements Reactive<Environment> {
         this.projectRootObject = requireNonNull(projectRootObject);
 	}
 	
+    /**
+     * Construct an environment with no local variables or parameters in it.
+     * 
+     * Used to resolve projections of an object.
+     * 
+     * @param rootObject
+     *            Object whose slots become the toplevel bindings for the
+     *            environment
+     * @param bindings
+     *            Local parameter and variable binding for the environment
+     * @param projectRootObject
+     *            Root object of the whole project; this is needed by string and
+     *            number literals to construct objects, among other things
+     */
     public Environment(Value rootObject, Value projectRootObject) {
         this(rootObject, TreeMap.empty(Ord.stringOrd), projectRootObject);
 	}
 
     /**
-     * Constructor for the root environment of the project.
+     * Constructor for the root environment of the project. The root object of
+     * the project evaluates the slots of the root object in the environment in
+     * which those slots are made available, so we have to bind / construct that
+     * root object lazily to avoid infinite recursion.
+     * 
+     * @param rootFreeExpr
+     *            Function to make a value from this environment for the root
+     *            object and projectRootObject of the environment
+     * @param runtimeName
+     *            Name of the runtime in the new environment
+     * @param runtimeFactory
+     *            Function to make a value for the runtime in the new
+     *            environment (bound to the name given as
+     *            <code>runtimeName</code>
      */
-    public Environment(Value rootObject) {
-        this.bindings = TreeMap.empty(Ord.stringOrd);
-        this.rootObject = rootObject;
-        this.projectRootObject = rootObject;
+    public Environment(FreeExpression rootFreeExpr, String runtimeName, FreeExpression runtimeFactory) {
+        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(bindLazy(runtimeFactory)));
+        this.rootObject = this.projectRootObject = bindLazy(rootFreeExpr);
         this.reactive = false;
-    }
-	
-	public static Slot rootObjectSlot(Slot slot) {
-        // The slot definitions in a project use the project root object
-	    // as their base scope.  So, we'll use the projection feature to
-	    // scope each slot to the "source object binding" for that slot.
-
-        // Temporary identifier for the project root; this isn't visible
-        // to the code because we use a projection to "reset" the
-        // environment to use this as the base object
-        Identifier projectBindingName = Identifier.__TMP;
-
-        // If the slot has a sourceObjectBinding we'll have to preserve
-        // that by making the slot a function that accepts the object
-        // and returns its value.
-        CoreExpr value = slot.sourceObjectBinding.map(
-            name -> (CoreExpr) new Call(new FunctionLiteral(name, slot.value), projectBindingName))
-            .orSome(slot.value);
-
-        // Now return the transformed slot
-        return new Slot(
-            slot.name,
-            Option.some(projectBindingName),
-            new Projection(projectBindingName, value));
-	    
-	}
-
-    public static Value createProjectRootObject(List<Path> rootPaths) {
-        // Construct the project root object
-        ObjectLiteral selfBoundObjectRoot = rootObjectFromPaths(rootPaths);
-        return FreeExpressionFactory
-            .apply(selfBoundObjectRoot)
-            .apply(Environment.EMPTY);
-    }
-
-    public static ObjectLiteral rootObjectFromPaths(List<Path> rootPaths) {
-        ObjectLiteral rootExpr = CoreExprFactory.INSTANCE.loadFromDirectories(rootPaths);
-        List<Slot> newSlots = rootExpr.slots.map(Environment::rootObjectSlot);
-        ObjectLiteral selfBoundObjectRoot = new ObjectLiteral(rootExpr.getSourceFileRanges(), newSlots);
-        return selfBoundObjectRoot;
     }
 
     /**
-     * Get the core library source search paths.
+     * Get the core library source search paths. These are read from a system
+     * property. You can always set the system property using an environment
+     * variable, e.g.
+     * <p>
+     * <code>
+     * JAVA_TOOL_OPTIONS=-Dbanjo.path=banjo-core-lib-master/src:banjo-java-lib-master/src
+     * </code>
      */
     public static List<Path> getGlobalSourcePaths() {
         String searchPath = System.getProperty(LIB_PATH_SYS_PROPERTY, "");
@@ -135,7 +153,7 @@ public class Environment implements Reactive<Environment> {
     /**
      * Try to find the first parent folder of the given path which contains a
      * file/folder named ".banjo". This is considered to be the project root.
-     * 
+     * <p>
      * If no ".banjo" exists in the given path or a parent, this returns
      * Option.none().
      */
@@ -163,6 +181,18 @@ public class Environment implements Reactive<Environment> {
 		return reactive;
 	}
 	
+    /**
+     * Construct an environment by adding new local name -> value bindings to an
+     * existing environment.
+     * <p>
+     * The values are provided as a FreeExpression so that they can be bound
+     * into the same environment, allowing recursive bindings.
+     * 
+     * @param letBindings
+     *            New name -> value bindings
+     * @param parentEnv
+     *            Parent environment
+     */
 	public Environment(TreeMap<String, FreeExpression> letBindings, Environment parentEnv) {
 		// The trick here is that we mustn't "force" or calculate any value in the let until after we've set bindings
 		this.bindings = letBindings.map(this::bindLazy).map(Binding::let).union(parentEnv.bindings);
@@ -173,7 +203,7 @@ public class Environment implements Reactive<Environment> {
 
 	@Override
 	public String toString() {
-        return "(" + bindings + ") ⇒ ";
+        return projectRootObject + ".(" + bindings + " ⇒ ...)";
 	}
 	
 	@Override
@@ -202,19 +232,57 @@ public class Environment implements Reactive<Environment> {
         return new Environment(newRootObject, newBindings, projectRootObject);
 	}
 	
+    /**
+     * Evaluate the given AST / <code>CoreExpr</code> in this environment.
+     * 
+     * @param ast
+     *            Expression to evaluate
+     * @return Evaluation result
+     */
 	public Value eval(CoreExpr ast) {
 		return eval(FreeExpressionFactory.apply(ast));
 	}
 
+    /**
+     * Evaluate a <code>FreeExpression</code> in this environment.
+     * 
+     * @param fx
+     *            Expression to evaluate
+     * @return Evaluation result
+     */
 	public Value eval(final FreeExpression fx) {
 	    return fx.apply(this);
     }
 	
-	public Value bindLazy(FreeExpression fe) {
+    /**
+     * Create a value which will calculate itself lazily when slots of it are
+     * accessed; this is used to help with mutually referential expressions in
+     * an environment.
+     * 
+     * @param fe
+     *            Expression to evaluate, when needed
+     * @return Value "Thunk" that wraps the <code>FreeExpression</code> in a
+     *         lazily-evaluating container
+     */
+    private Value bindLazy(FreeExpression fe) {
 		return new LazyBoundValue(fe, this);
 	}
 	
+    /**
+     * Get the value associated with a name in this environment.
+     * 
+     * @param id
+     *            Name to look up
+     * @param ranges
+     *            Source location(s) to blame in an error message if the
+     *            identifier is not bound to a value in this environment
+     * @return <code>Value</code> that was found, or a <code>Value</code>
+     *         representing an error that the name is not bound in this
+     *         environment
+     */
     public Value getValue(String id, Set<SourceFileRange> ranges) {
+        if(id.equals(Identifier.PROJECT_ROOT.id))
+            return projectRootObject;
         Option<Binding> binding = bindings.get(id);
         if(binding.isSome()) {
             return binding.some().getValue();
@@ -222,44 +290,159 @@ public class Environment implements Reactive<Environment> {
 
         return new SlotValue(rootObject, rootObject, id, ranges, unboundIdentifier(id, ranges));
 	}
+
+    /**
+     * Get a value from the environment without any source file ranges.
+     * 
+     * @param id
+     *            Name to look up
+     * @return <code>Value</code> that was found, or a <code>Fail</code>
+     *         representing an error that the name is not bound in this
+     *         environment
+     */
+    public Value getValue(String id) {
+        return getValue(id, SourceFileRange.EMPTY_SET);
+    }
 	
-    public Fail unboundIdentifier(String id, Set<SourceFileRange> ranges) {
+    /**
+     * Construct a "fail" object to return if no value was found for a name.
+     * 
+     * @param id
+     *            Name being looked up
+     * @param ranges
+     *            Source file ranges where that name comes from
+     * @return A <code>Fail</code> value instance
+     */
+    private Fail unboundIdentifier(String id, Set<SourceFileRange> ranges) {
         if(this.rootObject == this.projectRootObject)
             return new UnboundIdentifier(id, ranges);
         return new SlotNotFound(id, ranges, rootObject);
     }
 
+    /**
+     * Return a new environment that extends this environment with some new
+     * name/value pairs.
+     * <p>
+     * The values will be calculated lazily on demand, in the same environment
+     * as is returned by this method. This means that binding values may refer
+     * to each other in their definitions.
+     * 
+     * @param letBindings
+     *            New bindings to add to this environment to make a new one
+     * @return A new environment
+     */
 	public Environment let(List<P2<String, FreeExpression>> letBindings) {
 		return let(TreeMap.treeMap(Ord.stringOrd, letBindings));
 	}
+
+    /**
+     * Return a new environment that extends this environment with one new
+     * name/value binding.
+     *
+     * @param name
+     *            Name of the binding
+     * @param valueFactory
+     *            Means of constructing the value from the environment
+     * @return A new environment
+     */
+    public Environment let1(String name, FreeExpression valueFactory) {
+        return let(List.single(P.p(name, valueFactory)));
+    }
+
+    /**
+     * Return a new environment that extends this environment with some new
+     * name/value pairs.
+     * 
+     * @param letBindings
+     *            New bindings to add to this environment to make a new one
+     * @return A new environment
+     */
 	public Environment let(TreeMap<String, FreeExpression> letBindings) {
 		return new Environment(letBindings, this);
 	}
-	
-    public Environment bind(List<P2<String, Binding>> bindings) {
-		return bind(TreeMap.<String,Binding>treeMap(Ord.stringOrd, bindings));
-	}
-	
+
+    /**
+     * Construct a new environment that extends this environment with some new
+     * bindings. This is used for "special" bindings - those used to resolve
+     * previous values of slots or previous implementations of functions.
+     * 
+     * @param bindings
+     *            New bindings to add
+     * @return A new environment
+     */
 	public Environment bind(TreeMap<String, Binding> bindings) {
 		return update(rootObject, bindings.union(this.bindings));
 	}
 	
-	public static Environment forSourceFile(Path sourceFilePath) {
-        List<Path> paths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
-        Value rootObject = createProjectRootObject(paths);
-        Value runtime = Value.fromClass(JavaRuntimeSupport.RootObject.class);
-        Value environmentRoot = EmptyEnvironmentRoot.INSTANCE.extendedWith(runtime).extendedWith(rootObject);
-        return new Environment(environmentRoot);
+    /**
+     * Calculate the top level environment for a given source file by figuring
+     * out its project root object and creating an environment based on that.
+     * <p>
+     * The project root object is calculated by combining the first parent
+     * folder of the given path containing a folder named ".banjo" and the list
+     * of paths in the system property "banjo.path".
+     * 
+     * @param sourceFilePath
+     *            Source path to search for a project at
+     * @return A new environment
+     */
+	public static Environment forSourcePath(Path sourceFilePath) {
+        List<Path> rootPaths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
+        // Construct the project root object
+        ObjectLiteral projectAst = CoreExprFactory.INSTANCE.loadFromDirectories(rootPaths);
+        FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
+        FreeExpression runtimeFactory = (env) -> Value.fromJava(new JavaRuntimeSupport(env));
+        return new Environment(environmentRoot, Identifier.LANGUAGE_CORE_RUNTIME.id, runtimeFactory);
 	}
 	
+    /**
+     * Calculate the top level environment based on the current directory.
+     * <p>
+     * The project root object is calculated by combining the first parent
+     * folder of the current directory containing a folder named ".banjo" and
+     * the list of paths in the system property "banjo.path".
+     * 
+     * @return A new environment
+     */
 	public static Environment forCurrentDirectory() {
-        return forSourceFile(Paths.get(""));
+        return forSourcePath(Paths.get(""));
 	}
 
+    /**
+     * Construct a new environment by adding a single binding to this one.
+     * <p>
+     * This is normally used to construct "special" bindings, such as for
+     * looking up the overridden value of a slot or the function self reference.
+     * 
+     * @param id
+     *            New name to bind
+     * @param binding
+     *            A description of the binding.
+     * @return A new environment
+     */
 	public Environment bind(String id, Binding binding) {
 		return bind(TreeMap.<String,Binding>empty(Ord.stringOrd).set(id, binding));
 	}
 
+    /**
+     * Construct a new environment for a function body.
+     * 
+     * @param formalArgs
+     *            Declared arguments of the function when it was defined
+     * @param providedArgs
+     *            Actual argument values provided to the function as it is
+     *            called
+     * @param sourceObjectBinding
+     *            Optional name the function would like to bind to "itself" for
+     *            recursive calling
+     * @param recurse
+     *            Function value that should be used for a recursive call, if
+     *            any
+     * @param prevImpl
+     *            Function value taht should be used if attempting to call the
+     *            "previous" implementation
+     * @return A new environment to use to evaluate the function body.
+     */
 	public Environment enterFunction(List<Identifier> formalArgs, List<Value> providedArgs, Option<Identifier> sourceObjectBinding, Value recurse, Value prevImpl) {
 	    List<Identifier> missingArgNames = formalArgs.drop(providedArgs.length());
 		final List<P2<String, Binding>> missingArgBindings =

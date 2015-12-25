@@ -10,8 +10,8 @@ import fj.Ord;
 
 public enum Operator {
 	// Unary operators
-	PLUS("+", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "-_"),
-	NEGATE("-", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "+_"),
+	PLUS("+", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "+_"),
+	NEGATE("-", OperatorType.METHOD, null, Position.PREFIX, Associativity.RIGHT, Precedence.UNARY_PREFIX, Precedence.UNARY_PREFIX, "-_"),
 	COMPLEMENT("~", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	NOT("¬ !", OperatorType.METHOD, Position.PREFIX, Precedence.UNARY_PREFIX),
 	LIST_ELEMENT("• *",OperatorType.BUILTIN, Position.PREFIX, Precedence.BULLET),

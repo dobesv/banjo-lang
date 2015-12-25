@@ -8,6 +8,9 @@ import java.time.Instant;
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
 import banjo.eval.FailWithMessage;
+import banjo.eval.environment.Environment;
+import banjo.expr.core.Projection;
+import banjo.expr.token.Identifier;
 import banjo.expr.token.StringLiteral;
 import banjo.io.resource.Resource;
 import banjo.value.CustomReactor;
@@ -16,41 +19,50 @@ import banjo.value.meta.ArgMapper;
 import banjo.value.meta.DynamicCallProxy;
 import banjo.value.meta.DynamicSlotProxy;
 import banjo.value.meta.FunctionComposition;
+import banjo.value.meta.ListFactory;
 import banjo.value.meta.SlotMapper;
 import banjo.value.meta.SlotNames;
 import fj.data.List;
 
 public class JavaRuntimeSupport {
+    private final Environment environment;
+    private SlotNames stringLiterals;
+    private ListFactory listFactory;
+    private Value label;
 
-	public static class RootObject {
-		public static final Value javaRuntime = Value.fromClass(JavaRuntimeSupport.class);
-		
-        @SlotName("language core runtime")
-        public static Value getLanguageCoreRuntime() {
-			return javaRuntime;
-		}
+    public JavaRuntimeSupport(Environment environment) {
+        this.environment = environment;
+    }
 
-        @SlotName("label")
-        public static String label() {
-            return "global scope";
-        }
-	}
-	
-	@SlotName("fail")
-	public static Fail fail(String message) {
+    @SlotName("fail")
+    public Fail fail(String message) {
 		return new FailWithMessage(message);
 	}
 
-	public static Object applyBoolean(boolean a, Object ifTrue, Object ifFalse) {
+    public Object applyBoolean(boolean a, Object ifTrue, Object ifFalse) {
 		return a ? ifTrue : ifFalse;
 	}
 
+
+    @SlotName("label")
+    public Value label() {
+        if(this.label == null)
+            this.label =
+                environment.getValue("java").slot("string")
+                    .call1(Value.fromJava(toString()));
+        return this.label;
+    }
+
+    @Override
+    public String toString() {
+        return new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_CORE_RUNTIME).toSource();
+    }
 
 	/**
 	 * Implement dynamic object extension
 	 */
 	@SlotName("extension")
-	public static Value extension(Value base, Value extension) {
+    public Value extension(Value base, Value extension) {
 		return new ExtendedObject(base, extension);
 	}
 
@@ -60,7 +72,7 @@ public class JavaRuntimeSupport {
 	 * The result of second is the result of the function.
 	 */
 	@SlotName("function composition")
-	public static Value composeFunctions(Value first, Value second) {
+    public Value composeFunctions(Value first, Value second) {
 		return new FunctionComposition(second, first);
 	}
 
@@ -68,7 +80,7 @@ public class JavaRuntimeSupport {
 	 * Slot interceptor.  Passes each slot value through a function before returning it.
 	 */
 	@SlotName("dynamic slot proxy")
-	public static Value slotInterceptor(Value interceptor) {
+    public Value slotInterceptor(Value interceptor) {
 		return new DynamicSlotProxy(interceptor);
 	}
 
@@ -77,7 +89,7 @@ public class JavaRuntimeSupport {
 	 * before passing it into the given object.
 	 */
 	@SlotName("arg mapper")
-	public static Object argMapper(Value interceptor, Value target) {
+    public Object argMapper(Value interceptor, Value target) {
 		return new ArgMapper(interceptor, target);
 	}
 
@@ -86,23 +98,33 @@ public class JavaRuntimeSupport {
 	 * pleases.
 	 */
 	@SlotName("dynamic call proxy")
-	public static Value callInterceptor(Value proxy) {
+    public Value callInterceptor(Value proxy) {
 		return new DynamicCallProxy(proxy);
 	}
 	
+    /**
+     * Apply a function to the result of any slot lookup on an object.
+     * 
+     * @param f
+     *            Function to apply
+     * @param source
+     *            Object whose slots we wish to transform
+     * @return A new <code>Value</code> that performs the given translation on
+     *         all slot values from the source object.
+     */
 	@SlotName("slot mapper")
-	public static Value slotMapper(Value f, Value source) {
+    public Value slotMapper(Value f, Value source) {
 		return new SlotMapper(f, source);
 	}
 
 	
     @SlotName("∞")
-	public static double infinity() {
+    public double infinity() {
 		return Double.POSITIVE_INFINITY;
 	}
 	
 	@SlotName("NaN")
-	public static double NaN() {
+    public double NaN() {
 		return Double.NaN;
 	}
 
@@ -143,6 +165,11 @@ public class JavaRuntimeSupport {
 		public static int xor(int a, int b) { return a ^ b; }
 	}
 
+    @SlotName("integer")
+    public Value getIntegerHelpers() {
+        return Value.fromClass(Integers.class);
+    }
+
 	@SlotName("long")
 	public static class Longs {
 		public static long sum(long a, long b) { return a + b; }
@@ -180,6 +207,11 @@ public class JavaRuntimeSupport {
 		
 	}
 
+    @SlotName("long")
+    public Value getLongHelpers() {
+        return Value.fromClass(Longs.class);
+    }
+
 	@SlotName("float")
 	public static class Floats {
 		public static float sum(float a, float b) { return a + b; }
@@ -206,7 +238,11 @@ public class JavaRuntimeSupport {
 		public static BigInteger toBigInteger(float a) { return BigInteger.valueOf((long)a); }
 	}
 
-	@SlotName("double")
+    @SlotName("float")
+    public Value getFloatHelpers() {
+        return Value.fromClass(Floats.class);
+    }
+
 	public static class Doubles {
 		public static double sum(double a, double b) { return a + b; }
 		public static double difference(double a, double b) { return a - b; }
@@ -233,7 +269,11 @@ public class JavaRuntimeSupport {
 
 	}
 
-	@SlotName("big integer")
+    @SlotName("double")
+    public Value getDoubleHelpers() {
+        return Value.fromClass(Doubles.class);
+    }
+
 	public static class BigIntegers {
 		public static BigInteger sum(BigInteger a, BigInteger b) { return a.add(b); }
 		public static BigInteger difference(BigInteger a, BigInteger b) { return a.subtract(b); }
@@ -271,7 +311,11 @@ public class JavaRuntimeSupport {
 		public static BigInteger xor(BigInteger a, BigInteger b) { return a.xor(b); }
 	}
 
-	@SlotName("big decimal")
+    @SlotName("big integer")
+    public Value getBigIntegerHelpers() {
+        return Value.fromClass(BigIntegers.class);
+    }
+
 	public static class BigDecimals {
 		public static BigDecimal sum(BigDecimal a, BigDecimal b) { return a.add(b); }
 		public static BigDecimal difference(BigDecimal a, BigDecimal b) { return a.subtract(b); }
@@ -303,7 +347,11 @@ public class JavaRuntimeSupport {
 		public static BigInteger toBigInteger(BigDecimal a) { return a.toBigInteger(); }
 	}
 
-	@SlotName("string")
+    @SlotName("big decimal")
+    public Value getBigDecimalHelpers() {
+        return Value.fromClass(BigDecimals.class);
+    }
+
 	public static class Strings {
 		public static String concat(Object a, Object b) { return String.valueOf(a) + String.valueOf(b); }
 		public static boolean eq(String a, String b) { return a.equals(b); }
@@ -318,8 +366,13 @@ public class JavaRuntimeSupport {
 		}
 	}
 
-	public static final Boolean TRUE = Boolean.TRUE;
-	public static final Boolean FALSE = Boolean.FALSE;
+    @SlotName("string")
+    public Value getStringHelpers() {
+        return Value.fromClass(Strings.class);
+    }
+
+    public final Boolean TRUE = Boolean.TRUE;
+    public final Boolean FALSE = Boolean.FALSE;
 
 	public static final ThreadLocal<List<Value>> stack = ThreadLocal.<List<Value>>withInitial(List::nil);
 
@@ -330,24 +383,24 @@ public class JavaRuntimeSupport {
     }
 
 	@SlotName("package")
-	public static PackageValue getJavaPackage(String name) {
+    public PackageValue getJavaPackage(String name) {
 		return PackageValue.forName(name);
 	}
 
-	public static final PackageValue javaPackage = PackageValue.forName("java");
-	public static final PackageValue banjoPackage = PackageValue.forName("banjo");
+    public final PackageValue javaPackage = PackageValue.forName("java");
+    public final PackageValue banjoPackage = PackageValue.forName("banjo");
 
 	@SlotName("java package")
-	public static final PackageValue getJavaPackage() {
+    public final PackageValue getJavaPackage() {
 		return javaPackage;
 	}
 
 	@SlotName("banjo package")
-	public static final PackageValue getBanjoPackage() {
+    public final PackageValue getBanjoPackage() {
 		return banjoPackage;
 	}
 
-	public static Runnable logger(String msg) {
+    public Runnable logger(String msg) {
 		return new Runnable() {
 
 			@Override
@@ -361,7 +414,8 @@ public class JavaRuntimeSupport {
 			}
 		};
 	}
-	public static Runnable terminator() {
+
+    public Runnable terminator() {
 		return new Runnable() {
 
 			@Override
@@ -377,39 +431,53 @@ public class JavaRuntimeSupport {
 	}
 
 	@SlotName("string builder")
-	public static StringBuilder stringBuilder() {
+    public StringBuilder stringBuilder() {
 		return new StringBuilder();
 	}
 
 	@SlotName("empty list")
-	public static List<Object> emptyList() { return List.nil(); }
-	public static List<Object> cons(Object elt, List<Object> tail) { return List.cons(elt, tail); }
+    public List<Object> emptyList() {
+        return List.nil();
+    }
 
-	public static final Instant startTime = Instant.now();
+    public List<Object> cons(Object elt, List<Object> tail) {
+        return List.cons(elt, tail);
+    }
+
+    public final Instant startTime = Instant.now();
 	@SlotName("start time")
-	public static final Instant getStartTime() {
+    public final Instant getStartTime() {
 		return startTime;
 	}
 	
 	@SlotName("default clock")
-	public static Clock defaultClock() {
+    public Clock defaultClock() {
 		return Clock.systemUTC();
 	}
 	
 	@SlotName("default resource")
-	public static Resource defaultResource() {
+    public Resource defaultResource() {
 		return Resource.discovered();
 	}
 	
-	@SlotName("slot names")
-	public static Value slotNames() {
-		return SlotNames.INSTANCE;
+    @SlotName("string literals")
+    public Value stringLiterals() {
+        if(this.stringLiterals == null)
+            this.stringLiterals = new SlotNames(environment.getValue("java").slot("string"));
+        return stringLiterals;
 	}
 	
 	@SlotName("reactor")
-	public static Value reactor(Value reactor) {
+    public Value reactor(Value reactor) {
 		return new CustomReactor(reactor);
 	}
+
+    @SlotName("list factory")
+    public ListFactory getListFactory() {
+        if(this.listFactory == null)
+            this.listFactory = new ListFactory(environment.getValue("java").slot("list"));
+        return listFactory;
+    }
 
     public static List<Value> setStack(List<Value> newStack) {
         List<Value> oldStack = stack.get();

@@ -66,14 +66,31 @@ public interface Value extends Reactive<Value> {
 	}
 
 	/**
-	 * Get the value of a slot.
-	 *
-	 * Returns an instance of SlotNotFound if the slot is not defined.
-	 * @param ranges TODO
-	 */
+     * Get the value of a slot.
+     *
+     * Returns an instance of SlotNotFound if the slot is not defined.
+     * 
+     * @param ranges
+     *            Source file ranges to blame if the slot is undefined
+     */
 	public default Value slot(String name, Set<SourceFileRange> ranges) {
 		return slot(this, name, ranges, null);
 	}
+
+    /**
+     * Lookup a slot.
+     * <p>
+     * If you have relevant source file ranges available, use the one that takes
+     * those ranges to improve debugging.
+     * 
+     * @param name
+     *            Name of the slot to get the value of
+     * @return The value of the slot, or some <code>Fail<code> instance if the
+     *         slot value is not defined for any reason
+     */
+    public default Value slot(String name) {
+        return slot(this, name, SourceFileRange.EMPTY_SET, null);
+    }
 
 	static final Value MISSING_METHOD_PLACEHOLDER = new FailWithMessage("Missing slot for method");
 
@@ -224,7 +241,7 @@ public interface Value extends Reactive<Value> {
 	    			f -> toStringFallback()
 	    			);
 	    } catch(Throwable t) {
-	    	//t.printStackTrace();
+            t.printStackTrace();
 	    	return toStringFallback();
 	    }
 	}

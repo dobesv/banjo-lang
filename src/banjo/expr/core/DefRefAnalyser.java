@@ -167,8 +167,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	    return new BadCoreExpr(name.getSourceFileRanges(), "Unbound identifier '%s'", name.id);
     }
 
-	public static List<BadExpr> problems(CoreExpr ast) {
-	    return ast.acceptVisitor(new DefRefAnalyser()).getProblems();
+    public static List<BadExpr> problems(CoreExpr ast) {
+        return ast.acceptVisitor(new DefRefAnalyser()).getProblems();
     }
 
 	/**
@@ -183,6 +183,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	 */
 	public static List<BadExpr> problems(CoreExpr ast, List<Slot> bindings) {
 		// TODO ... actually only return problems from the given AST
-		return problems(new Projection(new ObjectLiteral(bindings), ast));
+        List<Identifier> slotNames = bindings.map(Slot::getName);
+        return ast.acceptVisitor(new DefRefAnalyser()).defs(slotNames.cons(Identifier.LANGUAGE_CORE_RUNTIME)).getProblems();
     }
 }

@@ -1,9 +1,9 @@
 package banjo.expr.free;
 
 import banjo.eval.UnresolvedCodeError;
-import banjo.eval.environment.Environment;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
+import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import banjo.expr.util.SourceNumber;
@@ -17,7 +17,47 @@ import fj.data.Set;
 
 public class FreeExpressionFactory implements
         CoreExprAlgebra<FreeExpression> {
-	public static final FreeExpressionFactory INSTANCE = new FreeExpressionFactory();
+    public static final FreeExpressionFactory INSTANCE = new FreeExpressionFactory();
+    private static final FreeExpression ADD_OPER = Operator.ADD.getMethodIdentifier().acceptVisitor(INSTANCE);
+    private static final FreeExpression EMPTY = Identifier.EMPTY.acceptVisitor(INSTANCE);
+    private static final FreeExpression SINGLETON = Identifier.SINGLETON.acceptVisitor(INSTANCE);
+    private static final FreeExpression PROJECT_ROOT = Identifier.PROJECT_ROOT.acceptVisitor(INSTANCE);
+    private static final FreeExpression RUNTIME = INSTANCE.projection(
+            SourceFileRange.EMPTY_SET,
+            PROJECT_ROOT,
+            Identifier.LANGUAGE_CORE_RUNTIME.acceptVisitor(INSTANCE),
+            false);
+    private static final FreeExpression MIRROR = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        RUNTIME,
+        Identifier.MIRROR.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression JAVA = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        PROJECT_ROOT,
+        Identifier.JAVA.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression JAVA_NUMBER = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        JAVA,
+        Identifier.NUMBER.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression JAVA_STRING = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        JAVA,
+        Identifier.STRING.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression DATA = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        PROJECT_ROOT,
+        Identifier.DATA.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression DATA_LIST = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        DATA,
+        Identifier.LIST.acceptVisitor(INSTANCE),
+        false);
+    private static final FreeExpression CONS = new FreeIdentifier(SourceFileRange.EMPTY_SET, "cons");
 
 	public static FreeExpression apply(CoreExpr e) {
 		return e.acceptVisitor(INSTANCE);
@@ -36,38 +76,53 @@ public class FreeExpressionFactory implements
 	    return new FreeObjectLiteral(ranges, slots);
     }
 
-    public static Value javaHelpers(Environment env, Set<SourceFileRange> ranges) {
-        return env.projectRootObject.slot("java", ranges);
-    }
-
-    public static FreeExpression _callJavaHelper(String name, Set<SourceFileRange> ranges, List<Value> args) {
-        return new FreeJavaHelperCall(name, ranges, args);
-	}
-
-    public static FreeExpression callJavaHelper(String name, Set<SourceFileRange> ranges, Value arg1) {
-        return _callJavaHelper(name, ranges, List.single(arg1));
-	}
-
+    // public static Value javaHelpers(Environment env, Set<SourceFileRange>
+    // ranges) {
+    // return env.projectRootObject.slot("java", ranges);
+    // }
+    //
+    // public static FreeExpression _callJavaHelper(String name,
+    // Set<SourceFileRange> ranges, List<Value> args) {
+    //
+    // return new FreeJavaHelperCall(name, ranges, args);
+    // }
+    //
+    // public static FreeExpression callJavaHelper(String name,
+    // Set<SourceFileRange> ranges, Value arg1) {
+    // return _callJavaHelper(name, ranges, List.single(arg1));
+    // }
+    //
 	@Override
     public FreeExpression numberLiteral(
             Set<SourceFileRange> ranges, Number number) {
-		if(number instanceof SourceNumber) number = ((SourceNumber)number).getValue();
-        FreeExpression result = callJavaHelper("number", ranges, Value.fromJava(number));
-		return result;
+        if(number instanceof SourceNumber)
+            return numberLiteral(ranges, ((SourceNumber) number).getValue());
+        FreeExpression lazyNumber = (env) -> Value.fromJava(number);
+        return call(ranges, JAVA_NUMBER, List.single(lazyNumber));
     }
 
 	@Override
     public FreeExpression stringLiteral(
             Set<SourceFileRange> ranges, String text) {
-        FreeExpression result = callJavaHelper("string", ranges, Value.fromJava(text));
-		return result;
+        FreeExpression lazyString = (env) -> Value.fromJava(text);
+        return call(ranges, JAVA_STRING, List.single(lazyString));
     }
 
 	@Override
     public FreeExpression listLiteral(
             Set<SourceFileRange> ranges,
             List<FreeExpression> elements) {
-        return new FreeListLiteral(ranges, elements);
+        // Translate [a,b,c] to
+        // data.list.singleton(a) + (data.list.singleton(b) +
+        // data.list.singleton(c))
+        // or [] to data.list.empty
+        if(elements.isEmpty())
+            return projection(ranges, DATA_LIST, EMPTY, false);
+        FreeExpression head = call(ranges, projection(ranges, DATA_LIST, SINGLETON, false), elements.take(1));
+        if(elements.isSingle())
+            return head;
+        FreeExpression tail = listLiteral(ranges, elements.tail());
+        return call(ranges, projection(ranges, head, ADD_OPER, false), List.single(tail));
     }
 
 	@Override
@@ -91,7 +146,7 @@ public class FreeExpressionFactory implements
     public FreeExpression inspect(
             Set<SourceFileRange> ranges,
             FreeExpression target) {
-        return (env) -> javaHelpers(env, ranges).callMethod("mirror", ranges, List.single(target.apply(env)));
+        return call(ranges, MIRROR, List.single(target));
     }
 
 	@Override
