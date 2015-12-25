@@ -28,7 +28,7 @@ public class TestStringLiteralParser {
 
     @Test
     public void testMultiline3() {
-        testParser("  \"\n   abc\n    def\n\n     ghi\n\n    jkl\n   \"", "abc\n def\n\n  ghi\n\n jkl\n");
+        testParser("  \"\n   abc\n    def\n\n     ghi\n\n    jkl\n  \"", "abc\n def\n\n  ghi\n\n jkl\n");
     }
 
 	// Test line feed handling in string literal

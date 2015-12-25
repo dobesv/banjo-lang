@@ -497,7 +497,7 @@ public class TokenScanner {
         while((cp = in.read()) != -1) {
             final int currentColumnNumber = in.getPreviousColumnNumber();
             // Check for the end of the string
-            if(cp == quoteType && !(multiline && currentColumnNumber != indentColumn))
+            if(cp == quoteType && !(multiline && currentColumnNumber != openQuoteIndentColumn))
                 break;
 
             // Completely ignore/strip literal line feeds
@@ -510,6 +510,7 @@ public class TokenScanner {
             if(cp == '\n') {
                 if(buf.length() == 0) {
                     multiline = true;
+                    indentColumn = openQuoteIndentColumn;
                     continue;
                 } else if(!multiline) {
                     return errs.snoc(
