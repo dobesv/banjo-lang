@@ -43,6 +43,11 @@ public class TestStringLiteralParser {
         testParser("  \"\r\n   \"x\r\n\r\n  \"\r\n", "\"x\n\n");
     }
 
+    @Test
+    public void testMultlineEmpty() {
+        testParser("  \"\n  \"", "");
+    }
+
 	@Test public void testBacktick() { testParser("`HelloWorld", "HelloWorld", 0); }
 	@Test public void testBacktickEscapes() { testParser("`Hello\\ World\\!", "Hello World!", 0); }
 	//@Test public void testBacktickEmpty1() { testParser("`", "", 1); }
