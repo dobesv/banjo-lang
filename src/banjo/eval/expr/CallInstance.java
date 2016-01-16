@@ -50,7 +50,7 @@ public class CallInstance extends CalculatedValue implements Value {
 	
 	@Override
 	public boolean isCalculationReactive() {
-		return callee.isReactive() || args.exists(v -> v.isReactive());
+        return callee.isReactive() || args.exists(Value::isReactive);
 	}
 	
 	@Override
