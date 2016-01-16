@@ -45,7 +45,7 @@ public class CallInstance extends CalculatedValue implements Value {
 	
 	@Override
 	public String toString() {
-		return get().toString();
+		return force().toString();
 	}
 	
 	@Override

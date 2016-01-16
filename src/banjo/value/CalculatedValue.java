@@ -19,42 +19,53 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 
 	@Override
     public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-        return get().call(recurse, baseImpl, arguments);
+        return force().call(recurse, baseImpl, arguments);
     }
 
 	@Override
     public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-    	return get().callMethod(name, ranges, targetObject, fallback, args);
+    	return force().callMethod(name, ranges, targetObject, fallback, args);
     }
 
 	@Override
     public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-    	return get().slot(self, name, ranges, fallback);
+    	return force().slot(self, name, ranges, fallback);
     }
 
 	@Override
 	public Value slot(String name, Set<SourceFileRange> ranges) {
-	    return get().slot(name, ranges);
+	    return force().slot(name, ranges);
 	}
 
 	@Override
 	public boolean isTruthy() {
-	    return get().isTruthy();
+	    return force().isTruthy();
 	}
 
 	@Override
 	public Value force() {
-	    return get().force();
+        if(this.memo == null) {
+            List<Value> oldStack = JavaRuntimeSupport.setStack(this.stack);
+            try {
+                Value value = calculate();
+                while((value instanceof CalculatedValue) && !((CalculatedValue) value).isCalculationReactive())
+                    value = ((CalculatedValue) value).force();
+                this.memo = value;
+            } finally {
+                JavaRuntimeSupport.stack.set(oldStack);
+            }
+        }
+        return memo.force();
     }
 
 	@Override
 	public boolean isDefined() {
-	    return get().isDefined();
+	    return force().isDefined();
     }
 
 	@Override
 	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
-	    Value value = get();
+	    Value value = force();
 	    if(value == this)
 	    	throw new Error();
 		return value.convertToJava(clazz);
@@ -62,12 +73,12 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 
 	@Override
 	public String javaLabel() {
-	    return get().javaLabel();
+	    return force().javaLabel();
     }
 
 	@Override
 	public String toStringFallback() {
-	    return get().toStringFallback();
+	    return force().toStringFallback();
     }
 
 	@Override
@@ -86,21 +97,6 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 			return memo.isReactive();
 	}
 
-	public Value get() {
-		if(this.memo == null) {
-            List<Value> oldStack = JavaRuntimeSupport.setStack(this.stack);
-			try {
-				Value value = calculate();
-				while((value instanceof CalculatedValue) && !((CalculatedValue)value).isCalculationReactive())
-					value = ((CalculatedValue)value).get();
-				this.memo = value;
-			} finally {
-				JavaRuntimeSupport.stack.set(oldStack);
-			}
-		}
-		return this.memo;
-	}
-	
 	public abstract Value calculate();
 	
 	/**
