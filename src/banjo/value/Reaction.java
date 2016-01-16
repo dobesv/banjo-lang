@@ -39,13 +39,13 @@ public class Reaction<T> {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static <A> Reaction<A> to(Reactive<A> a, PastEvent event) {
+    public static <A extends Reactive<A>> Reaction<A> to(Reactive<A> a, PastEvent event) {
 		if(a == null) return null;
 		Reaction<A> result = (Reaction<A>) event.reactionCache.get(a);
 		if(result != null)
 			return result;
 		result = a.react(event);
-		event.reactionCache.put((Object)a, (Reaction<Object>)result);
+		event.reactionCache.put(a, result);
 		return result;
 	}
 	
@@ -53,11 +53,12 @@ public class Reaction<T> {
 	 * Call react on a pair of values and return a reaction with the resulting
 	 * pair.
 	 */
-	public static <A,B> Reaction<P2<A,B>> to(Reactive<A> a, Reactive<B> b, PastEvent event) {
+    public static <A extends Reactive<A>, B extends Reactive<B>> Reaction<P2<A, B>> to(Reactive<A> a, Reactive<B> b, PastEvent event) {
 		return p(to(a, event), to(b, event));
 	}
 
-	public static <A,B,C> Reaction<P3<A,B,C>> to(Reactive<A> a, Reactive<B> b, Reactive<C> c, PastEvent event) {
+    public static <A extends Reactive<A>, B extends Reactive<B>, C extends Reactive<C>> Reaction<P3<A, B, C>> to(Reactive<A> a, Reactive<B> b, Reactive<C> c,
+        PastEvent event) {
 		return p(to(a, event), to(b, event), to(c, event));
 	}
 	

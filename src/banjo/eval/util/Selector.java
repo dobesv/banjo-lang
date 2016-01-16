@@ -5,13 +5,12 @@ import java.util.function.Function;
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.BaseInertValue;
 import banjo.value.Value;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;
 
-public class Selector extends BaseInertValue implements Value, Function<Value,Value> {
+public class Selector implements Value, Function<Value, Value> {
 	public final String slotName;
     public final Set<SourceFileRange> ranges;
 

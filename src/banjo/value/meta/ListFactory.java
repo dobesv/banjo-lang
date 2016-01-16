@@ -1,6 +1,5 @@
 package banjo.value.meta;
 
-import banjo.value.BaseInertValue;
 import banjo.value.Value;
 import fj.data.List;
 
@@ -10,7 +9,7 @@ import fj.data.List;
  * <p>
  * Used to construct the runtime values of list literals.
  */
-public class ListFactory extends BaseInertValue implements Value {
+public class ListFactory implements Value {
 
     public final Value listWrapper;
 

@@ -29,7 +29,7 @@ import javafx.beans.value.ObservableValue;
 
 public class JavaObjectValue implements Value {
 
-	public static final class IsInstanceOf extends BaseInertValue implements Value, Function<Value, Value> {
+    public static final class IsInstanceOf implements Value, Function<Value, Value> {
 	    private final Class<?> clazz;
 
 	    public IsInstanceOf(Class<?> clazz) {

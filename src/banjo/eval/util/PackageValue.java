@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 import banjo.eval.SlotNotFound;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.BaseInertValue;
 import banjo.value.Value;
 import fj.data.Set;
 
@@ -13,7 +12,7 @@ import fj.data.Set;
  * provides slots for each subpackage and class in the package, which are looked up
  * on demand.
  */
-public class PackageValue extends BaseInertValue implements Value {
+public class PackageValue implements Value {
 	public final String name;
 
 	public PackageValue(Package pkg) {

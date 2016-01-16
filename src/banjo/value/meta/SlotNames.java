@@ -1,7 +1,6 @@
 package banjo.value.meta;
 
 import banjo.expr.util.SourceFileRange;
-import banjo.value.BaseInertValue;
 import banjo.value.Value;
 import fj.data.Set;
 
@@ -11,7 +10,7 @@ import fj.data.Set;
  * This requires a function that wraps a java native string into something that
  * implements the API expected by banjo code.
  */
-public class SlotNames extends BaseInertValue implements Value {
+public class SlotNames implements Value {
     private final Value stringWrapper;
 
     /**
