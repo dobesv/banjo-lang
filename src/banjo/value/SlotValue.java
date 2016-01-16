@@ -66,7 +66,7 @@ public class SlotValue extends CalculatedValue {
 	
 	@Override
 	public boolean isCalculationReactive() {
-		return object.isReactive();
+        return object.isReactive() || self.isReactive() || (fallback != null && fallback.isReactive());
 	}
 	
 	public SlotValue update(Value newObject, Value newSelf, Value newFallback) {
