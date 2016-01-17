@@ -76,22 +76,6 @@ public class FreeExpressionFactory implements
 	    return new FreeObjectLiteral(ranges, slots);
     }
 
-    // public static Value javaHelpers(Environment env, Set<SourceFileRange>
-    // ranges) {
-    // return env.projectRootObject.slot("java", ranges);
-    // }
-    //
-    // public static FreeExpression _callJavaHelper(String name,
-    // Set<SourceFileRange> ranges, List<Value> args) {
-    //
-    // return new FreeJavaHelperCall(name, ranges, args);
-    // }
-    //
-    // public static FreeExpression callJavaHelper(String name,
-    // Set<SourceFileRange> ranges, Value arg1) {
-    // return _callJavaHelper(name, ranges, List.single(arg1));
-    // }
-    //
 	@Override
     public FreeExpression numberLiteral(
             Set<SourceFileRange> ranges, Number number) {
