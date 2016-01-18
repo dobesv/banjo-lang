@@ -2,10 +2,9 @@ package banjo.eval.environment;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
@@ -55,8 +54,6 @@ import javafx.beans.value.ObservableValue;
  * variables defined in the project root from the project source search path.
  */
 public class Environment implements Reactive<Environment> {
-    private static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
-
     public final Value projectRootObject;
 	public final Value rootObject;
 	public final TreeMap<String, Binding> bindings;
@@ -79,7 +76,7 @@ public class Environment implements Reactive<Environment> {
     public Environment(Value rootObject, TreeMap<String, Binding> bindings, Value projectRootObject) {
         this.bindings = requireNonNull(bindings);
         this.rootObject = requireNonNull(rootObject);
-		this.reactive = rootObject.isReactive() || checkReactive(bindings);
+        this.reactive = rootObject.isReactive() || checkReactive(bindings);
         this.projectRootObject = requireNonNull(projectRootObject);
 	}
 	
@@ -117,62 +114,18 @@ public class Environment implements Reactive<Environment> {
      *            environment (bound to the name given as
      *            <code>runtimeName</code>
      */
-    public Environment(FreeExpression rootFreeExpr, String runtimeName, FreeExpression runtimeFactory) {
-        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(bindLazy(runtimeFactory)));
+    public Environment(FreeExpression rootFreeExpr, String runtimeName, Function<Environment, Value> runtimeFactory) {
+        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(runtimeFactory.apply(this)));
         this.rootObject = this.projectRootObject = bindLazy(rootFreeExpr);
         this.reactive = false;
     }
 
     /**
-     * Get the core library source search paths. These are read from a system
-     * property. You can always set the system property using an environment
-     * variable, e.g.
-     * <p>
-     * <code>
-     * JAVA_TOOL_OPTIONS=-Dbanjo.path=banjo-core-lib-master/src:banjo-java-lib-master/src
-     * </code>
-     */
-    public static List<Path> getGlobalSourcePaths() {
-        String searchPath = System.getProperty(LIB_PATH_SYS_PROPERTY, "");
-        return List.list(searchPath.split(File.pathSeparator))
-            .filter(s -> !s.isEmpty())
-            .map(Paths::get);
-    }
-
-    /**
-     * Find the full project source search path list for the given source file;
-     * this includes the project the file is in plus the core library search
-     * paths.
-     */
-    public static List<Path> projectSourcePathsForFile(Path sourceFile) {
-        Option<Path> projectRoot = projectRootForPath(sourceFile);
-        List<Path> coreLibraryPaths = getGlobalSourcePaths();
-        return coreLibraryPaths.append(projectRoot.toList());
-    }
-
-    /**
-     * Try to find the first parent folder of the given path which contains a
-     * file/folder named ".banjo". This is considered to be the project root.
-     * <p>
-     * If no ".banjo" exists in the given path or a parent, this returns
-     * Option.none().
-     */
-    public static Option<Path> projectRootForPath(Path path) {
-        Path tryPath = path;
-        while(tryPath != null) {
-            if(Files.exists(tryPath.resolve(".banjo")))
-                return Option.some(tryPath);
-            tryPath = tryPath.getParent();
-        }
-        return Option.none();
-    }
-
-    /**
      * Return true if any binding value in this environment is reactive.
      */
-	public boolean checkReactive(TreeMap<String, Binding> bindings) {
+	public boolean checkReactive(TreeMap<?, Binding> bindings) {
 		boolean reactive = false;
-		for(P2<String, Binding> p : bindings) {
+        for(P2<?, Binding> p : bindings) {
 			if(p._2().isReactive()) {
 				reactive = true;
 				break;
@@ -387,14 +340,12 @@ public class Environment implements Reactive<Environment> {
      * @return A new environment
      */
 	public static Environment forSourcePath(Path sourceFilePath) {
-        List<Path> rootPaths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
-        // Construct the project root object
-        ObjectLiteral projectAst = CoreExprFactory.INSTANCE.loadFromDirectories(rootPaths);
+        ObjectLiteral projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
         FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
-        FreeExpression runtimeFactory = (env) -> Value.fromJava(new JavaRuntimeSupport(env));
+        Function<Environment, Value> runtimeFactory = (env) -> Value.fromJava(new JavaRuntimeSupport(env));
         return new Environment(environmentRoot, Identifier.LANGUAGE_CORE_RUNTIME.id, runtimeFactory);
 	}
-	
+
     /**
      * Calculate the top level environment based on the current directory.
      * <p>

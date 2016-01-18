@@ -4,6 +4,7 @@ import static fj.data.List.cons;
 import static fj.data.List.single;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -11,6 +12,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Objects;
@@ -79,6 +81,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	public static final TreeMap<SourceFileRange, Set<BadExpr>> EMPTY_ERROR_MAP = TreeMap.empty(SourceFileRange.ORD);
 	static final fj.data.Set<SourceExpr> EMPTY_SOURCE_EXPR_SET = fj.data.Set.empty(SourceExpr.sourceExprOrd);
     public static final CoreExprFactory INSTANCE = new CoreExprFactory();
+    public static final String LIB_PATH_SYS_PROPERTY = "banjo.path";
 
 	<TT> DesugarResult<TT> withValue(TT result) {
 		return withValue(result, null);
@@ -1999,6 +2002,65 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 CoreExprFactory::extendSlot,
                 CoreExprFactory::extendSlots);
         return new ObjectLiteral(slots.values());
+    }
+
+    /**
+     * Given the a source path somewhere in a project, load the AST for the
+     * whole project.
+     * 
+     * @param sourceFilePath
+     *            Path to look for the project at
+     * @return AST for the project
+     */
+    public ObjectLiteral loadProjectAstForSourcePath(Path sourceFilePath) {
+        List<Path> rootPaths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
+        // Construct the project root object
+        ObjectLiteral projectAst = loadFromDirectories(rootPaths);
+        return projectAst;
+    }
+
+    /**
+     * Try to find the first parent folder of the given path which contains a
+     * file/folder named ".banjo". This is considered to be the project root.
+     * <p>
+     * If no ".banjo" exists in the given path or a parent, this returns
+     * Option.none().
+     */
+    public static Option<Path> projectRootForPath(Path path) {
+        Path tryPath = path;
+        while(tryPath != null) {
+            if(Files.exists(tryPath.resolve(".banjo")))
+                return Option.some(tryPath);
+            tryPath = tryPath.getParent();
+        }
+        return Option.none();
+    }
+
+    /**
+     * Get the core library source search paths. These are read from a system
+     * property. You can always set the system property using an environment
+     * variable, e.g.
+     * <p>
+     * <code>
+     * JAVA_TOOL_OPTIONS=-Dbanjo.path=banjo-core-lib-master/src:banjo-java-lib-master/src
+     * </code>
+     */
+    public static List<Path> getGlobalSourcePaths() {
+        String searchPath = System.getProperty(CoreExprFactory.LIB_PATH_SYS_PROPERTY, "");
+        return List.list(searchPath.split(File.pathSeparator))
+            .filter(s -> !s.isEmpty())
+            .map(Paths::get);
+    }
+
+    /**
+     * Find the full project source search path list for the given source file;
+     * this includes the project the file is in plus the core library search
+     * paths.
+     */
+    public static List<Path> projectSourcePathsForFile(Path sourceFile) {
+        Option<Path> projectRoot = CoreExprFactory.projectRootForPath(sourceFile);
+        List<Path> coreLibraryPaths = CoreExprFactory.getGlobalSourcePaths();
+        return coreLibraryPaths.append(projectRoot.toList());
     }
 
 }

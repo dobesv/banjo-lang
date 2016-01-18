@@ -7,7 +7,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-import banjo.eval.environment.Environment;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
@@ -176,7 +175,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	}
 
 	public static List<CoreExpr> findAllExamples() {
-        List<Path> paths = Environment.projectSourcePathsForFile(Paths.get(""));
+        List<Path> paths = CoreExprFactory.projectSourcePathsForFile(Paths.get(""));
         ObjectLiteral ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
         return findExamples(ast);
 	}
