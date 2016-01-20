@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -1854,6 +1855,10 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
             if(!Files.isDirectory(p)) {
                 slotLhs = slotLhs.replaceFirst("\\.[^.]*$", "");
             }
+            // Also URL-decode to allow illegal filename characters to be used
+            // sometimes
+            slotLhs = URLDecoder.decode(slotLhs, "UTF-8");
+
             lhs = parser.parse(slotLhs);
         } catch(IOException e) {
             throw new UncheckedIOException(e);
