@@ -420,7 +420,14 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				return ds.addMethod(methodSourceExpr, List.nil(), ds.getValue());
 			}
 		}, this.withValue(List.nil()));
-		return methodsDs.withDesugared(sourceExpr, new ObjectLiteral(sourceExpr.getSourceFileRanges(), methodsDs.getValue()));
+		
+        P2<List<Slot>, List<Slot>> p = methodsDs.getValue().partition(s -> !Operator.EXTENSION.getMethodName().equals(s.name.id));
+        List<Slot> slots = p._1();
+        List<CoreExpr> extensions = p._2().map(Slot::getValue);
+		
+        ObjectLiteral obj = new ObjectLiteral(sourceExpr.getSourceFileRanges(), slots);
+        CoreExpr extendedObj = extensions.foldRight((a, b) -> new Extend(a, b), (CoreExpr) obj);
+        return methodsDs.withDesugared(sourceExpr, extendedObj);
 	}
 
 	
@@ -530,6 +537,10 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				}
 			}
 
+            public DesugarResult<Slot> unaryOpMethod(UnaryOp op) {
+                SourceExpr selfBinding = op.getOperand();
+                return bindSelf(selfBinding, body).mapValue(p -> new Slot(op.getOperator().getMethodIdentifier(), p._1(), p._2()));
+            }
 
 			@Override
 			public DesugarResult<Slot> unaryOp(final UnaryOp targetOp) {
@@ -563,9 +574,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 								return fallback(op);
 							default:
 							}
-							SourceExpr selfBinding = op.getOperand();
-							return bindSelf(selfBinding, body).mapValue(p -> new Slot(op.getOperator().getMethodIdentifier(), p._1(), p._2()));
+                            return unaryOpMethod(op);
 						}
+
 						@Override
 						public DesugarResult<Slot> fallback(SourceExpr other) {
 							Identifier name = new Identifier("_");
@@ -573,7 +584,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 							return withValue(new Slot(name, Option.none(), body));
 						}
 					});
-				default: return super.unaryOp(targetOp);
+                default:
+                    return unaryOpMethod(targetOp);
 				}
 
 			}
@@ -1850,9 +1862,10 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         SourceExprFactory parser = new SourceExprFactory(p.getParent());
         String slotLhs = p.getFileName().toString();
         SourceExpr lhs;
+        boolean directory = Files.isDirectory(p);
         try {
             // If it's not a folder, strip the file extension
-            if(!Files.isDirectory(p)) {
+            if(!directory) {
                 slotLhs = slotLhs.replaceFirst("\\.[^.]*$", "");
             }
             // Also URL-decode to allow illegal filename characters to be used
@@ -1863,6 +1876,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         } catch(IOException e) {
             throw new UncheckedIOException(e);
         }
+
         CoreExpr value = CoreExprFromFile.forPath(p);
         return addMethod(lhs, lhs, value, Identifier.TRUE, List.nil(), Operator.ASSIGNMENT).getValue().head();
     }
@@ -1996,7 +2010,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     /**
      * Desugar a directory search path into an AST
      */
-    public ObjectLiteral loadFromDirectories(List<Path> paths) {
+    public CoreExpr loadFromDirectories(List<Path> paths) {
         Stream<Path> slotFiles = StreamSupport
             .stream(paths.spliterator(), false)
             .flatMap(CoreExprFactory::listSourceFiles);
@@ -2006,7 +2020,13 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 TreeMap.empty(Ord.stringOrd),
                 CoreExprFactory::extendSlot,
                 CoreExprFactory::extendSlots);
-        return new ObjectLiteral(slots.values());
+        // Bases will show up as ... ???
+        P2<List<Slot>, List<Slot>> p = slots.values().partition(
+            s -> Stream.of(Operator.EXTENSION.ops).anyMatch(op -> s.name.id.startsWith(op)));
+        List<CoreExpr> bases = p._1().map(s -> s.value);
+        List<Slot> instanceSlots = p._2();
+        CoreExpr instance = new ObjectLiteral(instanceSlots);
+        return bases.foldLeft(Extend::new, instance);
     }
 
     /**
@@ -2017,10 +2037,10 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      *            Path to look for the project at
      * @return AST for the project
      */
-    public ObjectLiteral loadProjectAstForSourcePath(Path sourceFilePath) {
+    public CoreExpr loadProjectAstForSourcePath(Path sourceFilePath) {
         List<Path> rootPaths = projectSourcePathsForFile(sourceFilePath.toAbsolutePath());
         // Construct the project root object
-        ObjectLiteral projectAst = loadFromDirectories(rootPaths);
+        CoreExpr projectAst = loadFromDirectories(rootPaths);
         return projectAst;
     }
 

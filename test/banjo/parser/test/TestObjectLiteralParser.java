@@ -75,6 +75,17 @@ public class TestObjectLiteralParser {
     public void notMethod() {
         parse("{(! x) = y}", "{(¬x) = y}");
     }
+
+    @Test
+    public void inlineExt1() {
+        parse("{@x = y, z = 1}", "y Φ {z = 1}");
+    }
+
+    @Test
+    public void inlineExt2() {
+        parse("{x.@ = y, z = 1}", "y Φ {z = 1}");
+    }
+
 	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
 	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
 
