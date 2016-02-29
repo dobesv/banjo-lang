@@ -10,7 +10,7 @@ import org.junit.Test;
 import banjo.eval.Fail;
 import banjo.eval.FailWithException;
 import banjo.eval.environment.Environment;
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
@@ -85,7 +85,7 @@ public abstract class BaseExprTest {
 
     public void evaluates() {
 		noParseErrors();
-        List<Value> oldStack = JavaRuntimeSupport.stack.get();
+        List<Value> oldStack = JavaLanguageRuntimeImpl.stack.get();
 		try {
 			Set<SourceFileRange> ranges = exprRanges();
 			
@@ -110,7 +110,7 @@ public abstract class BaseExprTest {
 	    	}
 	    	assertTrue(value.isDefined());
 		} finally {
-			JavaRuntimeSupport.stack.set(oldStack);
+			JavaLanguageRuntimeImpl.stack.set(oldStack);
 		}
     }
 

@@ -3,13 +3,15 @@ package banjo.eval.expr;
 import java.util.function.Function;
 
 import banjo.eval.environment.Environment;
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.event.PastEvent;
 import banjo.expr.free.FreeExpression;
+import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
 import banjo.value.Reaction;
+import banjo.value.SlotValue;
 import banjo.value.Value;
 import fj.data.List;
 import fj.data.Option;
@@ -24,14 +26,16 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	public final Option<Identifier> sourceObjectBinding;
 	public final Environment closure;
 	private ObservableFunctionInstance observable;
+    private Value trait;
 
-	public FunctionInstance(Set<SourceFileRange> ranges, List<Identifier> args,
+    public FunctionInstance(Set<SourceFileRange> ranges, List<Identifier> args,
 			FreeExpression body, Option<Identifier> sourceObjectBinding, Environment closure) {
 		this.ranges = ranges;
 		this.args = args;
 		this.body = body;
 		this.sourceObjectBinding = sourceObjectBinding;
 		this.closure = closure;
+        this.trait = new SlotValue(closure.projectRootObject, Identifier.FUNCTION_TRAIT.id, SourceFileRange.EMPTY_SET);
     }
 
 	@Override
@@ -79,12 +83,12 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	
 	@Override
 	public Value call(Value recurse, Value prevImpl, List<Value> arguments) {
-        final List<Value> oldStack = JavaRuntimeSupport.stackPush(this);
+        final List<Value> oldStack = JavaLanguageRuntimeImpl.stackPush(this);
 		try {
 			Environment env = closure.enterFunction(args, arguments, sourceObjectBinding, recurse, prevImpl);
 			return body.apply(env);
 		} finally {
-            JavaRuntimeSupport.setStack(oldStack);
+            JavaLanguageRuntimeImpl.setStack(oldStack);
 		}
 	}
 
@@ -111,4 +115,17 @@ public class FunctionInstance extends FunctionTrait implements Value, Function<L
 	    return call(args);
 	}
 
+    @Override
+    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        if("label".equals(name))
+            return super.slot(name, ranges);
+        if(Operator.FUNCTION_COMPOSITION_LEFT.getOp().equals(name))
+            return Value.function(this::compose);
+        return trait.slot(self, name, ranges, fallback);
+    }
+
+    @Override
+    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return trait.callMethod(name, ranges, targetObject, fallback, args);
+    }
 }

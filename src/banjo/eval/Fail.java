@@ -2,7 +2,7 @@ package banjo.eval;
 
 import com.sun.javafx.binding.ObjectConstant;
 
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Reaction;
@@ -15,7 +15,7 @@ import javafx.beans.value.ObservableValue;
 
 public class Fail implements Value {
 	
-	final List<Value> trace = JavaRuntimeSupport.stack.get();
+	final List<Value> trace = JavaLanguageRuntimeImpl.stack.get();
 	
 	public Fail() {
 	}
@@ -107,7 +107,7 @@ public class Fail implements Value {
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName()+": "+getMessage();
+        return "fail(\"" + getClass().getSimpleName() + ": " + getMessage() + "\")";
 	}
 	
 }

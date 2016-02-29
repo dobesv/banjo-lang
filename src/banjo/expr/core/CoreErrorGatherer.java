@@ -47,11 +47,6 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> inspect(Set<SourceFileRange> ranges, List<BadExpr> target) {
-		return target;
-	}
-
-	@Override
 	public List<BadExpr> numberLiteral(Set<SourceFileRange> ranges, Number value) {
 		return List.nil();
 	}

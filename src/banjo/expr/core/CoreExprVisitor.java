@@ -14,7 +14,6 @@ public interface CoreExprVisitor<T> {
 	T objectLiteral(ObjectLiteral objectLiteral);
 	T listLiteral(ListLiteral listLiteral);
 	T badIdentifier(BadIdentifier badIdentifier);
-	T inspect(Inspect inspect);
 	T extend(Extend extend);
 	T let(Let let);
 	T functionLiteral(FunctionLiteral f);

@@ -18,7 +18,7 @@ public class FailWithException extends Fail {
 	
 	@Override
 	public String toString() {
-		return cause.toString();
+        return "fail(\"" + cause.toString() + "\")";
 	}
 
 }

@@ -1,6 +1,6 @@
 package banjo.eval.expr;
 
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.event.PastEvent;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
@@ -28,11 +28,11 @@ public class CallInstance extends CalculatedValue implements Value {
 
 	@Override
 	public Value calculate() {
-        List<Value> oldStack = JavaRuntimeSupport.stackPush(this);
+        List<Value> oldStack = JavaLanguageRuntimeImpl.stackPush(this);
 		try {
 			return callee.call(args);
 		} finally {
-            JavaRuntimeSupport.setStack(oldStack);
+            JavaLanguageRuntimeImpl.setStack(oldStack);
 		}
 	}
 	

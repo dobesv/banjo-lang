@@ -50,11 +50,6 @@ public interface CoreExpr extends Expr {
 			}
 
 			@Override
-			public Ordering inspect(Inspect inspect) {
-			    return Inspect.ORD.compare(inspect, (Inspect)a2);
-			}
-
-			@Override
 			public Ordering let(Let let) {
 			    return Let.ORD.compare(let, (Let)a2);
 			}

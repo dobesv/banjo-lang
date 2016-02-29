@@ -8,6 +8,7 @@ public enum Precedence {
 	JUXTAPOSITION,
 	SELECTOR,
 	UNARY_PREFIX, // +, -, ~, .
+    FUNCTION_COMPOSITION, // ∘
 	MULDIV, // *, /, %
 	ADDSUB, // +, -
 	BITSHIFT, // <<, >>, >>>
@@ -26,7 +27,7 @@ public enum Precedence {
 	COLON, // Key/value pair
 	BULLET, // Bullets list
 	EXTEND, // @
-	FUNCTION, // ↦ ->
+    FUNCTION, // ↦ ->
 	ASSIGNMENT, // =, +=, *=, ...
 	COND, // '=>' let
 	COMMA, // ',' "sequence operator"

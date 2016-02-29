@@ -7,7 +7,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URLDecoder;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -421,14 +421,21 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			}
 		}, this.withValue(List.nil()));
 		
-        P2<List<Slot>, List<Slot>> p = methodsDs.getValue().partition(s -> !Operator.EXTENSION.getMethodName().equals(s.name.id));
+        Set<SourceFileRange> ranges = sourceExpr.getSourceFileRanges();
+        List<Slot> slotDefs = methodsDs.getValue();
+        CoreExpr extendedObj = objectLiteral(ranges, slotDefs);
+        return methodsDs.withDesugared(sourceExpr, extendedObj);
+    }
+
+    public CoreExpr objectLiteral(Set<SourceFileRange> ranges, List<Slot> slotDefs) {
+        P2<List<Slot>, List<Slot>> p = slotDefs.partition(s -> !Operator.EXTENSION_FUNCTION.methodNameKey.eql(s.name));
         List<Slot> slots = p._1();
         List<CoreExpr> extensions = p._2().map(Slot::getValue);
 		
-        ObjectLiteral obj = new ObjectLiteral(sourceExpr.getSourceFileRanges(), slots);
-        CoreExpr extendedObj = extensions.foldRight((a, b) -> new Extend(a, b), (CoreExpr) obj);
-        return methodsDs.withDesugared(sourceExpr, extendedObj);
-	}
+        ObjectLiteral obj = new ObjectLiteral(ranges, slots);
+        CoreExpr extendedObj = extensions.foldRight(CoreExprFactory::extend, (CoreExpr) obj);
+        return extendedObj;
+    }
 
 	
 	protected DesugarResult<List<Slot>> addMethod(final SourceExpr fieldSourceExpr, final List<SourceExpr> headings, final List<Slot> slots) {
@@ -508,7 +515,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final CoreExpr base = Projection.baseSlot(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTENSION ?
-				new Extend(base, slot.value) :
+				extend(base, slot.value) :
 				Call.binaryOp(base, combiningOp, slot.value);
 		return new Slot(slot.name, Option.some(selfBinding), newValue);
 	}
@@ -1117,7 +1124,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 			@Override
 			public List<SourceExpr> fallback(SourceExpr other) {
-				return single(arg);
+                return single(arg);
 			}
 		}));
 		return result;
@@ -1256,10 +1263,12 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case LOGICAL_AND:
 		case LOGICAL_OR:
 		case FALLBACK:
-		case EXTENSION:
 		case FUNCTION_COMPOSITION_LEFT:
 		case FUNCTION_COMPOSITION_RIGHT:
 			return binaryOpToCall(op, false);
+
+        case EXTENSION:
+            return extend(op);
 
 		case JUXTAPOSITION:
 			return juxtaposition(op);
@@ -1293,12 +1302,10 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case ABSVALUE:
 			return unaryOpToSlotReference(op);
 
-		case INSPECT:
-			return inspect(op);
-
 		case PROJECTION_FUNCTION:
 			return freeProjection(op);
 
+        case INSPECT:
 		case EXTENSION_FUNCTION:
 			return unaryOpToFunctionCall(op);
 
@@ -1360,11 +1367,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	@Override
 	public DesugarResult<CoreExpr> badIdentifier(BadIdentifier badIdentifier) {
 		return withDesugared(badIdentifier, new BadCoreExpr(badIdentifier.getSourceFileRanges(), badIdentifier.getMessage()));
-	}
-
-	public DesugarResult<CoreExpr> inspect(UnaryOp op) {
-		final DesugarResult<CoreExpr> exprDs = expr(op.getOperand());
-		return exprDs.withDesugared(op, new Inspect(op.getSourceFileRanges(), exprDs.getValue()));
 	}
 
 	private DesugarResult<CoreExpr> binaryOpToFunctionCall(BinaryOp op, SourceExpr first, SourceExpr second, Identifier functionIdentifier) {
@@ -1854,6 +1856,71 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 .orSome(binding));
     }
 
+    public static String decodeFilename(String s)
+        throws UnsupportedEncodingException {
+
+        boolean needToChange = false;
+        int numChars = s.length();
+        StringBuffer sb = new StringBuffer(numChars > 500 ? numChars / 2 : numChars);
+        int i = 0;
+
+        char c;
+        byte[] bytes = null;
+        while(i < numChars) {
+            c = s.charAt(i);
+            switch(c) {
+            case '%':
+                /*
+                 * Starting with this instance of %, process all consecutive
+                 * substrings of the form %xy. Each substring %xy will yield a
+                 * byte. Convert all consecutive bytes obtained this way to
+                 * whatever character(s) they represent in the provided
+                 * encoding.
+                 */
+
+                try {
+
+                    // (numChars-i)/3 is an upper bound for the number
+                    // of remaining bytes
+                    if(bytes == null)
+                        bytes = new byte[(numChars - i) / 3];
+                    int pos = 0;
+
+                    while(((i + 2) < numChars) &&
+                        (c == '%')) {
+                        int v = Integer.parseInt(s.substring(i + 1, i + 3), 16);
+                        if(v < 0)
+                            throw new IllegalArgumentException("URLDecoder: Illegal hex characters in escape (%) pattern - negative value");
+                        bytes[pos++] = (byte) v;
+                        i += 3;
+                        if(i < numChars)
+                            c = s.charAt(i);
+                    }
+
+                    // A trailing, incomplete byte encoding such as
+                    // "%x" will cause an exception to be thrown
+
+                    if((i < numChars) && (c == '%'))
+                        throw new IllegalArgumentException(
+                            "URLDecoder: Incomplete trailing escape (%) pattern");
+
+                    sb.append(new String(bytes, 0, pos, "UTF-8"));
+                } catch(NumberFormatException e) {
+                    throw new IllegalArgumentException(
+                        "URLDecoder: Illegal hex characters in escape (%) pattern - " + e.getMessage());
+                }
+                needToChange = true;
+                break;
+            default:
+                sb.append(c);
+                i++;
+                break;
+            }
+        }
+
+        return (needToChange ? sb.toString() : s);
+    }
+
     /**
      * Desugar a file path into a slot. The self-name may be taken from the
      * filename, if present.
@@ -1869,8 +1936,12 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 slotLhs = slotLhs.replaceFirst("\\.[^.]*$", "");
             }
             // Also URL-decode to allow illegal filename characters to be used
-            // sometimes
-            slotLhs = URLDecoder.decode(slotLhs, "UTF-8");
+            // sometimes. Avoid replacing "+" with " ", though.
+            try {
+                slotLhs = decodeFilename(slotLhs);
+            } catch(IllegalArgumentException ex) {
+                // Ignore here, should show up as a syntax error later
+            }
 
             lhs = parser.parse(slotLhs);
         } catch(IOException e) {
@@ -1889,7 +1960,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     
         // No source object binding, no problems
         if(base.sourceObjectBinding.isNone() && extension.sourceObjectBinding.isNone()) {
-            return new Slot(base.name, new Extend(base.value, extension.value));
+            CoreExpr b = base.value;
+            CoreExpr e = extension.value;
+            return new Slot(base.name, extend(b, e));
         }
     
         // If there's a source object binding, we have to make sure neither side
@@ -1897,9 +1970,13 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         // Ideally instead of __tmp we'd be using some kind of hygienic name.
         // Hm.
         return new Slot(base.name, Option.some(Identifier.__TMP),
-            new Extend(
+            extend(
                 slotToExpr(base, Identifier.__TMP),
                 slotToExpr(extension, Identifier.__TMP)));
+    }
+
+    public static CoreExpr extend(CoreExpr b, CoreExpr e) {
+        return new Extend(b, e);
     }
 
     static CoreExpr slotToExpr(Slot slot, Identifier newName) {
@@ -2020,13 +2097,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 TreeMap.empty(Ord.stringOrd),
                 CoreExprFactory::extendSlot,
                 CoreExprFactory::extendSlots);
-        // Bases will show up as ... ???
-        P2<List<Slot>, List<Slot>> p = slots.values().partition(
-            s -> Stream.of(Operator.EXTENSION.ops).anyMatch(op -> s.name.id.startsWith(op)));
-        List<CoreExpr> bases = p._1().map(s -> s.value);
-        List<Slot> instanceSlots = p._2();
-        CoreExpr instance = new ObjectLiteral(instanceSlots);
-        return bases.foldLeft(Extend::new, instance);
+        return objectLiteral(SourceFileRange.EMPTY_SET, slots.values());
     }
 
     /**

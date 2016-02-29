@@ -1,7 +1,6 @@
 package banjo.parser.test;
 
 import static banjo.parser.test.ParseTestUtils.assertIsNumberLiteralWithValue;
-import static banjo.parser.test.ParseTestUtils.test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -10,6 +9,7 @@ import java.util.Iterator;
 import org.junit.Test;
 
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.Extend;
 import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Slot;
@@ -26,17 +26,17 @@ public class TestObjectLiteralParser {
 
     @Test
     public void newlineSeparatedOpMethods1() {
-        parse("{\n (¬a)=1\n}", "{(¬a) = 1}");
+        test("{\n (¬a)=1\n}", "{(¬a) = 1}");
     }
 
     @Test
     public void newlineSeparatedOpMethods2() {
-        parse("{\n (¬a)=1\n (¬b)=2\n}", "{(¬a) = 1, (¬b) = 2}");
+        test("{\n (¬a)=1\n (¬b)=2\n}", "{(¬a) = 1, (¬b) = 2}");
     }
 
     @Test
     public void newlineSeparatedOpMethods3() {
-        parse("{\n (¬a)=1\n (¬b)=2\n (!c)=3\n}", "{(¬a) = 1, (¬b) = 2, (¬c) = 3}");
+        test("{\n (¬a)=1\n (¬b)=2\n (!c)=3\n}", "{(¬a) = 1, (¬b) = 2, (¬c) = 3}");
     }
 	@Test public void commaSeparator()    { abc("{a=1,b=2,c=3}", 0); }
 
@@ -48,57 +48,57 @@ public class TestObjectLiteralParser {
 
 	@Test public void trailingComma()     { abc("{a=1,b=2,c=3,}", 0); }
 
-	@Test public void mirrors1() { parse("{x,y}", "{x, y}"); }
-	@Test public void method1() { parse("{f(x) = x}", "{f(x) = x}"); }
-	@Test public void method2() { parse("{f() = x}", "{f() = x}"); }
-	@Test public void method3() { parse("{self.f = self}", "{self.f = self}"); }
-	@Test public void method4() { parse("{self.f() = self}", "{self.f() = self}"); }
-	@Test public void method5() { parse("{self.f(x) = self}", "{self.f(x) = self}"); }
-	@Test public void plusMethod() { parse("{(x + y) = y}", "{(x + y) = y}"); }
+	@Test public void mirrors1() { test("{x,y}", "{x, y}"); }
+	@Test public void method1() { test("{f(x) = x}", "{f(x) = x}"); }
+	@Test public void method2() { test("{f() = x}", "{f() = x}"); }
+	@Test public void method3() { test("{self.f = self}", "{self.f = self}"); }
+	@Test public void method4() { test("{self.f() = self}", "{self.f() = self}"); }
+	@Test public void method5() { test("{self.f(x) = self}", "{self.f(x) = self}"); }
+	@Test public void plusMethod() { test("{(x + y) = y}", "{(x + y) = y}"); }
 
     @Test
     public void timesMethod() {
-        parse("{(x * y) = y}", "{(x × y) = y}");
+        test("{(x * y) = y}", "{(x × y) = y}");
     }
 
     @Test
     public void logicalOrMethod() {
-        parse("{(x || y) = y}", "{(x ∨ y) = y}");
+        test("{(x || y) = y}", "{(x ∨ y) = y}");
     }
 
     @Test
     public void logicalAndMethod() {
-        parse("{(x && y) = y}", "{(x ∧ y) = y}");
+        test("{(x && y) = y}", "{(x ∧ y) = y}");
     }
 
     @Test
     public void notMethod() {
-        parse("{(! x) = y}", "{(¬x) = y}");
+        test("{(! x) = y}", "{(¬x) = y}");
     }
 
     @Test
     public void inlineExt1() {
-        parse("{@x = y, z = 1}", "y Φ {z = 1}");
+        test("{@x = y, z = 1}", "y Φ {z = 1}", Extend.class);
     }
 
     @Test
     public void inlineExt2() {
-        parse("{x.@ = y, z = 1}", "y Φ {z = 1}");
+        test("{x.@ = y, z = 1}", "y Φ {z = 1}", Extend.class);
     }
 
-	@Test public void complementMethod() { parse("{(~ x) = y}", "{(~x) = y}"); }
-	@Test public void ltMethod() { parse("{(x < y) = y}", "{(x < y) = y}"); }
+	@Test public void complementMethod() { test("{(~ x) = y}", "{(~x) = y}"); }
+	@Test public void ltMethod() { test("{(x < y) = y}", "{(x < y) = y}"); }
 
-	@Test public void specialCharsKeys() { parse("{a b=1,b\\.c=2,\\-f=3}\n", "{a b = 1, b\\.c = 2, \\-f = 3}"); }
+	@Test public void specialCharsKeys() { test("{a b=1,b\\.c=2,\\-f=3}\n", "{a b = 1, b\\.c = 2, \\-f = 3}"); }
 
     @Test
     public void slotExt1() {
-        parse("{a @= b}", "{__tmp.a = __tmp:a Φ b}");
+        test("{a @= b}", "{__tmp.a = __tmp:a Φ b}");
     }
 
 
 	private void abc(String source, int expectedErrorCount) {
-		parse(source, "{a = 1, b = 2, c = 3}");
+		test(source, "{a = 1, b = 2, c = 3}");
 		final ObjectLiteral node = (ObjectLiteral) CoreExpr.fromString(source);
 		final String[] expectedNames = {"a","b","c"};
 		final Iterator<Slot> eltIt = node.getSlots().iterator();
@@ -115,20 +115,25 @@ public class TestObjectLiteralParser {
 		assertEquals("Too many methods", false, eltIt.hasNext());
 	}
 
-	public static void parse(String source, String expectedSource) {
-		test(source, 0, null, ObjectLiteral.class, expectedSource);
+	public static void test(String source, String expectedSource) {
+		Class<ObjectLiteral> expectedClass = ObjectLiteral.class;
+        test(source, expectedSource, expectedClass);
 	}
 
+    public static void test(String source, String expectedSource, Class<? extends CoreExpr> expectedClass) {
+        ParseTestUtils.test(source, 0, null, expectedClass, expectedSource);
+    }
+
 	@Test public void trueDef() {
-        parse("{\n  (!true) = false\n  (true && x) = x\n  (true || x) = true\n}", "{(¬true) = false, (true ∧ x) = x, (true ∨ x) = true}");
+        test("{\n  (!true) = false\n  (true && x) = x\n  (true || x) = true\n}", "{(¬true) = false, (true ∧ x) = x, (true ∨ x) = true}");
 	}
 
 	@Test public void nestedDef1() {
-        parse("{\n  x = {\n    foo = 1\n  }\n\n  y = (\n    doc = \"bla\"\n  ) => []\n\n}", "{x = {foo = 1}, y = ((doc = \"bla\") ⇒ [])}");
+        test("{\n  x = {\n    foo = 1\n  }\n\n  y = (\n    doc = \"bla\"\n  ) => []\n\n}", "{x = {foo = 1}, y = ((doc = \"bla\") ⇒ [])}");
 	}
 
 	@Test public void tooManyCloseCurlies() {
-		test("{ a = { b = c } } }", 1, BadSourceExpr.class, ObjectLiteral.class, "{a = {b = c}}");
+        ParseTestUtils.test("{ a = { b = c } } }", 1, BadSourceExpr.class, ObjectLiteral.class, "{a = {b = c}}");
 	}
 
 	@Test public void methodSelfName() {

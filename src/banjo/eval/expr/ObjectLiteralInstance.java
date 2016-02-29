@@ -64,7 +64,42 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 			return f.call(arguments);
 		}
 
-		public Value apply(List<Value> args) {
+        @Override
+        public Value compose(Value functionAfter) {
+            return f.compose(functionAfter);
+        }
+
+        @Override
+        public Value call1(Value v) {
+            return f.call1(v);
+        }
+
+        @Override
+        public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+            return f.slot(self, name, ranges, fallback);
+        }
+
+        @Override
+        public Value slot(String name, Set<SourceFileRange> ranges) {
+            return f.slot(name, ranges);
+        }
+
+        @Override
+        public Value slot(String name) {
+            return f.slot(name);
+        }
+
+        @Override
+        public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+            return f.callMethod(name, ranges, targetObject, fallback, args);
+        }
+
+        @Override
+        public Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
+            return f.callMethod(name, ranges, args);
+        }
+
+        public Value apply(List<Value> args) {
 			return f.apply(args);
 		}
 

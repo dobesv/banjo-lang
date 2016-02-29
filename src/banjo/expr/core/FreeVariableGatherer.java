@@ -86,10 +86,6 @@ public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
 	    return EMPTY_IDENTIFIER_SET;
     }
 	@Override
-    public Set<Identifier> inspect(Inspect inspect) {
-	    return EMPTY_IDENTIFIER_SET;
-    }
-	@Override
     public Set<Identifier> extend(Extend extend) {
 	    return analyse(List.list(extend.base, extend.extension));
     }

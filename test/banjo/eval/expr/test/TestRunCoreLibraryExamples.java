@@ -89,19 +89,6 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 			}
 		});
 	}
-	static Boolean looksLikeExamplesList(CoreExpr arg) {
-		return arg.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
-			@Override
-			public Boolean fallback() {
-				return false;
-			}
-
-			@Override
-			public Boolean listLiteral(ListLiteral n) {
-				return n.getElements().isNotEmpty() && n.getElements().find(x -> !looksLikeExample(x)).isNone();
-			}
-		});
-	}
 
 	static private List<CoreExpr> findExamples(CoreExpr base) {
 		return base.acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
@@ -176,7 +163,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 
 	public static List<CoreExpr> findAllExamples() {
         List<Path> paths = CoreExprFactory.projectSourcePathsForFile(Paths.get(""));
-        ObjectLiteral ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
+        CoreExpr ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
         return findExamples(ast);
 	}
 

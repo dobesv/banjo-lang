@@ -226,8 +226,11 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		final TokenScanner scanner = new TokenScanner();
 		SourceExprFactory parseResult = scanner.scan(source, this);
 		SourceExpr operand = parseResult.getOperand();
-		if(operand == null)
+        if(operand == null) {
+            if(parseResult.opStack.isSingle() && parseResult.opStack.head().operator.isPrefix())
+                return parseResult.opStack.head().operatorExpr;
 			return new EmptyExpr();
+        }
 		return operand;
 	}
 
@@ -367,10 +370,11 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 					}
 					break;
 				default:
-					// Not application for other operators
+                    // Not applicable for other operators
 					break;
 				}
 			}
+			
 			SourceExprFactory prefix = prefixOperator(range, indentColumn, op);
 			if(prefix != null) return prefix;
 		}

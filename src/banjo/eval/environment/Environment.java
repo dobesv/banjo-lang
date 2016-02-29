@@ -4,18 +4,16 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
 import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundIdentifier;
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.eval.util.LazyBoundValue;
 import banjo.event.PastEvent;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprFactory;
-import banjo.expr.core.ObjectLiteral;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
 import banjo.expr.token.Identifier;
@@ -109,13 +107,11 @@ public class Environment implements Reactive<Environment> {
      *            object and projectRootObject of the environment
      * @param runtimeName
      *            Name of the runtime in the new environment
-     * @param runtimeFactory
-     *            Function to make a value for the runtime in the new
-     *            environment (bound to the name given as
-     *            <code>runtimeName</code>
+     * @param runtime
+     *            Bound to the name given as <code>runtimeName</code>
      */
-    public Environment(FreeExpression rootFreeExpr, String runtimeName, Function<Environment, Value> runtimeFactory) {
-        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(runtimeFactory.apply(this)));
+    public Environment(FreeExpression rootFreeExpr, String runtimeName, Value runtime) {
+        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(runtime));
         this.rootObject = this.projectRootObject = bindLazy(rootFreeExpr);
         this.reactive = false;
     }
@@ -340,10 +336,10 @@ public class Environment implements Reactive<Environment> {
      * @return A new environment
      */
 	public static Environment forSourcePath(Path sourceFilePath) {
-        ObjectLiteral projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
+        CoreExpr projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
         FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
-        Function<Environment, Value> runtimeFactory = (env) -> Value.fromJava(new JavaRuntimeSupport(env));
-        return new Environment(environmentRoot, Identifier.LANGUAGE_CORE_RUNTIME.id, runtimeFactory);
+        Value runtime = Value.fromJava(new JavaLanguageRuntimeImpl());
+        return new Environment(environmentRoot, Identifier.LANGUAGE_CORE_RUNTIME.id, runtime);
 	}
 
     /**

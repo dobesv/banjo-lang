@@ -8,7 +8,6 @@ import java.time.Instant;
 import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
 import banjo.eval.FailWithMessage;
-import banjo.eval.environment.Environment;
 import banjo.expr.core.Projection;
 import banjo.expr.token.Identifier;
 import banjo.expr.token.StringLiteral;
@@ -18,20 +17,11 @@ import banjo.value.Value;
 import banjo.value.meta.ArgMapper;
 import banjo.value.meta.DynamicCallProxy;
 import banjo.value.meta.DynamicSlotProxy;
-import banjo.value.meta.FunctionComposition;
-import banjo.value.meta.ListFactory;
 import banjo.value.meta.SlotMapper;
-import banjo.value.meta.SlotNames;
 import fj.data.List;
 
-public class JavaRuntimeSupport {
-    private final Environment environment;
-    private SlotNames stringLiterals;
-    private ListFactory listFactory;
-    private Value label;
-
-    public JavaRuntimeSupport(Environment environment) {
-        this.environment = environment;
+public class JavaLanguageRuntimeImpl {
+    public JavaLanguageRuntimeImpl() {
     }
 
     @SlotName("fail")
@@ -42,16 +32,6 @@ public class JavaRuntimeSupport {
     public Object applyBoolean(boolean a, Object ifTrue, Object ifFalse) {
 		return a ? ifTrue : ifFalse;
 	}
-
-
-    @SlotName("label")
-    public Value label() {
-        if(this.label == null)
-            this.label =
-                environment.getValue("java").slot("string")
-                    .call1(Value.fromJava(toString()));
-        return this.label;
-    }
 
     @Override
     public String toString() {
@@ -64,16 +44,6 @@ public class JavaRuntimeSupport {
 	@SlotName("extension")
     public Value extension(Value base, Value extension) {
 		return new ExtendedObject(base, extension);
-	}
-
-	/**
-	 * Implement function composition.  The first function is called with with the
-	 * arguments to this function.  The result of calling first is passed to second.
-	 * The result of second is the result of the function.
-	 */
-	@SlotName("function composition")
-    public Value composeFunctions(Value first, Value second) {
-		return new FunctionComposition(second, first);
 	}
 
 	/**
@@ -123,6 +93,11 @@ public class JavaRuntimeSupport {
 		return Double.POSITIVE_INFINITY;
 	}
 	
+    @SlotName("-∞")
+    public double negativeInfinity() {
+        return Double.NEGATIVE_INFINITY;
+    }
+
 	@SlotName("NaN")
     public double NaN() {
 		return Double.NaN;
@@ -460,24 +435,10 @@ public class JavaRuntimeSupport {
 		return Resource.discovered();
 	}
 	
-    @SlotName("string literals")
-    public Value stringLiterals() {
-        if(this.stringLiterals == null)
-            this.stringLiterals = new SlotNames(environment.getValue("java").slot("string"));
-        return stringLiterals;
-	}
-	
 	@SlotName("reactor")
     public Value reactor(Value reactor) {
 		return new CustomReactor(reactor);
 	}
-
-    @SlotName("list factory")
-    public ListFactory getListFactory() {
-        if(this.listFactory == null)
-            this.listFactory = new ListFactory(environment.getValue("java").slot("list"));
-        return listFactory;
-    }
 
     public static List<Value> setStack(List<Value> newStack) {
         List<Value> oldStack = stack.get();

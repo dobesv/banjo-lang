@@ -1,7 +1,7 @@
 package banjo.value;
 
 import banjo.eval.Fail;
-import banjo.eval.util.JavaRuntimeSupport;
+import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Either;
@@ -14,7 +14,7 @@ import fj.data.Set;
  * change in response to events. 
  */
 public abstract class CalculatedValue extends ValueToStringTrait implements Value {
-	final List<Value> stack = JavaRuntimeSupport.stack.get();
+	final List<Value> stack = JavaLanguageRuntimeImpl.stack.get();
 	public Value memo;
 
 	@Override
@@ -45,14 +45,14 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	@Override
 	public Value force() {
         if(this.memo == null) {
-            List<Value> oldStack = JavaRuntimeSupport.setStack(this.stack);
+            List<Value> oldStack = JavaLanguageRuntimeImpl.setStack(this.stack);
             try {
                 Value value = calculate();
                 while((value instanceof CalculatedValue) && !((CalculatedValue) value).isCalculationReactive())
                     value = ((CalculatedValue) value).force();
                 this.memo = value;
             } finally {
-                JavaRuntimeSupport.stack.set(oldStack);
+                JavaLanguageRuntimeImpl.stack.set(oldStack);
             }
         }
         return memo.force();

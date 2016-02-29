@@ -20,7 +20,6 @@ public class FreeExpressionFactory implements
     public static final FreeExpressionFactory INSTANCE = new FreeExpressionFactory();
     private static final FreeExpression ADD_OPER = Operator.ADD.getMethodIdentifier().acceptVisitor(INSTANCE);
     private static final FreeExpression EMPTY = Identifier.EMPTY.acceptVisitor(INSTANCE);
-    private static final FreeExpression SINGLETON = Identifier.SINGLETON.acceptVisitor(INSTANCE);
     private static final FreeExpression PROJECT_ROOT = Identifier.PROJECT_ROOT.acceptVisitor(INSTANCE);
     private static final FreeExpression RUNTIME = INSTANCE.projection(
             SourceFileRange.EMPTY_SET,
@@ -47,17 +46,21 @@ public class FreeExpressionFactory implements
         JAVA,
         Identifier.STRING.acceptVisitor(INSTANCE),
         false);
-    private static final FreeExpression DATA = INSTANCE.projection(
+    private static final FreeExpression EMPTY_LIST = INSTANCE.projection(
         SourceFileRange.EMPTY_SET,
         PROJECT_ROOT,
-        Identifier.DATA.acceptVisitor(INSTANCE),
+        Identifier.EMPTY_LIST.acceptVisitor(INSTANCE),
         false);
-    private static final FreeExpression DATA_LIST = INSTANCE.projection(
+    private static final FreeExpression SINGLE_ELEMENT_LIST = INSTANCE.projection(
         SourceFileRange.EMPTY_SET,
-        DATA,
-        Identifier.LIST.acceptVisitor(INSTANCE),
+        PROJECT_ROOT,
+        Identifier.SINGLE_ELEMENT_LIST.acceptVisitor(INSTANCE),
         false);
-    private static final FreeExpression CONS = new FreeIdentifier(SourceFileRange.EMPTY_SET, "cons");
+    private static final FreeExpression FUNCTION_TRAIT = INSTANCE.projection(
+        SourceFileRange.EMPTY_SET,
+        PROJECT_ROOT,
+        Identifier.FUNCTION_TRAIT.acceptVisitor(INSTANCE),
+        false);
 
 	public static FreeExpression apply(CoreExpr e) {
 		return e.acceptVisitor(INSTANCE);
@@ -101,8 +104,8 @@ public class FreeExpressionFactory implements
         // data.list.singleton(c))
         // or [] to data.list.empty
         if(elements.isEmpty())
-            return projection(ranges, DATA_LIST, EMPTY, false);
-        FreeExpression head = call(ranges, projection(ranges, DATA_LIST, SINGLETON, false), elements.take(1));
+            return EMPTY_LIST;
+        FreeExpression head = call(ranges, SINGLE_ELEMENT_LIST, elements.take(1));
         if(elements.isSingle())
             return head;
         FreeExpression tail = listLiteral(ranges, elements.tail());
@@ -122,15 +125,7 @@ public class FreeExpressionFactory implements
             Set<SourceFileRange> ranges,
             FreeExpression base,
             FreeExpression extension) {
-
 	    return new FreeExtend(base, extension);
-    }
-
-	@Override
-    public FreeExpression inspect(
-            Set<SourceFileRange> ranges,
-            FreeExpression target) {
-        return call(ranges, MIRROR, List.single(target));
     }
 
 	@Override

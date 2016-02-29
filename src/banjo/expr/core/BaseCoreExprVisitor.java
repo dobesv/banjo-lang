@@ -54,11 +54,6 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T inspect(Inspect n) {
-		return fallback();
-	}
-
-	@Override
 	public T extend(Extend n) {
 		return fallback();
 	}
