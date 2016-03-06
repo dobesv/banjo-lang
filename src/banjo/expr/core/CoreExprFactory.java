@@ -1162,9 +1162,30 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		return op.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> fallback(SourceExpr other) {
-				return binaryOpToCall(op, false);
+                switch(op.getOperator()) {
+                case LE:
+                    return orEqual(Operator.LT);
+                case GE:
+                    return orEqual(Operator.GT);
+                case NEQ:
+                    return negated(Operator.EQ);
+                }
+                return binaryOpToCall(op, false);
 			}
 			
+            public DesugarResult<CoreExpr> orEqual(Operator bareOp) {
+                BinaryOp bareCmp = new BinaryOp(op.getSourceFileRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                BinaryOp eq = new BinaryOp(op.getSourceFileRanges(), Operator.EQ, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                BinaryOp or = new BinaryOp(op.getSourceFileRanges(), Operator.LOGICAL_OR, op.getOperatorRanges(), bareCmp, eq);
+                return binaryOpToCall(or, false);
+            }
+
+            public DesugarResult<CoreExpr> negated(Operator bareOp) {
+                BinaryOp bareCmp = new BinaryOp(op.getSourceFileRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                UnaryOp neg = new UnaryOp(op.getSourceFileRanges(), Operator.NOT, op.getOperatorRanges(), bareCmp);
+                return unaryOpToSlotReference(neg);
+            }
+
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(BinaryOp leftBOp) {
 				switch(leftBOp.getOperator()) {
@@ -1178,8 +1199,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 					BinaryOp and = new BinaryOp(leftBOp.getSourceFileRanges(), Operator.LOGICAL_AND, SourceFileRange.EMPTY_SET, leftBOp, newRight);
 					return binaryOpToCall(and, false);
 					
-				default: 
-					return binaryOpToCall(op, false);
+                default:
+                    return fallback(op);
 				}
 			}
 		});
@@ -1245,9 +1266,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		// Normal operators are translated into a method call
 		case GT:
 		case LT:
-		case GE:
-		case LE:
-		case NEQ:
+        case GE:
+        case LE:
+        case NEQ:
 		case EQ:
 			return comparisonOpToCall(op);
 		case MEMBER_OF:
