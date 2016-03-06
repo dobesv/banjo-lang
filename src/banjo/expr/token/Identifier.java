@@ -33,7 +33,7 @@ public class Identifier extends AbstractAtom implements Atom, Token {
 	public static final Identifier UNDERSCORE = new Identifier("_");
 	public static final Identifier __TMP = new Identifier("__tmp");
 	public static final Identifier USAGE_EXAMPLES = new Identifier("usage examples");
-    public static final Identifier LANGUAGE_CORE_RUNTIME = new Identifier("language core runtime");
+    public static final Identifier LANGUAGE_KERNEL = new Identifier("language kernel");
     public static final Identifier MIRROR = new Identifier("mirror");
     public static final Identifier JAVA = new Identifier("java");
     public static final Identifier NUMBER = new Identifier("number");

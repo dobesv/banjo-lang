@@ -24,7 +24,7 @@ public class FreeExpressionFactory implements
     private static final FreeExpression RUNTIME = INSTANCE.projection(
             SourceFileRange.EMPTY_SET,
             PROJECT_ROOT,
-            Identifier.LANGUAGE_CORE_RUNTIME.acceptVisitor(INSTANCE),
+            Identifier.LANGUAGE_KERNEL.acceptVisitor(INSTANCE),
             false);
     private static final FreeExpression MIRROR = INSTANCE.projection(
         SourceFileRange.EMPTY_SET,

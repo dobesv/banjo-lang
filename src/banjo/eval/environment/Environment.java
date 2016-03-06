@@ -339,7 +339,7 @@ public class Environment implements Reactive<Environment> {
         CoreExpr projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
         FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
         Value runtime = Value.fromJava(new JavaLanguageRuntimeImpl());
-        return new Environment(environmentRoot, Identifier.LANGUAGE_CORE_RUNTIME.id, runtime);
+        return new Environment(environmentRoot, Identifier.LANGUAGE_KERNEL.id, runtime);
 	}
 
     /**

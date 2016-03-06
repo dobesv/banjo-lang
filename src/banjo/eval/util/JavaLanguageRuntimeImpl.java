@@ -35,7 +35,7 @@ public class JavaLanguageRuntimeImpl {
 
     @Override
     public String toString() {
-        return new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_CORE_RUNTIME).toSource();
+        return new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL).toSource();
     }
 
 	/**

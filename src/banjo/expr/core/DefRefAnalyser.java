@@ -179,6 +179,6 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	public static List<BadExpr> problems(CoreExpr ast, List<Slot> bindings) {
 		// TODO ... actually only return problems from the given AST
         List<Identifier> slotNames = bindings.map(Slot::getName);
-        return ast.acceptVisitor(new DefRefAnalyser()).defs(slotNames.cons(Identifier.LANGUAGE_CORE_RUNTIME)).getProblems();
+        return ast.acceptVisitor(new DefRefAnalyser()).defs(slotNames.cons(Identifier.LANGUAGE_KERNEL)).getProblems();
     }
 }
