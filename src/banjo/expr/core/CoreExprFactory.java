@@ -1328,6 +1328,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
         case INSPECT:
 		case EXTENSION_FUNCTION:
+        case PIPE_FROM_FUNCTION:
 			return unaryOpToFunctionCall(op);
 
 		case BASE_FUNCTION:
