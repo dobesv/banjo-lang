@@ -1,0 +1,1 @@
+prefix.to(limit) + suffix.to(limit - |prefix|)

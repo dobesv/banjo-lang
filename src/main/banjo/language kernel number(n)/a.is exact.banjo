@@ -1,0 +1,1 @@
+a.(is int8 || is int16 || is int32 || is int64 || is integer || is decimal || is fraction)

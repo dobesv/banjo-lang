@@ -1,0 +1,2 @@
+"Return the number divided by two and rounded down to the nearest integer (integer bit shift right 1)" ⇒
+language kernel number(n.bsr1)

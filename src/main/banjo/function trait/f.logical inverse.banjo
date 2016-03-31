@@ -1,0 +1,8 @@
+(
+   "Return a new predicate that return true if this predicate would turn false, and false when this predicate would return true"
+   usage examples = [
+     (5.<).logical inverse(6) == false
+     (5.<).logical inverse(5) == true   
+   ]   
+) ⇒
+f ; .! 

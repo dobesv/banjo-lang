@@ -4,14 +4,8 @@ jdk:
   - oraclejdk8
 env:
   global:
-    - JAVA_TOOL_OPTIONS=-Dbanjo.path=banjo-core-lib-master/src:banjo-java-lib-master/src
+    - JAVA_TOOL_OPTIONS=-Dbanjo.path=src/main/banjo
 addons:
   apt:
     packages:
       - oracle-java8-installer
-before_install:
- - wget https://github.com/dobesv/banjo-core-lib/archive/master.tar.gz -O banjo-core-lib-master.tar.gz
- - tar -zxvf banjo-core-lib-master.tar.gz
- - wget https://github.com/dobesv/banjo-java-lib/archive/master.tar.gz -O banjo-java-lib-master.tar.gz
- - tar -zxvf banjo-java-lib-master.tar.gz
- 

@@ -1,0 +1,2 @@
+if(other list.is empty) then (list) else
+list.plus nonempty list(other list)

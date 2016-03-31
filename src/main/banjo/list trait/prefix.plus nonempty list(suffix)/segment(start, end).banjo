@@ -1,0 +1,1 @@
+prefix.segment(start, end) + suffix.segment(start - |prefix|, end - |prefix|)

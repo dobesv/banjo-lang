@@ -1,0 +1,2 @@
+"If the condition is `true` return `then`, otherwise return `else`." ⇒
+cond.if { true = then, false = else }

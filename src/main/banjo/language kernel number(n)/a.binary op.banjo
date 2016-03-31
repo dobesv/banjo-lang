@@ -1,0 +1,34 @@
+(binary op) ↦ (b) ↦ (
+  "
+    Convert operands to a compatible type so that we can do an arithmetic operation
+    with them using the kernel native operations.  The kernel operations require
+    operands be the same type.
+  "
+  conversion = (
+    if (a.is int8 && b.is int8) then (.int8) else
+    if (b.is int16 && a.is int8) then (.int16) else
+    if (
+      a.(is int32 || is int8 || is int16) && 
+      b.(is int32 || is int8 || is int16)
+    ) then (.int32) else
+    if (
+      a.(is int64 || is int32 || is int16 || is int8) && 
+      b.(is int64 || is int32 || is int16 || is int8)
+    ) then (.int64) else
+    if (
+      a.(is integer || is int64 || is int32 || is int16 || is int8) && 
+      b.(is integer || is int64 || is int32 || is int16 || is int8)
+    ) then (.integer) else
+    if (
+      a.(is float32 || is int16 || is int8) && 
+      b.(is float32 || is int16 || is int8)
+    ) then (.float32) else
+    if (
+      a.(is float64 || is float32 || is int16 || is int8) && 
+      b.(is float64 || is float32 || is int16 || is int8)
+    ) then (.float64) else
+    if (a.is decimal || b.is decimal) then (.decimal) else
+    if (a.is fraction || b.is fraction) then (.fraction) else
+    (.decimal)
+  )
+) ⇒ binary op(conversion(n))(conversion(b))

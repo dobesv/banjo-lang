@@ -1,0 +1,6 @@
+"True if there exists any `element ∈ collection` where `f(element) == true`" ⇒
+(usage examples = [
+  (x ↦ x > 13).is true for any element of([1,3,-1,10]) == false
+  (x ↦ x > 13).is true for any element of([1,5,20,7,-99]) == true
+]) ⇒
+true ∈ (f ∘ collection)

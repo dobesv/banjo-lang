@@ -1,0 +1,2 @@
+"Multiply by the given power of two and round down to the nearest integer (integer bit shift left)" ⇒
+(count) ↦ language kernel number(n.bit shifted(count)) 

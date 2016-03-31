@@ -1,0 +1,9 @@
+"Return the additive inverse of this number." ⇒
+(usage examples = [
+  - (5) == -5
+  - (-10) == 10.0
+  - (-10) == 10
+  - (1.0f) == -1.0f
+  1 + - (1) == 0
+]) ⇒
+language kernel number(-n)

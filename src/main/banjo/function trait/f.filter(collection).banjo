@@ -1,0 +1,9 @@
+"
+  List each `element` where `element ∈ collection` and `f(elt) == true`.
+
+  Preserves the ordering of the original collection, if any.
+" ⇒
+(usage examples = [
+    (x ↦ (x > 5) && (x < 10)).filter([1,3,5,7,9,11,13]) == [7,9]
+]) ⇒
+((elt ↦ if(f(elt)) then [elt] else []) ∘ collection).sum([])

@@ -1,0 +1,2 @@
+(prefix == other list.to(|prefix|)) &&
+(suffix == other list.from(|prefix|)) 

@@ -1,0 +1,5 @@
+"Fail with the given reason (string)" ⇒
+(reason) -> {
+  failure reason = reason
+  label = "<FAILURE: "+reason+">"
+}() # This'll just result in a "not callable" error, kind of a hack for now 

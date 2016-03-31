@@ -1,0 +1,1 @@
+prefix.from(offset) + suffix.from(offset - |prefix|)

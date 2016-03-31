@@ -1,0 +1,9 @@
+(
+  usage examples = [
+    [1,2].after first == [2]
+    [1,2,3].after first == [2,3]
+    ([1] + [2,3]).after first == [2,3]
+    ([1,2] + [3]).after first == [2,3]
+  ]
+) ⇒
+prefix.after first + suffix
