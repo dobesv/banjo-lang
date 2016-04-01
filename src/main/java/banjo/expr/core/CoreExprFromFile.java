@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.WeakHashMap;
 
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExprFromFile;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Set;
 
@@ -74,7 +75,7 @@ public class CoreExprFromFile implements CoreExpr {
         }
         if(this.memo == null || !Objects.equals(currentFileTime, this.memoFileTime)) {
             this.memoFileTime = currentFileTime;
-            this.memo = CoreExprFactory.INSTANCE.loadFromPath(this.path);
+            this.memo = CoreExpr.fromSourceExpr(SourceExprFromFile.forPath(this.path));
         }
         return this.memo;
     }

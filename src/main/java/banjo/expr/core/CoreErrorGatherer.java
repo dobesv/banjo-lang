@@ -23,11 +23,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	@Override
 	public List<BadExpr> objectLiteral(Set<SourceFileRange> ranges,
 	        List<P3<Identifier, Option<Identifier>, List<BadExpr>>> slots) {
-		return List.join(slots.map(
-				p -> p._1().acceptVisitor(this)
-					.append(p._2().map(i -> i.acceptVisitor(this)).orSome(List.nil()))
-					.append(p._3())
-		));
+        return List.join(slots.map(P3.__3()));
 	}
 
 	@Override
@@ -65,13 +61,13 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	@Override
 	public List<BadExpr> let(Set<SourceFileRange> sourceFileRanges,
 	        List<P2<Identifier, List<BadExpr>>> bindings, List<BadExpr> body) {
-		return List.join(bindings.map(p -> p._1().acceptVisitor(this).append(p._2()))).append(body);
+        return List.join(bindings.map(p -> p._2())).append(body);
 	}
 
 	@Override
     public List<BadExpr> functionLiteral(Set<SourceFileRange> ranges,
             List<Identifier> args, List<BadExpr> body, Option<Identifier> sourceObjectBinding) {
-	    return body.append(sourceObjectBinding.map(n -> n.acceptVisitor(this)).orSome(List.nil()));
+        return body;
     }
 
 	@Override
@@ -83,6 +79,6 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	@Override
 	public List<BadExpr> baseFunctionRef(
 	        Set<SourceFileRange> sourceFileRanges, Identifier name) {
-	    return name.acceptVisitor(this);
+        return List.nil();
 	}
 }

@@ -1,6 +1,10 @@
 package banjo.expr.source;
 
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -201,6 +205,17 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		this("");
 	}
 
+	/**
+	 * Open and parse the file in this.sourceFile.
+	 */
+    public SourceExpr parse() throws IOException {
+        Reader reader = new InputStreamReader(Files.newInputStream(this.sourceFile), StandardCharsets.UTF_8);
+	    long fileSize = Files.size(this.sourceFile);
+	    if(fileSize > Integer.MAX_VALUE)
+	        fileSize = Integer.MAX_VALUE;
+	    return parse(new ParserReader(reader, (int)fileSize));
+	}
+    
 	/**
 	 * Parse the input fully.  The final return value is the result of visitEof().  It may be null
 	 * if there were syntax errors in the source file, or the file was empty;
