@@ -14,9 +14,6 @@ public class TestDefRefAnalyser {
 	private List<BadExpr> getProblems(final String src) {
 	    CoreExpr ast = CoreExpr.fromString(src);
         final List<BadExpr> problems = DefRefAnalyser.problems(ast);
-		for(BadExpr be : problems) {
-			System.out.println(be.toString());
-		}
 	    return problems;
     }
 
@@ -34,7 +31,7 @@ public class TestDefRefAnalyser {
 	public void slotNeverDefined() {
 		final String src = "(a = 1) => ({bar = 1}.foo.bar)";
 	    final List<BadExpr> problems = getProblems(src);
-		assertEquals(1, problems.length());
+        assertEquals(problems.toString(), 1, problems.length());
 	}
 
     @Test

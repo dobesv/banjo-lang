@@ -60,13 +60,14 @@ public class TestParenMatching {
     @Test
     public void testParens() {
         final SourceExprFactory parser = new SourceExprFactory("test");
-        System.out.println("Source input:\n  "+src.replace("\n", "\n  "));
+        StringBuffer debugInfo = new StringBuffer();
+        debugInfo.append("Source input:\n  " + src.replace("\n", "\n  "));
         try {
         	final SourceExpr parseTree = parser.parse(src);
             List<BadExpr> problems = SourceErrorGatherer.getProblems(parseTree);
             if(problems.isNotEmpty()) {
-                System.out.println("Errors:");
-                problems.forEach(e -> System.out.println("    " + e));
+                debugInfo.append("\nErrors:");
+                problems.forEach(e -> debugInfo.append("\n    " + e));
             }
             assertEquals("Wrong number of errors", expectedErrorCount, problems.length());
             Set<SourceFileRange> ranges = Set
@@ -78,6 +79,8 @@ public class TestParenMatching {
             
         } catch (final IOException e1) {
         	throw new UncheckedIOException(e1);
+        } catch(AssertionError err) {
+            throw new AssertionError(debugInfo.toString(), err);
         }
     }
 }

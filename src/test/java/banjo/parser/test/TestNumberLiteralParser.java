@@ -33,19 +33,23 @@ public class TestNumberLiteralParser {
 		testNonNumber(inStr, null);
 	}
 	private void testNonNumber(String inStr, Class<? extends BadExpr> eClass) {
+        StringBuffer debugInfo = new StringBuffer();
+        debugInfo.append("Source input:\n  " + inStr.replace("\n", "\n  "));
 		try {
 			final SourceExprFactory parser = new SourceExprFactory();
 			final SourceExpr node = parser.parse(inStr);
-			System.out.println(inStr+" --> "+node.getClass().getSimpleName()+" "+node.toSource());
-			final int errCount = ParseTestUtils.parseErrors(eClass, node);
+            String info = (inStr + " --> " + node.getClass().getSimpleName() + " " + node.toSource());
+            final int errCount = ParseTestUtils.parseErrors(eClass, node, debugInfo);
 			if(eClass != null && errCount == 0)
-				fail("Expecting problem of class "+eClass.getSimpleName());
+                fail("Expecting problem of class " + eClass.getSimpleName() + " in " + info);
 			else
-				assertEquals("Not expecting any errors", 0, errCount);
+                assertEquals("Not expecting any errors in " + info, 0, errCount);
 			assertFalse(node instanceof NumberLiteral);
 			assertFalse(node instanceof UnaryOp && ((UnaryOp) node).getOperand() instanceof NumberLiteral);
 		} catch (final IOException e) {
 			throw new Error(e);
+        } catch(AssertionError err) {
+            throw new AssertionError(debugInfo.toString(), err);
 		}
 	}
 
