@@ -337,10 +337,23 @@ public class Environment implements Reactive<Environment> {
      */
 	public static Environment forSourcePath(Path sourceFilePath) {
         CoreExpr projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
+        return forProjectAst(projectAst);
+	}
+
+    /**
+     * Calculate the top level environment for a given source file from its
+     * project root AST and creating an environment based on that.
+     * 
+     * @param projectAst
+     *            Project AST, typically loaded using
+     *            CoreExprFactory.loadProjectAstForSourcePath()
+     * @return A new environment
+     */
+    public static Environment forProjectAst(CoreExpr projectAst) {
         FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
         Value runtime = Value.fromJava(new JavaLanguageRuntimeImpl());
         return new Environment(environmentRoot, Identifier.LANGUAGE_KERNEL.id, runtime);
-	}
+    }
 
     /**
      * Calculate the top level environment based on the current directory.

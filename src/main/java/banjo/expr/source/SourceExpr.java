@@ -13,7 +13,6 @@ import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.FileRange;
-import banjo.expr.util.OrdUtil;
 import banjo.expr.util.ParserReader;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
@@ -28,57 +27,479 @@ public interface SourceExpr extends Expr, SourceNode {
 	<T> T acceptVisitor(SourceExprVisitor<T> visitor);
 	<T> T acceptVisitor(SourceExprAlgebra<T> visitor);
 
-	public static final Ord<SourceExpr> _sourceExprsOfSameClassOrd = Ord.ord((a) -> (b) ->
+    public static final Ord<SourceExpr> sourceExprOrd = Ord.ord((a) -> (b) ->
 		a.acceptVisitor(new SourceExprVisitor<Ordering>() {
 
 			@Override
             public Ordering stringLiteral(StringLiteral stringLiteral) {
-	            return StringLiteral.ORD.compare(stringLiteral, (StringLiteral)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return StringLiteral.ORD.compare(stringLiteral, stringLiteral2);
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering numberLiteral(NumberLiteral numberLiteral) {
-	            return NumberLiteral.ORD.compare(numberLiteral, (NumberLiteral)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return NumberLiteral.ORD.compare(numberLiteral, numberLiteral2);
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering identifier(Identifier identifier) {
-	            return Identifier.ORD.compare(identifier, (Identifier)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Identifier.ORD.compare(identifier, identifier2);
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering operator(OperatorRef operatorRef) {
-	            return OperatorRef.ORD.compare(operatorRef, (OperatorRef)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return OperatorRef.ORD.compare(operatorRef, operatorRef2);
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering binaryOp(BinaryOp binaryOp) {
-	            return BinaryOp.ORD.compare(binaryOp, (BinaryOp)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp2) {
+                    return BinaryOp.ORD.compare(binaryOp, binaryOp2);
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering unaryOp(UnaryOp unaryOp) {
-	            return UnaryOp.ORD.compare(unaryOp, (UnaryOp)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp2) {
+                    return UnaryOp.ORD.compare(unaryOp, unaryOp2);
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering badSourceExpr(BadSourceExpr badSourceExpr) {
-	            return BadSourceExpr.ORD.compare(badSourceExpr, (BadSourceExpr)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr2) {
+                    return BadSourceExpr.ORD.compare(badSourceExpr, badSourceExpr2);
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.LT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering emptyExpr(EmptyExpr emptyExpr) {
-	            return Ordering.EQ;
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.EQ;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier) {
+                    return Ordering.LT;
+                }
+
+            });
             }
 
 			@Override
             public Ordering badIdentifier(BadIdentifier badIdentifier) {
-	            return BadIdentifier.ORD.compare(badIdentifier, (BadIdentifier)b);
+            return b.acceptVisitor(new SourceExprVisitor<Ordering>() {
+
+                @Override
+                public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering identifier(Identifier identifier2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering operator(OperatorRef operatorRef2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering binaryOp(BinaryOp binaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering unaryOp(UnaryOp unaryOp2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering badSourceExpr(BadSourceExpr badSourceExpr2) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering emptyExpr(EmptyExpr emptyExpr) {
+                    return Ordering.GT;
+                }
+
+                @Override
+                public Ordering badIdentifier(BadIdentifier badIdentifier2) {
+                    return BadIdentifier.ORD.compare(badIdentifier, badIdentifier2);
+                }
+
+            });
             }
 
 		})
 	);
-	public static final Ord<SourceExpr> sourceExprOrd = OrdUtil.chain(CLASS_NAME_ORD, _sourceExprsOfSameClassOrd);
 
 	String toFullyParenthesizedSource();
 

@@ -10,7 +10,6 @@ import fj.data.Set;
 
 public interface Expr {
 	public static final Ord<Expr> EXPR_RANGES_ORD = SourceFileRange.SET_ORD.contramap(x -> x.getSourceFileRanges());
-	public static final Ord<Object> CLASS_NAME_ORD = Ord.stringOrd.contramap(x -> x.getClass().getName());
 
 	public void toSource(StringBuffer sb);
 
