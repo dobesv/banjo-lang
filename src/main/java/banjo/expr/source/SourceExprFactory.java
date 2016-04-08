@@ -213,6 +213,8 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	    long fileSize = Files.size(this.sourceFile);
 	    if(fileSize > Integer.MAX_VALUE)
 	        fileSize = Integer.MAX_VALUE;
+        if(fileSize == 0)
+            return new BadSourceExpr(new SourceFileRange(sourceFile, FileRange.EMPTY), "Empty source file");
 	    return parse(new ParserReader(reader, (int)fileSize));
 	}
     

@@ -412,7 +412,7 @@ public class ParserReader extends Reader {
 	 */
 	public ParserReader(Reader delegate, int fileSize) throws IOException {
 		if(fileSize < 0) throw new IllegalArgumentException("Negative fileSize");
-		if(!delegate.markSupported()) {
+        if(fileSize > 0 && !delegate.markSupported()) {
 			delegate = new BufferedReader(delegate, fileSize);
 		}
 		this.delegate = delegate;
