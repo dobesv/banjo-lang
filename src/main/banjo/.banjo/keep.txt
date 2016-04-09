@@ -1,0 +1,1 @@
+This file ensures this folder is kept around by systems that don't copy/preserve empty folders.

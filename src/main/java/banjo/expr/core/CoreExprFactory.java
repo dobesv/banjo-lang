@@ -3,7 +3,6 @@ package banjo.expr.core;
 import static fj.data.List.cons;
 import static fj.data.List.single;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -12,8 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Objects;
@@ -36,7 +37,6 @@ import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.FileRange;
-import banjo.expr.util.ParserReader;
 import banjo.expr.util.SourceFileRange;
 import fj.F;
 import fj.F2;
@@ -1862,7 +1862,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
             throw new UncheckedIOException(e);
         }
 
-        CoreExpr value = CoreExprFromFile.forPath(p);
+        CoreExpr value = loadFromPath(p);
+
         return addMethod(lhs, lhs, value, Identifier.TRUE, List.nil(), Operator.ASSIGNMENT).getValue().head();
     }
 
@@ -1970,25 +1971,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     }
 
     public CoreExpr loadBanjoSourceFile(Path path) {
-        try {
-            int size = (int) Files.size(path);
-            if(size == 0)
-                return new BadCoreExpr(new SourceFileRange(path, FileRange.EMPTY), "Empty file '" + path + "'");
-            
-            try(BufferedReader in = Files.newBufferedReader(path)) {
-                final SourceExprFactory parser = new SourceExprFactory(path);
-                SourceExpr parsed = parser.parse(new ParserReader(in, size));
-                return desugar(parsed).getValue();
-            } catch(IOException e) {
-                return new BadCoreExpr(
-                    new SourceFileRange(path, FileRange.EMPTY),
-                    "Failed to read source code from %s: %s", path.toString(), e.toString());
-            }
-        } catch(IOException e) {
-            return new BadCoreExpr(
-                new SourceFileRange(path, FileRange.EMPTY),
-                "Failed to read source code from %s: %s", path.toString(), e.toString());
-        }
+        return CoreExprFromFile.forPath(path);
     }
 
     /**
@@ -2046,6 +2029,28 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         return Option.none();
     }
 
+    public static Path zipFileToZipPath(Path p) {
+        try {
+            if(Files.isRegularFile(p) && p.getFileName().toString().matches("\\.(zip|jar)$")) {
+                FileSystem fs = FileSystems.newFileSystem(p, Thread.currentThread().getContextClassLoader());
+                Path root = fs.getRootDirectories().iterator().next();
+                return root;
+            }
+        } catch(IOException e) {
+            // Not a valid ZIP file? Not sure what to do here
+        }
+        return p;
+    }
+
+    public static boolean isValidPath(String p) {
+        try {
+            Paths.get(p);
+            return true;
+        } catch(InvalidPathException e) {
+            return false;
+        }
+    }
+
     /**
      * Get the core library source search paths. These are read from a system
      * property. You can always set the system property using an environment
@@ -2056,10 +2061,18 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      * </code>
      */
     public static List<Path> getGlobalSourcePaths() {
-        String searchPath = System.getProperty(CoreExprFactory.LIB_PATH_SYS_PROPERTY, "");
+        List<Path> banjoPathPaths = pathsFromSearchPath(System.getProperty(CoreExprFactory.LIB_PATH_SYS_PROPERTY, ""));
+        List<Path> classPathPaths = pathsFromSearchPath(System.getProperty("java.class.path", "")).filter(p -> Files.exists(p.resolve(".banjo")));
+        return banjoPathPaths.append(classPathPaths);
+    }
+
+    public static List<Path> pathsFromSearchPath(String searchPath) {
         return List.list(searchPath.split(File.pathSeparator))
             .filter(s -> !s.isEmpty())
-            .map(Paths::get);
+            .filter(CoreExprFactory::isValidPath)
+            .map(Paths::get)
+            .filter(Files::exists)
+            .map(CoreExprFactory::zipFileToZipPath);
     }
 
     /**
@@ -2073,4 +2086,44 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         return coreLibraryPaths.append(projectRoot.toList());
     }
 
+    public static void main(String[] args) {
+        ArrayList<Path> paths = new ArrayList<Path>();
+        boolean printSourcePath = false;
+        boolean verbose = true;
+        for(String arg : args) {
+            if(arg.startsWith("--")) {
+                if("--print-source-path".equals(arg)) {
+                    printSourcePath = true;
+                } else {
+                    System.err.println("Unknown option: " + arg);
+                    return;
+                }
+            } else if(arg.startsWith("-")) {
+                for(char ch : arg.substring(1).toCharArray()) {
+                    switch(ch) {
+                    case 'v':
+                        verbose = true;
+                        break;
+                    default:
+                        System.err.println("Unknown option: -" + String.valueOf(ch));
+                        return;
+                    }
+                }
+            } else {
+                paths.add(Paths.get(arg));
+            }
+        }
+
+        if(paths.isEmpty())
+            paths.add(Paths.get("."));
+        for(Path path : paths) {
+            System.out.println("java.class.path == " + System.getProperty("java.class.path", "<not set>"));
+            System.out.println("source paths(" + StringLiteral.toSource(path.toString()) + ") == [");
+            for(Path p : projectSourcePathsForFile(path)) {
+                System.out.print("  ");
+                System.out.println(p.toUri());
+            }
+            System.out.println("]");
+        }
+    }
 }
