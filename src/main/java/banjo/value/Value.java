@@ -238,7 +238,8 @@ public interface Value extends Reactive<Value> {
      */
 	public default String javaLabel() {
 	    try {
-            return slot("label", SourceFileRange.currentJavaThreadLoc()).convertToJava(String.class).either(
+            Set<SourceFileRange> loc = SourceFileRange.currentJavaThreadLoc();
+            return slot("label", loc).slot("kernel string", loc).convertToJava(String.class).either(
 	    			s -> s,
 	    			f -> toStringFallback()
 	    			);
