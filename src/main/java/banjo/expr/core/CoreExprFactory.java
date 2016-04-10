@@ -3,15 +3,10 @@ package banjo.expr.core;
 import static fj.data.List.cons;
 import static fj.data.List.single;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -37,6 +32,7 @@ import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.OperatorRef;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.FileRange;
+import banjo.expr.util.PathUtils;
 import banjo.expr.util.SourceFileRange;
 import fj.F;
 import fj.F2;
@@ -367,7 +363,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         List<CoreExpr> extensions = p._2().map(Slot::getValue);
 		
         ObjectLiteral obj = new ObjectLiteral(ranges, slots);
-        CoreExpr extendedObj = extensions.foldRight(CoreExprFactory::extend, (CoreExpr) obj);
+        CoreExpr extendedObj = extensions.foldRight(Extend::new, (CoreExpr) obj);
         return extendedObj;
     }
 
@@ -449,7 +445,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final CoreExpr base = Projection.baseSlot(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTENSION ?
-				extend(base, slot.value) :
+				new Extend(base, slot.value) :
 				Call.binaryOp(base, combiningOp, slot.value);
 		return new Slot(slot.name, Option.some(selfBinding), newValue);
 	}
@@ -1770,71 +1766,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 .orSome(binding));
     }
 
-    public static String decodeFilename(String s)
-        throws UnsupportedEncodingException {
-
-        boolean needToChange = false;
-        int numChars = s.length();
-        StringBuffer sb = new StringBuffer(numChars > 500 ? numChars / 2 : numChars);
-        int i = 0;
-
-        char c;
-        byte[] bytes = null;
-        while(i < numChars) {
-            c = s.charAt(i);
-            switch(c) {
-            case '%':
-                /*
-                 * Starting with this instance of %, process all consecutive
-                 * substrings of the form %xy. Each substring %xy will yield a
-                 * byte. Convert all consecutive bytes obtained this way to
-                 * whatever character(s) they represent in the provided
-                 * encoding.
-                 */
-
-                try {
-
-                    // (numChars-i)/3 is an upper bound for the number
-                    // of remaining bytes
-                    if(bytes == null)
-                        bytes = new byte[(numChars - i) / 3];
-                    int pos = 0;
-
-                    while(((i + 2) < numChars) &&
-                        (c == '%')) {
-                        int v = Integer.parseInt(s.substring(i + 1, i + 3), 16);
-                        if(v < 0)
-                            throw new IllegalArgumentException("URLDecoder: Illegal hex characters in escape (%) pattern - negative value");
-                        bytes[pos++] = (byte) v;
-                        i += 3;
-                        if(i < numChars)
-                            c = s.charAt(i);
-                    }
-
-                    // A trailing, incomplete byte encoding such as
-                    // "%x" will cause an exception to be thrown
-
-                    if((i < numChars) && (c == '%'))
-                        throw new IllegalArgumentException(
-                            "URLDecoder: Incomplete trailing escape (%) pattern");
-
-                    sb.append(new String(bytes, 0, pos, "UTF-8"));
-                } catch(NumberFormatException e) {
-                    throw new IllegalArgumentException(
-                        "URLDecoder: Illegal hex characters in escape (%) pattern - " + e.getMessage());
-                }
-                needToChange = true;
-                break;
-            default:
-                sb.append(c);
-                i++;
-                break;
-            }
-        }
-
-        return (needToChange ? sb.toString() : s);
-    }
-
     /**
      * Desugar a file path into a slot. The self-name may be taken from the
      * filename, if present.
@@ -1852,7 +1783,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
             // Also URL-decode to allow illegal filename characters to be used
             // sometimes. Avoid replacing "+" with " ", though.
             try {
-                slotLhs = decodeFilename(slotLhs);
+                slotLhs = PathUtils.decodeFilename(slotLhs);
             } catch(IllegalArgumentException ex) {
                 // Ignore here, should show up as a syntax error later
             }
@@ -1877,7 +1808,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         if(base.sourceObjectBinding.isNone() && extension.sourceObjectBinding.isNone()) {
             CoreExpr b = base.value;
             CoreExpr e = extension.value;
-            return new Slot(base.name, extend(b, e));
+            return new Slot(base.name, new Extend(b, e));
         }
     
         // If there's a source object binding, we have to make sure neither side
@@ -1885,24 +1816,24 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         // Ideally instead of __tmp we'd be using some kind of hygienic name.
         // Hm.
         return new Slot(base.name, Option.some(Identifier.__TMP),
-            extend(
-                slotToExpr(base, Identifier.__TMP),
-                slotToExpr(extension, Identifier.__TMP)));
+            new Extend(slotToExpr(base, Identifier.__TMP), slotToExpr(extension, Identifier.__TMP)));
     }
 
-    public static CoreExpr extend(CoreExpr b, CoreExpr e) {
-        return new Extend(b, e);
-    }
-
+    /**
+     * When we need to combine two slot values we take the slot body out of the
+     * slot, and we may have to alias the original slot "self" argument if there
+     * was one to match the new name for the slot "self" argument.
+     * 
+     * @param slot
+     *            Slot instance we want to embed
+     * @param newName
+     *            New "self" parameter name for the slot
+     * @return An expression suitable for embeddeding
+     */
     static CoreExpr slotToExpr(Slot slot, Identifier newName) {
         if(slot.sourceObjectBinding.isNone() || slot.sourceObjectBinding.some().id.equals(newName.id))
             return slot.value;
         return Let.single(slot.sourceObjectBinding.some(), newName, slot.value);
-    }
-
-    static TreeMap<String, Slot> mergeBinding(
-        Slot binding, TreeMap<String, Slot> bindingMap) {
-        return extendSlot(bindingMap, binding);
     }
 
     /**
@@ -1913,7 +1844,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      */
     public CoreExpr loadFromPath(Path path) {
         if(Files.isDirectory(path)) {
-            return loadFromDirectory(path);
+            return loadFromDirectories(List.single(path));
         }
         if(Files.isRegularFile(path)) {
             return loadFromFile(path);
@@ -1933,9 +1864,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         if("txt".equals(ext)) {
             return loadTxtFile(path);
         } else if("banjo".equals(ext)) {
-            return loadBanjoSourceFile(path);
-        } else if("jar".equals(ext) || "zip".equals(ext)) {
-            return loadZipFile(path);
+            return CoreExprFromFile.forPath(path);
         } else {
             // Don't know what to do with this type of file
             return new BadCoreExpr(
@@ -1945,21 +1874,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     }
 
     /**
-     * Load a ZIP file as a folder - the root of the zip is treated as a folder
-     * and converted into an object literal.
+     * Load a text file as a StringLiteral. If the path fails to load for any
+     * reason, returns a BadCoreExpr.
      */
-    public CoreExpr loadZipFile(Path path) {
-        try {
-            FileSystem fs = FileSystems.newFileSystem(path, Thread.currentThread().getContextClassLoader());
-            Path root = fs.getRootDirectories().iterator().next();
-            return CoreExprFromFile.forPath(root);
-        } catch(IOException e) {
-            return new BadCoreExpr(
-                new SourceFileRange(path, FileRange.EMPTY),
-                "Failed to read project from %s: %s", path.toString(), e.toString());
-        }
-    }
-
     public CoreExpr loadTxtFile(Path path) {
         try {
             return new StringLiteral(new String(Files.readAllBytes(path), StandardCharsets.UTF_8));
@@ -1970,24 +1887,15 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         }
     }
 
-    public CoreExpr loadBanjoSourceFile(Path path) {
-        return CoreExprFromFile.forPath(path);
-    }
-
     /**
-     * Desugar a directory into an AST
-     */
-    public CoreExpr loadFromDirectory(Path path) {
-        return loadFromDirectories(List.single(path));
-    }
-
-    /**
-     * Desugar a directory search path into an AST
+     * Load a directory search path into an AST. Note that the AST for
+     * individual files may be loaded lazily later on demand.
      */
     public CoreExpr loadFromDirectories(List<Path> paths) {
         Stream<Path> slotFiles = StreamSupport
             .stream(paths.spliterator(), false)
-            .flatMap(CoreExprFactory::listSourceFiles);
+            .flatMap(CoreExprFactory::listSourceFiles)
+            .map(PathUtils::zipFileToZipPath);
         TreeMap<String, Slot> slots = slotFiles
             .map(this::pathToSlot)
             .reduce(
@@ -2029,28 +1937,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         return Option.none();
     }
 
-    public static Path zipFileToZipPath(Path p) {
-        try {
-            if(Files.isRegularFile(p) && p.getFileName().toString().matches("\\.(zip|jar)$")) {
-                FileSystem fs = FileSystems.newFileSystem(p, Thread.currentThread().getContextClassLoader());
-                Path root = fs.getRootDirectories().iterator().next();
-                return root;
-            }
-        } catch(IOException e) {
-            // Not a valid ZIP file? Not sure what to do here
-        }
-        return p;
-    }
-
-    public static boolean isValidPath(String p) {
-        try {
-            Paths.get(p);
-            return true;
-        } catch(InvalidPathException e) {
-            return false;
-        }
-    }
-
     /**
      * Get the core library source search paths. These are read from a system
      * property. You can always set the system property using an environment
@@ -2061,18 +1947,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      * </code>
      */
     public static List<Path> getGlobalSourcePaths() {
-        List<Path> banjoPathPaths = pathsFromSearchPath(System.getProperty(CoreExprFactory.LIB_PATH_SYS_PROPERTY, ""));
-        List<Path> classPathPaths = pathsFromSearchPath(System.getProperty("java.class.path", "")).filter(p -> Files.exists(p.resolve(".banjo")));
+        List<Path> banjoPathPaths = PathUtils.pathsFromSearchPath(System.getProperty(CoreExprFactory.LIB_PATH_SYS_PROPERTY, ""));
+        List<Path> classPathPaths = PathUtils.pathsFromSearchPath(System.getProperty("java.class.path", "")).filter(p -> Files.exists(p.resolve(".banjo")));
         return banjoPathPaths.append(classPathPaths);
-    }
-
-    public static List<Path> pathsFromSearchPath(String searchPath) {
-        return List.list(searchPath.split(File.pathSeparator))
-            .filter(s -> !s.isEmpty())
-            .filter(CoreExprFactory::isValidPath)
-            .map(Paths::get)
-            .filter(Files::exists)
-            .map(CoreExprFactory::zipFileToZipPath);
     }
 
     /**
