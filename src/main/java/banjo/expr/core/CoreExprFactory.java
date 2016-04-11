@@ -1183,8 +1183,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 //				return exprPair(op);
 //			}
 		case CALL: return call(op);
-		case PIPE_TO: return pipeTo(op);
-		case PIPE_FROM: return pipeFrom(op);
+		case PASS_TO: return pipeTo(op);
+		case PASS_TO_LEFT: return pipeFrom(op);
 
 		// '.' and variants with NO parameters.  When there's a call, these are
 		// checked for specially inside of call().
@@ -1258,7 +1258,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
         case INSPECT:
 		case EXTENSION_FUNCTION:
-        case PIPE_FROM_FUNCTION:
+        case PASS_TO_LEFT_FUNCTION:
 			return unaryOpToFunctionCall(op);
 
 		case BASE_FUNCTION:

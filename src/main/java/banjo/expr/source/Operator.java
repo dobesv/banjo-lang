@@ -26,7 +26,7 @@ public enum Operator {
 	PROJECTION_FUNCTION(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
 	EXTENSION_FUNCTION("Φ @", OperatorType.FUNCTION, Precedence.SELECTOR, Position.PREFIX),
 	BASE_FUNCTION("↑ ^", OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
-	PIPE_FROM_FUNCTION("◄ <|", OperatorType.FUNCTION, Precedence.UNARY_PREFIX, Position.PREFIX),
+	PASS_TO_LEFT_FUNCTION("◄ <|", OperatorType.FUNCTION, Precedence.UNARY_PREFIX, Position.PREFIX),
     QUICK_LAMBDA("?", OperatorType.BUILTIN, Position.PREFIX, Precedence.SELECTOR),
 
 	// Binary operators
@@ -55,8 +55,8 @@ public enum Operator {
 	LOGICAL_OR("∨ ||", OperatorType.METHOD, Position.INFIX, Precedence.LOGICAL_OR),
 	FALLBACK("?:", OperatorType.METHOD, Position.INFIX, Precedence.LOGICAL_OR),
 
-	PIPE_TO("► |>", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
-	PIPE_FROM("◄ <|", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
+	PASS_TO("► |>", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
+	PASS_TO_LEFT("◄ <|", OperatorType.BUILTIN, Position.INFIX, Precedence.LOGICAL_OR),
 	FUNCTION_COMPOSITION_LEFT("∘ <<", OperatorType.METHOD_SWITCHED, Position.INFIX, Precedence.FUNCTION_COMPOSITION),
 	FUNCTION_COMPOSITION_RIGHT("； ; >>", OperatorType.METHOD, null, Position.INFIX, Associativity.LEFT, Precedence.LOGICAL_OR, Precedence.FUNCTION_COMPOSITION, "∘"),
 
