@@ -2,14 +2,10 @@ package banjo.eval.environment;
 
 import java.util.Objects;
 
-import banjo.value.Reactive;
 import banjo.value.Value;
-import javafx.beans.value.ObservableValue;
 
-public interface Binding extends Reactive<Binding> {
+public interface Binding {
 
-	ObservableValue<Binding> toObservableValue();
-	
 	public static Binding let(Value value) {
 		Objects.requireNonNull(value);
 		return new LetBinding(value);

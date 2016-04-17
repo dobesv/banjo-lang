@@ -1,13 +1,8 @@
 package banjo.value.meta;
 
-import java.util.function.Function;
-
-import banjo.event.PastEvent;
-import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.List;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Wrap a function with a call interceptor.
@@ -24,19 +19,9 @@ public class DynamicCallProxy implements Value {
 	}
 
 	@Override
-	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-		Value suspension = Value.fromJava(new Function<Value, Value>() {
-			@Override
-			public Value apply(Value t) {
-			    return t.call(arguments);
-			}
-		});
-	    return f.call(List.single(suspension));
-	}
-
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		return f.react(event).map(this::update);
+	public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+        Value suspension = Value.function(t -> t.call(trace, arguments));
+	    return f.call(trace, List.single(suspension));
 	}
 
 	public DynamicCallProxy update(Value newF) {
@@ -46,41 +31,12 @@ public class DynamicCallProxy implements Value {
 	}
 	
 	@Override
-	public boolean isReactive() {
-		return f.isReactive();
+	public boolean isDefined(List<Value> trace) {
+		return f.isDefined(trace);
 	}
 	
-	@Override
-	public boolean isDefined() {
-		return f.isDefined();
-	}
-	
-	public static final class ObservableDynamicCallProxy extends ObjectBinding<Value> {
-		final ObservableValue<Value> fBinding;
-		DynamicCallProxy wrapperValue;
-		
-		public ObservableDynamicCallProxy(DynamicCallProxy wrapperValue) {
-			super();
-			fBinding = wrapperValue.f.toObservableValue();
-			bind(fBinding);
-			this.wrapperValue = wrapperValue;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(fBinding);
-		}
-		
-		@Override
-		protected Value computeValue() {
-			return wrapperValue = wrapperValue.update(fBinding.getValue());
-		}
-		
-	}
-	
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return new ObservableDynamicCallProxy(this);
-	}
-	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.dynamicCallProxy(this);
+    }
 }

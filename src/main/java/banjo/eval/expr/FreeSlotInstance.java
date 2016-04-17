@@ -1,10 +1,7 @@
 package banjo.eval.expr;
 
-import banjo.event.PastEvent;
-import banjo.value.Reaction;
 import banjo.value.Value;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
+import fj.data.List;
 
 /**
  * A "Free" slot instance doesn't depend on the object, just
@@ -14,7 +11,6 @@ import javafx.beans.value.ObservableValue;
 public class FreeSlotInstance implements SlotInstance {
 
 	public final Value value;
-	private ObservableFreeSlotInstance observable;
 
 	public FreeSlotInstance(Value value) {
 	    super();
@@ -22,18 +18,8 @@ public class FreeSlotInstance implements SlotInstance {
     }
 
 	@Override
-	public Value apply(Value t, Value u) {
+    public Value apply(List<Value> trace, Value t, Value u) {
 	    return value;
-	}
-	
-	@Override
-	public Reaction<SlotInstance> react(PastEvent event) {
-		return value.react(event).map(this::update);
-	}
-
-	@Override
-	public boolean isReactive() {
-		return value.isReactive();
 	}
 	
 	private FreeSlotInstance update(Value newValue) {
@@ -49,33 +35,5 @@ public class FreeSlotInstance implements SlotInstance {
 	@Override
 	public String toString() {
 		return value.toString();
-	}
-
-	public static final class ObservableFreeSlotInstance extends ObjectBinding<SlotInstance> {
-		final ObservableValue<Value> valueBinding;
-		FreeSlotInstance slotInstance;
-		public ObservableFreeSlotInstance(FreeSlotInstance slotInstance) {
-			super();
-			valueBinding = slotInstance.value.toObservableValue();
-			bind(valueBinding);
-			this.slotInstance = slotInstance;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(valueBinding);
-		}
-		
-		@Override
-		protected SlotInstance computeValue() {
-			return slotInstance = slotInstance.update(valueBinding.getValue());
-		}
-		
-	}
-	@Override
-	public ObservableValue<SlotInstance> toObservableValue() {
-		if(this.observable == null)
-			this.observable = new ObservableFreeSlotInstance(this);
-		return this.observable;
 	}
 }

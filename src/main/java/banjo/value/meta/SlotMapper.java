@@ -1,14 +1,10 @@
 package banjo.value.meta;
 
-import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Reaction;
 import banjo.value.Value;
-import fj.P2;
+import banjo.value.ValueVisitor;
 import fj.data.List;
 import fj.data.Set;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Create an object by applying a function to each slot in the original
@@ -27,18 +23,13 @@ public class SlotMapper implements Value {
 	}
 
 	@Override
-	public Value slot(String name, Set<SourceFileRange> ranges) {
-		return f.call(List.single(source.slot(name, ranges)));
+	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
+		return f.call(trace, List.single(source.slot(trace, name, ranges)));
 	}
 	
 	@Override
-	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-		return slot(name, ranges);
-	}
-
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		return Reaction.to(f,  source, event).map(P2.tuple(this::update));
+	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+		return slot(trace, name, ranges);
 	}
 
 	public SlotMapper update(Value newF, Value newSource) {
@@ -48,42 +39,12 @@ public class SlotMapper implements Value {
 	}
 	
 	@Override
-	public boolean isReactive() {
-		return f.isReactive() || source.isReactive();
-	}
-	
-	@Override
-	public boolean isDefined() {
-		return f.isDefined() && source.isDefined();
-	}
-	
-	public static final class ObservableSlotMapper extends ObjectBinding<Value> {
-		final ObservableValue<Value> fBinding;
-		final ObservableValue<Value> sourceBinding;
-		SlotMapper slotMapper;
-		public ObservableSlotMapper(SlotMapper slotMapper) {
-			super();
-			fBinding = slotMapper.f.toObservableValue();
-			sourceBinding = slotMapper.source.toObservableValue();
-			bind(fBinding, sourceBinding);
-			this.slotMapper = slotMapper;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(fBinding, sourceBinding);
-		}
-		
-		@Override
-		protected Value computeValue() {
-			return slotMapper = slotMapper.update(fBinding.getValue(), sourceBinding.getValue());
-		}
-		
-		
+	public boolean isDefined(List<Value> trace) {
+		return f.isDefined(trace) && source.isDefined(trace);
 	}
 
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return new ObservableSlotMapper(this);
-	}
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.slotMapper(this);
+    }
 }

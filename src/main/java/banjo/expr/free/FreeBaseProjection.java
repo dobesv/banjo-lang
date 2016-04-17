@@ -32,14 +32,14 @@ public class FreeBaseProjection implements FreeExpression {
     }
 
 	@Override
-	public Value apply(Environment env) {
+    public Value apply(Environment env, List<Value> trace) {
 		String id = object.id;
         Set<SourceFileRange> ranges = object.ranges;
 		return env.bindings.get(id).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
 			public Value slot(Value sourceObject, String slotName) {
-                return slotWithBase(sourceObject, slotName, new SlotNotFound(id + ":" + slotName, ranges, sourceObject));
+                return slotWithBase(sourceObject, slotName, new SlotNotFound(trace, id + ":" + slotName, ranges, sourceObject));
 			}
 			
 			@Override
@@ -47,26 +47,26 @@ public class FreeBaseProjection implements FreeExpression {
 				// Create a special environment for the project, with all the slots for the object except
 				// that the base slot value replaces the binding for slotName in that context.
 				return projection.apply(new Environment(
-                    object.apply(env),
+                    object.apply(env, trace),
                     TreeMap.treeMap(Ord.stringOrd, List.single(P.p(slotName, Binding.let(baseSlotValue)))),
-                    env.projectRootObject));
+                    env.projectRootObject), trace);
 			}
 			
 			@Override
 			public Value functionRecursive(Value function) {
-                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
+                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			
 			@Override
 			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
-                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
+                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			
 			@Override
 			public Value let(Value value) {
-                return new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is a regular let binding", ranges);
+                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a regular let binding", ranges);
 			}
-        })).orSome(() -> new UnboundSlotSelfName("Not a slot self-name: '" + id + "' is not defined", ranges));
+        })).orSome(() -> new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is not defined", ranges));
 	}
 
 	@Override

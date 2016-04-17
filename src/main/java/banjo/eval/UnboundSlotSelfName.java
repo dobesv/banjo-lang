@@ -1,13 +1,14 @@
 package banjo.eval;
 
 import banjo.expr.util.SourceFileRange;
+import banjo.value.Value;
+import fj.data.List;
 import fj.data.Set;
 
 public class UnboundSlotSelfName extends FailWithSourceFileRangesAndMessage {
 
-    public UnboundSlotSelfName(String message, Set<SourceFileRange> ranges) {
-        super(message, ranges);
-        // TODO Auto-generated constructor stub
+    public UnboundSlotSelfName(List<Value> trace, String message, Set<SourceFileRange> ranges) {
+        super(trace, message, ranges);
     }
 
 }

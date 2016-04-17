@@ -1,13 +1,11 @@
 package banjo.eval;
 
-import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Wrap an object so that if it is extended or used to extend another object, it
@@ -17,72 +15,57 @@ public class ClosedObject implements Value {
     final Value object;
 
     @Override
-    public boolean isReactive() {
-        return object.isReactive();
+    public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+        return object.call(trace, arguments);
     }
 
     @Override
-    public ObservableValue<Value> toObservableValue() {
-        return object.toObservableValue();
+    public Value call(List<Value> trace, List<Value> arguments) {
+        return object.call(trace, arguments);
     }
 
     @Override
-    public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-        return object.call(arguments);
+    public Value call1(List<Value> trace, Value v) {
+        return object.call1(trace, v);
     }
 
     @Override
-    public Value call(List<Value> arguments) {
-        return object.call(arguments);
+    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        return slot(trace, name, ranges);
     }
 
     @Override
-    public Value call1(Value v) {
-        return object.call1(v);
+    public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
+        return object.slot(trace, name, ranges);
     }
 
     @Override
-    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        return slot(name, ranges);
+    public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return object.callMethod(trace, name, ranges, args);
     }
 
     @Override
-    public Value slot(String name, Set<SourceFileRange> ranges) {
-        return object.slot(name, ranges);
+    public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, List<Value> args) {
+        return object.callMethod(trace, name, ranges, args);
     }
 
     @Override
-    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-        return object.callMethod(name, ranges, args);
+    public Value force(List<Value> trace) {
+        return object.force(trace);
     }
 
     @Override
-    public Value callMethod(String name, Set<SourceFileRange> ranges, List<Value> args) {
-        return object.callMethod(name, ranges, args);
+    public boolean isDefined(List<Value> trace) {
+        return object.isDefined(trace);
     }
 
     @Override
-    public Value force() {
-        return object.force();
-    }
-
-    @Override
-    public boolean isDefined() {
-        return object.isDefined();
-    }
-
-    @Override
-    public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
-        return object.convertToJava(clazz);
+    public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
+        return object.convertToJava(trace, clazz);
     }
 
     public ClosedObject(Value object) {
         this.object = object;
-    }
-
-    @Override
-    public Reaction<Value> react(PastEvent event) {
-        return object.react(event).map(this::update);
     }
 
     public ClosedObject update(Value newObject) {
@@ -99,4 +82,8 @@ public class ClosedObject implements Value {
         return this;
     }
 
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.closedObject(this);
+    }
 }

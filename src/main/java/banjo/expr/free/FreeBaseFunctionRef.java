@@ -6,6 +6,7 @@ import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import fj.data.List;
 import fj.data.Set;
 
 public class FreeBaseFunctionRef implements FreeExpression {
@@ -19,12 +20,12 @@ public class FreeBaseFunctionRef implements FreeExpression {
     }
 
 	@Override
-	public Value apply(Environment env) {
+    public Value apply(Environment env, List<Value> trace) {
 		return env.bindings.get(name).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
 			public Value functionRecursive(Value function) {
-                return new NotCallable("No base implementation for function '" + name + "'", ranges);
+                return new NotCallable(trace, "No base implementation for function '" + name + "'", ranges);
 			}
 			
 			@Override
@@ -34,20 +35,20 @@ public class FreeBaseFunctionRef implements FreeExpression {
 			
 			@Override
 			public Value let(Value value) {
-                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a regular let-bound variable", ranges);
+                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a regular let-bound variable", ranges);
 			}
 			
 			@Override
 			public Value slot(Value sourceObject, String slotName) {
-                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a slot object reference", ranges);
+                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a slot object reference", ranges);
 			}
 			
 			@Override
 			public Value slotWithBase(Value sourceObject, String slotName, Value baseSlotValue) {
-                return new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is a slot object reference", ranges);
+                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a slot object reference", ranges);
 			}
 			
 			
-        })).orSome(() -> new UnboundFunctionSelfName("Not a function self-name: '" + name + "' is not a locally defined name", ranges));
+        })).orSome(() -> new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is not a locally defined name", ranges));
 	}
 }

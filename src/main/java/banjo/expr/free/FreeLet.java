@@ -18,8 +18,8 @@ public class FreeLet implements FreeExpression {
         this.body = body;
     }
 	@Override
-	public Value apply(Environment env) {
-	    return body.apply(env.let(TreeMap.treeMap(Ord.stringOrd, bindings)));
+    public Value apply(Environment env, List<Value> trace) {
+        return body.apply(env.let(TreeMap.treeMap(Ord.stringOrd, bindings)), trace);
 	}
 
 	@Override

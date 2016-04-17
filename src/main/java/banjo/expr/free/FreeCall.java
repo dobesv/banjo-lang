@@ -24,9 +24,9 @@ public class FreeCall implements FreeExpression {
 	 * Bind the call to the environment, but do not evaluate it yet.
 	 */
 	@Override
-	public Value apply(Environment environment) {
-		Value callee = function.apply(environment);
-		List<Value> args = this.args.map(arg -> arg.apply(environment));
+    public Value apply(Environment environment, List<Value> trace) {
+        Value callee = function.apply(environment, trace);
+        List<Value> args = this.args.map(arg -> arg.apply(environment, trace));
 		return new CallInstance(ranges, callee, args);
 	}
 

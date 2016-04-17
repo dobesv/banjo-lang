@@ -71,7 +71,7 @@ public class FreeExpressionFactory implements
 	@Override
     public FreeExpression badExpr(
             Set<SourceFileRange> ranges, String message, Object... args) {
-		return (e) -> new UnresolvedCodeError(message, ranges);
+        return (e, t) -> new UnresolvedCodeError(message, ranges);
     }
 
 	@Override
@@ -86,7 +86,7 @@ public class FreeExpressionFactory implements
             Set<SourceFileRange> ranges, Number number) {
         if(number instanceof SourceNumber)
             return numberLiteral(ranges, ((SourceNumber) number).getValue());
-        FreeExpression lazyNumber = (env) -> new KernelNumberValue(number, env.getValue("true"), env.getValue("false"));
+        FreeExpression lazyNumber = (env, trace) -> new KernelNumberValue(number, env.getValue(trace, "true"), env.getValue(trace, "false"));
         FreeExpression wrapper = LANGUAGE_KERNEL_NUMBER;
         return call(ranges, wrapper, List.single(lazyNumber));
     }
@@ -94,7 +94,7 @@ public class FreeExpressionFactory implements
 	@Override
     public FreeExpression stringLiteral(
             Set<SourceFileRange> ranges, String text) {
-        FreeExpression lazyString = (env) -> new KernelStringValue(text, env.getValue("true"), env.getValue("false"));
+        FreeExpression lazyString = (env, trace) -> new KernelStringValue(text, env.getValue(trace, "true"), env.getValue(trace, "false"));
         FreeExpression wrapper = LANGUAGE_KERNEL_STRING;
         return call(ranges, wrapper, List.single(lazyString));
     }

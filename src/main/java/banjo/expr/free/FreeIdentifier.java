@@ -4,6 +4,7 @@ import banjo.eval.environment.Environment;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import fj.data.List;
 import fj.data.Set;
 
 public class FreeIdentifier implements FreeExpression {
@@ -20,8 +21,8 @@ public class FreeIdentifier implements FreeExpression {
 	}
 	
 	@Override
-	public Value apply(Environment t) {
-	    return t.getValue(id, ranges);
+    public Value apply(Environment t, List<Value> trace) {
+        return t.getValue(trace, id, ranges);
 	}
 
 	@Override

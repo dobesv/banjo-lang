@@ -1,14 +1,10 @@
 package banjo.value.meta;
 
-import banjo.event.PastEvent;
 import banjo.expr.source.Operator;
 import banjo.value.FunctionTrait;
-import banjo.value.Reaction;
 import banjo.value.Value;
-import fj.P2;
+import banjo.value.ValueVisitor;
 import fj.data.List;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Implement function composition.  The first function is called with with the
@@ -24,30 +20,20 @@ public class FunctionComposition extends FunctionTrait implements Value {
     }
 
 	@Override
-	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-		return this.call(arguments);
+	public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+		return this.call(trace, arguments);
 	}
 	
 	@Override
-	public Value call(List<Value> arguments) {
-		Value intermediateValue = first.call(arguments);
-		Value finalValue = second.call(List.single(intermediateValue));
+	public Value call(List<Value> trace, List<Value> arguments) {
+		Value intermediateValue = first.call(trace, arguments);
+		Value finalValue = second.call(trace, List.single(intermediateValue));
 		return finalValue;
 	}
 
 	@Override
-    public String toStringFallback() {
+    public String toStringFallback(List<Value> trace) {
 	    return second + " " + Operator.FUNCTION_COMPOSITION_LEFT.getOp() + " " + first;
-	}
-
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		return Reaction.to(first, second, event).map(P2.tuple(this::update));
-	}
-
-	@Override
-	public boolean isReactive() {
-		return first.isReactive() || second.isReactive();
 	}
 	
 	public FunctionComposition update(Value newFirst, Value newSecond) {
@@ -55,38 +41,12 @@ public class FunctionComposition extends FunctionTrait implements Value {
 	}
 
 	@Override
-	public boolean isDefined() {
-		return first.isDefined() && second.isDefined();
-	}
-
-	public static final class ObservableFunctionComposition extends ObjectBinding<Value> {
-		final ObservableValue<Value> firstBinding;
-		final ObservableValue<Value> secondBinding;
-		FunctionComposition functionComposition;
-		public ObservableFunctionComposition(FunctionComposition functionComposition) {
-			super();
-			firstBinding = functionComposition.first.toObservableValue();
-			secondBinding = functionComposition.second.toObservableValue();
-			bind(firstBinding, secondBinding);
-			this.functionComposition = functionComposition;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(firstBinding, secondBinding);
-		}
-		
-		@Override
-		protected Value computeValue() {
-			return functionComposition = functionComposition.update(firstBinding.getValue(), secondBinding.getValue());
-		}
-		
-		
-	}
-
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return new ObservableFunctionComposition(this);
+	public boolean isDefined(List<Value> trace) {
+		return first.isDefined(trace) && second.isDefined(trace);
 	}
 	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.functionComposition(this);
+    }
 }

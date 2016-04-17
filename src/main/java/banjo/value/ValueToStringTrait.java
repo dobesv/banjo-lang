@@ -1,5 +1,7 @@
 package banjo.value;
 
+import fj.data.List;
+
 /**
  * Provide a base implementation of ToString for values
  * @author Dobes
@@ -8,6 +10,6 @@ package banjo.value;
 public abstract class ValueToStringTrait implements Value {
 	@Override
 	public String toString() {
-		return javaLabel();
+        return javaLabel(List.nil());
 	}
 }

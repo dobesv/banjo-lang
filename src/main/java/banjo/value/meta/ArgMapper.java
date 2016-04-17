@@ -1,12 +1,8 @@
 package banjo.value.meta;
 
-import banjo.event.PastEvent;
-import banjo.value.Reaction;
 import banjo.value.Value;
-import fj.P2;
+import banjo.value.ValueVisitor;
 import fj.data.List;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Transform all incoming arguments using a given function, and pass them to
@@ -23,65 +19,27 @@ public class ArgMapper implements Value {
 	}
 
 	@Override
-	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-		return call(arguments);
+	public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+		return call(trace, arguments);
 	}
 	
 	@Override
-	public Value call(List<Value> arguments) {
-	    final List<Value> newArguments = arguments.map(List::single).map(f::call);
-		return target.call(newArguments);
+	public Value call(List<Value> trace, List<Value> arguments) {
+        final List<Value> newArguments = arguments.map(arg -> f.call1(trace, arg));
+		return target.call(trace, newArguments);
 	}
 	
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		Reaction<P2<Value, Value>> r = Reaction.to(f, target, event);
-		Value newF = r.v._1();
-		Value newTarget = r.v._2();
-		Value newThis = update(newF, newTarget);
-		return r.from(newThis);
-	}
-
 	public ArgMapper update(Value newF, Value newTarget) {
 		return (f == newF && target == newTarget) ? this : new ArgMapper(newF, newTarget);
 	}
 	
 	@Override
-	public boolean isReactive() {
-		return f.isReactive() || target.isReactive();
-	}
-	
-	@Override
-	public boolean isDefined() {
-		return f.isDefined() && target.isDefined();
+	public boolean isDefined(List<Value> trace) {
+		return f.isDefined(trace) && target.isDefined(trace);
 	}	
 	
-	public static final class ObservableArgMapper extends ObjectBinding<Value> {
-		public final ObservableValue<Value> fBinding;
-		public final ObservableValue<Value> targetBinding;
-		public ArgMapper argMapper;
-		public ObservableArgMapper(ArgMapper argMapper) {
-			super();
-			fBinding = argMapper.f.toObservableValue();
-			targetBinding = argMapper.target.toObservableValue();
-			bind(fBinding, targetBinding);
-			this.argMapper = argMapper;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(fBinding, targetBinding);
-		}
-		
-		@Override
-		protected Value computeValue() {
-			return argMapper = argMapper.update(fBinding.getValue(), targetBinding.getValue());
-		}
-	}
-	
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return new ObservableArgMapper(this);
-	}
-	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.argMapper(this);
+    }
 }

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 
 public class SlotMemoizer extends WrapperValue {
 	public final HashMap<String, IdentityHashMap<Value, IdentityHashMap<Value, Value>>> cache = new HashMap<>();
@@ -30,4 +31,8 @@ public class SlotMemoizer extends WrapperValue {
 		return new SlotMemoizer(newValue);
 	}
 	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return this.target.acceptVisitor(visitor);
+    }
 }

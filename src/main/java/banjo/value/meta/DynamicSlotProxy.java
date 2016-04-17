@@ -1,14 +1,10 @@
 package banjo.value.meta;
 
-import banjo.eval.util.Selector;
-import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.List;
 import fj.data.Set;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * Catch all slot accesses to this object and give them to a function
@@ -27,21 +23,11 @@ public class DynamicSlotProxy implements Value {
     }
 
 	@Override
-	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        final Value sel = new Selector(name, ranges);
-		return delegate.call(List.list(sel, fallback));
+	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        final Value sel = Value.function((v) -> v.slot(trace, name));
+		return delegate.call(trace, List.list(sel, fallback));
 	}
 
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		return delegate.react(event).map(this::update);
-	}
-
-	@Override
-	public boolean isReactive() {
-		return delegate.isReactive();
-	}
-	
 	public DynamicSlotProxy update(Value newInterceptor) {
 		if(newInterceptor == delegate)
 			return this;
@@ -49,35 +35,12 @@ public class DynamicSlotProxy implements Value {
 	}
 
 	@Override
-	public boolean isDefined() {
-		return delegate.isDefined();
-	}
-	public static final class ObservableDynamicSlotProxy extends ObjectBinding<Value> {
-		final ObservableValue<Value> delegateBinding;
-		DynamicSlotProxy wrapperValue;
-		
-		public ObservableDynamicSlotProxy(DynamicSlotProxy wrapperValue) {
-			super();
-			delegateBinding = wrapperValue.delegate.toObservableValue();
-			bind(delegateBinding);
-			this.wrapperValue = wrapperValue;
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(delegateBinding);
-		}
-		
-		@Override
-		protected Value computeValue() {
-			return wrapperValue = wrapperValue.update(delegateBinding.getValue());
-		}
-		
+	public boolean isDefined(List<Value> trace) {
+		return delegate.isDefined(trace);
 	}
 	
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return new ObservableDynamicSlotProxy(this);
-	}
-	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.dynamicSlotProxy(this);
+    }
 }

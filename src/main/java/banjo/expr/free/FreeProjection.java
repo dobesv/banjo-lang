@@ -2,6 +2,7 @@ package banjo.expr.free;
 
 import banjo.eval.environment.Environment;
 import banjo.value.Value;
+import fj.data.List;
 
 
 public class FreeProjection implements FreeExpression {
@@ -16,10 +17,10 @@ public class FreeProjection implements FreeExpression {
     }
 
 	@Override
-	public Value apply(Environment env) {
-		Value boundObject = object.apply(env);
+    public Value apply(Environment env, List<Value> trace) {
+        Value boundObject = object.apply(env, trace);
         Environment objectAsEnvironment = new Environment(boundObject, env.projectRootObject);
-        return projection.apply(objectAsEnvironment);
+        return projection.apply(objectAsEnvironment, trace);
 	}
 
 	@Override

@@ -2,6 +2,7 @@ package banjo.eval;
 
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import fj.data.List;
 import fj.data.Set;
 
 
@@ -11,11 +12,12 @@ public class SlotNotFound extends Fail {
 	public final Value object;
 	public final Throwable cause;
 
-    public SlotNotFound(String id, Set<SourceFileRange> ranges, Value object) {
-        this(id, ranges, object, null);
+    public SlotNotFound(List<Value> trace, String id, Set<SourceFileRange> ranges, Value object) {
+        this(trace, id, ranges, object, null);
     }
 
-    public SlotNotFound(String id, Set<SourceFileRange> ranges, Value object, Throwable cause) {
+    public SlotNotFound(List<Value> trace, String id, Set<SourceFileRange> ranges, Value object, Throwable cause) {
+        super(trace);
 		this.id = id;
         this.ranges = ranges;
 		this.object = object;
@@ -25,7 +27,7 @@ public class SlotNotFound extends Fail {
 	@Override
 	public String getMessage() {
 	    // TODO Need a way to display the object without triggering another SlotNotFound error ...
-        Object actualObject = object.force();
+        Object actualObject = object.force(trace);
 		String objectStr;
 		if(actualObject == null) {
 			objectStr = "null";

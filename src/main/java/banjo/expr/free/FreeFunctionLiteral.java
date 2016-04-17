@@ -26,7 +26,7 @@ public class FreeFunctionLiteral implements FreeExpression {
     }
 
 	@Override
-	public Value apply(Environment env) {
+    public Value apply(Environment env, List<Value> trace) {
 		final FunctionInstance f = new FunctionInstance(ranges, args, body, sourceObjectBinding, env);
 		return f;
 	}

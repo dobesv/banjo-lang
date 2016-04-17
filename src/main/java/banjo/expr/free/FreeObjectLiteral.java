@@ -27,7 +27,7 @@ public class FreeObjectLiteral implements FreeExpression {
 		this.slots = slots;
     }
 	@Override
-	public Value apply(Environment env) {
+    public Value apply(Environment env, List<Value> trace) {
         List<P2<String, SlotInstance>> _slots = slots.map(s -> P.p(s._1().id, SlotInstance.fromFreeExpression(s._1(), s._2(), s._3(), env)));
 		return new SlotMemoizer(new ObjectLiteralInstance(ranges, TreeMap.treeMap(Ord.stringOrd, _slots)));
 	}

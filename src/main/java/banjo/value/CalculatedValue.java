@@ -1,8 +1,6 @@
 package banjo.value;
 
 import banjo.eval.Fail;
-import banjo.eval.util.JavaLanguageRuntimeImpl;
-import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Either;
 import fj.data.List;
@@ -14,100 +12,68 @@ import fj.data.Set;
  * change in response to events. 
  */
 public abstract class CalculatedValue extends ValueToStringTrait implements Value {
-	final List<Value> stack = JavaLanguageRuntimeImpl.stack.get();
 	public Value memo;
 
 	@Override
-    public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
-        return force().call(recurse, baseImpl, arguments);
+    public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+        return force(trace).call(trace, recurse, baseImpl, arguments);
     }
 
 	@Override
-    public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-        return force().callMethod(name, ranges, targetObject, fallback, args);
+    public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return force(trace).callMethod(trace, name, ranges, targetObject, fallback, args);
     }
 
 	@Override
-    public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        return force().slot(self, name, ranges, fallback);
+    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        return force(trace).slot(trace, self, name, ranges, fallback);
     }
 
 	@Override
-	public Value slot(String name, Set<SourceFileRange> ranges) {
-        return force().slot(name, ranges);
+	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
+        return force(trace).slot(trace, name, ranges);
 	}
 
 	@Override
-	public boolean isTruthy() {
-        return force().isTruthy();
+	public boolean isTruthy(List<Value> trace) {
+        return force(trace).isTruthy(trace);
 	}
 
 	@Override
-    public Value force() {
+    public Value force(List<Value> trace) {
         if(this.memo == null) {
-            List<Value> oldStack = JavaLanguageRuntimeImpl.setStack(this.stack);
-            try {
-                Value value = calculate();
-                while((value instanceof CalculatedValue) && !((CalculatedValue) value).isCalculationReactive())
-                    value = ((CalculatedValue) value).force();
-                this.memo = value;
-            } finally {
-                JavaLanguageRuntimeImpl.stack.set(oldStack);
-            }
+            this.memo = calculate(trace);
         }
-        return memo.force();
+        return memo;
     }
 
 	@Override
-	public boolean isDefined() {
-        return force().isDefined();
+	public boolean isDefined(List<Value> trace) {
+        return force(trace).isDefined(trace);
     }
 
 	@Override
-	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
-        Value value = force();
+	public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
+        Value value = force(trace);
 	    if(value == this)
 	    	throw new Error();
-		return value.convertToJava(clazz);
+		return value.convertToJava(trace, clazz);
     }
 
 	@Override
-	public String javaLabel() {
-        return force().javaLabel();
+	public String javaLabel(List<Value> trace) {
+        return force(trace).javaLabel(trace);
     }
 
 	@Override
-	public String toStringFallback() {
-        return force().toStringFallback();
+	public String toStringFallback(List<Value> trace) {
+        return force(trace).toStringFallback(trace);
     }
 
-	@Override
-	public Reaction<Value> react(PastEvent event) {
-		if(this.memo == null)
-			return calculationReact(event);
-		else
-			return memo.react(event);
-	}
-	
-	@Override
-	public boolean isReactive() {
-		if(this.memo == null)
-			return isCalculationReactive();
-		else
-			return memo.isReactive();
-	}
-
-	public abstract Value calculate();
-	
-	/**
-	 * Determine whether the result of this lazy operation depends on a reactive value,
-	 * without calculating it.
-	 */
-	public abstract boolean isCalculationReactive();
-	
-	/**
-	 * Have the calculation result react to an event, without actually calculating it.
-	 */
-	public abstract Reaction<Value> calculationReact(PastEvent event);
+    /**
+     * The subclass must implement the actual calculation for this value.
+     * @param trace TODO
+     */
+	public abstract Value calculate(List<Value> trace);
 
 }

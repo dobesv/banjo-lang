@@ -10,7 +10,6 @@ import org.junit.Test;
 import banjo.eval.Fail;
 import banjo.eval.FailWithException;
 import banjo.eval.environment.Environment;
-import banjo.eval.util.JavaLanguageRuntimeImpl;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
@@ -85,33 +84,29 @@ public abstract class BaseExprTest {
 
     public void evaluates() {
 		noParseErrors();
-        List<Value> oldStack = JavaLanguageRuntimeImpl.stack.get();
-		try {
-			Set<SourceFileRange> ranges = exprRanges();
-			
-            freeExpr = FreeExpressionFactory.apply(expr);
-            intermediateValue = freeExpr.apply(environment);
-			Value tmp;
-	    	try {
-                this.value = intermediateValue.force();
-	        } catch (Throwable e) {
-	        	this.value = new FailWithException(e);
-	        }
-	    	assertNotNull(value);
-	    	if(value instanceof Fail) {
-	    		Fail failure = (Fail) value;
-	    		System.err.println(value.toString());
-	    		if(failure.getCause() != null)
-	    			System.err.println("  Exception: "+failure.getCause().toString());
-                failure.getTrace().forEach(t -> {
-                    System.err.println("  at " + t.stackTraceElementString());
-                });
-                Assert.fail(failure.toString());
-	    	}
-	    	assertTrue(value.isDefined());
-		} finally {
-			JavaLanguageRuntimeImpl.stack.set(oldStack);
-		}
+        Set<SourceFileRange> ranges = exprRanges();
+
+        freeExpr = FreeExpressionFactory.apply(expr);
+        List<Value> trace = List.nil();
+        intermediateValue = freeExpr.apply(environment, trace);
+        Value tmp;
+        try {
+            this.value = intermediateValue.force(trace);
+        } catch(Throwable e) {
+            this.value = new FailWithException(List.single(intermediateValue), e);
+        }
+        assertNotNull(value);
+        if(value instanceof Fail) {
+            Fail failure = (Fail) value;
+            System.err.println(value.toString());
+            if(failure.getCause() != null)
+                System.err.println("  Exception: " + failure.getCause().toString());
+            failure.getTrace().forEach(t -> {
+                System.err.println("  at " + t.stackTraceElementString());
+            });
+            Assert.fail(failure.toString());
+        }
+        assertTrue(value.isDefined(trace));
     }
 
 	public void printable() {
@@ -130,7 +125,7 @@ public abstract class BaseExprTest {
     public void isTruthy() throws Throwable {
     	evaluates();
     	final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator(environment));
-    	assertTrue(valueStr, value.isTruthy());
+        assertTrue(valueStr, value.isTruthy(List.single(value)));
     }
 
 }

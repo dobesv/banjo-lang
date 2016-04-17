@@ -1,78 +1,64 @@
 package banjo.eval;
 
-import com.sun.javafx.binding.ObjectConstant;
-
-import banjo.eval.util.JavaLanguageRuntimeImpl;
-import banjo.event.PastEvent;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Reaction;
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;
-import javafx.beans.value.ObservableValue;
 
 
 public class Fail implements Value {
 	
-	final List<Value> trace = JavaLanguageRuntimeImpl.stack.get();
+    public final List<Value> trace;
 	
-	public Fail() {
+    public Fail(List<Value> trace) {
+        this.trace = trace;
 	}
 
 	@Override
-	public Value slot(String name, Set<SourceFileRange> ranges) {
+	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
 		return this;
 	}
 
 	@Override
-	public Value slot(Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
 	    return this;
 	}
 
 	@Override
-	public Value call(List<Value> arguments) {
+	public Value call(List<Value> trace, List<Value> arguments) {
 	    return this;
 	}
 
 	@Override
-	public Value call(Value recurse, Value baseImpl, List<Value> arguments) {
+	public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
 	    return this;
 	}
 
 	@Override
-	public Value callMethod(String name, Set<SourceFileRange> ranges, Value targetObject,
-	        Value fallback, List<Value> args) {
+	public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges,
+	        Value targetObject, Value fallback, List<Value> args) {
 	    return this;
 	}
 
 	@Override
-    public Value force() {
+    public Value force(List<Value> trace) {
 	    return this;
 	}
 
 	@Override
-	public boolean isDefined() {
+	public boolean isDefined(List<Value> trace) {
 		return false;
 	}
 
 	@Override
-	public boolean isTruthy() {
+	public boolean isTruthy(List<Value> trace) {
 	    return false;
 	}
 
 	@Override
-	public Reaction<Value> react(PastEvent event) {
-		return Reaction.of(this);
-	}
-	
-	@Override
-	public boolean isReactive() {
-		return false;
-	}
-	
-	@Override
-	public <T> Either<T, Fail> convertToJava(Class<T> clazz) {
+	public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
 		if(clazz.isAssignableFrom(Fail.class)) {
 			return Either.left(clazz.cast(this));
 		}
@@ -80,15 +66,10 @@ public class Fail implements Value {
 	}
 
 	@Override
-	public String javaLabel() {
+	public String javaLabel(List<Value> trace) {
 		return this.toString();
 	}
 	
-	@Override
-	public ObservableValue<Value> toObservableValue() {
-		return ObjectConstant.valueOf(this);
-	}
-
 	public String getMessage() {
 		return getClass().getName();
 	}
@@ -110,4 +91,9 @@ public class Fail implements Value {
         return "fail(\"" + getClass().getSimpleName() + ": " + getMessage() + "\")";
 	}
 	
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.failure(this);
+    }
+
 }

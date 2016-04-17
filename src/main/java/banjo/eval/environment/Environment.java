@@ -6,12 +6,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import banjo.eval.ArgumentNotSupplied;
+import banjo.eval.ExtendedObject;
 import banjo.eval.Fail;
+import banjo.eval.FailWithMessage;
 import banjo.eval.SlotNotFound;
 import banjo.eval.UnboundIdentifier;
-import banjo.eval.util.JavaLanguageRuntimeImpl;
+import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.eval.util.LazyBoundValue;
-import banjo.event.PastEvent;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprFactory;
 import banjo.expr.free.FreeExpression;
@@ -19,10 +20,14 @@ import banjo.expr.free.FreeExpressionFactory;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Reaction;
-import banjo.value.Reactive;
 import banjo.value.SlotValue;
 import banjo.value.Value;
+import banjo.value.kernel.KernelBooleanValue;
+import banjo.value.kernel.KernelNumberValue;
+import banjo.value.meta.ArgMapper;
+import banjo.value.meta.DynamicCallProxy;
+import banjo.value.meta.DynamicSlotProxy;
+import banjo.value.meta.SlotMapper;
 import fj.Ord;
 import fj.P;
 import fj.P2;
@@ -30,8 +35,6 @@ import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
-import javafx.beans.binding.ObjectBinding;
-import javafx.beans.value.ObservableValue;
 
 /**
  * An environment is used to resolve names to values when evaluating
@@ -51,12 +54,10 @@ import javafx.beans.value.ObservableValue;
  * "project root object" is the default projection, allowing access to global
  * variables defined in the project root from the project source search path.
  */
-public class Environment implements Reactive<Environment> {
+public class Environment {
     public final Value projectRootObject;
 	public final Value rootObject;
 	public final TreeMap<String, Binding> bindings;
-	public final boolean reactive;
-	private ObservableEnvironment observable;
 
     /**
      * Construct an environment.
@@ -74,7 +75,6 @@ public class Environment implements Reactive<Environment> {
     public Environment(Value rootObject, TreeMap<String, Binding> bindings, Value projectRootObject) {
         this.bindings = requireNonNull(bindings);
         this.rootObject = requireNonNull(rootObject);
-        this.reactive = rootObject.isReactive() || checkReactive(bindings);
         this.projectRootObject = requireNonNull(projectRootObject);
 	}
 	
@@ -110,26 +110,14 @@ public class Environment implements Reactive<Environment> {
      * @param runtime
      *            Bound to the name given as <code>runtimeName</code>
      */
-    public Environment(FreeExpression rootFreeExpr, String runtimeName, Value runtime) {
-        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(runtime));
+    public Environment(FreeExpression rootFreeExpr, String runtimeName) {
         this.rootObject = this.projectRootObject = bindLazy(rootFreeExpr);
-        this.reactive = false;
+        SlotValue trueValue = new SlotValue(this.rootObject, Identifier.TRUE.id, SourceFileRange.EMPTY_SET);
+        SlotValue falseValue = new SlotValue(this.rootObject, Identifier.FALSE.id, SourceFileRange.EMPTY_SET);
+        Value runtime = languageKernelValue(trueValue, falseValue);
+        this.bindings = TreeMap.<String, Binding> empty(Ord.stringOrd).set(runtimeName, Binding.let(runtime));
     }
 
-    /**
-     * Return true if any binding value in this environment is reactive.
-     */
-	public boolean checkReactive(TreeMap<?, Binding> bindings) {
-		boolean reactive = false;
-        for(P2<?, Binding> p : bindings) {
-			if(p._2().isReactive()) {
-				reactive = true;
-				break;
-			}
-		}
-		return reactive;
-	}
-	
     /**
      * Construct an environment by adding new local name -> value bindings to an
      * existing environment.
@@ -146,32 +134,12 @@ public class Environment implements Reactive<Environment> {
 		// The trick here is that we mustn't "force" or calculate any value in the let until after we've set bindings
 		this.bindings = letBindings.map(this::bindLazy).map(Binding::let).union(parentEnv.bindings);
 		this.rootObject = parentEnv.rootObject;
-		this.reactive = parentEnv.isReactive() || checkReactive(bindings);
         this.projectRootObject = parentEnv.projectRootObject;
 	}
 
 	@Override
 	public String toString() {
         return projectRootObject + ".(" + bindings + " ⇒ ...)";
-	}
-	
-	@Override
-	public Reaction<Environment> react(PastEvent event) {
-		if(!reactive)
-			return Reaction.of(this);
-		List<P2<String, Binding>> pairs = List.iterableList(bindings);
-		List<Binding> deps = pairs.map(P2.__2());
-		Reaction<List<Binding>> reactions = Reaction.to(deps, event);
-		boolean changedSlots = reactions.v != deps;
-		TreeMap<String, Binding> newSlots = 
-				changedSlots ? TreeMap.treeMap(Ord.stringOrd, pairs.map(P2.__1()).zip(reactions.v)) :
-				this.bindings;
-		return Reaction.p(rootObject.react(event), reactions.from(newSlots)).map(P2.tuple(this::update));
-	}
-
-	@Override
-	public boolean isReactive() {
-		return reactive;
 	}
 	
 	public Environment update(Value newRootObject, TreeMap<String, Binding> newBindings) {
@@ -200,7 +168,7 @@ public class Environment implements Reactive<Environment> {
      * @return Evaluation result
      */
 	public Value eval(final FreeExpression fx) {
-	    return fx.apply(this);
+        return fx.apply(this, List.nil());
     }
 	
     /**
@@ -229,7 +197,7 @@ public class Environment implements Reactive<Environment> {
      *         representing an error that the name is not bound in this
      *         environment
      */
-    public Value getValue(String id, Set<SourceFileRange> ranges) {
+    public Value getValue(List<Value> trace, String id, Set<SourceFileRange> ranges) {
         if(id.equals(Identifier.PROJECT_ROOT.id))
             return projectRootObject;
         Option<Binding> binding = bindings.get(id);
@@ -237,7 +205,7 @@ public class Environment implements Reactive<Environment> {
             return binding.some().getValue();
         }
 
-        return new SlotValue(rootObject, rootObject, id, ranges, unboundIdentifier(id, ranges));
+        return new SlotValue(rootObject, rootObject, id, ranges, unboundIdentifier(trace, id, ranges));
 	}
 
     /**
@@ -249,8 +217,8 @@ public class Environment implements Reactive<Environment> {
      *         representing an error that the name is not bound in this
      *         environment
      */
-    public Value getValue(String id) {
-        return getValue(id, SourceFileRange.EMPTY_SET);
+    public Value getValue(List<Value> trace, String id) {
+        return getValue(trace, id, SourceFileRange.EMPTY_SET);
     }
 	
     /**
@@ -262,10 +230,10 @@ public class Environment implements Reactive<Environment> {
      *            Source file ranges where that name comes from
      * @return A <code>Fail</code> value instance
      */
-    private Fail unboundIdentifier(String id, Set<SourceFileRange> ranges) {
+    private Fail unboundIdentifier(List<Value> trace, String id, Set<SourceFileRange> ranges) {
         if(this.rootObject == this.projectRootObject)
-            return new UnboundIdentifier(id, ranges);
-        return new SlotNotFound(id, ranges, rootObject);
+            return new UnboundIdentifier(trace, id, ranges);
+        return new SlotNotFound(trace, id, ranges, rootObject);
     }
 
     /**
@@ -340,6 +308,24 @@ public class Environment implements Reactive<Environment> {
         return forProjectAst(projectAst);
 	}
 
+    public static Value languageKernelValue(Value trueValue, Value falseValue) {
+        return new ObjectLiteralInstance(TreeMap.<String,Value>empty(Ord.stringOrd)
+            // TODO Stack trace missing here...
+            .set("fail", Value.function(message -> new FailWithMessage(List.nil(), message)))
+            .set("extension", Value.function(ExtendedObject::new))
+            .set("dynamic slot proxy", Value.function(DynamicSlotProxy::new))
+            .set("arg mapper", Value.function(ArgMapper::new))
+            .set("dynamic call proxy", Value.function(DynamicCallProxy::new))
+            .set("slot mapper", Value.function(SlotMapper::new))
+            .set("∞", new KernelNumberValue(Double.POSITIVE_INFINITY, trueValue, falseValue))
+            .set("-∞", new KernelNumberValue(Double.NEGATIVE_INFINITY, trueValue, falseValue))
+            .set("NaN", new KernelNumberValue(Double.NaN, trueValue, falseValue))
+            .set("startup time ms", new KernelNumberValue(System.currentTimeMillis(), trueValue, falseValue))
+            // .set("current time ms", ) // ???
+            .set("true", new KernelBooleanValue(true, trueValue, falseValue))
+            .set("false", new KernelBooleanValue(false, trueValue, falseValue)));
+	}
+
     /**
      * Calculate the top level environment for a given source file from its
      * project root AST and creating an environment based on that.
@@ -351,8 +337,7 @@ public class Environment implements Reactive<Environment> {
      */
     public static Environment forProjectAst(CoreExpr projectAst) {
         FreeExpression environmentRoot = FreeExpressionFactory.apply(projectAst);
-        Value runtime = Value.fromJava(new JavaLanguageRuntimeImpl());
-        return new Environment(environmentRoot, Identifier.LANGUAGE_KERNEL.id, runtime);
+        return new Environment(environmentRoot, Identifier.LANGUAGE_KERNEL.id);
     }
 
     /**
@@ -403,10 +388,11 @@ public class Environment implements Reactive<Environment> {
      *            "previous" implementation
      * @return A new environment to use to evaluate the function body.
      */
-	public Environment enterFunction(List<Identifier> formalArgs, List<Value> providedArgs, Option<Identifier> sourceObjectBinding, Value recurse, Value prevImpl) {
+    public Environment enterFunction(List<Value> trace, List<Identifier> formalArgs, List<Value> providedArgs, Option<Identifier> sourceObjectBinding,
+        Value recurse, Value prevImpl) {
 	    List<Identifier> missingArgNames = formalArgs.drop(providedArgs.length());
 		final List<P2<String, Binding>> missingArgBindings =
-				missingArgNames.map(name -> P.p(name.id, Binding.let(new ArgumentNotSupplied("Missing argument '"+name.id+"'"))));
+            missingArgNames.map(name -> P.p(name.id, Binding.let(new ArgumentNotSupplied(trace, "Missing argument '" + name.id + "'"))));
 		List<P2<String, Binding>> argBindings = formalArgs
 				.map(a -> a.id)
 				.zip(providedArgs.map(Binding::let)).append(missingArgBindings);
@@ -416,37 +402,4 @@ public class Environment implements Reactive<Environment> {
 		List<P2<String, Binding>> allBindings = recBinding.append(argBindings);
 	    return bind(TreeMap.treeMap(Ord.stringOrd, allBindings));
     }
-
-	public static final class ObservableEnvironment extends ObjectBinding<Environment> {
-		public final ObservableValue<Value> rootObjectBinding;
-		public final TreeMap<String, ObservableValue<Binding>> bindingsBinding;
-		Environment environment;
-		
-		public ObservableEnvironment(Environment environment) {
-			super();
-			rootObjectBinding = environment.rootObject.toObservableValue();
-			bindingsBinding = environment.bindings.map(Binding::toObservableValue);
-			this.environment = environment;
-		}
-		
-		@Override
-		protected Environment computeValue() {
-			return environment = environment.update(
-					rootObjectBinding.getValue(), 
-					bindingsBinding.map(ObservableValue::getValue));
-		}
-		
-		@Override
-		public void dispose() {
-			unbind(bindingsBinding.values().map(ObservableValue.class::cast).cons(rootObjectBinding).array(ObservableValue[].class));
-		}
-		
-	}
-	@Override
-    public ObservableValue<Environment> toObservableValue() {
-		if(observable == null)
-			observable = new ObservableEnvironment(this);
-		return observable;
-	}
-
 }
