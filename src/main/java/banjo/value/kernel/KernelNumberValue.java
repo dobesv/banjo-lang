@@ -479,47 +479,47 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
         @Override
         public Boolean int8(byte a, byte b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean int16(short a, short b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean int32(int a, int b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean int64(long a, long b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean integer(BigInteger a, BigInteger b) {
-            return a.compareTo(b) == 0;
+            return a.compareTo(b) < 0;
         }
 
         @Override
         public Boolean float32(float a, float b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean float64(double a, double b) {
-            return a == b;
+            return a < b;
         }
 
         @Override
         public Boolean decimal(BigDecimal a, BigDecimal b) {
-            return a.compareTo(b) == 0;
+            return a.compareTo(b) < 0;
         }
 
         @Override
         public Boolean fraction(BigFraction a, BigFraction b) {
-            return a.compareTo(b) == 0;
+            return a.compareTo(b) < 0;
         }
 
     };

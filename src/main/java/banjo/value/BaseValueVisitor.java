@@ -4,10 +4,8 @@ import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
 import banjo.eval.ExtendedObject.ChainedBaseFunctionImpl;
 import banjo.eval.Fail;
-import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.FunctionInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
-import banjo.eval.util.LazyBoundValue;
 import banjo.value.kernel.KernelBooleanValue;
 import banjo.value.kernel.KernelListValue;
 import banjo.value.kernel.KernelMapValue;
@@ -21,11 +19,6 @@ import banjo.value.meta.SlotMapper;
 
 public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     public abstract T fallback();
-
-    @Override
-    public T slotValue(SlotValue slotValue) {
-        return fallback();
-    }
 
     @Override
     public T kernelNumber(KernelNumberValue kernelNumberValue) {
@@ -63,22 +56,7 @@ public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     }
 
     @Override
-    public T lazyBoundValue(LazyBoundValue lazyBoundValue) {
-        return fallback();
-    }
-
-    @Override
     public T objectLiteralInstance(ObjectLiteralInstance objectLiteralInstance) {
-        return fallback();
-    }
-
-    @Override
-    public T call(CallInstance callInstance) {
-        return fallback();
-    }
-
-    @Override
-    public T methodCall(MethodCallInstance methodCallInstance) {
         return fallback();
     }
 

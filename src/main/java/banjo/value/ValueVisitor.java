@@ -4,10 +4,8 @@ import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
 import banjo.eval.ExtendedObject.ChainedBaseFunctionImpl;
 import banjo.eval.Fail;
-import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.FunctionInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
-import banjo.eval.util.LazyBoundValue;
 import banjo.value.kernel.KernelBooleanValue;
 import banjo.value.kernel.KernelListValue;
 import banjo.value.kernel.KernelMapValue;
@@ -70,27 +68,6 @@ public interface ValueVisitor<T> {
      * Object literal bound in an environment
      */
     T objectLiteralInstance(ObjectLiteralInstance objectLiteralInstance);
-
-    /**
-     * Lazy environment lookup
-     */
-    T lazyBoundValue(LazyBoundValue lazyBoundValue);
-
-    /**
-     * Lazy call thunk
-     */
-    T call(CallInstance callInstance);
-
-    /**
-     * Lazy method call. Having this separate from call is a slight
-     * optimization.
-     */
-    T methodCall(MethodCallInstance methodCallInstance);
-
-    /**
-     * Lazy slot calculation
-     */
-    T slotValue(SlotValue slotValue);
 
     /**
      * Special meta-object that applies a function to each argument before

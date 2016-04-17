@@ -9,13 +9,12 @@ import banjo.eval.Fail;
 import banjo.eval.FailWithMessage;
 import banjo.eval.NotCallable;
 import banjo.eval.SlotNotFound;
-import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.expr.util.SourceFileRange;
-import fj.Ord;
+import banjo.value.kernel.KernelBooleanValue;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
-import fj.data.TreeMap;
 
 public interface Value {
 	public static final Value IDENTITY_FUNCTION = function(Function.identity());
@@ -195,29 +194,11 @@ public interface Value {
     }
 
 	/**
-	 *
-	 * @param trace TODO
-	 * @return true if this value is "truthy", as in "this && true == true".
-	 */
-	public default boolean isTruthy(List<Value> trace) {
-		try {
-            // If no "logical and" method, it's definitely not truthy
-            Value fallbackValue = new FailWithMessage(trace, "Not a boolean-like value");
-            Value tempTrue = Value.function((Value ifTrue) -> Value.function((Value ifFalse) -> ifTrue));
-            Value tempFalse = Value.function((Value ifTrue) -> Value.function((Value ifFalse) -> ifFalse));
-            Value visitor = new ObjectLiteralInstance(
-                TreeMap.<String, Value> empty(Ord.stringOrd)
-                    .set("true", tempTrue)
-                    .set("false", tempFalse));
-            final Value callResult =
-                callMethod(trace, "if", SourceFileRange.currentJavaThreadLoc(), this, fallbackValue, List.single(visitor));
-
-            // Doesn't return a boolean? not truthy
-            return callResult.convertToJava(trace, Function.class)
-                .either(f -> Function.class.cast(f.apply(tempTrue)).apply(tempFalse) == tempTrue, x -> false);
-		} catch(Exception e) {
-			return false; // Failure is not truthy
-		}
+     * Return true if this == true.
+     */
+    public default boolean isTrue(List<Value> trace) {
+        Option<Boolean> b = KernelBooleanValue.extractBoolean(trace, this);
+        return b.orSome(false);
 	}
 
 	/**

@@ -35,8 +35,4 @@ public class MethodCallInstance extends CalculatedValue {
         return new MethodCallInstance(object, name, ranges, targetObject, fallback, args);
 	}
 
-    @Override
-    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
-        return visitor.methodCall(this);
-    }
 }

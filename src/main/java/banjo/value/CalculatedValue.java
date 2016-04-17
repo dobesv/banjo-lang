@@ -35,8 +35,8 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	}
 
 	@Override
-	public boolean isTruthy(List<Value> trace) {
-        return force(trace).isTruthy(trace);
+	public boolean isTrue(List<Value> trace) {
+        return force(trace).isTrue(trace);
 	}
 
 	@Override
@@ -68,6 +68,11 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	@Override
 	public String toStringFallback(List<Value> trace) {
         return force(trace).toStringFallback(trace);
+    }
+
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return force(List.nil()).acceptVisitor(visitor);
     }
 
     /**

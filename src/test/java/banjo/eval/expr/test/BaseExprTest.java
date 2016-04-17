@@ -122,10 +122,10 @@ public abstract class BaseExprTest {
 	}
 
 	@Test
-    public void isTruthy() throws Throwable {
+    public void isTrue() throws Throwable {
     	evaluates();
     	final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator(environment));
-        assertTrue(valueStr, value.isTruthy(List.single(value)));
+        assertTrue(valueStr, value.isTrue(List.single(value)));
     }
 
 }

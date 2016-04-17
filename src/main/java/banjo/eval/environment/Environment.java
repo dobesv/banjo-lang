@@ -24,6 +24,7 @@ import banjo.value.SlotValue;
 import banjo.value.Value;
 import banjo.value.kernel.KernelBooleanValue;
 import banjo.value.kernel.KernelNumberValue;
+import banjo.value.kernel.KernelStringValue;
 import banjo.value.meta.ArgMapper;
 import banjo.value.meta.DynamicCallProxy;
 import banjo.value.meta.DynamicSlotProxy;
@@ -310,7 +311,7 @@ public class Environment {
 
     public static Value languageKernelValue(Value trueValue, Value falseValue) {
         return new ObjectLiteralInstance(TreeMap.<String,Value>empty(Ord.stringOrd)
-            // TODO Stack trace missing here...
+            .set("label", new KernelStringValue("language kernel", trueValue, falseValue))
             .set("fail", Value.function(message -> new FailWithMessage(List.nil(), message)))
             .set("extension", Value.function(ExtendedObject::new))
             .set("dynamic slot proxy", Value.function(DynamicSlotProxy::new))

@@ -42,8 +42,4 @@ public class SlotValue extends CalculatedValue {
         return new SlotValue(newObject, newSelf, slotName, ranges, newFallback);
 	}
 
-    @Override
-    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
-        return visitor.slotValue(this);
-    }
 }

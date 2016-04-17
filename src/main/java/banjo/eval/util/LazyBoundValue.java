@@ -4,7 +4,6 @@ import banjo.eval.environment.Environment;
 import banjo.expr.free.FreeExpression;
 import banjo.value.CalculatedValue;
 import banjo.value.Value;
-import banjo.value.ValueVisitor;
 import fj.data.List;
 
 /**
@@ -31,9 +30,5 @@ public class LazyBoundValue extends CalculatedValue {
 		return new LazyBoundValue(expr, newEnvironment);
 	}
 
-    @Override
-    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
-        return visitor.lazyBoundValue(this);
-    }
 }
 

@@ -53,7 +53,7 @@ public class Fail implements Value {
 	}
 
 	@Override
-	public boolean isTruthy(List<Value> trace) {
+	public boolean isTrue(List<Value> trace) {
 	    return false;
 	}
 

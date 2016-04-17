@@ -20,7 +20,8 @@ public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements V
     }
 
     public static Option<Boolean> extractBoolean(List<Value> trace, Value v) {
-        return v.slot(trace, "kernel boolean value").acceptVisitor(new BaseValueVisitor<Option<Boolean>>() {
+        Value kb = v.slot(trace, "kernel boolean value");
+        return kb.acceptVisitor(new BaseValueVisitor<Option<Boolean>>() {
             @Override
             public Option<Boolean> fallback() {
                 return Option.none();
@@ -30,6 +31,7 @@ public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements V
             public Option<Boolean> kernelBoolean(KernelBooleanValue kernelBooleanValue) {
                 return Option.some(kernelBooleanValue.value);
             }
+
         });
     }
 
@@ -77,6 +79,8 @@ public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements V
         if(Operator.NOT.getMethodName().equals(name))
             return boolValue(!value.booleanValue());
 
+        if("label".equals(name))
+            return new KernelStringValue("language kernel." + value, trueValue, falseValue);
         return Value.super.slot(trace, name);
     }
 }
