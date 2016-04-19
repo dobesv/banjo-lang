@@ -24,12 +24,12 @@ public class FreeBaseFunctionRef implements FreeExpression {
 		return env.bindings.get(name).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
 			
 			@Override
-			public Value functionRecursive(Value function) {
+            public Value functionSelf(Value function) {
                 return new NotCallable(trace, "No base implementation for function '" + name + "'", ranges);
 			}
 			
 			@Override
-			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
+            public Value functionSelfWithBase(Value function, Value baseFunction) {
 				return baseFunction;
 			}
 			

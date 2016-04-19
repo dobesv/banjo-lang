@@ -142,10 +142,12 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	    return sb.toString();
 	}
 	
-	private ObjectLiteralInstance update(TreeMap<String, SlotInstance> newSlots) {
-		return ListUtil.elementsEq(slots.values(), newSlots.values()) ? this : new ObjectLiteralInstance(ranges, newSlots);
-	}
-	
+    // private ObjectLiteralInstance update(TreeMap<String, SlotInstance>
+    // newSlots) {
+    // return ListUtil.elementsEq(slots.values(), newSlots.values()) ? this :
+    // new ObjectLiteralInstance(ranges, newSlots);
+    // }
+    //
     @Override
     public <T> T acceptVisitor(ValueVisitor<T> visitor) {
         return visitor.objectLiteralInstance(this);

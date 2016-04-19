@@ -2,23 +2,23 @@ package banjo.eval.environment;
 
 import banjo.value.Value;
 
-public class FunctionRecursiveBinding implements Binding {
+public class FunctionSelfBinding implements Binding {
 	public final Value function;
 	
-	public FunctionRecursiveBinding(Value function) {
+	public FunctionSelfBinding(Value function) {
 		super();
 		this.function = function;
 	}
 
 	@Override
 	public <T> T acceptVisitor(BindingVisitor<T> visitor) {
-		return visitor.functionRecursive(function);
+        return visitor.functionSelf(function);
 	}
 	
-	public FunctionRecursiveBinding update(Value function) {
+	public FunctionSelfBinding update(Value function) {
 		if(function == this.function)
 			return this;
-		return new FunctionRecursiveBinding(function);
+		return new FunctionSelfBinding(function);
 	}
 
 }

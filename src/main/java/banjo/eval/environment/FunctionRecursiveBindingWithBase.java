@@ -14,7 +14,7 @@ public class FunctionRecursiveBindingWithBase implements Binding {
 
 	@Override
 	public <T> T acceptVisitor(BindingVisitor<T> visitor) {
-		return visitor.functionRecursiveWithBase(function, baseFunction);
+		return visitor.functionSelfWithBase(function, baseFunction);
 	}
 	
 	public FunctionRecursiveBindingWithBase update(Value function, Value baseFunction) {

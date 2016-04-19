@@ -6,6 +6,9 @@ import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.StringLiteral;
 
 public interface CoreExprVisitor<T> {
+    public default T visit(CoreExpr e) {
+        return e.acceptVisitor(this);
+    }
 	T badExpr(BadCoreExpr badExpr);
 	T stringLiteral(StringLiteral stringLiteral);
 	T numberLiteral(NumberLiteral numberLiteral);

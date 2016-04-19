@@ -5,8 +5,10 @@ import banjo.value.Value;
 public interface BindingVisitor<T> {
 
 	T let(Value value);
-	T functionRecursive(Value function);
-	T functionRecursiveWithBase(Value function, Value baseFunction);
+
+    T functionSelf(Value function);
+
+	T functionSelfWithBase(Value function, Value baseFunction);
 
     T slot(Value sourceObject, String slotName);
 

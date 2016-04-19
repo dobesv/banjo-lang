@@ -22,10 +22,6 @@ public class FreeSlotInstance implements SlotInstance {
 	    return value;
 	}
 	
-	private FreeSlotInstance update(Value newValue) {
-		return (value == newValue)? this : new FreeSlotInstance(newValue);
-	}
-
 	public SlotInstance withValue(Value newValue) {
 		if(newValue == this.value)
 			return this;

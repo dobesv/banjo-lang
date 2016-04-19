@@ -41,7 +41,7 @@ public class TestRunCoreLibraryExamples extends BaseExprTest {
 	public static List<CoreExpr> findAllExamples() {
         List<Path> paths = CoreExprFactory.projectSourcePathsForFile(Paths.get(""));
         CoreExpr ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
-        return TestAndExampleGatherer.findExamples(ast);
+        return TestAndExampleGatherer.findExamples(ast).toList();
 	}
 
 	@Parameters(name="{1}")

@@ -31,10 +31,6 @@ public class FunctionInstance extends FunctionTrait implements Value {
         this.trait = new SlotValue(closure.projectRootObject, Identifier.FUNCTION_TRAIT.id, SourceFileRange.EMPTY_SET);
     }
 
-	private FunctionInstance update(Environment newEnvironment) {
-		return (newEnvironment == closure)? this : new FunctionInstance(ranges, args, body, sourceObjectBinding, newEnvironment);
-	}
-
 	@Override
 	public Value call(List<Value> trace, Value recurse, Value prevImpl, List<Value> arguments) {
         Environment env = closure.enterFunction(trace, args, arguments, sourceObjectBinding, recurse, prevImpl);

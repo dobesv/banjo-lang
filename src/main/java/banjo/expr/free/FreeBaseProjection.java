@@ -53,12 +53,12 @@ public class FreeBaseProjection implements FreeExpression {
 			}
 			
 			@Override
-			public Value functionRecursive(Value function) {
+            public Value functionSelf(Value function) {
                 return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			
 			@Override
-			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
+            public Value functionSelfWithBase(Value function, Value baseFunction) {
                 return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
 			}
 			

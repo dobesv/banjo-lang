@@ -4,148 +4,117 @@ import banjo.expr.token.Identifier;
 import fj.P;
 import fj.P2;
 import fj.data.List;
+import fj.data.Set;
 
 public class TestAndExampleGatherer {
+
+    private static class TestFindingCoreExprVisitor extends BaseCoreExprVisitor<Set<CoreExpr>> {
+        @Override
+        public Set<CoreExpr> fallback() {
+            return CoreExpr.EMPTY_SET;
+        }
+
+        @Override
+        public Set<CoreExpr> call(Call call) {
+            Set<CoreExpr> argTests = union(call.args.map(this::visit));
+            return call.target.acceptVisitor(this).union(argTests);
+        }
+
+        public Set<CoreExpr> tests(List<CoreExpr> tests) {
+            return union(tests.map(arg -> arg.acceptVisitor(new BaseCoreExprVisitor<Set<CoreExpr>>() {
+                @Override
+                public Set<CoreExpr> fallback() {
+                    return Set.single(CoreExpr.coreExprOrd, arg);
+                }
+
+                @Override
+                public Set<CoreExpr> listLiteral(ListLiteral n) {
+                    return Set.set(CoreExpr.coreExprOrd, n.elements);
+                }
+            })));
+        }
+
+        @Override
+        public Set<CoreExpr> listLiteral(
+            ListLiteral n) {
+            List<Set<CoreExpr>> eltTests = n.elements.map(this::visit);
+            return union(eltTests);
+
+        }
+
+        @Override
+        public Set<CoreExpr> objectLiteral(ObjectLiteral n) {
+            final List<Set<CoreExpr>> methodExamples = n.getSlots().map(Slot::getValue).map(this::visit);
+            return union(methodExamples);
+        }
+
+        public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+            return binding._2().acceptVisitor(this);
+        }
+
+        @Override
+        public Set<CoreExpr> let(Let let) {
+            Set<CoreExpr> examplesInBindings = union(let.bindings.map(this::binding));
+            Set<CoreExpr> examplesInBody = let.body.acceptVisitor(this);
+            Set<CoreExpr> allExamples = examplesInBindings.union(examplesInBody);
+            // Need to rewrap the example in the let so it has whatever
+            // variables from scope that it needs
+            return allExamples.map(CoreExpr.coreExprOrd, e -> new Let(let.getSourceFileRanges(), let.bindings, e));
+        }
+
+        @Override
+        public Set<CoreExpr> extend(Extend n) {
+            return n.getBase().acceptVisitor(this).union(n.getExtension().acceptVisitor(this));
+        }
+
+        @Override
+        public Set<CoreExpr> functionLiteral(FunctionLiteral f) {
+            Set<CoreExpr> result =
+                f.body.acceptVisitor(this).map(
+                    CoreExpr.coreExprOrd,
+                    e -> f.sourceObjectBinding.map(recId -> (CoreExpr) new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e)).orSome(e));
+            return result;
+        }
+
+        @Override
+        public Set<CoreExpr> projection(Projection projection) {
+            return projection.object.acceptVisitor(this);
+        }
+    }
 
     public static final Identifier TESTS_KEY = new Identifier("unit tests");
     public static final Identifier EXAMPLES_KEY = new Identifier("usage examples");
 
-    static public List<CoreExpr> findTests(CoreExpr base) {
-    	return base.acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
-    		@Override
-    		public List<CoreExpr> fallback() {
-    			return List.nil();
-    		}
-    
-    		@Override
-    		public List<CoreExpr> call(Call call) {
-                if(call.target.eql(TESTS_KEY)) {
-                    return List.join(call.args.map(arg -> arg.acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
-                        @Override
-                        public List<CoreExpr> fallback() {
-                            return List.single(arg);
-                        }
-    
-                        @Override
-                        public List<CoreExpr> listLiteral(ListLiteral n) {
-                            return n.elements;
-                        }
-    
-                    })));
-                }
-    			return call.target.acceptVisitor(this).append(List.join(call.args.map(arg -> arg.acceptVisitor(this))));
-    		}
-    
-    		@Override
-    		public List<CoreExpr> listLiteral(
-    				ListLiteral n) {
-    			return List.join(n.getElements().<List<CoreExpr>>map(elt -> elt.acceptVisitor(this)));
-    
-    		}
-    
-    		public List<CoreExpr> slot(Slot slot) {
-    			return slot.value.acceptVisitor(this);
-    		}
-    		@Override
-    		public List<CoreExpr> objectLiteral(ObjectLiteral n) {
-    			final List<List<CoreExpr>> methodExamples = n.getSlots().<List<CoreExpr>>map(this::slot);
-    			return List.<CoreExpr>join(methodExamples);
-    		}
-    
-    		public List<CoreExpr> binding(P2<Identifier,CoreExpr> binding) {
-                if(binding._1().eql(TESTS_KEY) && binding._2() instanceof ListLiteral)
-    				return ((ListLiteral)binding._2()).getElements();
-    			return binding._2().acceptVisitor(this);
-    		}
-    		@Override
-    		public List<CoreExpr> let(Let let) {
-    		    List<List<CoreExpr>> examplesInBindings = let.bindings.map(this::binding);
-    			List<CoreExpr> examplesInBody = let.body.acceptVisitor(this);
-    			return List.join(examplesInBindings).append(examplesInBody).map(e -> new Let(let.getSourceFileRanges(), let.bindings, e));
-    		}
-    		@Override
-    		public List<CoreExpr> extend(Extend n) {
-    			return n.getBase().acceptVisitor(this).append(n.getExtension().acceptVisitor(this));
-    		}
-    
-    		@Override
-    		public List<CoreExpr> functionLiteral(FunctionLiteral f) {
-    		    List<CoreExpr> result = f.body.acceptVisitor(this).map(e ->
-    		        f.sourceObjectBinding.map(recId ->
-    		            (CoreExpr)new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e))
-    	            .orSome(e));
-    			return result;
-    		}
-    
-    		
-    		@Override
-    		public List<CoreExpr> projection(Projection projection) {
-    		    return projection.object.acceptVisitor(this);
-    		}
-
-    	});
+    public static Set<CoreExpr> union(List<Set<CoreExpr>> listOfTestSets) {
+        return listOfTestSets.foldLeft((result, tests) -> result.union(tests), CoreExpr.EMPTY_SET);
     }
 
-    static public List<CoreExpr> findExamples(CoreExpr base) {
-    	return base.acceptVisitor(new BaseCoreExprVisitor<List<CoreExpr>>() {
-    		@Override
-    		public List<CoreExpr> fallback() {
-    			return List.nil();
+    static public Set<CoreExpr> findTests(CoreExpr base) {
+        return base.acceptVisitor(new TestFindingCoreExprVisitor() {
+            @Override
+            public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+                if(binding._1().eql(TESTS_KEY))
+                    return tests(List.single(binding._2()));
+                return super.binding(binding);
+            }
+
+            @Override
+            public Set<CoreExpr> call(Call call) {
+                if(call.target.eql(TESTS_KEY))
+                    return tests(call.args);
+                return super.call(call);
+            }
+        });
+    }
+
+    static public Set<CoreExpr> findExamples(CoreExpr base) {
+        return base.acceptVisitor(new TestFindingCoreExprVisitor() {
+            @Override
+            public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+                if(binding._1().eql(EXAMPLES_KEY))
+                    return tests(List.single(binding._2()));
+                return super.binding(binding);
     		}
-    
-    		@Override
-    		public List<CoreExpr> call(Call call) {
-    			return call.target.acceptVisitor(this).append(List.join(call.args.map(arg -> arg.acceptVisitor(this))));
-    		}
-    
-    		@Override
-    		public List<CoreExpr> listLiteral(
-    				ListLiteral n) {
-    			return List.join(n.getElements().<List<CoreExpr>>map(elt -> elt.acceptVisitor(this)));
-    
-    		}
-    
-    		public List<CoreExpr> slot(Slot slot) {
-    			return slot.value.acceptVisitor(this);
-    		}
-    		@Override
-    		public List<CoreExpr> objectLiteral(ObjectLiteral n) {
-    			final List<List<CoreExpr>> methodExamples = n.getSlots().<List<CoreExpr>>map(this::slot);
-    			return List.<CoreExpr>join(methodExamples);
-    		}
-    
-    		public List<CoreExpr> binding(P2<Identifier,CoreExpr> binding) {
-    			if(binding._1().eql(EXAMPLES_KEY) && binding._2() instanceof ListLiteral)
-    				return ((ListLiteral)binding._2()).getElements();
-    			return binding._2().acceptVisitor(this);
-    		}
-    		@Override
-    		public List<CoreExpr> let(Let let) {
-    		    List<List<CoreExpr>> examplesInBindings = let.bindings.map(this::binding);
-    			List<CoreExpr> examplesInBody = let.body.acceptVisitor(this);
-    			return List.join(examplesInBindings).append(examplesInBody).map(e -> new Let(let.getSourceFileRanges(), let.bindings, e));
-    		}
-    		@Override
-    		public List<CoreExpr> extend(Extend n) {
-    			return n.getBase().acceptVisitor(this).append(n.getExtension().acceptVisitor(this));
-    		}
-    
-    		@Override
-    		public List<CoreExpr> functionLiteral(FunctionLiteral f) {
-    		    List<CoreExpr> result = f.body.acceptVisitor(this).map(e ->
-    		        f.sourceObjectBinding.map(recId ->
-    		            (CoreExpr)new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e))
-    	            .orSome(e));
-    			return result;
-    		}
-    
-    		
-    		@Override
-    		public List<CoreExpr> projection(Projection projection) {
-    		    return projection.object.acceptVisitor(this);
-    		}
-    		
-    		
     	});
     }
 

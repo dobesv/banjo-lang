@@ -42,7 +42,7 @@ public class TestRunCoreLibraryTests extends BaseExprTest {
 	public static List<CoreExpr> findAllTests() {
         List<Path> paths = CoreExprFactory.projectSourcePathsForFile(Paths.get("src/test/banjo/").toAbsolutePath());
         CoreExpr ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
-        return TestAndExampleGatherer.findTests(ast);
+        return TestAndExampleGatherer.findTests(ast).toList();
 	}
 
 	@Parameters(name="{1}")

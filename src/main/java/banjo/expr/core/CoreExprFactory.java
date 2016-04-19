@@ -907,7 +907,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				DesugarResult<P3<CoreExpr,CoreExpr,List<Identifier>>> argListDs = argsListSourceExprs.zipIndex().foldRight(
 					(P2<SourceExpr,Integer> argExprWithIndex,
 						DesugarResult<P3<CoreExpr,CoreExpr,List<Identifier>>> argListDsState) -> {
-						final int argNumber = argExprWithIndex._2();
 						final SourceExpr argExpr = argExprWithIndex._1();
 						final int index = argExprWithIndex._2();
 
@@ -929,7 +928,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				}, argumentListsDsState.withValue(P.p(Identifier.TRUE, tempBody, List.nil())));
 
 				// TODO Precondition is not being used here ...
-				CoreExpr newPrecondition = argListDs.getValue()._1();
+                // CoreExpr newPrecondition = argListDs.getValue()._1();
 				CoreExpr newBody = argListDs.getValue()._2();
 				final List<Identifier> args = argListDs.getValue()._3();
 				return argListDs.bindSelf(recursiveBinding, newBody).mapValue(p ->
@@ -1099,8 +1098,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                     return orEqual(Operator.GT);
                 case NEQ:
                     return negated(Operator.EQ);
+                default:
+                    return binaryOpToCall(op, false);
                 }
-                return binaryOpToCall(op, false);
 			}
 			
             public DesugarResult<CoreExpr> orEqual(Operator bareOp) {
@@ -1341,7 +1341,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      */
 	public DesugarResult<CoreExpr> freeProjection(UnaryOp op) {
         final Identifier __tmp = new Identifier(op.getSourceFileRanges(), 0, "__target");
-        CoreExpr precondition = Identifier.TRUE;
+        // CoreExpr precondition = Identifier.TRUE;
         DesugarResult<CoreExpr> bodyDs = projection(op, __tmp, op.getOperand(), false);
         CoreExpr body = bodyDs.getValue();
         return bodyDs.withDesugared(op, new FunctionLiteral(single(__tmp), body));
@@ -1698,26 +1698,6 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		return bindSelf(selfBinding.some(), body);
 	}
 
-	private SourceExpr insertProjectionTargetOnLeft(SourceExpr objectExpr,
-            final SourceExpr right, Operator projectionType) {
-	    SourceExpr rightSide = right.acceptVisitor(new BaseSourceExprVisitor<SourceExpr>() {
-	    	@Override
-	    	public SourceExpr fallback(SourceExpr other) {
-	    	    return new BinaryOp(Operator.PROJECTION, objectExpr, other);
-	    	}
-
-	    	@Override
-	    	public SourceExpr binaryOp(BinaryOp op) {
-	    		if(op.getOperator().isInfix() &&
-	    				op.getOperator().isLeftAssociative()) {
-	    			return new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), op.getLeft().acceptVisitor(this), op.getRight());
-	    		}
-	    	    return super.binaryOp(op);
-	    	}
-	    });
-	    return rightSide;
-    }
-
     /**
      * List all files at the given path which might be a source file.
      */
@@ -1991,16 +1971,21 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
             }
         }
 
+        if(verbose) {
+            System.out.println("Verbose is on");
+        }
         if(paths.isEmpty())
             paths.add(Paths.get("."));
         for(Path path : paths) {
-            System.out.println("java.class.path == " + System.getProperty("java.class.path", "<not set>"));
-            System.out.println("source paths(" + StringLiteral.toSource(path.toString()) + ") == [");
-            for(Path p : projectSourcePathsForFile(path)) {
-                System.out.print("  ");
-                System.out.println(p.toUri());
+            if(printSourcePath) {
+                System.out.println("java.class.path == " + System.getProperty("java.class.path", "<not set>"));
+                System.out.println("source paths(" + StringLiteral.toSource(path.toString()) + ") == [");
+                for(Path p : projectSourcePathsForFile(path)) {
+                    System.out.print("  ");
+                    System.out.println(p.toUri());
+                }
+                System.out.println("]");
             }
-            System.out.println("]");
         }
     }
 }

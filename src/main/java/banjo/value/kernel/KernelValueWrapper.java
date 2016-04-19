@@ -36,7 +36,7 @@ public abstract class KernelValueWrapper<T> extends ValueToStringTrait implement
     }
 
     @Override
-    public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
+    public <JT> Either<JT, Fail> convertToJava(List<Value> trace, Class<JT> clazz) {
         if(clazz.isInstance(value)) {
             return Either.left(clazz.cast(value));
         }

@@ -93,8 +93,8 @@ public class Environment {
      *            Root object of the whole project; this is needed by string and
      *            number literals to construct objects, among other things
      */
-    public Environment(Value rootObject, Value projectRootObject) {
-        this(rootObject, TreeMap.empty(Ord.stringOrd), projectRootObject);
+    public Environment projection(Value rootObject) {
+        return new Environment(rootObject, TreeMap.empty(Ord.stringOrd), projectRootObject);
 	}
 
     /**
@@ -138,7 +138,7 @@ public class Environment {
         this.projectRootObject = parentEnv.projectRootObject;
 	}
 
-	@Override
+    @Override
 	public String toString() {
         return projectRootObject + ".(" + bindings + " ⇒ ...)";
 	}

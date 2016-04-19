@@ -84,12 +84,9 @@ public abstract class BaseExprTest {
 
     public void evaluates() {
 		noParseErrors();
-        Set<SourceFileRange> ranges = exprRanges();
-
         freeExpr = FreeExpressionFactory.apply(expr);
         List<Value> trace = List.nil();
         intermediateValue = freeExpr.apply(environment, trace);
-        Value tmp;
         try {
             this.value = intermediateValue.force(trace);
         } catch(Throwable e) {

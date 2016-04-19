@@ -13,7 +13,7 @@ public interface Binding {
 	
 	public static Binding functionSelf(Value function) {
 		Objects.requireNonNull(function);
-		return new FunctionRecursiveBinding(function);
+		return new FunctionSelfBinding(function);
 	}
 	public static Binding functionSelfWithBase(Value function, Value baseFunction) {
 		Objects.requireNonNull(function);
@@ -44,12 +44,12 @@ public interface Binding {
 			}
 			
 			@Override
-			public Value functionRecursive(Value function) {
+            public Value functionSelf(Value function) {
 				return function;
 			}
 			
 			@Override
-			public Value functionRecursiveWithBase(Value function, Value baseFunction) {
+			public Value functionSelfWithBase(Value function, Value baseFunction) {
 				return function;
 			}
 			

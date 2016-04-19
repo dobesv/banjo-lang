@@ -10,10 +10,8 @@ import fj.F0;
 import fj.P2;
 import fj.data.List;
 import fj.data.Set;
-import fj.data.TreeMap;
 
 public class FreeVariableGatherer implements CoreExprVisitor<Set<Identifier>> {
-    private static final TreeMap<CoreExpr, Set<Identifier>> EMPTY_CACHE = TreeMap.empty(CoreExpr.coreExprOrd);
 	private static final Set<Identifier> LITERAL_DEPS = Set.set(Identifier.ORD, Identifier.DATA);
 	public static final Set<Identifier> EMPTY_IDENTIFIER_SET = Set.empty(Identifier.ORD);
 

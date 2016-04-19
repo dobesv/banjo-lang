@@ -28,7 +28,6 @@ import fj.data.Set;
  * Change input into an AST.
  */
 public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
-	private static final String DEFAULT_ID_PREFIX = "/temp/";
 	public final Path sourceFile;
 	public final List<PartialOp> opStack;
 	public final SourceExpr operand;
@@ -258,7 +257,7 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	boolean shouldPopBasedOnDedent(int column) {
 		if(this.opStack.isEmpty()) return false;
 		PartialOp first = this.opStack.head();
-		final int indentColumn = first.indentColumn;
+        // final int indentColumn = first.indentColumn;
 		return !first.isParen() && first.getOperator() != Operator.NEWLINE;
 		//return column < indentColumn || (!first.isParen() && column == indentColumn);
 	}

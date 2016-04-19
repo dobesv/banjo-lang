@@ -16,6 +16,12 @@ public class Projection extends AbstractCoreExpr {
 			Ord.booleanOrd.contramap(p -> p.base)
 	);
 	
+    public static final Projection LANGUAGE_KERNEL_NUMBER = new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_NUMBER);
+    public static final Projection LANGUAGE_KERNEL_STRING = new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_STRING);
+    public static final Projection EMPTY_LIST = new Projection(Identifier.PROJECT_ROOT, Identifier.EMPTY_LIST);
+    public static final Projection SINGLE_ELEMENT_LIST = new Projection(Identifier.PROJECT_ROOT, Identifier.SINGLE_ELEMENT_LIST);
+    public static final Projection FUNCTION_TRAIT = new Projection(Identifier.PROJECT_ROOT, Identifier.FUNCTION_TRAIT);
+
 	public final CoreExpr object;
 	public final CoreExpr projection;
 	public final boolean base;

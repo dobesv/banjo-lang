@@ -3,6 +3,7 @@ package banjo.expr.free;
 import banjo.eval.UnresolvedCodeError;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
+import banjo.expr.core.Projection;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
@@ -20,49 +21,10 @@ public class FreeExpressionFactory implements
         CoreExprAlgebra<FreeExpression> {
     public static final FreeExpressionFactory INSTANCE = new FreeExpressionFactory();
     private static final FreeExpression ADD_OPER = Operator.ADD.getMethodIdentifier().acceptVisitor(INSTANCE);
-    private static final FreeExpression EMPTY = Identifier.EMPTY.acceptVisitor(INSTANCE);
-    private static final FreeExpression PROJECT_ROOT = Identifier.PROJECT_ROOT.acceptVisitor(INSTANCE);
-    private static final FreeExpression RUNTIME = INSTANCE.projection(
-            SourceFileRange.EMPTY_SET,
-            PROJECT_ROOT,
-            Identifier.LANGUAGE_KERNEL.acceptVisitor(INSTANCE),
-            false);
-    private static final FreeExpression MIRROR = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        RUNTIME,
-        Identifier.MIRROR.acceptVisitor(INSTANCE),
-        false);
-    private static final FreeExpression JAVA = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        Identifier.JAVA.acceptVisitor(INSTANCE),
-        false);
-    private static final FreeExpression LANGUAGE_KERNEL_NUMBER = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        INSTANCE.identifier(SourceFileRange.EMPTY_SET, "language kernel number"),
-        false);
-    private static final FreeExpression LANGUAGE_KERNEL_STRING = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        INSTANCE.identifier(SourceFileRange.EMPTY_SET, "language kernel string"),
-        false);
-    private static final FreeExpression NAN = Identifier.NAN.acceptVisitor(INSTANCE);
-    private static final FreeExpression EMPTY_LIST = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        Identifier.EMPTY_LIST.acceptVisitor(INSTANCE),
-        false);
-    private static final FreeExpression SINGLE_ELEMENT_LIST = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        Identifier.SINGLE_ELEMENT_LIST.acceptVisitor(INSTANCE),
-        false);
-    private static final FreeExpression FUNCTION_TRAIT = INSTANCE.projection(
-        SourceFileRange.EMPTY_SET,
-        PROJECT_ROOT,
-        Identifier.FUNCTION_TRAIT.acceptVisitor(INSTANCE),
-        false);
+    private static final FreeExpression LANGUAGE_KERNEL_NUMBER = Projection.LANGUAGE_KERNEL_NUMBER.acceptVisitor(INSTANCE);
+    private static final FreeExpression LANGUAGE_KERNEL_STRING = Projection.LANGUAGE_KERNEL_STRING.acceptVisitor(INSTANCE);
+    private static final FreeExpression EMPTY_LIST = Projection.EMPTY_LIST.acceptVisitor(INSTANCE);
+    private static final FreeExpression SINGLE_ELEMENT_LIST = Projection.SINGLE_ELEMENT_LIST.acceptVisitor(INSTANCE);
 
 	public static FreeExpression apply(CoreExpr e) {
 		return e.acceptVisitor(INSTANCE);

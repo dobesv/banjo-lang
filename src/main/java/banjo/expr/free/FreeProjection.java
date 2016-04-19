@@ -19,7 +19,7 @@ public class FreeProjection implements FreeExpression {
 	@Override
     public Value apply(Environment env, List<Value> trace) {
         Value boundObject = object.apply(env, trace);
-        Environment objectAsEnvironment = new Environment(boundObject, env.projectRootObject);
+        Environment objectAsEnvironment = env.projection(boundObject);
         return projection.apply(objectAsEnvironment, trace);
 	}
 

@@ -11,6 +11,7 @@ import fj.F2Functions;
 import fj.Ord;
 import fj.Ordering;
 import fj.data.List;
+import fj.data.Set;
 
 /**
  * Core expressions are the ones that may be emitted by the desugaring process.
@@ -941,6 +942,7 @@ public interface CoreExpr extends Expr {
 
     public static final Ord<CoreExpr> coreExprOrd = Ord.ord(F2Functions.curry(CoreExpr::_cmp));
 	public static final Ord<List<CoreExpr>> listOfCoreExprOrd = Ord.listOrd(CoreExpr.coreExprOrd);
+    public static final Set<CoreExpr> EMPTY_SET = Set.empty(coreExprOrd);
 
 	/**
 	 * Parse a string to a CoreExpr
