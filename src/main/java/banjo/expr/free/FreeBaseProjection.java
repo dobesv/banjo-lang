@@ -5,14 +5,12 @@ import banjo.eval.UnboundSlotSelfName;
 import banjo.eval.environment.Binding;
 import banjo.eval.environment.BindingVisitor;
 import banjo.eval.environment.Environment;
+import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.expr.source.Operator;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
-import fj.Ord;
-import fj.P;
 import fj.data.List;
 import fj.data.Set;
-import fj.data.TreeMap;
 
 /**
  * Projection that will use the "base" version of the current slot.
@@ -44,12 +42,10 @@ public class FreeBaseProjection implements FreeExpression {
 			
 			@Override
 			public Value slotWithBase(Value sourceObject, String slotName, Value baseSlotValue) {
-				// Create a special environment for the project, with all the slots for the object except
-				// that the base slot value replaces the binding for slotName in that context.
-				return projection.apply(new Environment(
-                    object.apply(env, trace),
-                    TreeMap.treeMap(Ord.stringOrd, List.single(P.p(slotName, Binding.let(baseSlotValue)))),
-                    env.projectRootObject), trace);
+                // Create a special environment for the project, with only the
+                // valid base slot defined
+                Environment baseProjectionEnv = env.projection(ObjectLiteralInstance.EMPTY).bind(slotName, Binding.let(baseSlotValue));
+                return projection.apply(baseProjectionEnv, trace);
 			}
 			
 			@Override

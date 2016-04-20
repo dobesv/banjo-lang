@@ -18,6 +18,8 @@ public class Projection extends AbstractCoreExpr {
 	
     public static final Projection LANGUAGE_KERNEL_NUMBER = new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_NUMBER);
     public static final Projection LANGUAGE_KERNEL_STRING = new Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_STRING);
+    public static final Projection PROJECT_ROOT_TRUE = new Projection(Identifier.PROJECT_ROOT, Identifier.TRUE);
+    public static final Projection PROJECT_ROOT_FALSE = new Projection(Identifier.PROJECT_ROOT, Identifier.FALSE);
     public static final Projection EMPTY_LIST = new Projection(Identifier.PROJECT_ROOT, Identifier.EMPTY_LIST);
     public static final Projection SINGLE_ELEMENT_LIST = new Projection(Identifier.PROJECT_ROOT, Identifier.SINGLE_ELEMENT_LIST);
     public static final Projection FUNCTION_TRAIT = new Projection(Identifier.PROJECT_ROOT, Identifier.FUNCTION_TRAIT);

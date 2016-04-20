@@ -1,18 +1,21 @@
-package banjo.value;
+package banjo.value.kernel;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import banjo.eval.ArgumentNotSupplied;
 import banjo.eval.Fail;
 import banjo.eval.FailWithMessage;
+import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.Either;
 import fj.data.List;
 
-public class KernelFunctionValue implements Value {
+public class KernelBiFunctionValue implements Value {
 
-    private Function<Value, Value> function;
+    private BiFunction<Value, Value, Value> function;
 
-    public KernelFunctionValue(Function<Value, Value> function) {
+    public KernelBiFunctionValue(BiFunction<Value, Value, Value> function) {
         this.function = function;
     }
 
@@ -26,11 +29,12 @@ public class KernelFunctionValue implements Value {
 
 	@Override
 	public Value call(List<Value> trace, List<Value> arguments) {
-		if(arguments.isEmpty()) {
-            return new ArgumentNotSupplied(trace, "Function " + this + "expects 1 argument; got none");
+        if(arguments.isEmpty() || arguments.tail().isEmpty()) {
+            return new ArgumentNotSupplied(trace, "Missing argument to function");
 		}
-        // return new JavaFunctionCallResultValue(function, arguments.head());
-        return function.apply(arguments.head());
+        // return new JavaBiFunctionCallResultValue(function, arguments.head(),
+        // arguments.tail().head());
+        return function.apply(arguments.head(), arguments.tail().head());
 	}
 
 	@Override
@@ -41,6 +45,6 @@ public class KernelFunctionValue implements Value {
 
     @Override
     public <T> T acceptVisitor(ValueVisitor<T> visitor) {
-        return visitor.kernelFunction(this);
+        return visitor.kernelBiFunction(this);
     }
 }

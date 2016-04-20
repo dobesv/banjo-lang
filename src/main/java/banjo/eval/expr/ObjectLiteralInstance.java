@@ -13,7 +13,8 @@ import fj.data.Set;
 import fj.data.TreeMap;
 
 public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
-	public final Set<SourceFileRange> ranges;
+    public static final Value EMPTY = new ObjectLiteralInstance(TreeMap.empty(Ord.stringOrd));
+    public final Set<SourceFileRange> ranges;
 	public final TreeMap<String, SlotInstance> slots;
 
 	public ObjectLiteralInstance(Set<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {

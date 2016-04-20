@@ -31,7 +31,7 @@ public class SlotValue extends CalculatedValue {
 
 	@Override
 	public Value calculate(List<Value> trace) {
-		Value v = object.slot(trace, self, slotName, ranges, fallback);
+        Value v = object.slot(trace.cons(this), self, slotName, ranges, fallback);
 		if(this == v) throw new Error();
 		return v;
 	}
