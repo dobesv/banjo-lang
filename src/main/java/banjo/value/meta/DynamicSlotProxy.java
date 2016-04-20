@@ -7,13 +7,15 @@ import fj.data.List;
 import fj.data.Set;
 
 /**
- * Catch all slot accesses to this object and give them to a function
- * which can send the access to whatever other object(s) it wants.
- *
- * For example a slot access to "x.foo" could become a function
- * "tmp -> tmp.foo" which is passed to the function provided as
- * the interceptor.  That function can then read the given slot
- * on whatever objects it wants to.
+ * Catch all slot accesses to this object and give them to a function which can
+ * send the access to whatever other object(s) it wants.
+ * <p>
+ * For example a slot access to "x.foo" could become a function "tmp -> tmp.foo"
+ * which is passed to the function provided as the interceptor. That function
+ * can then read the given slot on whatever objects it wants to.
+ * <p>
+ * Alternatively, the function could ignore its parameter and just return a
+ * constant for all slots.
  */
 public class DynamicSlotProxy implements Value {
 	public final Value delegate;
