@@ -4,11 +4,13 @@ import java.util.function.BiFunction;
 
 import banjo.eval.FailWithMessage;
 import banjo.expr.source.Operator;
+import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
 import fj.data.List;
 import fj.data.Option;
+import fj.data.Set;
 
 /**
  * Wrapper for a boolean coming from java.
@@ -55,7 +57,7 @@ public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements V
     }
 
     @Override
-    public Value slot(List<Value> trace, String name) {
+    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
         if("kernel boolean value".equals(name)) {
             return this;
         }
