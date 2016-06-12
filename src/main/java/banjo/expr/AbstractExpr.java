@@ -8,16 +8,15 @@ import banjo.expr.util.SourceFileRange;
 import fj.data.Set;
 
 public abstract class AbstractExpr implements Expr {
-	final Set<SourceFileRange> sourceFileRanges;
+    public final Set<SourceFileRange> ranges;
 
-	public AbstractExpr(Set<SourceFileRange> sourceFileRanges) {
-		if(sourceFileRanges == null) throw new NullPointerException();
-		this.sourceFileRanges = sourceFileRanges;
+    public AbstractExpr(Set<SourceFileRange> ranges) {
+        this.ranges = Objects.requireNonNull(ranges);
 	}
 
 	@Override
-	public Set<SourceFileRange> getSourceFileRanges() {
-		return this.sourceFileRanges;
+	public Set<SourceFileRange> getRanges() {
+		return this.ranges;
 	}
 
 

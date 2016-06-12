@@ -28,7 +28,7 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 	}
 
 	public BadIdentifier(SourceExpr source) {
-		this(source.getSourceFileRanges(), "Expected identifier; got "+source.toSource(), source.toSource());
+		this(source.getRanges(), "Expected identifier; got "+source.toSource(), source.toSource());
 	}
 
 	public BadIdentifier(SourceFileRange sfr, String message, String originalSource) {
@@ -67,12 +67,12 @@ public class BadIdentifier extends Identifier implements BadExpr, SourceExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.badExpr(getSourceFileRanges(), message);
+		return visitor.badExpr(getRanges(), message);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.badExpr(getSourceFileRanges(), message);
+		return visitor.badExpr(getRanges(), message);
 	}
 
 }

@@ -2,12 +2,12 @@ package banjo.value.kernel;
 
 import java.util.function.BiFunction;
 
-import banjo.eval.FailWithMessage;
 import banjo.expr.source.Operator;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.FailWithMessage;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
@@ -17,8 +17,8 @@ import fj.data.Set;
  */
 public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements Value {
 
-    public KernelBooleanValue(Boolean value, Value trueValue, Value falseValue) {
-        super(value, trueValue, falseValue);
+    public KernelBooleanValue(Boolean value, Value trueValue) {
+        super(value, trueValue);
     }
 
     public static Option<Boolean> extractBoolean(List<Value> trace, Value v) {
@@ -82,7 +82,7 @@ public class KernelBooleanValue extends KernelValueWrapper<Boolean> implements V
             return boolValue(!value.booleanValue());
 
         if("label".equals(name))
-            return new KernelStringValue("language kernel." + value, trueValue, falseValue);
+            return new KernelStringValue("language kernel." + value, trueValue);
         return Value.super.slot(trace, name);
     }
 }

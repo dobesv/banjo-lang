@@ -3,8 +3,11 @@ package banjo.value.meta;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 
+import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import fj.data.List;
+import fj.data.Set;
 
 public class SlotMemoizer extends WrapperValue {
 	public final HashMap<String, IdentityHashMap<Value, IdentityHashMap<Value, Value>>> cache = new HashMap<>();
@@ -34,5 +37,10 @@ public class SlotMemoizer extends WrapperValue {
     @Override
     public <T> T acceptVisitor(ValueVisitor<T> visitor) {
         return this.target.acceptVisitor(visitor);
+    }
+
+    @Override
+    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+        return target.slot(trace, self, name, ranges, fallback);
     }
 }

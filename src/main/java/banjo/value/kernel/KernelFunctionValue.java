@@ -2,11 +2,11 @@ package banjo.value.kernel;
 
 import java.util.function.Function;
 
-import banjo.eval.ArgumentNotSupplied;
-import banjo.eval.Fail;
-import banjo.eval.FailWithMessage;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.ArgumentNotSupplied;
+import banjo.value.fail.Fail;
+import banjo.value.fail.FailWithMessage;
 import fj.data.Either;
 import fj.data.List;
 

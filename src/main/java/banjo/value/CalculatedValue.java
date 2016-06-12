@@ -1,7 +1,8 @@
 package banjo.value;
 
-import banjo.eval.Fail;
+import banjo.eval.expr.CallInstance;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;
@@ -15,6 +16,11 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	public Value memo;
 
 	@Override
+    public Value call(List<Value> trace, List<Value> arguments) {
+        return new CallInstance(SourceFileRange.EMPTY_SET, force(trace), arguments);
+    }
+
+    @Override
     public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
         return force(trace).call(trace, recurse, baseImpl, arguments);
     }
@@ -25,13 +31,15 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
     }
 
 	@Override
-    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        return force(trace).slot(trace, self, name, ranges, fallback);
+    public Value slot(List<Value> trace, Value self, String slotName, Set<SourceFileRange> ranges, Value fallback) {
+        Value target = force(trace);
+        return new SlotValue(target, self == this ? target : self, slotName, ranges, fallback);
     }
 
 	@Override
 	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
-        return force(trace).slot(trace, name, ranges);
+        Value target = force(trace);
+        return new SlotValue(target, ranges, name);
 	}
 
 	@Override
@@ -42,7 +50,7 @@ public abstract class CalculatedValue extends ValueToStringTrait implements Valu
 	@Override
     public Value force(List<Value> trace) {
         if(this.memo == null) {
-            this.memo = calculate(trace);
+            this.memo = calculate(trace).force(trace);
         }
         return memo;
     }

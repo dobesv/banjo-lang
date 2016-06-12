@@ -5,11 +5,11 @@ import java.util.function.Function;
 
 import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
-import banjo.eval.Fail;
-import banjo.eval.FailWithMessage;
-import banjo.eval.NotCallable;
-import banjo.eval.SlotNotFound;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.fail.Fail;
+import banjo.value.fail.FailWithMessage;
+import banjo.value.fail.NotCallable;
+import banjo.value.fail.SlotNotFound;
 import banjo.value.kernel.KernelBiFunctionValue;
 import banjo.value.kernel.KernelBooleanValue;
 import banjo.value.kernel.KernelFunctionValue;
@@ -29,25 +29,27 @@ public interface Value {
     /**
      * If this is callable, perform the call and return the result. Otherwise
      * return Undefined.
-     * @param trace TODO
-     * @param recurse
+     * 
+     * @param trace
+     *            TODO
+     * @param originalCallee
      *            A reference to the function being called, at the top level; if
      *            the function calls itself recursively it should call that
      *            function. This may be a different function from the one passed
      *            if the function was an extension and it is calling up to its
      *            base. If the base calls back to itself it should call the
      *            extended version.
-     * @param baseImpl
+     * @param baseCallable
      *            If this object is an extension of another object, the other
      *            object is provided as a base implementation that this function
      *            can call. If this object isn't callable, then the base
-     *            implementation is used as a fallback.
+     *            implementation is used as a fallback. May be null.
      */
-	public default Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
-		if(baseImpl != null) {
-			return baseImpl.call(trace, recurse, null, arguments);
+	public default Value call(List<Value> trace, Value originalCallee, Value baseCallable, List<Value> arguments) {
+		if(baseCallable != null) {
+			return baseCallable.call(trace, originalCallee, null, arguments);
 		}
-        return new NotCallable(trace, recurse, SourceFileRange.EMPTY_SET);
+        return new NotCallable(trace, originalCallee, SourceFileRange.EMPTY_SET);
 	}
 
 	/**
@@ -67,15 +69,15 @@ public interface Value {
 	 * Fetch the named slot.  If the object has no such slot, returns the baseSlotValue if provided, otherwise
 	 * an error.
 	 * @param trace TODO
-	 * @param self A reference to the object we are trying to get the slot from.  If the object is an extension
+	 * @param slotObjectRef A reference to the object we are trying to get the slot from.  If the object is an extension
 	 * then this may not be equal to "this".
 	 * @param ranges TODO
 	 * @param fallback Value to return if the slot is not found
 	 */
-	public default Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+	public default Value slot(List<Value> trace, Value slotObjectRef, String name, Set<SourceFileRange> ranges, Value fallback) {
 		if(fallback != null)
 			return fallback;
-        return new SlotNotFound(trace, name, ranges, self);
+        return new SlotNotFound<Value>(trace, name, ranges, slotObjectRef);
 	}
 
 	/**

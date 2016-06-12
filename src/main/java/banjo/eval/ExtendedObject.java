@@ -45,9 +45,9 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     }
 
 	@Override
-	public Value slot(List<Value> trace, Value targetObject, String name, Set<SourceFileRange> ranges, Value baseSlotValue) {
-        final Value newBaseSlotValue = new SlotValue(base, targetObject, name, ranges, baseSlotValue);
-		return extension.slot(trace, targetObject, name, ranges, newBaseSlotValue);
+	public Value slot(List<Value> trace, Value object, String name, Set<SourceFileRange> ranges, Value baseSlotValue) {
+        final Value newBaseSlotValue = new SlotValue(base, object, name, ranges, baseSlotValue);
+		return extension.slot(trace, object, name, ranges, newBaseSlotValue);
 	}
 
 	@Override

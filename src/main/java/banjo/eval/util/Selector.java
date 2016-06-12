@@ -2,11 +2,11 @@ package banjo.eval.util;
 
 import java.util.function.Function;
 
-import banjo.eval.ArgumentNotSupplied;
-import banjo.eval.Fail;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.ArgumentNotSupplied;
+import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;

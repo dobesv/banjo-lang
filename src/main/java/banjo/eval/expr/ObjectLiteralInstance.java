@@ -1,5 +1,6 @@
 package banjo.eval.expr;
 
+import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
@@ -8,38 +9,33 @@ import banjo.value.ValueToStringTrait;
 import banjo.value.ValueVisitor;
 import fj.Ord;
 import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 
 public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
-    public static final Value EMPTY = new ObjectLiteralInstance(TreeMap.empty(Ord.stringOrd));
+    public static final Value EMPTY = new ObjectLiteralInstance();
     public final Set<SourceFileRange> ranges;
-	public final TreeMap<String, SlotInstance> slots;
+    public final TreeMap<String, SlotInstance<Value>> slots;
 
-	public ObjectLiteralInstance(Set<SourceFileRange> ranges, TreeMap<String, SlotInstance> slots) {
+    public ObjectLiteralInstance(Set<SourceFileRange> ranges, TreeMap<String, SlotInstance<Value>> slots) {
 		super();
 		this.ranges = ranges;
 		this.slots = slots;
 	}
 
-	public ObjectLiteralInstance(TreeMap<String, Value> slotValues) {
-		this(SourceFileRange.EMPTY_SET, slotValues.map(FreeSlotInstance::new));
-	}
-
     /**
      * Create an empty object value
      */
-    public ObjectLiteralInstance() {
-        this(TreeMap.empty(Ord.stringOrd));
+    private ObjectLiteralInstance() {
+        this(SourceFileRange.EMPTY_SET, TreeMap.empty(Ord.stringOrd));
     }
 
     @Override
 	public Value slot(List<Value> trace, Value sourceObject, String name, Set<SourceFileRange> ranges, Value fallback) {
-		final Option<SlotInstance> value = slots.get(name);
-		if(value.isSome())
-            return maybeAnnotateAsMethod(value.some().apply(trace, sourceObject, fallback), sourceObject, name);
-		return Value.super.slot(trace, sourceObject, name, ranges, fallback);
+        return slots.get(name)
+            .map(si -> si.apply(trace, sourceObject, fallback, ValueInstanceAlgebra.INSTANCE))
+            .map(sv -> maybeAnnotateAsMethod(sv, sourceObject, name))
+            .orSome(() -> Value.super.slot(trace, sourceObject, name, ranges, fallback));
 	}
 
 	public static class MethodInstance extends FunctionTrait implements Value {
@@ -143,12 +139,6 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	    return sb.toString();
 	}
 	
-    // private ObjectLiteralInstance update(TreeMap<String, SlotInstance>
-    // newSlots) {
-    // return ListUtil.elementsEq(slots.values(), newSlots.values()) ? this :
-    // new ObjectLiteralInstance(ranges, newSlots);
-    // }
-    //
     @Override
     public <T> T acceptVisitor(ValueVisitor<T> visitor) {
         return visitor.objectLiteralInstance(this);

@@ -3,6 +3,7 @@ package banjo.eval;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;

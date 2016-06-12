@@ -181,7 +181,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	protected DesugarResult<CoreExpr> projection(final SourceExpr sourceExpr, final SourceExpr objectExpr, final SourceExpr projectionExpr, boolean base) {
         final DesugarResult<CoreExpr> objectDs = expr(objectExpr);
         final DesugarResult<CoreExpr> projectionDs = objectDs.expr(projectionExpr);
-        return projectionDs.withDesugared(sourceExpr, new Projection(sourceExpr.getSourceFileRanges(), objectDs.getValue(), projectionDs.getValue(), base));
+        return projectionDs.withDesugared(sourceExpr, new Projection(sourceExpr.getRanges(), objectDs.getValue(), projectionDs.getValue(), base));
 	}
 
 	/**
@@ -200,7 +200,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         final Identifier argName = Identifier.__TMP;
 		final DesugarResult<CoreExpr> projectionDs = projection(op, argName, projection, false);
 		final DesugarResult<CoreExpr> projectFuncDs = projectionDs.function(op, argName, projectionDs.getValue());
-		final DesugarResult<CoreExpr> mapCallDs = projectFuncDs.withDesugared(op, Call.slot(target, Operator.FUNCTION_COMPOSITION_LEFT.methodNameKey, projectFuncDs.getValue()));
+        final DesugarResult<CoreExpr> mapCallDs =
+            projectFuncDs.withDesugared(op, Call.slot(target, new Identifier(Operator.FUNCTION_COMPOSITION_LEFT.methodName), projectFuncDs.getValue()));
 		return mapCallDs;
 	}
 
@@ -215,17 +216,17 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	protected DesugarResult<CoreExpr> pipeTo(final BinaryOp op) {
 		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
 		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
-		return withDesugared(op, new Call(op.getSourceFileRanges(), rightDs.getValue(), List.single(leftDs.getValue())));
+		return withDesugared(op, new Call(op.getRanges(), rightDs.getValue(), List.single(leftDs.getValue())));
 	}
 
 	protected DesugarResult<CoreExpr> pipeFrom(final BinaryOp op) {
 		DesugarResult<CoreExpr> leftDs = desugar(op.getLeft());
 		DesugarResult<CoreExpr> rightDs = leftDs.desugar(op.getRight());
-		return withDesugared(op, new Call(op.getSourceFileRanges(), leftDs.getValue(), List.single(rightDs.getValue())));
+		return withDesugared(op, new Call(op.getRanges(), leftDs.getValue(), List.single(rightDs.getValue())));
 	}
 
 	protected static Identifier concatNameParts(Identifier prefix, Identifier suffix) {
-		return new Identifier(prefix.getSourceFileRanges().union(suffix.getSourceFileRanges()), prefix.indentColumn, (prefix.id + " _ " + suffix.id).trim());
+		return new Identifier(prefix.getRanges().union(suffix.getRanges()), prefix.indentColumn, (prefix.id + " _ " + suffix.id).trim());
 	}
 	protected static Identifier concatNameParts(Identifier prefix, Option<Identifier> nameSuffix) {
         return nameSuffix.map((suf) -> concatNameParts(prefix, suf)).orSome(prefix);
@@ -250,12 +251,12 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				argsSourceExpr,
 				argSourceExprs,
 				null,
-				argsDs -> argsDs.withDesugared(callSourceExpr, new Call(callSourceExpr.getSourceFileRanges(), target, argsDs.getValue()))
+				argsDs -> argsDs.withDesugared(callSourceExpr, new Call(callSourceExpr.getRanges(), target, argsDs.getValue()))
 		);
     }
 
 	private DesugarResult<CoreExpr> listLiteral(final SourceExpr sourceExpr, List<SourceExpr> list, Operator requireBullet) {
-		return elements(sourceExpr, list, requireBullet, (ds) -> ds.withDesugared(sourceExpr, new ListLiteral(sourceExpr.getSourceFileRanges(), ds.getValue())));
+		return elements(sourceExpr, list, requireBullet, (ds) -> ds.withDesugared(sourceExpr, new ListLiteral(sourceExpr.getRanges(), ds.getValue())));
 	}
 
 	/**
@@ -313,7 +314,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 								return visitElement(op.getOperand());
 							} else {
 								final DesugarResult<List<CoreExpr>> eltDs = visitElement(op);
-								final BadCoreExpr err = new BadCoreExpr(op.getSourceFileRanges(), "Expected "+requireBullet.getOp());
+								final BadCoreExpr err = new BadCoreExpr(op.getRanges(), "Expected "+requireBullet.getOp());
 								return eltDs.withDesugared(op, err).withValue(eltDs.getValue().cons(err));
 							}
 						}
@@ -328,7 +329,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 					@Override
 					public DesugarResult<List<CoreExpr>> fallback(SourceExpr other) {
 						if(requireBullet != null) {
-							final BadCoreExpr err = new BadCoreExpr(other.getSourceFileRanges(), "Expected "+requireBullet.getOp());
+							final BadCoreExpr err = new BadCoreExpr(other.getRanges(), "Expected "+requireBullet.getOp());
 							return ds.withDesugared(other, err).withValue(ds.getValue().cons(err));
 						} else {
 						}
@@ -351,14 +352,14 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			}
 		}, this.withValue(List.nil()));
 		
-        Set<SourceFileRange> ranges = sourceExpr.getSourceFileRanges();
+        Set<SourceFileRange> ranges = sourceExpr.getRanges();
         List<Slot> slotDefs = methodsDs.getValue();
         CoreExpr extendedObj = objectLiteral(ranges, slotDefs);
         return methodsDs.withDesugared(sourceExpr, extendedObj);
     }
 
     public CoreExpr objectLiteral(Set<SourceFileRange> ranges, List<Slot> slotDefs) {
-        P2<List<Slot>, List<Slot>> p = slotDefs.partition(s -> !Operator.EXTENSION_FUNCTION.methodNameKey.eql(s.name));
+        P2<List<Slot>, List<Slot>> p = slotDefs.partition(s -> !Operator.EXTENSION_FUNCTION.methodName.equals(s.name.id));
         List<Slot> slots = p._1();
         List<CoreExpr> extensions = p._2().map(Slot::getValue);
 		
@@ -418,7 +419,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 			@Override
 			public DesugarResult<List<Slot>> fallback(SourceExpr other) {
-				return addMethod(fieldSourceExpr, new Identifier(other.getSourceFileRanges(), 0, other.toSource()), new BadCoreExpr(other.getSourceFileRanges(), "Expected method definition"), Identifier.TRUE, slots, null);
+				return addMethod(fieldSourceExpr, new Identifier(other.getRanges(), 0, other.toSource()), new BadCoreExpr(other.getRanges(), "Expected method definition"), Identifier.TRUE, slots, null);
 			}
 		}));
 	}
@@ -476,7 +477,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
             public DesugarResult<Slot> unaryOpMethod(UnaryOp op) {
                 SourceExpr selfBinding = op.getOperand();
-                return bindSelf(selfBinding, body).mapValue(p -> new Slot(op.getOperator().getMethodIdentifier(), p._1(), p._2()));
+                return bindSelf(selfBinding, body).mapValue(p -> new Slot(new Identifier(op.getOperator().getMethodName()), p._1(), p._2()));
             }
 
 			@Override
@@ -517,7 +518,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 						@Override
 						public DesugarResult<Slot> fallback(SourceExpr other) {
 							Identifier name = new Identifier("_");
-							CoreExpr body = new BadCoreExpr(other.getSourceFileRanges(), "Empty method signature");
+							CoreExpr body = new BadCoreExpr(other.getRanges(), "Empty method signature");
 							return withValue(new Slot(name, Option.none(), body));
 						}
 					});
@@ -564,7 +565,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				return juxtaposition.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<Slot>>() {
 					@Override
 					public DesugarResult<Slot> fallback(SourceExpr other) {
-						BadCoreExpr problem = new BadCoreExpr(juxtaposition.getSourceFileRanges(), "Invalid method signature");
+						BadCoreExpr problem = new BadCoreExpr(juxtaposition.getRanges(), "Invalid method signature");
 						return withValue(new Slot(Identifier.UNDERSCORE, Option.none(), problem));
 					}
 
@@ -644,7 +645,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 						return methodDefBOp.getLeft().acceptVisitor(new BaseSourceExprVisitor<DesugarResult<Slot>>() {
 							@Override
 							public DesugarResult<Slot> fallback(SourceExpr other) {
-								BadCoreExpr problem = new BadCoreExpr(methodDefBOp.getSourceFileRanges(), "Invalid method signature");
+								BadCoreExpr problem = new BadCoreExpr(methodDefBOp.getRanges(), "Invalid method signature");
 								return ds.withValue(new Slot(Identifier.UNDERSCORE, Option.none(), problem));
 							}
 
@@ -773,7 +774,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 		// TODO Report extra fields?
 		// TODO Report missing fields?
-		return methodsDs.withDesugared(sourceExpr, new ObjectLiteral(sourceExpr.getSourceFileRanges(), methodsDs.getValue()));
+		return methodsDs.withDesugared(sourceExpr, new ObjectLiteral(sourceExpr.getRanges(), methodsDs.getValue()));
 	}
 
 	/**
@@ -891,7 +892,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	public DesugarResult<Slot> method(SourceExpr methodSourceExpr, Operator operator, SourceExpr other, Option<SourceExpr> selfBinding, CoreExpr body) {
 		// TODO Allow unpacking in the self binding instead of requiring an identifier
 		return functionLiteral(methodSourceExpr, other, Option.none(), body)
-				.mapValue(func -> new Slot(operator.getMethodIdentifier(), selfBinding.map(CoreExprFactory::expectIdentifier), func));
+            .mapValue(func -> new Slot(new Identifier(operator.getMethodName()), selfBinding.map(CoreExprFactory::expectIdentifier), func));
 	}
 
 	protected DesugarResult<Slot> method(SourceExpr methodSourceExpr, final Identifier methodName, List<List<SourceExpr>> argumentListsSourceExprs, Option<SourceExpr> selfBinding, Option<SourceExpr> recursiveBinding, CoreExpr body) {
@@ -933,7 +934,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				final List<Identifier> args = argListDs.getValue()._3();
 				return argListDs.bindSelf(recursiveBinding, newBody).mapValue(p ->
 					(CoreExpr)new FunctionLiteral(
-							methodSourceExpr.getSourceFileRanges(),
+							methodSourceExpr.getRanges(),
 							args,
 							p._2(),
 							p._1()));
@@ -1008,7 +1009,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      */
 	protected CoreExpr insertContract(CoreExpr currentPrecondition, Identifier parameterName,
 			Operator operator, CoreExpr constraint) {
-		Call check = new Call(constraint.getSourceFileRanges(), new Projection(parameterName, opMethodName(operator)), List.single(constraint));
+		Call check = new Call(constraint.getRanges(), new Projection(parameterName, opMethodName(operator)), List.single(constraint));
 		return composePreconditions(currentPrecondition, check);
 	}
 
@@ -1073,9 +1074,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case METHOD_SWITCHED:
 			return binaryOpToMethodCall(op, rightSourceExpr, operator, operatorRanges, leftSourceExpr, optional);
 		case FUNCTION:
-			return binaryOpToFunctionCall(op, leftSourceExpr, rightSourceExpr, operator.getMethodIdentifier());
+            return binaryOpToFunctionCall(op, leftSourceExpr, rightSourceExpr, operator.getMethodName());
 		case FUNCTION_SWITCHED:
-			return binaryOpToFunctionCall(op, rightSourceExpr, leftSourceExpr, operator.getMethodIdentifier());
+            return binaryOpToFunctionCall(op, rightSourceExpr, leftSourceExpr, operator.getMethodName());
 		default:
 			throw new Error();
 		}
@@ -1104,15 +1105,15 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			}
 			
             public DesugarResult<CoreExpr> orEqual(Operator bareOp) {
-                BinaryOp bareCmp = new BinaryOp(op.getSourceFileRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
-                BinaryOp eq = new BinaryOp(op.getSourceFileRanges(), Operator.EQ, op.getOperatorRanges(), op.getLeft(), op.getRight());
-                BinaryOp or = new BinaryOp(op.getSourceFileRanges(), Operator.LOGICAL_OR, op.getOperatorRanges(), bareCmp, eq);
+                BinaryOp bareCmp = new BinaryOp(op.getRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                BinaryOp eq = new BinaryOp(op.getRanges(), Operator.EQ, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                BinaryOp or = new BinaryOp(op.getRanges(), Operator.LOGICAL_OR, op.getOperatorRanges(), bareCmp, eq);
                 return binaryOpToCall(or, false);
             }
 
             public DesugarResult<CoreExpr> negated(Operator bareOp) {
-                BinaryOp bareCmp = new BinaryOp(op.getSourceFileRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
-                UnaryOp neg = new UnaryOp(op.getSourceFileRanges(), Operator.NOT, op.getOperatorRanges(), bareCmp);
+                BinaryOp bareCmp = new BinaryOp(op.getRanges(), bareOp, op.getOperatorRanges(), op.getLeft(), op.getRight());
+                UnaryOp neg = new UnaryOp(op.getRanges(), Operator.NOT, op.getOperatorRanges(), bareCmp);
                 return unaryOpToSlotReference(neg);
             }
 
@@ -1125,8 +1126,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				case LT:
 				case GE:
 				case GT:
-					BinaryOp newRight = new BinaryOp(op.getSourceFileRanges(), op.getOperator(), op.getOperatorRanges(), leftBOp.getRight(), op.getRight());
-					BinaryOp and = new BinaryOp(leftBOp.getSourceFileRanges(), Operator.LOGICAL_AND, SourceFileRange.EMPTY_SET, leftBOp, newRight);
+					BinaryOp newRight = new BinaryOp(op.getRanges(), op.getOperator(), op.getOperatorRanges(), leftBOp.getRight(), op.getRight());
+					BinaryOp and = new BinaryOp(leftBOp.getRanges(), Operator.LOGICAL_AND, SourceFileRange.EMPTY_SET, leftBOp, newRight);
 					return binaryOpToCall(and, false);
 					
                 default:
@@ -1139,7 +1140,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	protected DesugarResult<CoreExpr> binaryOpToMethodCall(SourceExpr op, final SourceExpr leftSourceExpr, final Operator operator, Set<SourceFileRange> operatorRanges, final SourceExpr rightSourceExpr, boolean optional) {
 		final DesugarResult<CoreExpr> leftDs = expr(leftSourceExpr);
 		final DesugarResult<CoreExpr> rightDs = leftDs.expr(rightSourceExpr);
-		return rightDs.withDesugared(op, binaryOpToCall(op.getSourceFileRanges(), leftDs.getValue(), operator, operatorRanges, rightDs.getValue(), optional));
+		return rightDs.withDesugared(op, binaryOpToCall(op.getRanges(), leftDs.getValue(), operator, operatorRanges, rightDs.getValue(), optional));
 	}
 
 	protected Call binaryOpToCall(Set<SourceFileRange> ranges, final CoreExpr leftCoreExpr, final Operator operator,	Set<SourceFileRange> operatorRanges, final CoreExpr rightCoreExpr, boolean optional) {
@@ -1160,7 +1161,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	protected DesugarResult<CoreExpr> singletonListLiteral(UnaryOp op) {
 		final SourceExpr operandSourceExpr = op.getOperand();
 		final DesugarResult<CoreExpr> operandDs = expr(operandSourceExpr);
-		return operandDs.withDesugared(op, new ListLiteral(op.getSourceFileRanges(), single(operandDs.getValue())));
+		return operandDs.withDesugared(op, new ListLiteral(op.getRanges(), single(operandDs.getValue())));
 	}
 
 	protected DesugarResult<CoreExpr> listLiteral(SourceExpr sourceExpr, final SourceExpr elementsExpr) {
@@ -1230,7 +1231,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		case LET:
 			return let(op);
 		default:
-			return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Operator not supported here: '"+op.getOperator()+"'"));
+			return withDesugared(op, new BadCoreExpr(op.getRanges(), "Operator not supported here: '"+op.getOperator()+"'"));
 		}
 	}
 
@@ -1265,9 +1266,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 			return baseFunction(op);
 
 		case INVALID:
-			return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Invalid unary operator"));
+			return withDesugared(op, new BadCoreExpr(op.getRanges(), "Invalid unary operator"));
 		default:
-			return withDesugared(op, new BadCoreExpr(op.getSourceFileRanges(), "Operator not supported here: '"+op.getOperator()+"'"));
+			return withDesugared(op, new BadCoreExpr(op.getRanges(), "Operator not supported here: '"+op.getOperator()+"'"));
 
 		}
 	}
@@ -1309,17 +1310,21 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 	@Override
 	public DesugarResult<CoreExpr> badSourceExpr(BadSourceExpr badSourceExpr) {
-		return withDesugared(badSourceExpr, new BadCoreExpr(badSourceExpr.getSourceFileRanges(), badSourceExpr.getMessage()));
+		return withDesugared(badSourceExpr, new BadCoreExpr(badSourceExpr.getRanges(), badSourceExpr.getMessage()));
 	}
 	@Override
 	public DesugarResult<CoreExpr> emptyExpr(EmptyExpr emptyExpr) {
-		return withDesugared(emptyExpr, new BadCoreExpr(emptyExpr.getSourceFileRanges(), "Expected expression"));
+		return withDesugared(emptyExpr, new BadCoreExpr(emptyExpr.getRanges(), "Expected expression"));
 	}
 
 	@Override
 	public DesugarResult<CoreExpr> badIdentifier(BadIdentifier badIdentifier) {
-		return withDesugared(badIdentifier, new BadCoreExpr(badIdentifier.getSourceFileRanges(), badIdentifier.getMessage()));
+		return withDesugared(badIdentifier, new BadCoreExpr(badIdentifier.getRanges(), badIdentifier.getMessage()));
 	}
+
+    private DesugarResult<CoreExpr> binaryOpToFunctionCall(BinaryOp op, SourceExpr first, SourceExpr second, String functionName) {
+        return binaryOpToFunctionCall(op, first, second, new Identifier(functionName));
+    }
 
 	private DesugarResult<CoreExpr> binaryOpToFunctionCall(BinaryOp op, SourceExpr first, SourceExpr second, Identifier functionIdentifier) {
 	    final DesugarResult<CoreExpr> firstDs = expr(first);
@@ -1329,7 +1334,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 	public DesugarResult<CoreExpr> baseFunction(UnaryOp op) {
 		Identifier functionName = expectIdentifier(op.getOperand());
-	    return withDesugared(op, new BaseFunctionRef(op.getSourceFileRanges(), functionName));
+	    return withDesugared(op, new BaseFunctionRef(op.getRanges(), functionName));
     }
 
     /**
@@ -1340,7 +1345,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      * our temporary variable.
      */
 	public DesugarResult<CoreExpr> freeProjection(UnaryOp op) {
-        final Identifier __tmp = new Identifier(op.getSourceFileRanges(), 0, "__target");
+        final Identifier __tmp = new Identifier(op.getRanges(), 0, "__target");
         // CoreExpr precondition = Identifier.TRUE;
         DesugarResult<CoreExpr> bodyDs = projection(op, __tmp, op.getOperand(), false);
         CoreExpr body = bodyDs.getValue();
@@ -1350,7 +1355,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	public DesugarResult<CoreExpr> extend(BinaryOp op) {
 		final DesugarResult<CoreExpr> leftDs = expr(op.getLeft());
 		final DesugarResult<CoreExpr> rightDs = leftDs.expr(op.getRight());
-		return rightDs.withDesugared(op, new Extend(op.getSourceFileRanges(), leftDs.getValue(), rightDs.getValue()));
+		return rightDs.withDesugared(op, new Extend(op.getRanges(), leftDs.getValue(), rightDs.getValue()));
 	}
 
 	public DesugarResult<CoreExpr> let(final BinaryOp op) {
@@ -1396,7 +1401,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	    }, withValue(List.<P2<Identifier,CoreExpr>>nil()));
 
 		final List<P2<Identifier, CoreExpr>> bindings = bindingsDs.getValue();
-		return bindingsDs.withDesugared(op, new Let(op.getSourceFileRanges(), bindings, body));
+		return bindingsDs.withDesugared(op, new Let(op.getRanges(), bindings, body));
     }
 
 	public DesugarResult<List<P2<Identifier, CoreExpr>>> assignment(SourceExpr letOp, SourceExpr left, SourceExpr right) {
@@ -1464,7 +1469,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 					@Override
 					public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr other) {
-					    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier / lvalue"))));
+					    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getRanges(), "Expected identifier / lvalue"))));
 					}
 				});
 			}
@@ -1476,7 +1481,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 			@Override
 			public DesugarResult<List<P2<Identifier, CoreExpr>>> fallback(SourceExpr other) {
-			    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected identifier / lvalue"))));
+			    return withValue(List.single(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getRanges(), "Expected identifier / lvalue"))));
 			}
 		});
 	}
@@ -1514,7 +1519,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 						@Override
 						public DesugarResult<P2<Identifier, CoreExpr>> fallback(SourceExpr other) {
-						    return withValue(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getSourceFileRanges(), "Expected function signature part")));
+						    return withValue(P.p(Identifier.UNDERSCORE, new BadCoreExpr(other.getRanges(), "Expected function signature part")));
 						}
 					});
 				}
@@ -1616,7 +1621,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 	public CoreExpr call(Call n) {
                 		CoreExpr newTarget = addNamePartToCall(n.target, keyOnRight);
                 		if(newTarget != n.target)
-                			return new Call(n.getSourceFileRanges(), newTarget, n.args);
+                			return new Call(n.getRanges(), newTarget, n.args);
                 	    return super.call(n);
                 	}
 
@@ -1630,19 +1635,19 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
                 		return n.projection.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
                 			@Override
                 			public CoreExpr identifier(Identifier slotName) {
-                        	    return new Projection(n.getSourceFileRanges(), n.object, concatNameParts(slotName, keyOnRight));
+                        	    return new Projection(n.getRanges(), n.object, concatNameParts(slotName, keyOnRight));
                 			}
                 			
                 			@Override
                 			public CoreExpr fallback() {
-                        	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
+                        	    return new BadCoreExpr(keyOnRight.getRanges(), "Dangling function name part %s", keyOnRight.id);
                 			}
 						});
                 	}
 
                 	@Override
                 	public CoreExpr fallback() {
-                	    return new BadCoreExpr(keyOnRight.getSourceFileRanges(), "Dangling function name part %s", keyOnRight.id);
+                	    return new BadCoreExpr(keyOnRight.getRanges(), "Dangling function name part %s", keyOnRight.id);
                 	}
 				});
             }
@@ -1656,7 +1661,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	 */
 	private DesugarResult<CoreExpr> unaryOpToSlotReference(final UnaryOp op) {
 	    final DesugarResult<CoreExpr> operandCoreExpr = expr(op.getOperand());
-	    return operandCoreExpr.withDesugared(op, new Projection(op.getSourceFileRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
+	    return operandCoreExpr.withDesugared(op, new Projection(op.getRanges(), operandCoreExpr.getValue(), opMethodName(op.getOperator())));
     }
 
 	/**
@@ -1747,7 +1752,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     }
 
     /**
-     * Desugar a file path into a slot. The self-name may be taken from the
+     * Desugar a file path into a slot. The self-reference may be taken from the
      * filename, if present.
      */
     public Slot pathToSlot(Path p) {
@@ -1780,7 +1785,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
     /**
      * Create a new slot which contains the old slot value extended with the new
-     * one, without messing up self-name bindings.
+     * one, without messing up self-reference bindings.
      */
     static Slot mergeSlots(Slot base, Slot extension) {
     

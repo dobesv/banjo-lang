@@ -6,13 +6,18 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Objects;
 
+import banjo.eval.resolver.GlobalRef;
+import banjo.eval.resolver.InstanceAlgebra;
+import banjo.eval.resolver.NameRef;
+import banjo.eval.resolver.Resolver;
 import banjo.expr.BadExpr;
 import banjo.expr.core.BaseCoreExprVisitor;
-import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.core.CoreExprVisitor;
-import banjo.expr.source.Operator;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.free.FreeExpressionVisitor;
+import banjo.expr.free.PartialResolver;
 import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprAlgebra;
@@ -21,24 +26,32 @@ import banjo.expr.util.SourceFileRange;
 import banjo.expr.util.SourceNumber;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 
-public class NumberLiteral extends AbstractAtom implements Atom {
+public class NumberLiteral extends AbstractAtom implements Atom, FreeExpression {
 	public static final Ord<NumberLiteral> ORD = Ord.stringOrd.contramap((NumberLiteral n) -> n.number.toString());
 
-	private final Number number;
+    public final Number number;
+    public final String source;
 
-	public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number) {
-		this(Set.single(SourceFileRange.ORD, sfr), indentColumn, number);
+    public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number, String source) {
+        this(Set.single(SourceFileRange.ORD, sfr), indentColumn, number, source);
 	}
-	public NumberLiteral(Set<SourceFileRange> ranges, int indentColumn, Number number) {
+
+    public NumberLiteral(Set<SourceFileRange> ranges, int indentColumn, Number number, String source) {
 		super(ranges, indentColumn);
 		this.number = requireNonNull(number);
+        this.source = source;
 	}
 
-	public NumberLiteral(Number n) {
-		this(SourceFileRange.EMPTY_SET, 0, n);
+    public NumberLiteral(Set<SourceFileRange> ranges, Number number, String source) {
+        this(ranges, 0, number, source);
+    }
+
+	public NumberLiteral(Number n, String source) {
+        this(SourceFileRange.EMPTY_SET, 0, n, source);
 	}
 
 	public Number getNumber() {
@@ -47,7 +60,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public String toString() {
-		return Objects.requireNonNull(this.number.toString());
+        return this.source;
 	}
 
 	@Override
@@ -57,7 +70,7 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public void toSource(StringBuffer sb) {
-		sb.append(this.toString());
+        sb.append(this.source);
 	}
 
 	@Override
@@ -69,6 +82,11 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.numberLiteral(this);
 	}
+
+    @Override
+    public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
+        return visitor.numberLiteral(this);
+    }
 
 	public static boolean isNumberLiteral(CoreExpr x) {
 		return Objects.requireNonNull(x.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
@@ -108,105 +126,41 @@ public class NumberLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number);
+		return visitor.numberLiteral(getRanges(), number, source);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getSourceFileRanges(), number);
+		return visitor.numberLiteral(getRanges(), number);
 	}
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.numberLiteral(getSourceFileRanges().toStream().head().getFileRange(), indentColumn, number);
+		return parser.numberLiteral(getRanges().toStream().head().getFileRange(), indentColumn, number, source);
 	}
 
-	public CoreExpr toConstructionExpression() {
-		CoreExpr ctor;
-		Number n = getNumber();
-		if(n instanceof SourceNumber) n = ((SourceNumber) n).getValue();
-		if(n instanceof BigInteger) {
-			BigInteger bi = (BigInteger)n;
-			int signum = bi.signum();
-			if(bi.equals(BigInteger.ZERO)) {
-				return Identifier.ZERO;
-			}
-			if(bi.equals(BigInteger.ONE)) {
-				return Identifier.ONE;
-			}
-
-			final boolean negative = signum == -1;
-			if(negative) {
-				bi = bi.abs();
-			}
-			// 10 = 5 + 5
-			// 5 = 2 + 2 + 1
-			// 2 = 1 + 1
-			boolean odd = bi.testBit(0);
-			NumberLiteral half = new NumberLiteral(bi.shiftRight(1));
-			ctor = Call.binaryOp(half, Operator.ADD, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
-			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
-		} else if(n instanceof Integer) {
-			int i = n.intValue();
-			if(i == 0) {
-				return new Identifier("0");
-			}
-			if(i == 1) {
-				return new Identifier("1");
-			}
-			boolean negative = (i < 0);
-			if(negative) i = -i;
-			boolean odd = (i&1) == 1;
-			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = Call.binaryOp(half, Operator.ADD, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
-			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
-		} else if(n instanceof Long) {
-			long i = n.longValue();
-			if(i == 0) {
-				return new Identifier("0");
-			}
-			if(i == 1) {
-				return new Identifier("1");
-			}
-			boolean negative = (i < 0);
-			if(negative) i = -i;
-			boolean odd = (i&1) == 1;
-			NumberLiteral half = new NumberLiteral(i >> 1);
-			ctor = Call.binaryOp(half, Operator.ADD, half);
-			if(odd) ctor = Call.binaryOp(ctor, Operator.ADD, new Identifier("1"));
-			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
-		} else if(n instanceof Double) {
-			double d = n.doubleValue();
-			if(d == 0) {
-				return Identifier.ZERO;
-			}
-			if(d == 1) {
-				return Identifier.ONE;
-			}
-			if(d == Double.NaN) {
-				return Identifier.NAN;
-			}
-			if(d == Double.NEGATIVE_INFINITY) {
-				return Call.unaryOp(Identifier.INFINITY, Operator.NEGATE);
-			}
-			if(d == Double.POSITIVE_INFINITY) {
-				return Identifier.INFINITY;
-			}
-			boolean negative = (d < 0);
-			if(negative) d = -d;
-			int exp = Math.getExponent(d);
-			long base = Double.doubleToLongBits(d) & 0x000fffffffffffffL;
-
-			ctor = new NumberLiteral(base).toConstructionExpression();
-			if(exp != 0) ctor = Call.binaryOp(ctor, Operator.POW, new NumberLiteral(exp));
-			if(negative) ctor = Call.unaryOp(ctor, Operator.NEGATE);
-		} else throw new Error("TODO: "+n.getClass().getSimpleName());
-		return ctor;
-	}
 	public SourceExpr negate(Set<SourceFileRange> ranges) {
-	    return new NumberLiteral(ranges, indentColumn, negateNumber(number));
+        return new NumberLiteral(ranges, indentColumn, negateNumber(number), source.charAt(0) == '-' ? source.substring(1) : "-" + source);
     }
 
+    @Override
+    public Set<NameRef> getFreeRefs() {
+        return Set.set(NameRef.ORD, GlobalRef.TRUE, GlobalRef.LANGUAGE_KERNEL_NUMBER);
+    }
+
+    @Override
+    public boolean hasFreeRefs() {
+        return true;
+    }
+
+    @Override
+    public Option<FreeExpression> partial(PartialResolver resolver) {
+        return Option.none();
+    }
+
+    @Override
+    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        T kernelNumber = algebra.kernelNumber(ranges, number, resolver.global(GlobalRef.TRUE));
+        return algebra.call1(trace, ranges, resolver.global(GlobalRef.LANGUAGE_KERNEL_NUMBER), kernelNumber);
+    }
 }

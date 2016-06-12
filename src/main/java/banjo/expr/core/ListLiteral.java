@@ -1,7 +1,6 @@
 package banjo.expr.core;
 
 import banjo.expr.source.Precedence;
-import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
@@ -55,15 +54,7 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.listLiteral(getSourceFileRanges(), elements.<T>map(a -> a.acceptVisitor(visitor)));
-	}
-
-	public CoreExpr toConstructionExpression() {
-		CoreExpr result = Identifier.EMPTY_LIST;
-		for(CoreExpr elt : elements) {
-			result = Call.slot(Identifier.DATA, "list", List.single(FunctionLiteral.selector("nonempty", elt, result)));
-		}
-		return result;
+		return visitor.listLiteral(getRanges(), elements.<T>map(a -> a.acceptVisitor(visitor)));
 	}
 
 	@Override

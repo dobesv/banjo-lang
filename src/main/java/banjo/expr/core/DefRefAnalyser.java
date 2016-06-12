@@ -69,7 +69,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser numberLiteral(Set<SourceFileRange> ranges,
-            Number value) {
+            Number value, String source) {
 	    return EMPTY;
     }
 
@@ -165,11 +165,11 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	protected BadCoreExpr slotDefNotMatchingAnyRef(Identifier name) {
-	    return new BadCoreExpr(name.getSourceFileRanges(), "There are no slots defined with name '%s' anywhere in this project, are you sure you spelled this right?", name.id);
+	    return new BadCoreExpr(name.getRanges(), "There are no slots defined with name '%s' anywhere in this project, are you sure you spelled this right?", name.id);
     }
 
 	protected BadCoreExpr unboundIdentifier(Identifier name) {
-	    return new BadCoreExpr(name.getSourceFileRanges(), "Unbound identifier '%s'", name.id);
+	    return new BadCoreExpr(name.getRanges(), "Unbound identifier '%s'", name.id);
     }
 
     public static List<BadExpr> problems(CoreExpr ast) {

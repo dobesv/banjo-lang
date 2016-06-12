@@ -97,8 +97,8 @@ public class SourceExprFromFile implements SourceExpr {
     }
 
     @Override
-    public Set<SourceFileRange> getSourceFileRanges() {
-        return load().getSourceFileRanges();
+    public Set<SourceFileRange> getRanges() {
+        return load().getRanges();
     }
 
     @Override

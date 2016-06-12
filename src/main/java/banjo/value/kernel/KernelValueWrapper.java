@@ -1,21 +1,20 @@
 package banjo.value.kernel;
 
-import banjo.eval.Fail;
+import banjo.expr.source.Operator;
 import banjo.value.Value;
 import banjo.value.ValueToStringTrait;
+import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
 
 public abstract class KernelValueWrapper<T> extends ValueToStringTrait implements Value {
     public final T value;
     public final Value trueValue;
-    public final Value falseValue;
     
-    public KernelValueWrapper(T value, Value trueValue, Value falseValue) {
+    public KernelValueWrapper(T value, Value trueValue) {
         super();
         this.value = value;
         this.trueValue = trueValue;
-        this.falseValue = falseValue;
     }
 
     @Override
@@ -24,11 +23,13 @@ public abstract class KernelValueWrapper<T> extends ValueToStringTrait implement
     }
 
     public Value boolValue(boolean x) {
-        return x ? trueValue : falseValue;
+        // No trace on the "not" - we're assuming for now that "true" is working
+        // properly and doesn't need any debugging
+        return x ? trueValue : trueValue.slot(List.nil(), Operator.NOT.methodName);
     }
 
     public Value intValue(int n) {
-        return new KernelNumberValue(n, trueValue, falseValue);
+        return new KernelNumberValue(n, trueValue);
     }
 
     public Value valueIsInstanceOf(Class<? extends T> cls) {

@@ -4,4 +4,4 @@
     ((1.+) ∘ (2.*))(3) == (1+(2*3))  
   ]
 ) ⇒
-language kernel.compose
+language kernel.compose(f, g)

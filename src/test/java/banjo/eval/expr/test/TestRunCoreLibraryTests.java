@@ -60,8 +60,8 @@ public class TestRunCoreLibraryTests extends BaseExprTest {
 	    afe.setStackTrace(new StackTraceElement[] {
 	    	new StackTraceElement("<examples>",
 	    		x.toSource(),
-	    		x.getSourceFileRanges().toStream().toOption().map(sfr -> sfr.getSourceFile().toString()).toNull(),
-	    		x.getSourceFileRanges().toStream().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
+	    		x.getRanges().toStream().toOption().map(sfr -> sfr.getSourceFile().toString()).toNull(),
+	    		x.getRanges().toStream().toOption().map(sfr -> sfr.getStartLine()).orSome(-1))
 	    });
     }
 	
@@ -72,6 +72,6 @@ public class TestRunCoreLibraryTests extends BaseExprTest {
 	
 	@Override
 	public Set<SourceFileRange> exprRanges() {
-		return withoutScope.getSourceFileRanges();
+		return withoutScope.getRanges();
 	}
 }

@@ -23,7 +23,7 @@ public class BaseFunctionRef extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-	    return visitor.baseFunctionRef(getSourceFileRanges(), name);
+	    return visitor.baseFunctionRef(getRanges(), name);
 	}
 
 	@Override

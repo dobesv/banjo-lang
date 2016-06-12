@@ -31,7 +31,7 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	}
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.emptyExpr(getSourceFileRanges());
+		return visitor.emptyExpr(getRanges());
 	}
 
 	@Override

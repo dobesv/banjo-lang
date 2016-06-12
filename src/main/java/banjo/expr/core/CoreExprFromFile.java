@@ -50,8 +50,8 @@ public class CoreExprFromFile implements CoreExpr {
     }
 
     @Override
-    public Set<SourceFileRange> getSourceFileRanges() {
-        return load().getSourceFileRanges();
+    public Set<SourceFileRange> getRanges() {
+        return load().getRanges();
     }
 
     @Override

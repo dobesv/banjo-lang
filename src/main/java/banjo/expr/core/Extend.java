@@ -68,7 +68,7 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.extend(getSourceFileRanges(), base.acceptVisitor(visitor), extension.acceptVisitor(visitor));
+		return visitor.extend(getRanges(), base.acceptVisitor(visitor), extension.acceptVisitor(visitor));
 	}
 
 

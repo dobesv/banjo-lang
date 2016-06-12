@@ -62,7 +62,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 				@Override
 				public String identifier(Identifier n) {
-					assert n.eql(args.head());
+                    assert n.id.equals(args.head().id);
 				    return "";
 				}
 				@Override
@@ -94,7 +94,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 				@Override
 				public Void identifier(Identifier n) {
-					assert n.eql(args.head());
+                    assert n.id.equals(args.head().id);
 				    return null;
 				}
 				@Override
@@ -141,7 +141,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.functionLiteral(getSourceFileRanges(), args, body.acceptVisitor(visitor), sourceObjectBinding);
+		return visitor.functionLiteral(getRanges(), args, body.acceptVisitor(visitor), sourceObjectBinding);
 	}
 
 	public static FunctionLiteral function(Identifier arg, CoreExpr body) {
@@ -151,7 +151,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	public FunctionLiteral withBody(CoreExpr body) {
 		if(body == this.body)
 			return this;
-	    return new FunctionLiteral(getSourceFileRanges(), args, body, Option.none());
+	    return new FunctionLiteral(getRanges(), args, body, Option.none());
     }
 
 	/**

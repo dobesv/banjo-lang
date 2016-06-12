@@ -3,27 +3,27 @@ package banjo.value.kernel;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
-import banjo.eval.FailWithMessage;
 import banjo.expr.source.Operator;
 import banjo.expr.token.StringLiteral;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.FailWithMessage;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 
 public class KernelStringValue extends KernelValueWrapper<String> implements Value {
-    public KernelStringValue(String str, Value trueValue, Value falseValue) {
-        super(str, trueValue, falseValue);
+    public KernelStringValue(String str, Value trueValue) {
+        super(str, trueValue);
     }
 
     /**
      * Return a new kernel with with new text but the other metadata the same.
      */
     private Value derived(String str) {
-        return new KernelStringValue(str, trueValue, falseValue);
+        return new KernelStringValue(str, trueValue);
     }
 
     public static Option<String> extractString(List<Value> trace, Value v) {

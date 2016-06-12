@@ -6,8 +6,8 @@ import fj.data.List;
 
 public class KernelListValue extends KernelValueWrapper<List<Value>> {
 
-    public KernelListValue(List<Value> value, Value trueValue, Value falseValue) {
-        super(value, trueValue, falseValue);
+    public KernelListValue(List<Value> value, Value trueValue) {
+        super(value, trueValue);
     }
 
     @Override

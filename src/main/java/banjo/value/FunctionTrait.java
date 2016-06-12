@@ -26,4 +26,5 @@ public abstract class FunctionTrait extends ValueToStringTrait implements Value 
 	public Value compose(Value functionAfter) {
 		return new FunctionComposition(functionAfter, this);
 	}
+
 }

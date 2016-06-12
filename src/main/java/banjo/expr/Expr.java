@@ -9,7 +9,7 @@ import fj.data.Set;
 
 
 public interface Expr {
-	public static final Ord<Expr> EXPR_RANGES_ORD = SourceFileRange.SET_ORD.contramap(x -> x.getSourceFileRanges());
+	public static final Ord<Expr> EXPR_RANGES_ORD = SourceFileRange.SET_ORD.contramap(x -> x.getRanges());
 
 	public void toSource(StringBuffer sb);
 
@@ -21,7 +21,7 @@ public interface Expr {
 
 	public Precedence getPrecedence();
 
-	public Set<SourceFileRange> getSourceFileRanges();
+	public Set<SourceFileRange> getRanges();
 
 	public static <A extends Expr> Ord<A> ordWithFileRanges(Ord<A> subclassOrd) {
 		return OrdUtil.chain(EXPR_RANGES_ORD, subclassOrd);

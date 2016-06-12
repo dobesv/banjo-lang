@@ -1,8 +1,8 @@
 package banjo.value.meta;
 
-import banjo.eval.Fail;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
+import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;

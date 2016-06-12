@@ -59,7 +59,7 @@ public class TestAndExampleGatherer {
             Set<CoreExpr> allExamples = examplesInBindings.union(examplesInBody);
             // Need to rewrap the example in the let so it has whatever
             // variables from scope that it needs
-            return allExamples.map(CoreExpr.coreExprOrd, e -> new Let(let.getSourceFileRanges(), let.bindings, e));
+            return allExamples.map(CoreExpr.coreExprOrd, e -> new Let(let.getRanges(), let.bindings, e));
         }
 
         @Override
@@ -72,7 +72,7 @@ public class TestAndExampleGatherer {
             Set<CoreExpr> result =
                 f.body.acceptVisitor(this).map(
                     CoreExpr.coreExprOrd,
-                    e -> f.sourceObjectBinding.map(recId -> (CoreExpr) new Let(recId.getSourceFileRanges(), List.single(P.p(recId, f)), e)).orSome(e));
+                    e -> f.sourceObjectBinding.map(recId -> (CoreExpr) new Let(recId.getRanges(), List.single(P.p(recId, f)), e)).orSome(e));
             return result;
         }
 
@@ -93,7 +93,7 @@ public class TestAndExampleGatherer {
         return base.acceptVisitor(new TestFindingCoreExprVisitor() {
             @Override
             public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
-                if(binding._1().eql(TESTS_KEY))
+                if(binding._1().id.equals(TESTS_KEY.id))
                     return tests(List.single(binding._2()));
                 return super.binding(binding);
             }
@@ -111,7 +111,7 @@ public class TestAndExampleGatherer {
         return base.acceptVisitor(new TestFindingCoreExprVisitor() {
             @Override
             public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
-                if(binding._1().eql(EXAMPLES_KEY))
+                if(binding._1().id.equals(EXAMPLES_KEY.id))
                     return tests(List.single(binding._2()));
                 return super.binding(binding);
     		}

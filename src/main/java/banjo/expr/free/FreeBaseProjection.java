@@ -1,15 +1,15 @@
 package banjo.expr.free;
 
-import banjo.eval.SlotNotFound;
-import banjo.eval.UnboundSlotSelfName;
-import banjo.eval.environment.Binding;
-import banjo.eval.environment.BindingVisitor;
-import banjo.eval.environment.Environment;
-import banjo.eval.expr.ObjectLiteralInstance;
+import banjo.eval.resolver.GlobalRef;
+import banjo.eval.resolver.InstanceAlgebra;
+import banjo.eval.resolver.NameRef;
+import banjo.eval.resolver.NameRefAlgebra;
+import banjo.eval.resolver.Resolver;
 import banjo.expr.source.Operator;
+import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Value;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 /**
@@ -19,54 +19,102 @@ import fj.data.Set;
  * "base" slot value will be used for
  */
 public class FreeBaseProjection implements FreeExpression {
-	public final FreeIdentifier object;
+    public final Set<SourceFileRange> ranges;
+    public final String slotObjectName;
 	public final FreeExpression projection;
 
 
-	public FreeBaseProjection(FreeIdentifier object, FreeExpression projection) {
+    public FreeBaseProjection(Set<SourceFileRange> ranges, String slotObjectName, FreeExpression projection) {
         super();
-        this.object = object;
+        this.ranges = ranges;
+        this.slotObjectName = slotObjectName;
         this.projection = projection;
     }
 
-	@Override
-    public Value apply(Environment env, List<Value> trace) {
-		String id = object.id;
-        Set<SourceFileRange> ranges = object.ranges;
-		return env.bindings.get(id).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
-			
-			@Override
-			public Value slot(Value sourceObject, String slotName) {
-                return slotWithBase(sourceObject, slotName, new SlotNotFound(trace, id + ":" + slotName, ranges, sourceObject));
-			}
-			
-			@Override
-			public Value slotWithBase(Value sourceObject, String slotName, Value baseSlotValue) {
-                // Create a special environment for the project, with only the
-                // valid base slot defined
-                Environment baseProjectionEnv = env.projection(ObjectLiteralInstance.EMPTY).bind(slotName, Binding.let(baseSlotValue));
-                return projection.apply(baseProjectionEnv, trace);
-			}
-			
-			@Override
-            public Value functionSelf(Value function) {
-                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
-			}
-			
-			@Override
-            public Value functionSelfWithBase(Value function, Value baseFunction) {
-                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a function self-recursive name", ranges);
-			}
-			
-			@Override
-			public Value let(Value value) {
-                return new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is a regular let binding", ranges);
-			}
-        })).orSome(() -> new UnboundSlotSelfName(trace, "Not a slot self-name: '" + id + "' is not defined", ranges));
-	}
+    public FreeBaseProjection(Identifier object, FreeExpression projection) {
+        super();
+        this.ranges = object.ranges;
+        this.slotObjectName = object.id;
+        this.projection = projection;
+    }
+
+    @Override
+	public Set<NameRef> getFreeRefs() {
+	    // Now we have to translate the free refs inside the projection
+        // into refs from outside the projection.
+        return projection.getFreeRefs().map(NameRef.ORD, this::translateNameRef);
+    }
+
+    @Override
+    public boolean hasFreeRefs() {
+        return projection.hasFreeRefs();
+    }
+
+    public NameRef translateNameRef(NameRef ref) {
+        return ref.acceptVisitor(this.nameTranslation());
+    }
+
+    public NameRefAlgebra<NameRef> nameTranslation() {
+        return new NameRefAlgebra<NameRef>() {
+
+            @Override
+            public NameRef local(Set<SourceFileRange> ranges, String name) {
+                // For a plain identifier, tack on our prefix
+                return NameRef.baseSlot(SourceFileRange.union(ranges, ranges), slotObjectName, name);
+            }
+
+            @Override
+            public NameRef slot(NameRef object, Set<SourceFileRange> ranges, String slotName) {
+                // For a slot reference, we must adjust the target object of the
+                // slot reference
+                return NameRef.slot(object.acceptVisitor(this), ranges, slotName);
+            }
+
+            @Override
+            public NameRef baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName) {
+                // Can't use a base slot in this context
+                return NameRef.invalid(ranges, slotObjectRef + " is not a slot object name; it's a regular slot name");
+            }
+
+            @Override
+            public NameRef functionBase(Set<SourceFileRange> ranges, String functionSelfName) {
+                // Can't reference a base function in this context
+                return NameRef.invalid(ranges, functionSelfName + " is not a function self name; it's a regular slot name");
+            }
+
+            @Override
+            public NameRef invalid(Set<SourceFileRange> ranges, String reason) {
+                // Propagate errors we already found
+                return NameRef.invalid(ranges, reason);
+            }
+
+            @Override
+            public NameRef global(GlobalRef globalRef) {
+                return globalRef;
+            }
+        };
+    }
+
+    @Override
+    public Option<FreeExpression> partial(PartialResolver resolver) {
+        Option<FreeExpression> newProjection = projection.partial(resolver.compose(this.nameTranslation()));
+        // If the projection has no free variables, it's not useful to wrap it
+        // in our scope any more; when exactly this would happen, I'm not sure.
+        return newProjection.map(p -> p.hasFreeRefs() ? new FreeBaseProjection(ranges, slotObjectName, projection) : p);
+    }
+
+    @Override
+    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        return projection.eval(trace, resolver.compose(this.nameTranslation()), algebra);
+    }
 
 	@Override
 	public String toString() {
-	    return object+Operator.BASE_SLOT.getOp()+projection;
+        return this.slotObjectName + Operator.BASE_SLOT.getOp() + projection;
 	}
+
+    @Override
+    public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
+        return visitor.baseProjection(this);
+    }
 }

@@ -72,7 +72,7 @@ public class TestParenMatching {
             assertEquals("Wrong number of errors", expectedErrorCount, problems.length());
             Set<SourceFileRange> ranges = Set
                     .join(SourceFileRange.ORD,
-                            Set.set(SourceFileRange.SET_ORD, problems.map(p -> p.getSourceFileRanges())));
+                            Set.set(SourceFileRange.SET_ORD, problems.map(p -> p.getRanges())));
             int[] problemOffsets = StreamSupport.stream(ranges.spliterator(), false)
                     .mapToInt(r -> r.getFileRange().getStartOffset()).toArray();
             Assert.assertArrayEquals(expectedErrorOffsets, problemOffsets);

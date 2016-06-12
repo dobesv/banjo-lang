@@ -1,12 +1,11 @@
 package banjo.expr.free;
 
-import banjo.eval.NotCallable;
-import banjo.eval.UnboundFunctionSelfName;
-import banjo.eval.environment.BindingVisitor;
-import banjo.eval.environment.Environment;
+import banjo.eval.resolver.InstanceAlgebra;
+import banjo.eval.resolver.NameRef;
+import banjo.eval.resolver.Resolver;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Value;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 public class FreeBaseFunctionRef implements FreeExpression {
@@ -19,36 +18,30 @@ public class FreeBaseFunctionRef implements FreeExpression {
         this.ranges = ranges;
     }
 
-	@Override
-    public Value apply(Environment env, List<Value> trace) {
-		return env.bindings.get(name).map(b -> b.acceptVisitor(new BindingVisitor<Value>() {
-			
-			@Override
-            public Value functionSelf(Value function) {
-                return new NotCallable(trace, "No base implementation for function '" + name + "'", ranges);
-			}
-			
-			@Override
-            public Value functionSelfWithBase(Value function, Value baseFunction) {
-				return baseFunction;
-			}
-			
-			@Override
-			public Value let(Value value) {
-                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a regular let-bound variable", ranges);
-			}
-			
-			@Override
-			public Value slot(Value sourceObject, String slotName) {
-                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a slot object reference", ranges);
-			}
-			
-			@Override
-			public Value slotWithBase(Value sourceObject, String slotName, Value baseSlotValue) {
-                return new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is a slot object reference", ranges);
-			}
-			
-			
-        })).orSome(() -> new UnboundFunctionSelfName(trace, "Not a function self-name: '" + name + "' is not a locally defined name", ranges));
-	}
+    @Override
+    public Set<NameRef> getFreeRefs() {
+        return NameRef.EMPTY_SET.insert(NameRef.functionBase(ranges, name));
+    }
+
+    @Override
+    public boolean hasFreeRefs() {
+        return true;
+    }
+
+    @Override
+    public Option<FreeExpression> partial(PartialResolver resolver) {
+        // Replace this FreeExpression with one we get by looking up the
+        // function base, if any
+        return resolver.functionBase(ranges, name);
+    }
+
+    @Override
+    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        return resolver.functionBase(ranges, name);
+    }
+
+    @Override
+    public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
+        return visitor.baseFunctionRef(this);
+    }
 }

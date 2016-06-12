@@ -1,12 +1,16 @@
 package banjo.expr.token;
 
 
+import banjo.eval.resolver.GlobalRef;
+import banjo.eval.resolver.InstanceAlgebra;
+import banjo.eval.resolver.NameRef;
+import banjo.eval.resolver.Resolver;
 import banjo.expr.BadExpr;
-import banjo.expr.core.Call;
-import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.core.CoreExprVisitor;
-import banjo.expr.core.ListLiteral;
+import banjo.expr.free.FreeExpression;
+import banjo.expr.free.FreeExpressionVisitor;
+import banjo.expr.free.PartialResolver;
 import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExprAlgebra;
 import banjo.expr.source.SourceExprVisitor;
@@ -14,9 +18,10 @@ import banjo.expr.util.FileRange;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
-public class StringLiteral extends AbstractAtom implements Atom {
+public class StringLiteral extends AbstractAtom implements Atom, FreeExpression {
 	public static final Ord<StringLiteral> ORD = Ord.stringOrd.contramap((StringLiteral x) -> x.string);
 	public final String string;
 
@@ -25,6 +30,9 @@ public class StringLiteral extends AbstractAtom implements Atom {
 		this.string = string;
 	}
 
+    public StringLiteral(Set<SourceFileRange> ranges, String string) {
+        this(ranges, 0, string);
+    }
 	public StringLiteral(SourceFileRange range, int indentColumn, String string) {
 		this(Set.single(SourceFileRange.ORD, range), indentColumn, string);
 	}
@@ -83,30 +91,48 @@ public class StringLiteral extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		FileRange fileRange = getSourceFileRanges().toStream().head().getFileRange();
+		FileRange fileRange = getRanges().toStream().head().getFileRange();
 		return parser.stringLiteral(fileRange, indentColumn, string);
 	}
 
 	@Override
+    public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
+        return visitor.stringLiteral(this);
+    }
+
+    @Override
 	public List<BadExpr> getProblems() {
 		return List.nil();
 	}
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.stringLiteral(getSourceFileRanges(), string);
+		return visitor.stringLiteral(getRanges(), string);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.stringLiteral(getSourceFileRanges(), string);
+		return visitor.stringLiteral(getRanges(), string);
 	}
 
-	public CoreExpr toConstructionExpression() {
-		ListLiteral codePoints = new ListLiteral(
-				List.list(getString().codePoints().mapToObj(cp -> new NumberLiteral(cp)).toArray(CoreExpr[]::new))
-		);
-		return Call.slot(Identifier.EMPTY_STRING, "with code points", List.single(codePoints));
-	}
+    @Override
+    public Set<NameRef> getFreeRefs() {
+        return Set.set(NameRef.ORD, GlobalRef.TRUE, GlobalRef.LANGUAGE_KERNEL_STRING);
+    }
 
+    @Override
+    public boolean hasFreeRefs() {
+        return true;
+    }
+
+    @Override
+    public Option<FreeExpression> partial(PartialResolver resolver) {
+        return Option.none();
+    }
+
+    @Override
+    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        T kernelString = algebra.kernelString(ranges, string, resolver.global(GlobalRef.TRUE));
+        return algebra.call1(trace, ranges, resolver.global(GlobalRef.LANGUAGE_KERNEL_STRING), kernelString);
+    }
 }

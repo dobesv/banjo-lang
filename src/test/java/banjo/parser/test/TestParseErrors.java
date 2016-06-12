@@ -20,11 +20,11 @@ public class TestParseErrors {
             SourceExpr parsed = SourceExpr.fromString(source);
             final List<BadExpr> problems = SourceErrorGatherer.getProblems(parsed);
             for(final BadExpr e : problems) {
-                final FileRange range = e.getSourceFileRanges().toStream().head().getFileRange();
+                final FileRange range = e.getRanges().toStream().head().getFileRange();
                 debugInfo.append("\n  " + range + ": " + e.getMessage());
             }
             String actualProblemRanges = problems
-                .map((BadExpr p) -> p.getSourceFileRanges().iterator().next().getFileRange())
+                .map((BadExpr p) -> p.getRanges().iterator().next().getFileRange())
                 .map(range -> range.getStartOffset() + " - " + range.getEndOffset())
                 .foldLeft(((a, b) -> a.isEmpty() ? b : a + ", " + b), "");
             StringBuffer expectedProblemRanges = new StringBuffer();

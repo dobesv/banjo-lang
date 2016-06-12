@@ -56,7 +56,7 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.operator(getSourceFileRanges().toStream().head().getFileRange(), 0, op);
+		return parser.operator(getRanges().toStream().head().getFileRange(), 0, op);
 	}
 
 	@Override
@@ -66,12 +66,12 @@ public class OperatorRef extends AbstractAtom implements Atom {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.identifier(getSourceFileRanges(), op);
+		return visitor.identifier(getRanges(), op);
 	}
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.identifier(getSourceFileRanges(), op);
+		return visitor.identifier(getRanges(), op);
 	}
 
 }

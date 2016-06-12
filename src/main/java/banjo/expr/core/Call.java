@@ -108,7 +108,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
 		return visitor.call(
-				getSourceFileRanges(),
+				getRanges(),
 				target.acceptVisitor(visitor),
 				args.map(x -> x.acceptVisitor(visitor))
 		);
@@ -120,9 +120,6 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	public static Call slot(CoreExpr target, Identifier name, CoreExpr arg) {
 		return new Call(new Projection(target, name), List.single(arg));
 	}
-	public static Call slot(CoreExpr target, Identifier name) {
-		return new Call(new Projection(target, name), List.nil());
-	}
 	public static Call slot(CoreExpr target, String name, List<CoreExpr> args) {
 		return slot(target, new Identifier(name), args);
 	}
@@ -131,12 +128,7 @@ public class Call extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public static CoreExpr binaryOp(CoreExpr left, Operator op, CoreExpr right) {
-	    return slot(left, op.getMethodIdentifier(), right);
+        return slot(left, op.getMethodName(), right);
     }
-
-	public static CoreExpr unaryOp(CoreExpr operand, Operator op) {
-	    return slot(operand, op.getMethodIdentifier());
-    }
-
 
 }

@@ -2,18 +2,12 @@ package banjo.expr.core;
 
 import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
-import banjo.expr.token.Identifier;
-import banjo.expr.token.NumberLiteral;
-import banjo.expr.token.StringLiteral;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
-import fj.P2;
 import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
-import fj.data.TreeMap;
 
 
 public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
@@ -70,49 +64,11 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.objectLiteral(getSourceFileRanges(), slots.map(s -> P.p(s.name, s.sourceObjectBinding, s.value.acceptVisitor(visitor))));
+		return visitor.objectLiteral(getRanges(), slots.map(s -> P.p(s.name, s.sourceObjectBinding, s.value.acceptVisitor(visitor))));
 	}
-
-	public Option<Slot> findMethod(String name) {
-		return findMethods(name).toOption();
-	}
-
-	private List<Slot> findMethods(String name) {
-	    return slots.filter(s -> name.equals(s.name.id)).reverse();
-    }
-
-	public Option<Slot> findMethod(Identifier name) {
-		return findMethods(name).toOption();
-	}
-
-	private List<Slot> findMethods(Identifier name) {
-	    return slots.filter(s -> name.eql(s.name)).reverse();
-    }
-
-	public ObjectLiteral withSlots(List<Slot> newSlots) {
-		if(newSlots.equals(slots))
-			return this;
-	    return new ObjectLiteral(getSourceFileRanges(), newSlots);
-    }
 
 	public List<Slot> getSlots() {
 	    return slots;
-    }
-
-	public TreeMap<Identifier,Slot> slotMap() {
-		return TreeMap.treeMap(Identifier.ORD, slots.map(s -> P.p(s.name, s)));
-	}
-
-	public static P2<Identifier, CoreExpr> slot(String name, CoreExpr value) {
-	    return P.p(new Identifier(name), value);
-    }
-
-	public static P2<Identifier, CoreExpr> slot(String name, String value) {
-	    return slot(name, new StringLiteral(value));
-    }
-
-	public static P2<Identifier, CoreExpr> slot(String name, int value) {
-	    return slot(name, new NumberLiteral(value));
     }
 
 	@Override

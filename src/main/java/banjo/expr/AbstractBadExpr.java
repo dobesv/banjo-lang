@@ -31,8 +31,8 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	@Override
 	public void toSource(StringBuffer sb) {
 		sb.append("fail(");
-		if(!sourceFileRanges.isEmpty()) {
-			sourceFileRanges.toStream().take(1).forEach(s -> sb.append(s.toString()).append(": "));
+		if(!ranges.isEmpty()) {
+			ranges.toStream().take(1).forEach(s -> sb.append(s.toString()).append(": "));
 		}
 		StringLiteral.toSource(this.getMessage(), sb);
 		sb.append(")");
@@ -56,7 +56,7 @@ public class AbstractBadExpr extends AbstractExpr implements BadExpr {
 	}
 
 	public <T> T acceptVisitor(ExprAlgebra<T> visitor) {
-		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), args);
+		return visitor.badExpr(getRanges(), getMessageTemplate(), args);
 	}
 
 	@SuppressWarnings("unchecked")

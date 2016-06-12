@@ -72,7 +72,7 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String numberLiteral(FileRange range, int indentColumn, Number value) {
+	public String numberLiteral(FileRange range, int indentColumn, Number value, String source) {
 		return token("num", range);
 	}
 

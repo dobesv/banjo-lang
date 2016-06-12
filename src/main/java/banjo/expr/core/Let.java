@@ -77,7 +77,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.let(getSourceFileRanges(), bindings.map(p -> P.p(p._1(), p._2().acceptVisitor(visitor))), body.acceptVisitor(visitor));
+		return visitor.let(getRanges(), bindings.map(p -> P.p(p._1(), p._2().acceptVisitor(visitor))), body.acceptVisitor(visitor));
 	}
 
 	public static Let single(Identifier name, CoreExpr value,
@@ -86,7 +86,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
     }
 
 	public CoreExpr plus(List<P2<Identifier, CoreExpr>> newBindings) {
-	    return new Let(getSourceFileRanges(), newBindings.append(bindings), body);
+	    return new Let(getRanges(), newBindings.append(bindings), body);
     }
 
 	@Override

@@ -9,7 +9,6 @@ import banjo.expr.util.FilePos;
 import banjo.expr.util.FileRange;
 import banjo.expr.util.ParserReader;
 import banjo.expr.util.ParserReader.Pos;
-import banjo.expr.util.SourceNumber;
 import fj.data.List;
 
 public class TokenScanner {
@@ -891,7 +890,7 @@ public class TokenScanner {
             number = Long.valueOf(0);
         }
         final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-        return List.<T> single(visitor.numberLiteral(fileRange, indentColumn, new SourceNumber(text, number)));
+        return List.single(visitor.numberLiteral(fileRange, indentColumn, number, text));
     }
 
     /**
@@ -906,7 +905,7 @@ public class TokenScanner {
         final String identifier = matchID(in);
         if(identifier == null)
             return List.nil();
-        return List.<T> single(visitor.identifier(in.getFileRange(this.tokenStartPos), indentColumn, identifier));
+        return List.single(visitor.identifier(in.getFileRange(this.tokenStartPos), indentColumn, identifier));
     }
 
     /**
@@ -921,7 +920,7 @@ public class TokenScanner {
         final String operator = matchOperator(in);
         if(operator == null)
             return List.nil();
-        return List.<T> single(visitor.operator(in.getFileRange(this.tokenStartPos), indentColumn, operator));
+        return List.single(visitor.operator(in.getFileRange(this.tokenStartPos), indentColumn, operator));
     }
 
     public static String codePointToString(int cp) {

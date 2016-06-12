@@ -7,12 +7,12 @@ import java.util.function.Function;
 
 import org.apache.commons.math3.fraction.BigFraction;
 
-import banjo.eval.FailWithMessage;
 import banjo.expr.source.Operator;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.FailWithMessage;
 import fj.F;
 import fj.F0;
 import fj.data.List;
@@ -21,8 +21,8 @@ import fj.data.Set;
 
 public class KernelNumberValue extends KernelValueWrapper<Number> implements Value {
 
-    public KernelNumberValue(Number number, Value trueValue, Value falseValue) {
-        super(number, trueValue, falseValue);
+    public KernelNumberValue(Number number, Value trueValue) {
+        super(number, trueValue);
     }
 
     /**
@@ -31,7 +31,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
      * implementations.
      */
     private Value derived(Number n) {
-        return new KernelNumberValue(n, trueValue, falseValue);
+        return new KernelNumberValue(n, trueValue);
     }
 
     /**
@@ -58,10 +58,8 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
     public static BigInteger bigIntegerValue(Number number) {
         if(number instanceof BigInteger) {
             return (BigInteger) number;
-        } else if(number instanceof Long || number instanceof Integer || number instanceof Short || number instanceof Byte) {
-            return BigInteger.valueOf(number.longValue());
         } else {
-            return new BigInteger(number.toString());
+            return BigInteger.valueOf(number.longValue());
         }
     }
 
@@ -111,7 +109,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
         }
     }
 
-    private static interface NumberBinaryOp<T> {
+    public static interface NumberBinaryOp<T> {
         T int8(byte a, byte b);
 
         T int16(short a, short b);
@@ -181,7 +179,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
         }
     }
 
-    static NumberBinaryOp<Number> ADD_OP = new NumberBinaryOp<Number>() {
+    public static NumberBinaryOp<Number> ADD_OP = new NumberBinaryOp<Number>() {
 
         @Override
         public Number int8(byte a, byte b) {
@@ -230,7 +228,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Number> SUB_OP = new NumberBinaryOp<Number>() {
+    public static NumberBinaryOp<Number> SUB_OP = new NumberBinaryOp<Number>() {
 
         @Override
         public Number int8(byte a, byte b) {
@@ -279,7 +277,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Number> MUL_OP = new NumberBinaryOp<Number>() {
+    public static NumberBinaryOp<Number> MUL_OP = new NumberBinaryOp<Number>() {
 
         @Override
         public Number int8(byte a, byte b) {
@@ -328,7 +326,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Number> DIV_OP = new NumberBinaryOp<Number>() {
+    public static NumberBinaryOp<Number> DIV_OP = new NumberBinaryOp<Number>() {
 
         @Override
         public Number int8(byte a, byte b) {
@@ -377,7 +375,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Number> BSL_OP = new NumberBinaryOp<Number>() {
+    public static NumberBinaryOp<Number> BSL_OP = new NumberBinaryOp<Number>() {
 
         @Override
         public Number int8(byte a, byte b) {
@@ -426,7 +424,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Boolean> EQ_OP = new NumberBinaryOp<Boolean>() {
+    public static NumberBinaryOp<Boolean> EQ_OP = new NumberBinaryOp<Boolean>() {
 
         @Override
         public Boolean int8(byte a, byte b) {
@@ -475,7 +473,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
 
     };
 
-    static NumberBinaryOp<Boolean> LT_OP = new NumberBinaryOp<Boolean>() {
+    public static NumberBinaryOp<Boolean> LT_OP = new NumberBinaryOp<Boolean>() {
 
         @Override
         public Boolean int8(byte a, byte b) {
@@ -864,7 +862,7 @@ public class KernelNumberValue extends KernelValueWrapper<Number> implements Val
                 return new FailWithMessage(trace, name + " not implemented for number type: " + value.getClass().getSimpleName());
             }
         } else if("label".equals(name)) {
-            return new KernelStringValue(value.toString(), trueValue, falseValue);
+            return new KernelStringValue(value.toString(), trueValue);
         }
 
         return Value.super.slot(trace, self, name, ranges, fallback);

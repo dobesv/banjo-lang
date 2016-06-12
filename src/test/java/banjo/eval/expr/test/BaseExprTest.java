@@ -4,12 +4,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.file.Paths;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import banjo.eval.Fail;
-import banjo.eval.FailWithException;
-import banjo.eval.environment.Environment;
+import banjo.eval.resolver.GlobalValueResolver;
+import banjo.eval.resolver.InstanceAlgebra;
+import banjo.eval.resolver.Resolver;
+import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.core.BaseCoreExprVisitor;
 import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
@@ -18,22 +21,30 @@ import banjo.expr.core.Let;
 import banjo.expr.core.Projection;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
+import banjo.expr.free.PartialResolver;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
+import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
+import banjo.value.fail.Fail;
+import banjo.value.fail.FailWithException;
+import fj.Ord;
 import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Set;
+import fj.data.TreeMap;
 
 public abstract class BaseExprTest {
 
-	private class ValueDebugStringCalculator extends BaseCoreExprVisitor<String> {
-		final Environment environment;
+    private class ValueDebugStringCalculator<T> extends BaseCoreExprVisitor<String> {
+        final Resolver<T> resolver;
+        final InstanceAlgebra<T> algebra;
 		
-		public ValueDebugStringCalculator(Environment environment) {
+        public ValueDebugStringCalculator(Resolver<T> resolver, InstanceAlgebra<T> algebra) {
 			super();
-			this.environment = environment;
+            this.resolver = resolver;
+            this.algebra = algebra;
 		}
 
 		@Override
@@ -45,13 +56,22 @@ public abstract class BaseExprTest {
 		public String call(Call n) {
 			if(n.target instanceof Projection) {
 				final Projection methodReceiver = (Projection)n.target;
-				final Value lhs = environment.eval(methodReceiver.object);
+                final T lhs = resolver.eval(methodReceiver.object, algebra);
 				return n.getBinaryOperator().map(x -> {
-					final Object rhs = environment.eval(n.args.head());
+                    final Object rhs = resolver.eval(n.args.head(), algebra);
 					return "(" + n.toSource() + ") == ("+lhs+" "+x.getOp()+" "+rhs+")"+ " --> " + value;
-				}).orSome(P.lazy(() -> {
-					return "(" + n.toSource() + ") == ("+lhs+"."+methodReceiver.projection+"("+ListUtil.insertCommas(n.args.toStream().map(environment::eval))+")" + "==" + value;
-				}));
+				}).orSome(P.lazy(() -> "(" +
+                        n.toSource() +
+                        ") == (" +
+                        lhs +
+                        "." +
+                        methodReceiver.projection +
+                        "(" +
+                    ListUtil.insertCommas(n.args.toStream().map(arg -> resolver.eval(arg, algebra))) +
+                        ")" +
+                        "==" +
+                    value
+				));
 			}
 		    return fallback();
 		}
@@ -61,19 +81,19 @@ public abstract class BaseExprTest {
 			List<P2<String, FreeExpression>> bindings = let.bindings
 					.map(P2.map2_(e -> e.acceptVisitor(FreeExpressionFactory.INSTANCE)))
 					.map(P2.map1_(e -> e.id));
-			Environment innerEnvironment = environment.let(bindings);
-			return let.body.acceptVisitor(new ValueDebugStringCalculator(innerEnvironment));
+            PartialResolver partialResolver = FreeExpressionFactory.letPartialResolver(TreeMap.treeMap(Ord.stringOrd, bindings));
+            FreeExpression freeBody = FreeExpressionFactory.apply(let.body);
+            FreeExpression boundBody = freeBody.partial(partialResolver).orSome(freeBody);
+            return let.body.acceptVisitor(new ValueDebugStringCalculator<T>(resolver, algebra));
 		}
 	}
 
-	final static Environment environment = Environment.forCurrentDirectory();
+    final static GlobalValueResolver globalResolver = new GlobalValueResolver(FreeExpression.forProjectAtPath(Paths.get("")));
 
 	CoreExpr expr;
 	Value value;
-
 	Value intermediateValue;
-
-	public FreeExpression freeExpr;
+    FreeExpression freeExpr;
 
 	public abstract CoreExpr getAst();
 	
@@ -84,29 +104,42 @@ public abstract class BaseExprTest {
 
     public void evaluates() {
 		noParseErrors();
-        freeExpr = FreeExpressionFactory.apply(expr);
+        calcFreeExpr();
         List<Value> trace = List.nil();
-        intermediateValue = freeExpr.apply(environment, trace);
+        intermediateValue = freeExpr.eval(trace, globalResolver, ValueInstanceAlgebra.INSTANCE);
         try {
             this.value = intermediateValue.force(trace);
         } catch(Throwable e) {
             this.value = new FailWithException(List.single(intermediateValue), e);
         }
         assertNotNull(value);
-        if(value instanceof Fail) {
-            Fail failure = (Fail) value;
-            System.err.println(value.toString());
-            if(failure.getCause() != null)
-                System.err.println("  Exception: " + failure.getCause().toString());
-            failure.getTrace().forEach(t -> {
-                System.err.println("  at " + t.stackTraceElementString());
-            });
-            Assert.fail(failure.toString());
-        }
+        value.acceptVisitor(new BaseValueVisitor<Void>() {
+
+            @Override
+            public Void fallback() {
+                // No problem
+                return null;
+            }
+
+            @Override
+            public Void failure(Fail failure) {
+                StringBuffer sb = new StringBuffer();
+                sb.append(failure.toString());
+                if(failure.getCause() != null)
+                    sb.append("\n Exception: ").append(failure.getCause().toString());
+                failure.getTrace(Value.class).forEach(t -> {
+                    sb.append("\n at " + t.stackTraceElementString());
+                });
+                Assert.fail(sb.toString());
+                return null;
+            }
+
+        });
         assertTrue(value.isDefined(trace));
     }
 
-	public void printable() {
+    @Test
+    public void valueToStringWorks() {
 		evaluates();
 		value.toString();
 	}
@@ -115,14 +148,20 @@ public abstract class BaseExprTest {
 		return expr.toSource();
 	}
 	public Set<SourceFileRange> exprRanges() {
-		return expr.getSourceFileRanges();
+		return expr.getRanges();
 	}
 
 	@Test
     public void isTrue() throws Throwable {
     	evaluates();
-    	final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator(environment));
+        final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator<Value>(globalResolver, ValueInstanceAlgebra.INSTANCE));
         assertTrue(valueStr, value.isTrue(List.single(value)));
+    }
+
+    public void calcFreeExpr() {
+        if(freeExpr == null) {
+            freeExpr = FreeExpressionFactory.apply(expr);
+        }
     }
 
 }

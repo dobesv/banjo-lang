@@ -92,7 +92,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.badExpr(getSourceFileRanges(), getMessageTemplate(), getArgs());
+		return visitor.badExpr(getRanges(), getMessageTemplate(), getArgs());
 	}
 
 	@Override

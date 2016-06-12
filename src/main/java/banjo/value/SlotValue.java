@@ -25,7 +25,7 @@ public class SlotValue extends CalculatedValue {
 		this.fallback = fallback;
 	}
 	
-    public SlotValue(Value object, String slotName, Set<SourceFileRange> ranges) {
+    public SlotValue(Value object, Set<SourceFileRange> ranges, String slotName) {
         this(object, object, slotName, ranges, null);
 	}
 

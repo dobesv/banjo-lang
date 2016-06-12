@@ -86,7 +86,7 @@ public class ParseTestUtils {
                 debugInfo.append("\nErrors:");
 				first = e;
 			}
-			for(SourceFileRange sfr : e.getSourceFileRanges()) {
+			for(SourceFileRange sfr : e.getRanges()) {
                 debugInfo.append("\n" + (count + 1) + ".  " + sfr.getFileRange() + ": " + e.getMessage());
 			}
 			count ++;

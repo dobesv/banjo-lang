@@ -16,7 +16,6 @@ import banjo.expr.source.SourceExpr;
 import banjo.expr.source.SourceExprFactory;
 import banjo.expr.source.UnaryOp;
 import banjo.expr.token.NumberLiteral;
-import banjo.expr.util.SourceNumber;
 
 public class TestNumberLiteralParser {
 
@@ -150,7 +149,7 @@ public class TestNumberLiteralParser {
 	private void testDecimal(String inStr, String outStr, Class<? extends Number> clazz) {
 		ParseTestUtils.test(inStr, 0, null, NumberLiteral.class, null);
 		final NumberLiteral node = (NumberLiteral) CoreExpr.fromString(inStr);
-		final Number num = ((SourceNumber)node.getNumber()).getValue();
+        final Number num = node.getNumber();
 		assertEquals(outStr, num.toString());
 		assertTrue("Expecting instance of "+clazz+", got "+num.getClass()+" "+num, clazz.isInstance(num));
 	}

@@ -26,11 +26,11 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	}
 
 	public BinaryOp(Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr left, SourceExpr right) {
-		this(left.getSourceFileRanges().union(right.getSourceFileRanges()).union(operatorRanges),
+		this(left.getRanges().union(right.getRanges()).union(operatorRanges),
 				operator, operatorRanges, left, right);
 	}
 	public BinaryOp(Operator operator, SourceExpr left, SourceExpr right) {
-		this(left.getSourceFileRanges().union(right.getSourceFileRanges()),
+		this(left.getRanges().union(right.getRanges()),
 				operator, SourceFileRange.EMPTY_SET, left, right);
 	}
 	public SourceExpr getLeft() {
@@ -46,7 +46,7 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	}
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.binaryOp(getSourceFileRanges(), getOperator(), getOperatorRanges(), getLeft().acceptVisitor(visitor), getRight().acceptVisitor(visitor));
+		return visitor.binaryOp(getRanges(), getOperator(), getOperatorRanges(), getLeft().acceptVisitor(visitor), getRight().acceptVisitor(visitor));
 	}
 
 

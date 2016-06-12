@@ -4,7 +4,7 @@ import banjo.expr.util.FileRange;
 
 public interface TokenFold<T> {
 	T stringLiteral(T state, FileRange range, int indentColumn, String string);
-	T numberLiteral(T state, FileRange range, int indentColumn, Number number);
+	T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source);
 	T identifier(T state, FileRange range, int indentColumn, String id);
 	T operator(T state, FileRange range, int indentColumn, String op);
 	T whitespace(T state, FileRange range, String text);
@@ -20,8 +20,8 @@ public interface TokenFold<T> {
 		}
 
 		@Override
-		public T numberLiteral(T state, FileRange range, int indentColumn, Number number) {
-			return state.numberLiteral(range, indentColumn, number);
+		public T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source) {
+            return state.numberLiteral(range, indentColumn, number, source);
 		}
 
 		@Override

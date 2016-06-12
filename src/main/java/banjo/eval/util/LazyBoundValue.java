@@ -1,6 +1,7 @@
 package banjo.eval.util;
 
-import banjo.eval.environment.Environment;
+import banjo.eval.resolver.Resolver;
+import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.free.FreeExpression;
 import banjo.value.CalculatedValue;
 import banjo.value.Value;
@@ -11,24 +12,17 @@ import fj.data.List;
  */
 public class LazyBoundValue extends CalculatedValue {
 	public final FreeExpression expr;
-	public final Environment environment;
+    public final Resolver<Value> resolver;
 	
-	public LazyBoundValue(FreeExpression expr, Environment environment) {
+    public LazyBoundValue(FreeExpression expr, Resolver<Value> resolver) {
 		super();
 		this.expr = expr;
-		this.environment = environment;
+        this.resolver = resolver;
 	}
 	
 	@Override
 	public Value calculate(List<Value> trace) {
-        return expr.apply(environment, trace);
+        return expr.eval(trace, resolver, ValueInstanceAlgebra.INSTANCE);
 	}
-	
-	public LazyBoundValue updateEnv(Environment newEnvironment) {
-		if(newEnvironment == this.environment)
-			return this;
-		return new LazyBoundValue(expr, newEnvironment);
-	}
-
 }
 

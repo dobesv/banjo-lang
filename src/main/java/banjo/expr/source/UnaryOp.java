@@ -19,7 +19,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 		this.operand = operand;
 	}
     public UnaryOp(Operator operator, Set<SourceFileRange> operatorRanges, SourceExpr operand) {
-    	this(operatorRanges.union(operand.getSourceFileRanges()),
+    	this(operatorRanges.union(operand.getRanges()),
     			operator, operatorRanges, operand);
     }
 	public SourceExpr getOperand() {
@@ -36,7 +36,7 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
 	}
 	@Override
 	public <T> T acceptVisitor(SourceExprAlgebra<T> visitor) {
-		return visitor.unaryOp(getSourceFileRanges(), getOperator(), getOperatorRanges(), getOperand().acceptVisitor(visitor));
+		return visitor.unaryOp(getRanges(), getOperator(), getOperatorRanges(), getOperand().acceptVisitor(visitor));
 	}
 	@Override
 	public void toSource(StringBuffer sb) {
