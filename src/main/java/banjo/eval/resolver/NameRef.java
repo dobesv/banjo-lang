@@ -238,7 +238,7 @@ public interface NameRef {
         });
     }
 
-    public static Ord<NameRef> ORD = Ord.ord((a) -> (b) -> a == b ? Ordering.EQ : a.compare(b)));
+    public static Ord<NameRef> ORD = Ord.ord((a) -> (b) -> a == b ? Ordering.EQ : a.compare(b));
     public static Set<NameRef> EMPTY_SET = Set.empty(ORD);
 
     public static NameRef local(Set<SourceFileRange> ranges, String name) {
