@@ -34,11 +34,11 @@ public class FunctionInstance extends FunctionTrait implements Value {
     public final TreeMap<NameRef, Value> closure;
 
     public FunctionInstance(Set<SourceFileRange> ranges, List<String> args,
-        FreeExpression body, Option<String> sourceObjectBinding, Value trait, TreeMap<NameRef, Value> closure) {
+        FreeExpression body, Option<String> calleeBinding, Value trait, TreeMap<NameRef, Value> closure) {
 		this.ranges = ranges;
 		this.args = args;
 		this.body = body;
-		this.calleeBinding = sourceObjectBinding;
+		this.calleeBinding = calleeBinding;
         this.trait = trait;
         this.closure = closure;
     }

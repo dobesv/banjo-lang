@@ -121,8 +121,8 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser functionLiteral(Set<SourceFileRange> ranges,
-            List<Identifier> args, DefRefAnalyser body, Option<Identifier> sourceObjectBinding) {
-	    return body.defs(args.append(sourceObjectBinding.toList()));
+        List<Identifier> args, DefRefAnalyser body, Option<Identifier> calleeBinding) {
+        return body.defs(args.append(calleeBinding.toList()));
     }
 
 	@Override

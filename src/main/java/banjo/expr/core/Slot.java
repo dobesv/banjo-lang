@@ -11,14 +11,14 @@ import fj.data.Option;
 
 public class Slot {
 	public final Identifier name;
-    public final Option<Identifier> sourceObjectBinding;
+    public final Option<Identifier> slotObjectRef;
 	public final CoreExpr value;
 
-	public Slot(Identifier name, Option<Identifier> sourceObjectBinding,
+	public Slot(Identifier name, Option<Identifier> slotObjectRef,
             CoreExpr value) {
         super();
         this.name = requireNonNull(name);
-        this.sourceObjectBinding = requireNonNull(sourceObjectBinding);
+        this.slotObjectRef = requireNonNull(slotObjectRef);
         this.value = requireNonNull(value);
     }
 	public Slot(Identifier name, CoreExpr value) {
@@ -28,7 +28,7 @@ public class Slot {
 	static final Ord<Slot> ORD = OrdUtil.chain(
 			Identifier.ORD.contramap(slot -> slot.name),
 			OrdUtil.chain(
-					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.sourceObjectBinding),
+					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.slotObjectRef),
 					CoreExpr.coreExprOrd.contramap(slot -> slot.value)
 			));
 	static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
@@ -36,7 +36,7 @@ public class Slot {
 	public boolean methodSlotToSource(StringBuffer sb) {
 		if(value instanceof FunctionLiteral) {
 			FunctionLiteral f = (FunctionLiteral) value;
-			sourceObjectBinding.forEach(x -> { x.toSource(sb); sb.append('.'); });
+			slotObjectRef.forEach(x -> { x.toSource(sb); sb.append('.'); });
 			name.toSource(sb);
 			sb.append('(');
 			int start = sb.length();
@@ -55,9 +55,9 @@ public class Slot {
 		sb.append('(');
 		if(op.isPrefix()) {
 			op.toSource(sb);
-			sourceObjectBinding.orSome(Identifier.UNDERSCORE).toSource(sb);
+			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
 		} else {
-			sourceObjectBinding.orSome(Identifier.UNDERSCORE).toSource(sb);
+			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
 			op.toSource(sb);
 		}
 		sb.append(") = ");
@@ -80,9 +80,9 @@ public class Slot {
 			sb.append(' ');
 			op.toSource(sb);
 			sb.append(' ');
-			sourceObjectBinding.orSome(Identifier.UNDERSCORE).toSource(sb);
+			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
 		} else {
-			sourceObjectBinding.orSome(Identifier.UNDERSCORE).toSource(sb);
+			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
 			sb.append(' ');
 			op.toSource(sb);
 			sb.append(' ');
@@ -98,7 +98,7 @@ public class Slot {
 				methodSlotToSource(sb))
 			return sb;
 
-		sourceObjectBinding.forEach((b) -> {
+		slotObjectRef.forEach((b) -> {
 			b.toSource(sb, Operator.PROJECTION.precedence);
 			Operator.PROJECTION.toSource(sb);
 		});
@@ -111,7 +111,7 @@ public class Slot {
 	}
 
 	public Slot withName(Identifier newName) {
-	    return new Slot(newName, sourceObjectBinding, value);
+	    return new Slot(newName, slotObjectRef, value);
     }
 
 	@Override
@@ -124,7 +124,7 @@ public class Slot {
     }
 
     public Option<Identifier> getSourceObjectBinding() {
-        return sourceObjectBinding;
+        return slotObjectRef;
     }
 
     public CoreExpr getValue() {

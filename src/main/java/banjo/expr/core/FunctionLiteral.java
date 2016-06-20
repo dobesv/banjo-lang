@@ -19,7 +19,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	public final List<Identifier> args;
 	public final CoreExpr body;
-	public final Option<Identifier> sourceObjectBinding;
+	public final Option<Identifier> calleeBinding;
 
 
 	private static final Ord<FunctionLiteral> _argsOrd = Identifier.LIST_ORD.contramap((FunctionLiteral f) -> f.args);
@@ -36,11 +36,11 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	 * @param body Method body expression
 	 * @param postcondition Expression that checks postconditions on the result of the body expression
 	 */
-	public FunctionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, CoreExpr body, Option<Identifier> sourceObjectBinding) {
+	public FunctionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, CoreExpr body, Option<Identifier> calleeBinding) {
 		super(ranges.hashCode() + (31 * args.hashCode()) + (97 * body.hashCode()), ranges);
 		this.args = requireNonNull(args);
 		this.body = requireNonNull(body);
-		this.sourceObjectBinding = requireNonNull(sourceObjectBinding);
+		this.calleeBinding = requireNonNull(calleeBinding);
 	}
 
 	public FunctionLiteral(List<Identifier> args, CoreExpr body) {
@@ -122,7 +122,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	public P2<Option<Identifier>, CoreExpr> checkRecursiveBinding() {
-		return P.p(sourceObjectBinding, body);
+		return P.p(calleeBinding, body);
 	}
 
 	public CoreExpr getBody() {
@@ -141,7 +141,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.functionLiteral(getRanges(), args, body.acceptVisitor(visitor), sourceObjectBinding);
+		return visitor.functionLiteral(getRanges(), args, body.acceptVisitor(visitor), calleeBinding);
 	}
 
 	public static FunctionLiteral function(Identifier arg, CoreExpr body) {
@@ -160,7 +160,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 	 * <code> _it -> _it.something</code>
 	 */
 	public boolean isSelector() {
-		if(!args.isSingle() || sourceObjectBinding.isSome())
+		if(!args.isSingle() || calleeBinding.isSome())
 			return false;
 		return args.map(a ->
 			body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {

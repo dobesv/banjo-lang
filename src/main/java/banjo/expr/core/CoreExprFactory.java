@@ -442,7 +442,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	protected Slot applyCombiningOp(Slot slot, Operator combiningOp) {
 		if(combiningOp == null || combiningOp == Operator.ASSIGNMENT)
 			return slot;
-		Identifier selfBinding = slot.sourceObjectBinding.orSome(Identifier.__TMP);
+		Identifier selfBinding = slot.slotObjectRef.orSome(Identifier.__TMP);
 		final CoreExpr base = Projection.baseSlot(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTENSION ?
@@ -844,7 +844,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 	 * @param bodySourceOffset Absolute source offset of the function body expression
 	 * @param guaranteeSourceOffset Absolute source offset of the guarantee; use the same offset as sourceOffset if none specified
 	 */
-	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr methodSourceExpr, final SourceExpr args, final Option<SourceExpr> sourceObjectBinding, final CoreExpr body) {
+	protected DesugarResult<CoreExpr> functionLiteral(final SourceExpr methodSourceExpr, final SourceExpr args, final Option<SourceExpr> calleeBinding, final CoreExpr body) {
 		return args.acceptVisitor(new BaseSourceExprVisitor<DesugarResult<CoreExpr>>() {
 			@Override
 			public DesugarResult<CoreExpr> binaryOp(BinaryOp op) {
@@ -862,7 +862,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 				final SourceExpr newGuaranteeSourceExpr = op.getRight();
 				final DesugarResult<CoreExpr> newGuaranteeDs = expr(newGuaranteeSourceExpr);
 				CoreExpr newBody = CoreExprFactory.this.applyGuarantee(body, op.getOperator(), newGuaranteeDs.getValue());
-				return newGuaranteeDs.functionLiteral(methodSourceExpr, newArgs, sourceObjectBinding, newBody);
+				return newGuaranteeDs.functionLiteral(methodSourceExpr, newArgs, calleeBinding, newBody);
 			}
 
 			@Override
@@ -873,7 +873,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 						Identifier.UNDERSCORE,
 						single(exprs),
 						Option.none(),
-						sourceObjectBinding,
+						calleeBinding,
 						body);
 				return slotDs.mapValue(slot -> slot.value);
 			}
@@ -1790,7 +1790,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     static Slot mergeSlots(Slot base, Slot extension) {
     
         // No source object binding, no problems
-        if(base.sourceObjectBinding.isNone() && extension.sourceObjectBinding.isNone()) {
+        if(base.slotObjectRef.isNone() && extension.slotObjectRef.isNone()) {
             CoreExpr b = base.value;
             CoreExpr e = extension.value;
             return new Slot(base.name, new Extend(b, e));
@@ -1816,9 +1816,9 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      * @return An expression suitable for embeddeding
      */
     static CoreExpr slotToExpr(Slot slot, Identifier newName) {
-        if(slot.sourceObjectBinding.isNone() || slot.sourceObjectBinding.some().id.equals(newName.id))
+        if(slot.slotObjectRef.isNone() || slot.slotObjectRef.some().id.equals(newName.id))
             return slot.value;
-        return Let.single(slot.sourceObjectBinding.some(), newName, slot.value);
+        return Let.single(slot.slotObjectRef.some(), newName, slot.value);
     }
 
     /**

@@ -64,7 +64,7 @@ public class ObjectLiteral extends AbstractCoreExpr implements CoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(final CoreExprAlgebra<T> visitor) {
-		return visitor.objectLiteral(getRanges(), slots.map(s -> P.p(s.name, s.sourceObjectBinding, s.value.acceptVisitor(visitor))));
+		return visitor.objectLiteral(getRanges(), slots.map(s -> P.p(s.name, s.slotObjectRef, s.value.acceptVisitor(visitor))));
 	}
 
 	public List<Slot> getSlots() {

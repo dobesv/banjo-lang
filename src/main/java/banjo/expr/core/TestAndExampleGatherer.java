@@ -72,7 +72,7 @@ public class TestAndExampleGatherer {
             Set<CoreExpr> result =
                 f.body.acceptVisitor(this).map(
                     CoreExpr.coreExprOrd,
-                    e -> f.sourceObjectBinding.map(recId -> (CoreExpr) new Let(recId.getRanges(), List.single(P.p(recId, f)), e)).orSome(e));
+                    e -> f.calleeBinding.map(recId -> (CoreExpr) new Let(recId.getRanges(), List.single(P.p(recId, f)), e)).orSome(e));
             return result;
         }
 

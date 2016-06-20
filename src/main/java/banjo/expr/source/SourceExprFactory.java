@@ -307,7 +307,8 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 		SourceExpr operand = this.getOperand();
 
 		// Check if we have an operand, it has source location, and we have moved to the next line
-		if(operand == null || operand.getRanges().isEmpty() || line <= operand.getRanges().toList().last().getEndLine())
+		if(operand == null || 
+            operand.getRanges().max().map(operandEndRange -> line <= operandEndRange.getEndLine()).orSome(true))
 			return this;
 
 		// Now if we get a de-dent we have to move up the operator stack

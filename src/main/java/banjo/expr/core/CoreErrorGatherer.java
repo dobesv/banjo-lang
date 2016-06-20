@@ -66,7 +66,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 
 	@Override
     public List<BadExpr> functionLiteral(Set<SourceFileRange> ranges,
-            List<Identifier> args, List<BadExpr> body, Option<Identifier> sourceObjectBinding) {
+        List<Identifier> args, List<BadExpr> body, Option<Identifier> calleeBinding) {
         return body;
     }
 

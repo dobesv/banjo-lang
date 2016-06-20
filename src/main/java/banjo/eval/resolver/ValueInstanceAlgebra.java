@@ -53,9 +53,9 @@ public class ValueInstanceAlgebra implements InstanceAlgebra<Value> {
     }
 
     @Override
-    public Value functionInstance(Set<SourceFileRange> ranges, List<String> args, FreeExpression body, Option<String> sourceObjectBinding,
+    public Value functionInstance(Set<SourceFileRange> ranges, List<String> args, FreeExpression body, Option<String> calleeBinding,
         Value trait, TreeMap<NameRef, Value> closure) {
-        return new FunctionInstance(ranges, args, body, sourceObjectBinding, trait, closure);
+        return new FunctionInstance(ranges, args, body, calleeBinding, trait, closure);
     }
 
     @Override

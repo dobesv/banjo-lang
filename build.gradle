@@ -34,7 +34,7 @@ repositories {
 }
 
 dependencies {
-	compile 'org.functionaljava:functionaljava-java8:4.4'
+	compile 'org.functionaljava:functionaljava-java8:4.5'
 	compile 'org.apache.commons:commons-math3:3.6.1'
 	compile 'org.apache.httpcomponents:httpclient:4.5.1'	
     compile 'org.apache.httpcomponents:httpclient-osgi:4.5.1'    
@@ -68,7 +68,7 @@ jar {
 	manifest {
 		instruction 'Bundle-ActivationPolicy', 'lazy'
 		instruction 'Bundle-Vendor', 'banjo'
-		instruction 'Require-Bundle', 'org.functionaljava;bundle-version="[4.3,5)"'
+		instruction 'Require-Bundle', 'org.functionaljava;bundle-version="[4.5,5)"'
 	}
 }
 

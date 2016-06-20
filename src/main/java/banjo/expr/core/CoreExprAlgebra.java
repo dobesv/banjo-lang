@@ -19,7 +19,8 @@ public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T extend(Set<SourceFileRange> ranges, T base, T extension);
 	T identifier(Set<SourceFileRange> ranges, String id);
 	T let(Set<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
-	T functionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> sourceObjectBinding);
+
+    T functionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> calleeBinding);
 	T baseFunctionRef(Set<SourceFileRange> ranges, Identifier name);
 	T projection(Set<SourceFileRange> ranges, T object, T projection, boolean base);
 }

@@ -25,13 +25,27 @@ public interface InstanceAlgebra<T> {
 
     public T fail(Set<SourceFileRange> ranges, String message);
 
-    public T slotValue(T object, T self, String slotName, Set<SourceFileRange> ranges, T prevSlotValue);
+    /**
+     * Reference a slot of an object
+     * 
+     * @param object
+     *            Object we are fetching the slot from
+     * @param originalObject
+     *            Object the code requesting the slot was pulling slot from, before applying any extend operations
+     * @param slotName
+     *            Name of the slot
+     * @param ranges
+     *            Source location we can refer to for this slot lookup
+     * @param prevSlotValue
+     *            Value to use if the slot is not defined on <code>object</code>
+     */
+    public T slotValue(T object, T originalObject, String slotName, Set<SourceFileRange> ranges, T prevSlotValue);
 
     public T baseSlotNotFound(List<T> trace, String slotName, Set<SourceFileRange> ranges, T object);
 
     public T unboundSlotSelfName(List<T> trace, Set<SourceFileRange> ranges, String id);
 
-    public T functionInstance(Set<SourceFileRange> ranges, List<String> args, FreeExpression body, Option<String> sourceObjectBinding,
+    public T functionInstance(Set<SourceFileRange> ranges, List<String> args, FreeExpression body, Option<String> calleeBinding,
         T trait, TreeMap<NameRef, T> closure);
 
     public T argMapperFactory();

@@ -49,7 +49,7 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 				// Local function def ?
 				name.toSource(sb);
 				if(value instanceof FunctionLiteral &&
-						((FunctionLiteral)value).sourceObjectBinding.map(name::equals).orSome(false)) {
+						((FunctionLiteral)value).calleeBinding.map(name::equals).orSome(false)) {
 					FunctionLiteral func = (FunctionLiteral)value;
 					sb.append('(');
 					ListUtil.insertCommas(sb, func.args, a -> a.toSource(sb, Precedence.COMMA));
