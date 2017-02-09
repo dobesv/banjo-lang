@@ -1,1 +1,1 @@
-"[" + list.comma separated + "]"
+"[" + (list.comma separated ?: "") + "]"
