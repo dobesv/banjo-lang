@@ -69,12 +69,12 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser numberLiteral(Set<SourceFileRange> ranges,
-            Number value, String source) {
+            Number value, String source, boolean kernelNumber) {
 	    return EMPTY;
     }
 
 	@Override
-    public DefRefAnalyser stringLiteral(Set<SourceFileRange> ranges, String text) {
+    public DefRefAnalyser stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString) {
 	    return EMPTY;
     }
 
@@ -109,7 +109,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	private DefRefAnalyser defs(List<Identifier> newNames) {
-		TreeMap<String, Identifier> bindings = TreeMap.treeMap(Ord.stringOrd, newNames.map(name -> P.p(name.id, name)));
+		TreeMap<String, Identifier> bindings = TreeMap.iterableTreeMap(Ord.stringOrd, newNames.map(name -> P.p(name.id, name)));
 	    final List<Either<Identifier,P2<Identifier,Identifier>>> boundVars = this.unresolvedLocalRefs.map(
 	    		ref -> bindings.get(ref.id).map(def -> P.p(ref, def)).toEither(ref)
 	    );
@@ -144,7 +144,7 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 
 	public List<Identifier> slotsReferencedButNeverDefined() {
-		Set<String> definedSlots = Set.set(Ord.stringOrd, slotDefs.map(Identifier::getId));
+		Set<String> definedSlots = Set.iterableSet(Ord.stringOrd, slotDefs.map(Identifier::getId));
         return slotRefs.filter(name -> !definedSlots.member(name.id));
 	}
 
@@ -191,4 +191,10 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
         List<Identifier> slotNames = bindings.map(Slot::getName);
         return ast.acceptVisitor(new DefRefAnalyser()).defs(slotNames.cons(Identifier.LANGUAGE_KERNEL)).getProblems();
     }
+
+    @Override
+    public DefRefAnalyser kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return EMPTY;
+    }
+
 }

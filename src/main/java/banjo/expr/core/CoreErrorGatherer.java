@@ -27,7 +27,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> stringLiteral(Set<SourceFileRange> ranges, String text) {
+	public List<BadExpr> stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString) {
 		return List.nil();
 	}
 
@@ -43,7 +43,7 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	}
 
 	@Override
-	public List<BadExpr> numberLiteral(Set<SourceFileRange> ranges, Number value, String source) {
+	public List<BadExpr> numberLiteral(Set<SourceFileRange> ranges, Number value, String source, boolean kernelNumber) {
 		return List.nil();
 	}
 

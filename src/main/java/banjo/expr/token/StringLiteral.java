@@ -24,23 +24,30 @@ import fj.data.Set;
 public class StringLiteral extends AbstractAtom implements Atom, FreeExpression {
 	public static final Ord<StringLiteral> ORD = Ord.stringOrd.contramap((StringLiteral x) -> x.string);
 	public final String string;
+    public final boolean kernelString;
 
-	public StringLiteral(Set<SourceFileRange> ranges, int indentColumn, String string) {
+	public StringLiteral(Set<SourceFileRange> ranges, int indentColumn, String string, boolean kernelString) {
 		super(ranges, indentColumn);
 		this.string = string;
+        this.kernelString = kernelString;
 	}
 
-    public StringLiteral(Set<SourceFileRange> ranges, String string) {
-        this(ranges, 0, string);
+    public StringLiteral(Set<SourceFileRange> ranges, String string, boolean kernelString) {
+        this(ranges, 0, string, kernelString);
     }
-	public StringLiteral(SourceFileRange range, int indentColumn, String string) {
-		this(Set.single(SourceFileRange.ORD, range), indentColumn, string);
+
+    public StringLiteral(SourceFileRange range, int indentColumn, String string, boolean kernelString) {
+		this(Set.single(SourceFileRange.ORD, range), indentColumn, string, kernelString);
 	}
 	public StringLiteral(String string) {
-		this(SourceFileRange.EMPTY_SET, 0, string);
+        this(SourceFileRange.EMPTY_SET, 0, string, false);
 	}
 
-	public String getString() {
+    public StringLiteral(String string, boolean kernelString) {
+        this(SourceFileRange.EMPTY_SET, 0, string, kernelString);
+    }
+
+    public String getString() {
 		return this.string;
 	}
 
@@ -92,7 +99,7 @@ public class StringLiteral extends AbstractAtom implements Atom, FreeExpression 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
 		FileRange fileRange = getRanges().toStream().head().getFileRange();
-		return parser.stringLiteral(fileRange, indentColumn, string);
+		return parser.stringLiteral(fileRange, indentColumn, string, kernelString);
 	}
 
 	@Override
@@ -107,7 +114,7 @@ public class StringLiteral extends AbstractAtom implements Atom, FreeExpression 
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.stringLiteral(getRanges(), string);
+		return visitor.stringLiteral(getRanges(), string, kernelString);
 	}
 
 	@Override
@@ -134,5 +141,9 @@ public class StringLiteral extends AbstractAtom implements Atom, FreeExpression 
     public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
         T kernelString = algebra.kernelString(ranges, string, resolver.global(GlobalRef.TRUE));
         return algebra.call1(trace, ranges, resolver.global(GlobalRef.LANGUAGE_KERNEL_STRING), kernelString);
+    }
+
+    public StringLiteral toKernelString() {
+        return new StringLiteral(ranges, indentColumn, string, true);
     }
 }

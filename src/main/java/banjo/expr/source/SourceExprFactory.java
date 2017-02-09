@@ -356,13 +356,15 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	}
 
 	@Override
-	public SourceExprFactory stringLiteral(FileRange range, int indentColumn, String token) {
-		return visitAtom(range, indentColumn, new StringLiteral(sfr(range), indentColumn, token));
+	public SourceExprFactory stringLiteral(FileRange range, int indentColumn, String token, boolean kernelString) {
+		return visitAtom(range, indentColumn, new StringLiteral(sfr(range), indentColumn, token, kernelString));
 	}
-	@Override
-	public SourceExprFactory numberLiteral(FileRange range, int indentColumn, Number number, String source) {
-		return visitAtom(range, indentColumn, new NumberLiteral(sfr(range), indentColumn, number, source));
+
+    @Override
+	public SourceExprFactory numberLiteral(FileRange range, int indentColumn, Number number, String source, boolean kernelNumber) {
+		return visitAtom(range, indentColumn, new NumberLiteral(sfr(range), indentColumn, number, source, kernelNumber));
 	}
+
 	@Override
 	public SourceExprFactory identifier(FileRange range, int indentColumn, String text) {
 		return visitAtom(range, indentColumn, new Identifier(sfr(range), indentColumn, text));

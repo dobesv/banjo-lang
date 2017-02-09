@@ -31,27 +31,30 @@ import fj.data.Set;
 
 
 public class NumberLiteral extends AbstractAtom implements Atom, FreeExpression {
-	public static final Ord<NumberLiteral> ORD = Ord.stringOrd.contramap((NumberLiteral n) -> n.number.toString());
+    public static final Ord<NumberLiteral> ORD = Ord.stringOrd.contramap((NumberLiteral n) -> n.source);
 
     public final Number number;
     public final String source;
+    public boolean kernelNumber;
 
-    public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number, String source) {
-        this(Set.single(SourceFileRange.ORD, sfr), indentColumn, number, source);
+    public NumberLiteral(SourceFileRange sfr, int indentColumn, Number number, String source, boolean kernelNumber) {
+        this(Set.single(SourceFileRange.ORD, sfr), indentColumn, number, source, kernelNumber);
 	}
 
-    public NumberLiteral(Set<SourceFileRange> ranges, int indentColumn, Number number, String source) {
+    public NumberLiteral(Set<SourceFileRange> ranges, int indentColumn, Number number, String source,
+            boolean kernelNumber) {
 		super(ranges, indentColumn);
 		this.number = requireNonNull(number);
         this.source = source;
+        this.kernelNumber = kernelNumber;
 	}
 
-    public NumberLiteral(Set<SourceFileRange> ranges, Number number, String source) {
-        this(ranges, 0, number, source);
+    public NumberLiteral(Set<SourceFileRange> ranges, Number number, String source, boolean kernelNumber) {
+        this(ranges, 0, number, source, kernelNumber);
     }
 
-	public NumberLiteral(Number n, String source) {
-        this(SourceFileRange.EMPTY_SET, 0, n, source);
+	public NumberLiteral(Number n, String source, boolean kernelNumber) {
+        this(SourceFileRange.EMPTY_SET, 0, n, source, kernelNumber);
 	}
 
 	public Number getNumber() {
@@ -126,7 +129,7 @@ public class NumberLiteral extends AbstractAtom implements Atom, FreeExpression 
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.numberLiteral(getRanges(), number, source);
+		return visitor.numberLiteral(getRanges(), number, source, kernelNumber);
 	}
 
 	@Override
@@ -136,11 +139,13 @@ public class NumberLiteral extends AbstractAtom implements Atom, FreeExpression 
 
 	@Override
 	public <T> T acceptVisitor(TokenVisitor<T> parser) {
-		return parser.numberLiteral(getRanges().toStream().head().getFileRange(), indentColumn, number, source);
+        return parser.numberLiteral(getRanges().toStream().head().getFileRange(), indentColumn, number, source,
+                kernelNumber);
 	}
 
 	public SourceExpr negate(Set<SourceFileRange> ranges) {
-        return new NumberLiteral(ranges, indentColumn, negateNumber(number), source.charAt(0) == '-' ? source.substring(1) : "-" + source);
+        return new NumberLiteral(ranges, indentColumn, negateNumber(number),
+                source.charAt(0) == '-' ? source.substring(1) : "-" + source, kernelNumber);
     }
 
     @Override
@@ -162,5 +167,9 @@ public class NumberLiteral extends AbstractAtom implements Atom, FreeExpression 
     public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
         T kernelNumber = algebra.kernelNumber(ranges, number, resolver.global(GlobalRef.TRUE));
         return algebra.call1(trace, ranges, resolver.global(GlobalRef.LANGUAGE_KERNEL_NUMBER), kernelNumber);
+    }
+
+    public NumberLiteral toKernelNumber() {
+        return new NumberLiteral(ranges, number, source, true);
     }
 }

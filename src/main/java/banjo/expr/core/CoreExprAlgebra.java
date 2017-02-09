@@ -12,8 +12,8 @@ import fj.data.Set;
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 	T objectLiteral(Set<SourceFileRange> ranges, List<P3<Identifier, Option<Identifier>, T>> slots);
-	T numberLiteral(Set<SourceFileRange> ranges, Number value, String source);
-	T stringLiteral(Set<SourceFileRange> ranges, String text);
+	T numberLiteral(Set<SourceFileRange> ranges, Number value, String source, boolean kernelNumber);
+	T stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString);
 	T listLiteral(Set<SourceFileRange> ranges, List<T> elements);
 	T call(Set<SourceFileRange> ranges, T function, List<T> args);
 	T extend(Set<SourceFileRange> ranges, T base, T extension);

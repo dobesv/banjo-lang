@@ -40,16 +40,16 @@ public class FreeExpressionFactory implements
 
 	@Override
     public FreeExpression numberLiteral(
-            Set<SourceFileRange> ranges, Number number, String source) {
+            Set<SourceFileRange> ranges, Number number, String source, boolean kernelNumber) {
         if(number instanceof SourceNumber)
-            return numberLiteral(ranges, ((SourceNumber) number).getValue(), source);
-        return FreeExpression.numberLiteral(ranges, number, source);
+            return numberLiteral(ranges, ((SourceNumber) number).getValue(), source, kernelNumber);
+        return FreeExpression.numberLiteral(ranges, number, source, kernelNumber);
     }
 
 	@Override
     public FreeExpression stringLiteral(
-            Set<SourceFileRange> ranges, String text) {
-        return FreeExpression.stringLiteral(ranges, text);
+            Set<SourceFileRange> ranges, String text, boolean kernelString) {
+        return FreeExpression.stringLiteral(ranges, text, kernelString);
     }
 
 	@Override

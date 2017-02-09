@@ -493,6 +493,7 @@ public class TokenScanner {
         boolean multiline = false;
         this.buf.setLength(0);
         List<T> errs = List.nil();
+        boolean kernelString = false;
         while((cp = in.read()) != -1) {
             final int currentColumnNumber = in.getPreviousColumnNumber();
             // Check for the end of the string
@@ -609,7 +610,7 @@ public class TokenScanner {
             errs = errs.snoc(visitor.badToken(in.getFileRange(this.tokenStartPos), "", "End of file in string literal"));
         if(errs.isNotEmpty())
             return errs;
-        return List.<T> single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), openQuoteIndentColumn, this.buf.toString()));
+        return List.<T> single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), openQuoteIndentColumn, this.buf.toString(), kernelString));
     }
 
     private <T extends TokenVisitor<T>> List<T> backtick(ParserReader in, TokenVisitor<T> visitor) throws IOException {
@@ -621,7 +622,7 @@ public class TokenScanner {
             visitor.badToken(in.getFileRange(this.tokenStartPos), in.readStringFrom(this.tokenStartPos), "Empty backtick");
             str = "";
         }
-        return List.<T> single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), indentColumn, str));
+        return List.<T>single(visitor.stringLiteral(in.getFileRange(this.tokenStartPos), indentColumn, str, false));
     }
 
     private final Pos afterDigits = new Pos();
@@ -720,6 +721,7 @@ public class TokenScanner {
         BigInteger intValBig = null;
         BigInteger radixBig = null;
         int expType = -1;
+        boolean kernelNumber = false;
         for(;;) {
             if(cp == '.') {
                 if(radix != 10) {
@@ -784,6 +786,9 @@ public class TokenScanner {
                 if(intValBig == null)
                     intValBig = BigInteger.valueOf(intValLong);
                 break; // No more digits after the 'I'
+            } else if (cp == 'z') {
+                // Kernel number instead of the wrapped number
+                kernelNumber = true;
             } else {
                 final int digitValue = Character.digit(cp, radix);
                 if(digitValue == -1) {
@@ -890,7 +895,7 @@ public class TokenScanner {
             number = Long.valueOf(0);
         }
         final FileRange fileRange = in.getFileRange(this.tokenStartPos);
-        return List.single(visitor.numberLiteral(fileRange, indentColumn, number, text));
+        return List.single(visitor.numberLiteral(fileRange, indentColumn, number, text, kernelNumber));
     }
 
     /**
