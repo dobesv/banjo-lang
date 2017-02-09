@@ -24,12 +24,12 @@ public class TestAndExampleGatherer {
             return union(tests.map(arg -> arg.acceptVisitor(new BaseCoreExprVisitor<Set<CoreExpr>>() {
                 @Override
                 public Set<CoreExpr> fallback() {
-                    return Set.single(CoreExpr.coreExprOrd, arg);
+                    return Set.single(CoreExprOrd.ORD, arg);
                 }
 
                 @Override
                 public Set<CoreExpr> listLiteral(ListLiteral n) {
-                    return Set.set(CoreExpr.coreExprOrd, n.elements);
+                    return Set.iterableSet(CoreExprOrd.ORD, n.elements);
                 }
             })));
         }
@@ -59,7 +59,7 @@ public class TestAndExampleGatherer {
             Set<CoreExpr> allExamples = examplesInBindings.union(examplesInBody);
             // Need to rewrap the example in the let so it has whatever
             // variables from scope that it needs
-            return allExamples.map(CoreExpr.coreExprOrd, e -> new Let(let.getRanges(), let.bindings, e));
+            return allExamples.map(CoreExprOrd.ORD, e -> new Let(let.getRanges(), let.bindings, e));
         }
 
         @Override
@@ -71,7 +71,7 @@ public class TestAndExampleGatherer {
         public Set<CoreExpr> functionLiteral(FunctionLiteral f) {
             Set<CoreExpr> result =
                 f.body.acceptVisitor(this).map(
-                    CoreExpr.coreExprOrd,
+                    CoreExprOrd.ORD,
                     e -> f.calleeBinding.map(recId -> (CoreExpr) new Let(recId.getRanges(), List.single(P.p(recId, f)), e)).orSome(e));
             return result;
         }

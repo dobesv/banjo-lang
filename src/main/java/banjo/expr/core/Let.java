@@ -14,10 +14,10 @@ import fj.data.Set;
 
 public class Let extends AbstractCoreExpr implements CoreExpr {
 
-	public static final Ord<List<P2<Identifier, CoreExpr>>> BINDINGS_ORD = Ord.listOrd(Ord.p2Ord(Identifier.ORD, CoreExpr.coreExprOrd));
+	public static final Ord<List<P2<Identifier, CoreExpr>>> BINDINGS_ORD = Ord.listOrd(Ord.p2Ord(Identifier.ORD, CoreExprOrd.ORD));
 	public static final Ord<Let> ORD = OrdUtil.chain(
 			BINDINGS_ORD.contramap(let -> let.bindings),
-			coreExprOrd.contramap(let -> let.body)
+            CoreExprOrd.ORD.contramap(let -> let.body)
 	);
 	public final List<P2<Identifier, CoreExpr>> bindings;
 	public final CoreExpr body;

@@ -9,8 +9,8 @@ import fj.data.Set;
 
 public class Extend extends AbstractCoreExpr implements CoreExpr {
 	protected static final Ord<Extend> extendOrd = OrdUtil.chain(
-			CoreExpr.coreExprOrd.contramap((e) -> e.base),
-			CoreExpr.coreExprOrd.contramap((e) -> e.extension)
+			CoreExprOrd.ORD.contramap((e) -> e.base),
+			CoreExprOrd.ORD.contramap((e) -> e.extension)
 	);
 	public final CoreExpr base;
 	public final CoreExpr extension;

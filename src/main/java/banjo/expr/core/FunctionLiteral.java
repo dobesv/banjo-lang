@@ -23,7 +23,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 
 
 	private static final Ord<FunctionLiteral> _argsOrd = Identifier.LIST_ORD.contramap((FunctionLiteral f) -> f.args);
-	private static final Ord<FunctionLiteral> _bodyOrd = CoreExpr.coreExprOrd.contramap((FunctionLiteral f) -> f.body);
+	private static final Ord<FunctionLiteral> _bodyOrd = CoreExprOrd.ORD.contramap((FunctionLiteral f) -> f.body);
 	public static final Ord<FunctionLiteral> functionLiteralOrd = OrdUtil.chain(_argsOrd, _bodyOrd);
 
 	/**

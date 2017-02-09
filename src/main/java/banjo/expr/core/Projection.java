@@ -11,8 +11,8 @@ import fj.data.Set;
 
 public class Projection extends AbstractCoreExpr {
 	public static final Ord<Projection> ORD = OrdUtil.chain(
-			coreExprOrd.contramap(p -> p.object),
-			coreExprOrd.contramap(p -> p.projection),
+            CoreExprOrd.ORD.contramap(p -> p.object),
+            CoreExprOrd.ORD.contramap(p -> p.projection),
 			Ord.booleanOrd.contramap(p -> p.base)
 	);
 	

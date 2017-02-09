@@ -29,7 +29,7 @@ public class Slot {
 			Identifier.ORD.contramap(slot -> slot.name),
 			OrdUtil.chain(
 					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.slotObjectRef),
-					CoreExpr.coreExprOrd.contramap(slot -> slot.value)
+					CoreExprOrd.ORD.contramap(slot -> slot.value)
 			));
 	static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
 

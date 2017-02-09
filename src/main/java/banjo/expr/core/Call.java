@@ -13,10 +13,11 @@ import fj.data.Option;
 import fj.data.Set;
 
 public class Call extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<Call> callOrd = OrdUtil.chain(
-		CoreExpr.coreExprOrd.contramap(call -> call.target),
-		CoreExpr.listOfCoreExprOrd.contramap(call -> call.args)
+	public static final Ord<Call> CALL_ORD = OrdUtil.chain(
+		CoreExprOrd.ORD.contramap(call -> call.target),
+		CoreExprOrd.LIST_ORD.contramap(call -> call.args)
 	);
+    public static final Set<Call> EMPTY_SET = Set.empty(CALL_ORD);
 	public final CoreExpr target;
 	public final List<CoreExpr> args;
 

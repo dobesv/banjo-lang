@@ -8,7 +8,7 @@ import fj.data.List;
 import fj.data.Set;
 
 public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
-	public static final Ord<ListLiteral> ORD = CoreExpr.listOfCoreExprOrd.contramap(x -> x.elements);
+	public static final Ord<ListLiteral> ORD = CoreExprOrd.LIST_ORD.contramap(x -> x.elements);
 
 	public static final ListLiteral EMPTY_LIST = new ListLiteral(List.nil());
 	public final List<CoreExpr> elements;
