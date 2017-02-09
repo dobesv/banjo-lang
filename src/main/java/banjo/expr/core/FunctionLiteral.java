@@ -155,30 +155,35 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
     }
 
 	/**
-	 * True if this function literal follows the form:
-	 *
-	 * <code> _it -> _it.something</code>
-	 */
+     * True if this function literal follows the form:
+     *
+     * <ul>
+     * <li><code> _it -> _it.something</code></li>
+     * <li><code> _it -> _it.something(y)</code></li>
+     * </ul>
+     * 
+     * And doesn't pass its own parameter into the thing that it calls.
+     */
 	public boolean isSelector() {
 		if(!args.isSingle() || calleeBinding.isSome())
 			return false;
 		return args.map(a ->
-			body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
-				@Override
-				public Boolean call(Call n) {
-					return n.target.eql(args.head()) || n.target.acceptVisitor(this);
-				}
+        body.acceptVisitor(new BaseCoreExprVisitor<Boolean>() {
+            @Override
+            public Boolean call(Call n) {
+                return (n.target.eql(a) || n.target.acceptVisitor(this)) && !n.args.exists(a::eql);
+            }
 
-				@Override
-                public Boolean projection(Projection slotReference) {
-					return slotReference.object.eql(args.head()) || slotReference.object.acceptVisitor(this);
-				}
+            @Override
+            public Boolean projection(Projection slotReference) {
+                return slotReference.object.eql(a) || slotReference.object.acceptVisitor(this);
+            }
 
-				@Override
-				public Boolean fallback() {
-				    return false;
-				}
-			})
+            @Override
+            public Boolean fallback() {
+                return false;
+            }
+        })
 		).orHead(P.p(Boolean.FALSE));
 	}
 
