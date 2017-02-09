@@ -22,4 +22,6 @@ public interface CoreExprVisitor<T> {
 	T functionLiteral(FunctionLiteral f);
 	T baseFunctionRef(BaseFunctionRef baseFunctionRef);
 	T projection(Projection projection);
+
+    T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
 }

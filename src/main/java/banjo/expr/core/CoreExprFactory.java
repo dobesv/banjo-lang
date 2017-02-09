@@ -1285,7 +1285,12 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
 	@Override
 	public DesugarResult<CoreExpr> identifier(Identifier simpleName) {
-		return withDesugared(simpleName, (CoreExpr)simpleName);
+        try {
+            KernelGlobalObject kernelObject = KernelGlobalObject.valueOf(simpleName.id);
+            return withDesugared(simpleName, kernelObject);
+        } catch(IllegalArgumentException ie) {
+            return withDesugared(simpleName, (CoreExpr)simpleName);
+        }
 	}
 
 	@Override

@@ -81,4 +81,10 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
 	        Set<SourceFileRange> sourceFileRanges, Identifier name) {
         return List.nil();
 	}
+
+    @Override
+    public List<BadExpr> kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return List.nil();
+    }
+
 }

@@ -77,4 +77,9 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	public T projection(Projection projection) {
 		return fallback();
 	}
+
+    @Override
+    public T kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return fallback();
+    }
 }
