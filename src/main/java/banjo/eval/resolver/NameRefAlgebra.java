@@ -14,7 +14,7 @@ public interface NameRefAlgebra<T> {
 
     T baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName);
 
-    T functionBase(Set<SourceFileRange> ranges, String functionSelfName);
+    T functionBase(Set<SourceFileRange> ranges, String calleeName);
 
     T invalid(Set<SourceFileRange> ranges, String reason);
 
