@@ -63,6 +63,13 @@ public class FreeExpressions {
 
     public static final FreeExpression TRUE_VALUE = FreeExpression.global(GlobalRef.TRUE);
     public static final FreeExpression FUNCTION_TRAIT = FreeExpression.global(GlobalRef.FUNCTION_TRAIT);
+    public static final FreeExpression EVENT_FOLD = FreeExpression.kernelObject(Identifier.EVENT_FOLD.id, new SingletonKernelObjectFactory() {
+
+        @Override
+        public <T> T apply(Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+            return algebra.eventFold();
+        }
+    });
 
     public static final FreeExpression TYPE_UNION_FACTORY = FreeExpression.kernelObject(Identifier.TYPE_UNION.id, new SingletonKernelObjectFactory() {
 

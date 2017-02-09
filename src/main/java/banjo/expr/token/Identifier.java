@@ -86,6 +86,7 @@ public class Identifier extends AbstractAtom implements Atom, Token, FreeExpress
     public static final Identifier UNION_OPERATOR = new Identifier(Operator.UNION.methodName);
     public static final Identifier TYPE_UNION = new Identifier("type union");
     public static final Identifier COMPOSE = new Identifier("compose");
+    public static final Identifier EVENT_FOLD = new Identifier("event fold");
 
     public final String id;
 
