@@ -10,83 +10,20 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import banjo.eval.resolver.GlobalValueResolver;
-import banjo.eval.resolver.InstanceAlgebra;
-import banjo.eval.resolver.Resolver;
 import banjo.eval.resolver.ValueInstanceAlgebra;
-import banjo.expr.core.BaseCoreExprVisitor;
-import banjo.expr.core.Call;
 import banjo.expr.core.CoreErrorGatherer;
 import banjo.expr.core.CoreExpr;
-import banjo.expr.core.Let;
-import banjo.expr.core.Projection;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
-import banjo.expr.free.PartialResolver;
-import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.BaseValueVisitor;
 import banjo.value.Value;
 import banjo.value.fail.Fail;
 import banjo.value.fail.FailWithException;
-import fj.Ord;
-import fj.P;
-import fj.P2;
 import fj.data.List;
 import fj.data.Set;
-import fj.data.TreeMap;
 
 public abstract class BaseExprTest {
-
-    private class ValueDebugStringCalculator<T> extends BaseCoreExprVisitor<String> {
-        final Resolver<T> resolver;
-        final InstanceAlgebra<T> algebra;
-		
-        public ValueDebugStringCalculator(Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-			super();
-            this.resolver = resolver;
-            this.algebra = algebra;
-		}
-
-		@Override
-		public String fallback() {
-		    return "(" + exprSource() + ") == " + value.toString();
-		}
-
-		@Override
-		public String call(Call n) {
-			if(n.target instanceof Projection) {
-				final Projection methodReceiver = (Projection)n.target;
-                final T lhs = resolver.eval(methodReceiver.object, algebra);
-				return n.getBinaryOperator().map(x -> {
-                    final Object rhs = resolver.eval(n.args.head(), algebra);
-					return "(" + n.toSource() + ") == ("+lhs+" "+x.getOp()+" "+rhs+")"+ " --> " + value;
-				}).orSome(P.lazy(() -> "(" +
-                        n.toSource() +
-                        ") == (" +
-                        lhs +
-                        "." +
-                        methodReceiver.projection +
-                        "(" +
-                    ListUtil.insertCommas(n.args.toStream().map(arg -> resolver.eval(arg, algebra))) +
-                        ")" +
-                        "==" +
-                    value
-				));
-			}
-		    return fallback();
-		}
-
-		@Override
-		public String let(Let let) {
-			List<P2<String, FreeExpression>> bindings = let.bindings
-					.map(P2.map2_(e -> e.acceptVisitor(FreeExpressionFactory.INSTANCE)))
-					.map(P2.map1_(e -> e.id));
-            PartialResolver partialResolver = FreeExpressionFactory.letPartialResolver(TreeMap.treeMap(Ord.stringOrd, bindings));
-            FreeExpression freeBody = FreeExpressionFactory.apply(let.body);
-            FreeExpression boundBody = freeBody.partial(partialResolver).orSome(freeBody);
-            return let.body.acceptVisitor(new ValueDebugStringCalculator<T>(resolver, algebra));
-		}
-	}
 
     final static GlobalValueResolver globalResolver = new GlobalValueResolver(FreeExpression.forProjectAtPath(Paths.get("")));
 
@@ -154,7 +91,7 @@ public abstract class BaseExprTest {
 	@Test
     public void isTrue() throws Throwable {
     	evaluates();
-        final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator<Value>(globalResolver, ValueInstanceAlgebra.INSTANCE));
+        final String valueStr = expr.acceptVisitor(new ValueDebugStringCalculator<Value>(globalResolver, ValueInstanceAlgebra.INSTANCE, expr, value));
         assertTrue(valueStr, value.isTrue(List.single(value)));
     }
 
