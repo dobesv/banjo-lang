@@ -364,7 +364,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
         List<CoreExpr> extensions = p._2().map(Slot::getValue);
 		
         ObjectLiteral obj = new ObjectLiteral(ranges, slots);
-        CoreExpr extendedObj = extensions.foldRight(Extend::new, (CoreExpr) obj);
+        CoreExpr extendedObj = extensions.foldRight((a,b) -> new Extend(a, b), (CoreExpr) obj);
         return extendedObj;
     }
 
