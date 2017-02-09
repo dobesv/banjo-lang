@@ -54,7 +54,7 @@ public class TestOperator {
 		Call e = (Call)CoreExpr.fromString("a ∈ b");
 		assertEquals("a", e.args.head().toSource());
 		assertEquals("b", ((Projection)e.target).object.toSource());
-		assertEquals("\\∈", ((Projection)e.target).projection.toSource());
+		assertEquals("\\∈", ((Projection)e.target).body.toSource());
 	}
 
 	@Test
@@ -62,6 +62,6 @@ public class TestOperator {
 		Call e = (Call)CoreExpr.fromString("a*.b");
 		assertEquals("a", ((Projection)e.target).object.toSource());
 		assertEquals(1, e.args.length());
-		assertEquals("b", ((Identifier)((Projection)((FunctionLiteral)e.args.head()).body).projection).id);
+		assertEquals("b", ((Identifier)((Projection)((FunctionLiteral)e.args.head()).body).body).id);
 	}
 }
