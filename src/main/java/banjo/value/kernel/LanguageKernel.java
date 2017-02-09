@@ -11,12 +11,16 @@ import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.data.TreeMap;
 
-public interface LanguageKernelValue {
-    public static final FreeExpression NAN = FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, Double.NaN, Identifier.NAN.id);
-    public static final FreeExpression LANGUAGE_KERNEL_LABEL = FreeExpression.stringLiteral(SourceFileRange.EMPTY_SET, Identifier.LANGUAGE_KERNEL.id);
+public interface LanguageKernel {
+    public static final FreeExpression NAN = FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, Double.NaN,
+            Identifier.NAN.id, false);
+    public static final FreeExpression LANGUAGE_KERNEL_LABEL = FreeExpression.stringLiteral(SourceFileRange.EMPTY_SET,
+            Identifier.LANGUAGE_KERNEL.id, false);
     public static final FreeExpression NEGATIVE_INFINITY =
-        FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, Double.NEGATIVE_INFINITY, Identifier.NEGATIVE_INFINITY.id);
-    public static final FreeExpression INFINITY = FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, Double.POSITIVE_INFINITY, Identifier.INFINITY.id);
+            FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, Double.NEGATIVE_INFINITY,
+                    Identifier.NEGATIVE_INFINITY.id, false);
+    public static final FreeExpression INFINITY = FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET,
+            Double.POSITIVE_INFINITY, Identifier.INFINITY.id, false);
 
     public static FreeExpression freeLanguageKernel() {
         // TODO All these names should come from a shared constant somewhere
@@ -37,12 +41,14 @@ public interface LanguageKernelValue {
             .set(Identifier.NAN.id, NAN)
             .set(Identifier.TYPE_UNION.id, FreeExpression.typeUnionFactory())
             .set(Identifier.COMPOSE.id, FreeExpressions.FUNCTION_COMPOSITION_FUNCTION)
-            .set("startup time ms", FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET, BigInteger.valueOf(startupTimeMs), String.valueOf(startupTimeMs))));
+            .set(Identifier.EVENT_FOLD.id, FreeExpressions.EVENT_FOLD)
+                        .set("startup time ms", FreeExpression.numberLiteral(SourceFileRange.EMPTY_SET,
+                                BigInteger.valueOf(startupTimeMs), String.valueOf(startupTimeMs), false)));
         return freeLanguageKernel;
     }
 
     public static FreeExpression withProjectRoot(FreeExpression projectAst) {
-        FreeExpression freeLanguageKernel = LanguageKernelValue.freeLanguageKernel();
+        FreeExpression freeLanguageKernel = LanguageKernel.freeLanguageKernel();
         // There is an inter-dependency between the projectAst and the language
         // kernel here
         FreeExpression freeLanguageKernelContainer = new FreeObjectLiteral(TreeMap.<String, FreeExpression> empty(Ord.stringOrd)

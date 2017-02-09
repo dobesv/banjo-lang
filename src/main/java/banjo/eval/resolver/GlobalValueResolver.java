@@ -5,13 +5,13 @@ import banjo.expr.core.CoreExpr;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionFactory;
 import banjo.value.Value;
-import banjo.value.kernel.LanguageKernelValue;
+import banjo.value.kernel.LanguageKernel;
 
 public class GlobalValueResolver implements GlobalResolver<Value> {
     private final Value projectRoot;
 
     public GlobalValueResolver(FreeExpression projectAst) {
-        FreeExpression projectWithKernel = LanguageKernelValue.withProjectRoot(projectAst);
+        FreeExpression projectWithKernel = LanguageKernel.withProjectRoot(projectAst);
         this.projectRoot = new LazyBoundValue(projectWithKernel, this);
     }
 
