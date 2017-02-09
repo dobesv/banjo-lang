@@ -3,6 +3,7 @@ package banjo.expr.free;
 import banjo.eval.resolver.NameRef;
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.CoreExprAlgebra;
+import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
@@ -156,6 +157,11 @@ public class FreeExpressionFactory implements
 	@Override
     public FreeExpression baseFunctionRef(Set<SourceFileRange> sourceFileRanges, Identifier name) {
         return new FreeBaseFunctionRef(name.id, sourceFileRanges);
+    }
+
+    @Override
+    public FreeExpression kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return kernelGlobalObject;
     }
 
 }

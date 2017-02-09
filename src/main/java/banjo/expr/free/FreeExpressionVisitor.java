@@ -1,6 +1,7 @@
 package banjo.expr.free;
 
 import banjo.eval.resolver.GlobalRef;
+import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
 import banjo.expr.token.StringLiteral;
@@ -36,4 +37,6 @@ public interface FreeExpressionVisitor<T> {
     T stringLiteral(StringLiteral stringLiteral);
 
     T global(GlobalRef globalRef);
+
+    T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
 }
