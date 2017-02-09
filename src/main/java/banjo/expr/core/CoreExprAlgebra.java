@@ -22,5 +22,5 @@ public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 
     T functionLiteral(Set<SourceFileRange> ranges, List<Identifier> args, T body, Option<Identifier> calleeBinding);
 	T baseFunctionRef(Set<SourceFileRange> ranges, Identifier name);
-	T projection(Set<SourceFileRange> ranges, T object, T projection, boolean base);
+	T projection(Set<SourceFileRange> ranges, T object, T body, boolean base);
 }

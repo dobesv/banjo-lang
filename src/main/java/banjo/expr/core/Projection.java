@@ -12,40 +12,25 @@ import fj.data.Set;
 public class Projection extends AbstractCoreExpr {
 	public static final Ord<Projection> ORD = OrdUtil.chain(
             CoreExprOrd.ORD.contramap(p -> p.object),
-            CoreExprOrd.ORD.contramap(p -> p.projection),
+            CoreExprOrd.ORD.contramap(p -> p.body),
 			Ord.booleanOrd.contramap(p -> p.base)
 	);
-	
-    // public static final Projection LANGUAGE_KERNEL_NUMBER = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_NUMBER);
-    // public static final Projection LANGUAGE_KERNEL_STRING = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.LANGUAGE_KERNEL_STRING);
-    // public static final Projection PROJECT_ROOT_TRUE = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.TRUE);
-    // public static final Projection PROJECT_ROOT_FALSE = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.FALSE);
-    // public static final Projection EMPTY_LIST = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.EMPTY_LIST);
-    // public static final Projection SINGLE_ELEMENT_LIST = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.SINGLE_ELEMENT_LIST);
-    // public static final Projection FUNCTION_TRAIT = new
-    // Projection(Identifier.PROJECT_ROOT, Identifier.FUNCTION_TRAIT);
 
 	public final CoreExpr object;
-	public final CoreExpr projection;
+	public final CoreExpr body;
 	public final boolean base;
 
-	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection, boolean base) {
-		super(object.hashCode() ^ projection.hashCode() ^ (base ? 13 : 7), sourceFileRanges);
+	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr body, boolean base) {
+		super(object.hashCode() ^ body.hashCode() ^ (base ? 13 : 7), sourceFileRanges);
 		this.object = object;
-		this.projection = projection;
+		this.body = body;
 		this.base = base;
 	}
-	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr projection) {
-		this(sourceFileRanges, object, projection, false);
+	public Projection(Set<SourceFileRange> sourceFileRanges, CoreExpr object, CoreExpr body) {
+		this(sourceFileRanges, object, body, false);
 	}
-	public Projection(CoreExpr object, CoreExpr projection) {
-		this(SourceFileRange.EMPTY_SET, object, projection, false);
+	public Projection(CoreExpr object, CoreExpr body) {
+		this(SourceFileRange.EMPTY_SET, object, body, false);
 	}
 
 
@@ -56,9 +41,9 @@ public class Projection extends AbstractCoreExpr {
 
 	@Override
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-		return visitor.projection(getRanges(), 
+        return visitor.projection(getRanges(), 
 				object.acceptVisitor(visitor),
-				projection.acceptVisitor(visitor), // Truly this should probably be a different visitor?
+				body.acceptVisitor(visitor), // Truly this should probably be a different visitor?
 				base
 		);
 	}
@@ -84,7 +69,7 @@ public class Projection extends AbstractCoreExpr {
 			Operator operator = getProjectionOperator();
 			object.toSource(sb, operator.leftPrecedence);
 			operator.toSource(sb);
-			projection.toSource(sb, operator.getRightPrecedence());
+			body.toSource(sb, operator.getRightPrecedence());
 		}
 	}
 	public Operator getProjectionOperator() {
@@ -92,7 +77,7 @@ public class Projection extends AbstractCoreExpr {
 	}
 
 	public Option<Operator> getUnaryOperator() {
-		return projection.acceptVisitor(new BaseCoreExprVisitor<Option<Operator>>() {
+		return body.acceptVisitor(new BaseCoreExprVisitor<Option<Operator>>() {
 			@Override
 			public Option<Operator> identifier(Identifier n) {
 				String slotName = n.id;
@@ -114,7 +99,7 @@ public class Projection extends AbstractCoreExpr {
 	public Option<Operator> getBinaryOperator() {
 		if(base) return Option.none();
 		
-		return projection.acceptVisitor(new BaseCoreExprVisitor<Option<Operator>>() {
+		return body.acceptVisitor(new BaseCoreExprVisitor<Option<Operator>>() {
 			@Override
 			public Option<Operator> identifier(Identifier n) {
 				String slotName = n.id;

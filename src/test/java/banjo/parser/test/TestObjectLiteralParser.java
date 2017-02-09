@@ -107,7 +107,7 @@ public class TestObjectLiteralParser {
 			final long expectedValue = expectedValues[i];
 			assertTrue("Too few methods", eltIt.hasNext());
 			final Slot actualBinding = eltIt.next();
-			CoreExpr actualValue = actualBinding.value;
+			CoreExpr actualValue = actualBinding.body;
 			Identifier actualName = actualBinding.name;
 			assertEquals(expectedNames[i], actualName.toSource());
 			assertIsNumberLiteralWithValue(expectedValue, actualValue);
@@ -141,7 +141,7 @@ public class TestObjectLiteralParser {
 		assertEquals(1, obj.slots.length());
         assertTrue(obj.slots.head().name.id.equals("y"));
         assertTrue(obj.slots.head().slotObjectRef.some().id.equals("x"));
-		FunctionLiteral func = (FunctionLiteral) obj.slots.head().value;
+		FunctionLiteral func = (FunctionLiteral) obj.slots.head().body;
 		assertTrue(func.body.eql(new Identifier("z")));
 		assertEquals(1, func.args.length());
         assertTrue(func.args.head().id.equals("z"));

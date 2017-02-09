@@ -446,8 +446,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 		final CoreExpr base = Projection.baseSlot(selfBinding, slot.name);
 		CoreExpr newValue =
 				combiningOp == Operator.EXTENSION ?
-				new Extend(base, slot.value) :
-				Call.binaryOp(base, combiningOp, slot.value);
+				new Extend(base, slot.body) :
+				Call.binaryOp(base, combiningOp, slot.body);
 		return new Slot(slot.name, Option.some(selfBinding), newValue);
 	}
 
@@ -875,7 +875,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 						Option.none(),
 						calleeBinding,
 						body);
-				return slotDs.mapValue(slot -> slot.value);
+				return slotDs.mapValue(slot -> slot.body);
 			}
 		});
 
@@ -1632,7 +1632,7 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
 
                 	@Override
                 	public CoreExpr projection(Projection n) {
-                		return n.projection.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
+                		return n.body.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
                 			@Override
                 			public CoreExpr identifier(Identifier slotName) {
                         	    return new Projection(n.getRanges(), n.object, concatNameParts(slotName, keyOnRight));
@@ -1791,8 +1791,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
     
         // No source object binding, no problems
         if(base.slotObjectRef.isNone() && extension.slotObjectRef.isNone()) {
-            CoreExpr b = base.value;
-            CoreExpr e = extension.value;
+            CoreExpr b = base.body;
+            CoreExpr e = extension.body;
             return new Slot(base.name, new Extend(b, e));
         }
     
@@ -1817,8 +1817,8 @@ public class CoreExprFactory implements SourceExprVisitor<CoreExprFactory.Desuga
      */
     static CoreExpr slotToExpr(Slot slot, Identifier newName) {
         if(slot.slotObjectRef.isNone() || slot.slotObjectRef.some().id.equals(newName.id))
-            return slot.value;
-        return Let.single(slot.slotObjectRef.some(), newName, slot.value);
+            return slot.body;
+        return Let.single(slot.slotObjectRef.some(), newName, slot.body);
     }
 
     /**

@@ -73,7 +73,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				@Override
                 public String projection(Projection projection) {
                     return projection.object.acceptVisitor(this) +
-                        projection.projection.toSource(Operator.PROJECTION_FUNCTION.getRightPrecedence());
+                        projection.body.toSource(Operator.PROJECTION_FUNCTION.getRightPrecedence());
 				}
 			});
 		} else {
@@ -107,7 +107,7 @@ public class FunctionLiteral extends AbstractCoreExpr implements CoreExpr {
 				@Override
 				public Void projection(Projection slotReference) {
 					slotReference.object.acceptVisitor(this);
-                    slotReference.projection.toSource(sb, Precedence.SELECTOR);
+                    slotReference.body.toSource(sb, Precedence.SELECTOR);
 				    return null;
 				}
 			});

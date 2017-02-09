@@ -12,30 +12,30 @@ import fj.data.Option;
 public class Slot {
 	public final Identifier name;
     public final Option<Identifier> slotObjectRef;
-	public final CoreExpr value;
+	public final CoreExpr body;
 
 	public Slot(Identifier name, Option<Identifier> slotObjectRef,
-            CoreExpr value) {
+            CoreExpr body) {
         super();
         this.name = requireNonNull(name);
         this.slotObjectRef = requireNonNull(slotObjectRef);
-        this.value = requireNonNull(value);
+        this.body = requireNonNull(body);
     }
-	public Slot(Identifier name, CoreExpr value) {
-		this(name, Option.none(), value);
+	public Slot(Identifier name, CoreExpr body) {
+		this(name, Option.none(), body);
 	}
 
 	static final Ord<Slot> ORD = OrdUtil.chain(
 			Identifier.ORD.contramap(slot -> slot.name),
 			OrdUtil.chain(
 					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.slotObjectRef),
-					CoreExprOrd.ORD.contramap(slot -> slot.value)
+					CoreExprOrd.ORD.contramap(slot -> slot.body)
 			));
 	static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
 
 	public boolean methodSlotToSource(StringBuffer sb) {
-		if(value instanceof FunctionLiteral) {
-			FunctionLiteral f = (FunctionLiteral) value;
+		if(body instanceof FunctionLiteral) {
+			FunctionLiteral f = (FunctionLiteral) body;
 			slotObjectRef.forEach(x -> { x.toSource(sb); sb.append('.'); });
 			name.toSource(sb);
 			sb.append('(');
@@ -61,7 +61,7 @@ public class Slot {
 			op.toSource(sb);
 		}
 		sb.append(") = ");
-		value.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
+		body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
 		return true;
 	}
 
@@ -69,9 +69,9 @@ public class Slot {
 		Operator op = Operator.fromMethodName(name, true);
 		if(op == null)
 			return false;
-		if(!(value instanceof FunctionLiteral))
+		if(!(body instanceof FunctionLiteral))
 			return false;
-		FunctionLiteral f = (FunctionLiteral) value;
+		FunctionLiteral f = (FunctionLiteral) body;
 		if(!f.args.isSingle())
 			return false;
 		sb.append('(');
@@ -103,15 +103,15 @@ public class Slot {
 			Operator.PROJECTION.toSource(sb);
 		});
 		name.toSource(sb);
-		if(!name.eql(value)) {
+		if(!name.eql(body)) {
 			sb.append(" = ");
-			value.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
+			body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
 		}
 		return sb;
 	}
 
 	public Slot withName(Identifier newName) {
-	    return new Slot(newName, slotObjectRef, value);
+	    return new Slot(newName, slotObjectRef, body);
     }
 
 	@Override
@@ -128,7 +128,7 @@ public class Slot {
     }
 
     public CoreExpr getValue() {
-        return value;
+        return body;
     }
 
 }
