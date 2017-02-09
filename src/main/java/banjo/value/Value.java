@@ -27,29 +27,29 @@ public interface Value {
     public <T> T acceptVisitor(ValueVisitor<T> visitor);
 
     /**
-     * If this is callable, perform the call and return the result. Otherwise
-     * return Undefined.
-     * 
-     * @param trace
-     *            TODO
-     * @param originalCallee
-     *            A reference to the function being called, at the top level; if
-     *            the function calls itself recursively it should call that
-     *            function. This may be a different function from the one passed
-     *            if the function was an extension and it is calling up to its
-     *            base. If the base calls back to itself it should call the
-     *            extended version.
-     * @param baseCallable
-     *            If this object is an extension of another object, the other
-     *            object is provided as a base implementation that this function
-     *            can call. If this object isn't callable, then the base
-     *            implementation is used as a fallback. May be null.
-     */
-	public default Value call(List<Value> trace, Value originalCallee, Value baseCallable, List<Value> arguments) {
+	 * If this is callable, perform the call and return the result. Otherwise
+	 * return an error value.
+	 * 
+	 * @param trace
+	 *            TODO
+	 * @param callee
+	 *            A reference to the function being called, at the top level; if
+	 *            the function calls itself recursively it should call that
+	 *            function. This may be a different function from the one passed
+	 *            if the function was an extension and it is calling up to its
+	 *            base. If the base calls back to itself it should call the
+	 *            extended version.
+	 * @param baseCallable
+	 *            If this object is an extension of another object, the other
+	 *            object is provided as a base implementation that this function
+	 *            can call. If this object isn't callable, then the base
+	 *            implementation is used as a fallback. May be null.
+	 */
+	public default Value call(List<Value> trace, Value callee, Value baseCallable, List<Value> arguments) {
 		if(baseCallable != null) {
-			return baseCallable.call(trace, originalCallee, null, arguments);
+			return baseCallable.call(trace, callee, null, arguments);
 		}
-        return new NotCallable(trace, originalCallee, SourceFileRange.EMPTY_SET);
+        return new NotCallable(trace, callee, SourceFileRange.EMPTY_SET);
 	}
 
 	/**
