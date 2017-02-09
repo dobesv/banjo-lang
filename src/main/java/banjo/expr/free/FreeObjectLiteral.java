@@ -39,7 +39,7 @@ public class FreeObjectLiteral implements FreeExpression {
 
     }
     private static Set<NameRef> calculateFreeRefs(List<P3<String, Option<String>, FreeExpression>> slots) {
-        return Set.join(NameRef.ORD, Set.set(Ord.setOrd(NameRef.ORD), slots.map(p -> slotFreeRefs(p._1(), p._2(), p._3()))));
+        return Set.join(NameRef.ORD, Set.iterableSet(Ord.setOrd(NameRef.ORD), slots.map(p -> slotFreeRefs(p._1(), p._2(), p._3()))));
     }
 
     public static boolean isFree(String slotObjectRef, NameRef ref) {
@@ -130,7 +130,7 @@ public class FreeObjectLiteral implements FreeExpression {
     @Override
     public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
         List<P2<String, SlotInstance<T>>> slots = this.slots.map(p -> bindSlot(trace, p._1(), p._2(), p._3(), resolver, algebra));
-        return algebra.slotMemoizer(algebra.objectLiteral(ranges, TreeMap.treeMap(Ord.stringOrd, slots)));
+        return algebra.slotMemoizer(algebra.objectLiteral(ranges, TreeMap.iterableTreeMap(Ord.stringOrd, slots)));
 	}
 
 	@Override

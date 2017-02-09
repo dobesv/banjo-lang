@@ -44,10 +44,10 @@ public class FunctionInstance extends FunctionTrait implements Value {
     }
 
 	@Override
-    public Value call(List<Value> trace, Value originalCallee, Value baseCallable, List<Value> passedArgs) {
-	    TreeMap<String, Value> passedArgMap = TreeMap.treeMap(Ord.stringOrd, args.zip(passedArgs));
+    public Value call(List<Value> trace, Value callee, Value baseCallable, List<Value> passedArgs) {
+	    TreeMap<String, Value> passedArgMap = TreeMap.iterableTreeMap(Ord.stringOrd, args.zip(passedArgs));
 	    List<Value> newTrace = trace.cons(this);
-        // TODO Need to bind args and self name!
+        // TODO Not handling missing arguments properly here!
         NameRefAlgebra<Option<Value>> paramResolver = new NameRefAlgebra<Option<Value>>() {
             @Override
             public Option<Value> local(Set<SourceFileRange> ranges, String name) {
@@ -65,8 +65,8 @@ public class FunctionInstance extends FunctionTrait implements Value {
             }
 
             @Override
-            public Option<Value> functionBase(Set<SourceFileRange> ranges, String functionSelfName) {
-                if(calleeBinding.exists(functionSelfName::equals))
+            public Option<Value> functionBase(Set<SourceFileRange> ranges, String calleeBindingName) {
+                if(calleeBinding.exists(calleeBindingName::equals))
                     return Option.some(baseCallable);
                 return Option.none();
             }

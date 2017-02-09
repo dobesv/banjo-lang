@@ -52,7 +52,7 @@ public interface Resolver<T> extends NameRefAlgebra<T> {
     }
 
     public default TreeMap<NameRef, T> closure(Set<NameRef> refs) {
-        return TreeMap.treeMap(NameRef.ORD, refs.toList().map(ref -> P.p(ref, apply(ref))));
+        return TreeMap.iterableTreeMap(NameRef.ORD, refs.toList().map(ref -> P.p(ref, apply(ref))));
     }
 
 

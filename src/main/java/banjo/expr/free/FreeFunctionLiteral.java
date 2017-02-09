@@ -117,12 +117,11 @@ public class FreeFunctionLiteral implements FreeExpression {
 	}
 
     public Set<String> calculateDefs() {
-        return Set.set(Ord.stringOrd, sourceObjectBinding.toList().append(args));
+        return Set.iterableSet(Ord.stringOrd, sourceObjectBinding.toList().append(args));
     }
 
     @Override
     public Option<FreeExpression> partial(PartialResolver resolver) {
-        Set<String> defs = calculateDefs();
         Option<FreeExpression> newBody = body.partial(new BodyPartialResolver(resolver, this::isParameter));
         Option<FreeExpression> newTrait = trait.partial(resolver);
         if(newBody.isNone() && newTrait.isNone())
@@ -136,7 +135,6 @@ public class FreeFunctionLiteral implements FreeExpression {
 
     @Override
     public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        Set<NameRef> refs = getFreeRefs();
         // Expand closure into the function body
         T trait = this.trait.eval(trace, resolver, algebra);
         TreeMap<NameRef, T> closure = FreeFunctionLiteral.closure(args, sourceObjectBinding, body, resolver);
@@ -157,8 +155,8 @@ public class FreeFunctionLiteral implements FreeExpression {
 
     public static <T> TreeMap<NameRef, T> closure(List<String> args, Option<String> sourceObjectBinding, FreeExpression body,
         Resolver<T> resolver) {
-        Set<String> defs = Set.set(Ord.stringOrd, sourceObjectBinding.toList().append(args));
-        Set<NameRef> refs = Set.set(NameRef.ORD, body.getFreeRefs().toList().filter(ref -> FreeFunctionLiteral.isFree(defs, ref)));
+        Set<String> defs = Set.iterableSet(Ord.stringOrd, sourceObjectBinding.toList().append(args));
+        Set<NameRef> refs = Set.iterableSet(NameRef.ORD, body.getFreeRefs().toList().filter(ref -> FreeFunctionLiteral.isFree(defs, ref)));
         return resolver.closure(refs);
     }
 

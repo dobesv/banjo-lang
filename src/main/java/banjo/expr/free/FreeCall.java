@@ -25,7 +25,7 @@ public class FreeCall implements FreeExpression {
 
     @Override
     public Set<NameRef> getFreeRefs() {
-        Set<NameRef> argsFreeRefs = Set.join(NameRef.ORD, Set.set(Ord.setOrd(NameRef.ORD), args.map(FreeExpression::getFreeRefs)));
+        Set<NameRef> argsFreeRefs = Set.join(NameRef.ORD, Set.iterableSet(Ord.setOrd(NameRef.ORD), args.map(FreeExpression::getFreeRefs)));
         Set<NameRef> functionFreeRefs = callee.getFreeRefs();
         return argsFreeRefs.union(functionFreeRefs);
     }

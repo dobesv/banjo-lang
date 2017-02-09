@@ -34,7 +34,7 @@ public class Selector implements Value, Function<Value, Value> {
 
 	@Override
 	public Value call(List<Value> trace, List<Value> arguments) {
-        return arguments.toOption().map(this::apply).orSome(() -> new ArgumentNotSupplied(trace, "Selector " + this + " called without argument"));
+        return arguments.headOption().map(this::apply).orSome(() -> new ArgumentNotSupplied(trace, "Selector " + this + " called without argument"));
 	}
 
 	@Override

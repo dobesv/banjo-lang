@@ -94,7 +94,7 @@ public class FreeExpressionFactory implements
         // Substitute the values into the body.
         // TODO This doesn't let us share memoization between expressions
         final List<P2<String, FreeExpression>> _bindings = bindingPairs.map(p -> P.p(p._1().id, p._2()));
-        TreeMap<String, FreeExpression> bindingMap = TreeMap.treeMap(Ord.stringOrd, _bindings);
+        TreeMap<String, FreeExpression> bindingMap = TreeMap.iterableTreeMap(Ord.stringOrd, _bindings);
 	    return let(bindingMap, body);
     }
 
