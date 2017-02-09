@@ -116,4 +116,9 @@ public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     public T functionInstance(FunctionInstance functionInstance) {
         return fallback();
     }
+
+    @Override
+    public T applyFactory() {
+        return fallback();
+    }
 }

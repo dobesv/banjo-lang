@@ -134,4 +134,6 @@ public interface ValueVisitor<T> {
      */
     T baseFunctionChain(ChainedBaseFunctionImpl chainedBaseFunctionImpl);
 
+    T applyFactory();
+
 }
