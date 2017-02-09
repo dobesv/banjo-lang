@@ -9,82 +9,30 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
 
-import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExprFromFile;
-import banjo.expr.util.SourceFileRange;
-import fj.data.Set;
+import fj.P;
+import fj.P2;
 
 /**
  * CoreExpr that waits to load itself from a file path until it is actually
  * inspected.
  */
-public class CoreExprFromFile implements CoreExpr {
+public class CoreExprFromFile extends LazyCoreExpr implements CoreExpr {
 
     public final Path path;
     public CoreExpr memo;
-    public FileTime memoFileTime;
 
     @Override
-    public void toSource(StringBuffer sb) {
-        load().toSource(sb);
-    }
-
-    @Override
-    public void toSource(StringBuffer sb, Precedence outerPrec) {
-        load().toSource(sb, outerPrec);
-    }
-
-    @Override
-    public String toSource(Precedence prec) {
-        return load().toSource(prec);
-    }
-
-    @Override
-    public String toSource() {
-        return load().toSource();
-    }
-
-    @Override
-    public Precedence getPrecedence() {
-        return load().getPrecedence();
-    }
-
-    @Override
-    public Set<SourceFileRange> getRanges() {
-        return load().getRanges();
-    }
-
-    @Override
-    public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
-        return load().acceptVisitor(visitor);
-    }
-
-    @Override
-    public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
-        return load().acceptVisitor(visitor);
-    }
-
-    public synchronized CoreExpr load() {
-        // Try to get the current file time; if there's an error, use
-        // null for the file time.
-        FileTime currentFileTime;
-        try {
-            currentFileTime = Files.getLastModifiedTime(path);
-        } catch(IOException e) {
-            currentFileTime = null;
-        }
-        if(this.memo == null || !Objects.equals(currentFileTime, this.memoFileTime)) {
-            this.memoFileTime = currentFileTime;
-            this.memo = CoreExpr.fromSourceExpr(SourceExprFromFile.forPath(this.path));
-        }
-        return this.memo;
+    public CoreExpr calculate() {
+        return CoreExpr.fromSourceExpr(SourceExprFromFile.forPath(this.path));
     }
 
     public CoreExprFromFile(Path path) {
         this.path = path;
     }
 
-    public static final Map<Path, CoreExprFromFile> internedValues = Collections.synchronizedMap(new WeakHashMap<Path, CoreExprFromFile>());
+    public static final Map<Path, P2<FileTime, CoreExpr>> cache = Collections
+            .synchronizedMap(new WeakHashMap<Path, P2<FileTime, CoreExpr>>());
 
     /**
      * Get a CoreExprFromFile instance that will be shared within the same VM,
@@ -93,12 +41,23 @@ public class CoreExprFromFile implements CoreExpr {
      * @param path
      * @return
      */
-    public static CoreExprFromFile forPath(Path path) {
-        CoreExprFromFile cached = internedValues.get(path);
-        if(cached == null) {
-            cached = new CoreExprFromFile(path);
-            internedValues.put(path, cached);
+    public static CoreExpr forPath(Path path) {
+        synchronized (cache) {
+            P2<FileTime, CoreExpr> cached = cache.get(path);
+
+            FileTime currentFileTime;
+            try {
+                currentFileTime = Files.getLastModifiedTime(path);
+            } catch (IOException ioe) {
+                currentFileTime = null;
+            }
+            if (cached != null && Objects.equals(currentFileTime, cached._1())) {
+                return cached._2();
+            }
+
+            CoreExprFromFile expr = new CoreExprFromFile(path);
+            cache.put(path, P.p(currentFileTime, expr));
+            return expr;
         }
-        return cached;
     }
 }
