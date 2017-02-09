@@ -5,14 +5,6 @@ import static org.junit.Assert.assertEquals;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-
-
-
-
-
-
-
-
 import banjo.expr.token.TokenScanner;
 import banjo.expr.token.TokenVisitor;
 import banjo.expr.util.FileRange;
@@ -67,12 +59,12 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String stringLiteral(FileRange range, int indentColumn, String tok) {
+	public String stringLiteral(FileRange range, int indentColumn, String tok, boolean kernelString) {
 		return token("str", range);
 	}
 
-	@Override
-	public String numberLiteral(FileRange range, int indentColumn, Number value, String source) {
+    @Override
+	public String numberLiteral(FileRange range, int indentColumn, Number value, String source, boolean kernelNumber) {
 		return token("num", range);
 	}
 
