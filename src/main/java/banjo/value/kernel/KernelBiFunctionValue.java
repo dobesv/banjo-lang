@@ -47,4 +47,9 @@ public class KernelBiFunctionValue implements Value {
     public <T> T acceptVisitor(ValueVisitor<T> visitor) {
         return visitor.kernelBiFunction(this);
     }
+
+	@Override
+	public String toString() {
+		return function.toString();
+	}
 }
