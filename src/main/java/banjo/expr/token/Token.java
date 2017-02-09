@@ -8,10 +8,6 @@ package banjo.expr.token;
  * parse tree result.
  */
 public interface Token {
-	public void toSource(StringBuffer sb);
-
-	public String toSource();
-
 	public <T> T acceptVisitor(TokenVisitor<T> parser);
 
 }

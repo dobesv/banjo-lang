@@ -14,16 +14,6 @@ public class BadToken implements Token {
 		this.message = message;
 	}
 
-	@Override
-	public void toSource(StringBuffer sb) {
-		sb.append(this.text);
-	}
-
-	@Override
-	public String toSource() {
-		return this.text;
-	}
-
 	public FileRange getFileRange() {
 		return fileRange;
 	}
