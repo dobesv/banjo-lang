@@ -1,0 +1,44 @@
+"
+  Combine elements in a list using the given operator.
+    
+  The operator should be a curried binary operator, taking
+  the first parameter and returning a function that accepts
+  the second and returns the result.
+
+  The elements of the list should be of the same type.
+  
+  If the list has zero or one elements it is returned
+  unchanged.  Otherwise a list of length one is returned,
+  which is the result of combining elements using the
+  given operator in an unspecified order.
+  
+  Because the order of combination is unspecified, the
+  operator should be associative when used on lists
+  with more than two elements.
+
+  Note that many standard methods and operators can be
+  passed in simply by using a "dot" prefix, for example:
+  
+  * `.+` for addition
+  * `.*` for multiplication
+  * `.∧` for logical and
+  
+" => (
+  # Calculate left-hand side.  Should be a single-element list: [lhs]
+  lhs in list = prefix.combine using binary operator(op)
+   
+  # Calculate right-hand side.  Should be a single-element list: [rhs]
+  rhs in list = suffix.combine using binary operator(op)
+  
+  # Partially apply operator in lhs list: [op(lhs)]
+  lhs op in list = op << lhs in list
+  
+  # Convert partially applied lhs functions into functions that apply 
+  # to a list: [op(lhs).<<]
+  lhs list op in list = (.<<) << lhs op in list
+  
+  # Pass rhs list to the element to get the result:
+  # [op(lhs).<<(rhs in list)] == 
+  # [op(lhs) << [lhs]] == 
+  # [op(lhs)(rhs)]
+) => lhs list op in list ; <| rhs in list

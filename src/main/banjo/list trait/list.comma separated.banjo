@@ -1,0 +1,9 @@
+"
+  Convert each element to a string using its `.label` method.
+  
+  Then, join elements together using ", ".
+  
+  If the list is empty, returns an empty list.  Otherwise, returns
+  a single-element list with the result of the concatenation.
+" =>
+(list ; .label).sum

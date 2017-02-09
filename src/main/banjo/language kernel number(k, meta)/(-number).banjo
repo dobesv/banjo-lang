@@ -6,4 +6,4 @@
   - (1.0f) == -1.0f
   1 + - (1) == 0
 ]) ⇒
-language kernel number(-n)
+language kernel number(meta.negate(k), meta)

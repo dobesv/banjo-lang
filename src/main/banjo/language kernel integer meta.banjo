@@ -1,0 +1,40 @@
+{
+    is int8 = false
+    is int16 = false
+    is int32 = false
+    is int64 = false
+    is integer = true
+    is float32 = false
+    is float64 = false
+    is decimal = false
+    is fraction = false
+    is exact = true
+    
+    int8 = INTEGER_INT8
+    int16 = INTEGER_INT16
+    int32 = INTEGER_INT32
+    int64 = INTEGER_INT64
+    integer = identity function
+    float32 = INTEGER_FLOAT32
+    float64 = INTEGER_FLOAT64
+    decimal = INTEGER_DECIMAL
+    fraction = INTEGER_FRACTION
+    
+    absolute value = INTEGER_ABS
+    negate = INTEGER_NEGATE
+    
+    bit shifted = INTEGER_SHL
+    
+    sum = INTEGER_SUM
+    diff = INTEGER_DIFF
+    product = INTEGER_PRODUCT
+    quotient = INTEGER_QUOTIENT
+    
+    lt = INTEGER_LT
+    le = INTEGER_LE
+    eq = INTEGER_EQ
+    ge = INTEGER_GE
+    gt = INTEGER_GT
+    
+    type = .integer
+}

@@ -1,0 +1,20 @@
+"
+  The maximum element of the list as defined by the element(s)
+  own `<` operator(s).
+
+  If the list is empty or has only a single element, this is
+  the list unchanged.
+  
+  If the list has two or more elements, this is a single-element
+  list containing the maximum element, determined by comparing
+  elements in an unspecified order using their `<` operator.
+" => (
+  example usage = [
+     [9, 3].max == [9]
+     [7].max == [7]
+     [].max == []
+     [3, -1, 2].max == [3]
+     [2, 2, 1, 2, 2] == [2]
+  ]
+) =>
+list.combine using binary operator(x -> y -> if(x < y) then (y) else (x))

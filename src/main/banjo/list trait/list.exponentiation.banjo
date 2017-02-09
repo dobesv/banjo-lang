@@ -1,0 +1,23 @@
+"
+  Combine elements in a list using exponentation.
+
+  If the list is empty or has only a single element, this returns
+  the list unchanged.
+  
+  If the list has two elements, the result is a single-element list
+  containing the first element raised to the power of the second in a 
+  single-element list.
+  
+  If the list has three or more elements, the result is 
+  a single-element list containing the first element raised to the 
+  power of the product of the remaining elements. 
+" => (
+  example usage = [
+     [9, 3].exponentation == [729]
+     [7].exponentation == [7]
+     [].exponentation == []
+     [3, 2, 2].exponentation == [81]
+     [2, 2, 1, 2, 2].exponentation == [256]
+  ]
+) =>
+(list.first + list.after first.product).combine using binary operator(.to the power of)

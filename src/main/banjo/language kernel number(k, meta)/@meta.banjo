@@ -1,0 +1,13 @@
+meta.{
+   is int8
+   is int16
+   is int32
+   is int64
+   is integer
+   is float32
+   is float64
+   is decimal
+   is fraction
+   
+   is exact
+}

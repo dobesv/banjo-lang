@@ -1,0 +1,30 @@
+"
+  Combine elements in a list using their division operator and
+  `is zero` property.
+
+  If the list is empty or has only a single element, this returns
+  the list unchanged.
+  
+  If the list has two or more elements and any of the elements
+  after the first is zero, this returns an empty list.  The
+  `is zero` property is used to determine whether an element is
+  zero.
+  
+  If the list has two elements, this is a single-element list
+  containing the first element divided by the second in a 
+  single-element list.
+  
+  If the list has three or more elements, this is 
+  a single-element list containing the first element divided 
+  by the product of the remaining elements. 
+" => (
+  example usage = [
+     [9, 3].quotient == [3]
+     [7].quotient == [7]
+     [].quotient == []
+     [90, 9, 5].quotient == [2]
+     [120, 4, 3, 10].quotient == [1]
+  ]
+) =>
+if((.is zero).is true for any element of(list.after first)) then ([]) else
+(list.first + list.after first.product).combine using binary operator(./)

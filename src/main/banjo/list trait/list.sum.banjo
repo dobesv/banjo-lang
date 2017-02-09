@@ -1,0 +1,19 @@
+"
+  Combine elements in a list using addition.
+
+  If the list is empty or has only a single element,
+  this is the list itself.
+  
+  Otherwise, this is a single-element list containing
+  the result of combining the elements of the list using
+  addition.
+" => (
+  usage examples = [
+    [].sum == []
+    [3].sum == [3]
+    [1,1] == [2]
+    [1,1,1] == [3]
+    [1,1,1,1] == [4]
+    [2,3,4,5] == [14]  
+  ]
+) => list.combine using binary operator(.+)

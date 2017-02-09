@@ -1,0 +1,17 @@
+"
+  Combine elements in a list using their multiplication operator.
+  
+  If the list is empty or has only a single element,
+  this is the list itself.
+  
+  Otherwise, this is a single-element list containing
+  the result of combining the elements of the list using
+  multiplication.
+" => (
+  usage examples = [
+    [].product == []
+    [33].product == [33]
+    [3, 11].product == [33]
+    [7, 3, 3].product == [63]
+  ]
+) => list.combine using binary operator(.*)

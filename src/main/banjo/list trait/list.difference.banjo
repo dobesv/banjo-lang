@@ -1,0 +1,22 @@
+"
+  Combine elements in a list using subtraction.
+  
+  If the list has zero or one elements, the result is the
+  same list.
+  
+  If the list has two elements, the result is a single-element
+  list with the first element less the second.
+  
+  If the list has three or more elements, the result is a
+  single-element list with the first element less the sum
+  of the remaining elements.
+" => (
+  usage examples = [
+    [].difference == []
+    [123].difference == [123]
+    [123, 100].difference == [23]
+    [77, 7, 20].difference == [50]
+    [77, 1, 1, 1, 1, 1, 1, 1].difference == [70]
+  ]
+) =>
+(list.first + list.after first.sum).combine using binary operator(.-)
