@@ -3,7 +3,6 @@ package banjo.expr;
 
 import java.util.Objects;
 
-import banjo.expr.source.Precedence;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Set;
 
@@ -17,30 +16,6 @@ public abstract class AbstractExpr implements Expr {
 	@Override
 	public Set<SourceFileRange> getRanges() {
 		return this.ranges;
-	}
-
-
-	@Override
-	public void toSource(StringBuffer sb, Precedence outerPrec) {
-		final Precedence prec = getPrecedence();
-		final boolean needParens = prec != Precedence.ATOM && outerPrec != prec && outerPrec.isHigherThan(prec);
-		if(needParens) sb.append('(');
-		toSource(sb);
-		if(needParens) sb.append(')');
-	}
-
-	@Override
-	public String toSource(Precedence prec) {
-		final StringBuffer buf = new StringBuffer();
-		toSource(buf, prec);
-
-		final String result = buf.toString();
-		return result;
-	}
-
-	@Override
-	public String toSource() {
-		return toSource(Precedence.lowest());
 	}
 
 	public void toFullyParenthesizedSource(StringBuffer sb) {
