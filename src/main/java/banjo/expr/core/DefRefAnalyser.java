@@ -135,10 +135,10 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     public DefRefAnalyser projection(Set<SourceFileRange> ranges, DefRefAnalyser object, DefRefAnalyser body, boolean base) {
 		return new DefRefAnalyser(
 				object.unresolvedLocalRefs,
-				object.localRefs.append(projection.localRefs),
-				object.localDefs.append(projection.localDefs),
-				object.slotRefs.append(projection.unresolvedLocalRefs).append(body.slotRefs), 
-				object.slotDefs.append(projection.slotDefs)
+				object.localRefs.append(body.localRefs),
+				object.localDefs.append(body.localDefs),
+				object.slotRefs.append(body.unresolvedLocalRefs).append(body.slotRefs), 
+				object.slotDefs.append(body.slotDefs)
 		);
     }
 
