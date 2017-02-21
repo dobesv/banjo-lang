@@ -12,6 +12,7 @@ import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
+import banjo.value.fail.ArgumentNotSupplied;
 import fj.Ord;
 import fj.data.List;
 import fj.data.Option;
@@ -26,7 +27,51 @@ import fj.data.TreeMap;
  * and callee need to be bound when calling the function.
  */
 public class FunctionInstance extends FunctionTrait implements Value {
-	public final Set<SourceFileRange> ranges;
+	public static class ParameterResolver implements NameRefAlgebra<Option<Value>> {
+        public final FunctionInstance f;
+        public final TreeMap<String, Value> passedArgMap;
+        public final Value baseCallable;
+
+        public ParameterResolver(FunctionInstance f, Value baseCallable, TreeMap<String, Value> passedArgMap) {
+            this.f = f;
+            this.baseCallable = baseCallable;
+            this.passedArgMap = passedArgMap;
+        }
+
+        @Override
+        public Option<Value> local(Set<SourceFileRange> ranges, String name) {
+            return passedArgMap.get(name);
+        }
+
+        @Override
+        public Option<Value> slot(NameRef object, Set<SourceFileRange> ranges, String slotName) {
+            return visit(object).map(obj -> ValueInstanceAlgebra.INSTANCE.slotValue(obj, ranges, slotName));
+        }
+
+        @Override
+        public Option<Value> baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName) {
+            return Option.none();
+        }
+
+        @Override
+        public Option<Value> functionBase(Set<SourceFileRange> ranges, String calleeBindingName) {
+            if (f.calleeBinding.exists(calleeBindingName::equals))
+                return Option.some(baseCallable);
+            return Option.none();
+        }
+
+        @Override
+        public Option<Value> invalid(Set<SourceFileRange> ranges, String reason) {
+            return Option.none();
+        }
+
+        @Override
+        public Option<Value> global(GlobalRef g) {
+            return Option.none();
+        }
+    }
+
+    public final Set<SourceFileRange> ranges;
     public final List<String> args;
 	public final FreeExpression body;
     public final Option<String> calleeBinding;
@@ -45,42 +90,11 @@ public class FunctionInstance extends FunctionTrait implements Value {
 
 	@Override
     public Value call(List<Value> trace, Value callee, Value baseCallable, List<Value> passedArgs) {
-	    TreeMap<String, Value> passedArgMap = TreeMap.iterableTreeMap(Ord.stringOrd, args.zip(passedArgs));
+	    List<Value> missingArgs = args.drop(passedArgs.length()).map(name -> new ArgumentNotSupplied(trace, name));
+        TreeMap<String, Value> passedArgMap = TreeMap.iterableTreeMap(Ord.stringOrd,
+                args.zip(passedArgs.append(missingArgs)));
 	    List<Value> newTrace = trace.cons(this);
-        // TODO Not handling missing arguments properly here!
-        NameRefAlgebra<Option<Value>> paramResolver = new NameRefAlgebra<Option<Value>>() {
-            @Override
-            public Option<Value> local(Set<SourceFileRange> ranges, String name) {
-                return passedArgMap.get(name);
-            }
-
-            @Override
-            public Option<Value> slot(NameRef object, Set<SourceFileRange> ranges, String slotName) {
-                return visit(object).map(obj -> ValueInstanceAlgebra.INSTANCE.slotValue(obj, ranges, slotName));
-            }
-
-            @Override
-            public Option<Value> baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName) {
-                return Option.none();
-            }
-
-            @Override
-            public Option<Value> functionBase(Set<SourceFileRange> ranges, String calleeBindingName) {
-                if(calleeBinding.exists(calleeBindingName::equals))
-                    return Option.some(baseCallable);
-                return Option.none();
-            }
-
-            @Override
-            public Option<Value> invalid(Set<SourceFileRange> ranges, String reason) {
-                return Option.none();
-            }
-
-            @Override
-            public Option<Value> global(GlobalRef g) {
-                return Option.none();
-            }
-        };
+        NameRefAlgebra<Option<Value>> paramResolver = new ParameterResolver(this, baseCallable, passedArgMap);
         return body.eval(newTrace, new ClosureResolver<Value>(closure, ValueInstanceAlgebra.INSTANCE, paramResolver), ValueInstanceAlgebra.INSTANCE);
 	}
 
