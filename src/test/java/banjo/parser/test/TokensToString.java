@@ -59,16 +59,16 @@ public class TokensToString implements TokenVisitor<String> {
 	}
 
 	@Override
-	public String stringLiteral(FileRange range, int indentColumn, String tok, boolean kernelString) {
+    public String stringLiteral(FileRange range, int indentColumn, String tok) {
 		return token("str", range);
 	}
 
     @Override
-	public String numberLiteral(FileRange range, int indentColumn, Number value, String source, boolean kernelNumber) {
+    public String numberLiteral(FileRange range, int indentColumn, Number value, String source) {
 		return token("num", range);
 	}
 
-	@Override
+    @Override
 	public String identifier(FileRange range, int indentColumn, String tok) {
 		return token("id", range);
 	}
@@ -98,5 +98,6 @@ public class TokensToString implements TokenVisitor<String> {
 	public String badToken(FileRange fileRange, String badToken, String message) {
 		return token("bad", fileRange);
 	}
+
 
 }

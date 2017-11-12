@@ -2,133 +2,147 @@ package banjo.expr.core;
 
 import static java.util.Objects.requireNonNull;
 
+import banjo.expr.source.BinaryOp;
 import banjo.expr.source.Operator;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.UnaryOp;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.OrdUtil;
 import fj.Ord;
 import fj.data.List;
-import fj.data.Option;
 
 public class Slot {
-	public final Identifier name;
-    public final Option<Identifier> slotObjectRef;
-	public final CoreExpr body;
+    public final Identifier name;
+    public final List<Identifier> args;
+    public final CoreExpr body;
 
-	public Slot(Identifier name, Option<Identifier> slotObjectRef,
-            CoreExpr body) {
+    public Slot(Identifier name, List<Identifier> args, CoreExpr body) {
         super();
         this.name = requireNonNull(name);
-        this.slotObjectRef = requireNonNull(slotObjectRef);
+        this.args = requireNonNull(args);
         this.body = requireNonNull(body);
     }
-	public Slot(Identifier name, CoreExpr body) {
-		this(name, Option.none(), body);
-	}
 
-	static final Ord<Slot> ORD = OrdUtil.chain(
-			Identifier.ORD.contramap(slot -> slot.name),
-			OrdUtil.chain(
-					Ord.optionOrd(Identifier.ORD).contramap(slot -> slot.slotObjectRef),
-					CoreExprOrd.ORD.contramap(slot -> slot.body)
-			));
-	static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
-
-	public boolean methodSlotToSource(StringBuffer sb) {
-		if(body instanceof FunctionLiteral) {
-			FunctionLiteral f = (FunctionLiteral) body;
-			slotObjectRef.forEach(x -> { x.toSource(sb); sb.append('.'); });
-			name.toSource(sb);
-			sb.append('(');
-			int start = sb.length();
-			f.args.forEach(a -> { if(sb.length() > start) sb.append(", "); a.toSource(sb); });
-			sb.append(") = ");
-			f.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
-			return true;
-		}
-	    return false;
+    public Slot(Identifier name, CoreExpr body) {
+        this(name, List.nil(), body);
     }
 
-	boolean unaryOperatorSlotToSource(StringBuffer sb) {
-		Operator op = Operator.fromMethodName(name, false);
-		if(op == null)
-			return false;
-		sb.append('(');
-		if(op.isPrefix()) {
-			op.toSource(sb);
-			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
-		} else {
-			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
-			op.toSource(sb);
-		}
-		sb.append(") = ");
-		body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
-		return true;
-	}
+    static final Ord<Slot> ORD = OrdUtil.chain(Identifier.ORD.contramap(slot -> slot.name), OrdUtil
+            .chain(Ord.listOrd(Identifier.ORD).contramap(Slot::getArgs), CoreExprOrd.ORD.contramap(Slot::getBody)));
+    static final Ord<List<Slot>> LIST_ORD = Ord.listOrd(ORD);
 
-	boolean binaryOperatorSlotToSource(StringBuffer sb) {
-		Operator op = Operator.fromMethodName(name, true);
-		if(op == null)
-			return false;
-		if(!(body instanceof FunctionLiteral))
-			return false;
-		FunctionLiteral f = (FunctionLiteral) body;
-		if(!f.args.isSingle())
-			return false;
-		sb.append('(');
-		if(op.isSelfOnRightMethodOperator()) {
-			f.args.head().toSource(sb);
-			sb.append(' ');
-			op.toSource(sb);
-			sb.append(' ');
-			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
-		} else {
-			slotObjectRef.orSome(Identifier.UNDERSCORE).toSource(sb);
-			sb.append(' ');
-			op.toSource(sb);
-			sb.append(' ');
-			f.args.head().toSource(sb);
-		}
-		sb.append(") = ");
-		f.body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
-		return true;
-	}
-	public StringBuffer toSource(StringBuffer sb) {
-		if(unaryOperatorSlotToSource(sb) ||
-				binaryOperatorSlotToSource(sb) ||
-				methodSlotToSource(sb))
-			return sb;
-
-		slotObjectRef.forEach((b) -> {
-			b.toSource(sb, Operator.PROJECTION.precedence);
-			Operator.PROJECTION.toSource(sb);
-		});
-		name.toSource(sb);
-		if(!name.eql(body)) {
-			sb.append(" = ");
-			body.toSource(sb, Operator.ASSIGNMENT.getRightPrecedence());
-		}
-		return sb;
-	}
-
-	public Slot withName(Identifier newName) {
-	    return new Slot(newName, slotObjectRef, body);
+    private SourceExpr argsDotNameToSourceExpr() {
+        if (args.isEmpty())
+            return name;
+        if (args.isSingle())
+            return new BinaryOp(Operator.PROJECTION, args.head(), name);
+        return new BinaryOp(Operator.PROJECTION,
+                new UnaryOp(Operator.PARENS, BinaryOp.insertOperator(Operator.COMMA, args)), name);
     }
 
-	@Override
-	public String toString() {
-	    return toSource(new StringBuffer()).toString();
-	}
-	
+    public SourceExpr toSourceExpr() {
+
+        // Check for unary operator
+        if (args.isSingle()) {
+            Operator op = Operator.fromMethodName(name, false);
+            if (op != null) {
+                UnaryOp signature = new UnaryOp(Operator.PARENS, new UnaryOp(op, args.head()));
+                return new BinaryOp(Operator.ASSIGNMENT, signature, this.body.toSourceExpr());
+            }
+        }
+
+        return body.acceptVisitor(new BaseCoreExprVisitor<SourceExpr>() {
+            @Override
+            public SourceExpr fallback() {
+                return new BinaryOp(Operator.ASSIGNMENT, argsDotNameToSourceExpr(), body.toSourceExpr());
+            }
+
+            @Override
+            public SourceExpr identifier(Identifier n) {
+                if (n.id.equals(name.id))
+                    return name;
+                return fallback();
+            }
+
+            @Override
+            public SourceExpr objectLiteral(ObjectLiteral n) {
+                // Check for a method
+                if (n.isFunctionLiteral()) {
+                    Slot lambda = n.slots.head();
+                    // If a slot has a function in it with the same recArg and
+                    // baseArg, we can resugar the syntax
+                    Identifier recArg = args.orHead(() -> Identifier.UNDERSCORE);
+                    Identifier baseArg = args.drop(1).orHead(() -> Identifier.UNDERSCORE);
+                    Identifier lambdaRecArg = lambda.args.orHead(() -> Identifier.UNDERSCORE);
+                    Identifier lambdaBaseArg = lambda.args.drop(1).orHead(() -> Identifier.UNDERSCORE);
+                    if (!(lambdaRecArg.id.equals(Identifier.UNDERSCORE.id)
+                            && lambdaBaseArg.id.equals(Identifier.UNDERSCORE.id)))
+                        return fallback();
+
+                    List<Identifier> argList = lambda.args.drop(2);
+
+                    // Check for binary operator
+                    // <x>.+ = (<y>) -> <body> becomes (<x> + <y>) = <body>
+                    if (argList.isSingle() && baseArg.id.equals(Identifier.UNDERSCORE.id)) {
+                        Operator op = Operator.fromMethodName(name, true);
+                        if (op != null) {
+                            Identifier arg1 = argList.head();
+                            SourceExpr signature = new UnaryOp(Operator.PARENS,
+                                    op.isSelfOnRightMethodOperator() ?
+                                            new BinaryOp(op, arg1, recArg) : new BinaryOp(op, recArg, arg1));
+                            return new BinaryOp(Operator.ASSIGNMENT, signature, lambda.body.toSourceExpr());
+                        }
+                    }
+                    SourceExpr signature = new BinaryOp(Operator.CALL, argsDotNameToSourceExpr(),
+                            BinaryOp.insertOperator(Operator.COMMA, argList));
+
+                    return new BinaryOp(Operator.ASSIGNMENT, signature, lambda.body.toSourceExpr());
+
+                }
+                return fallback();
+            }
+        });
+    }
+
+    public Slot withName(Identifier newName) {
+        return new Slot(newName, args, body);
+    }
+
+    @Override
+    public String toString() {
+        return toSourceExpr().toSource();
+    }
+
     public Identifier getName() {
         return name;
     }
 
-    public Option<Identifier> getSourceObjectBinding() {
-        return slotObjectRef;
+    public List<Identifier> getArgs() {
+        return args;
     }
 
-    public CoreExpr getValue() {
+    public CoreExpr getBody() {
         return body;
+    }
+
+    public boolean isFunctionLiteral() {
+        return name.id.equals(Identifier.LAMBDA.id);
+    }
+
+    public boolean hasNoBaseArg() {
+        return getBaseArg().id.equals(Identifier.UNDERSCORE.id);
+    }
+
+    public boolean hasNoSelfArg() {
+        return getSelfArg().id.equals(Identifier.UNDERSCORE.id);
+    }
+
+    public Identifier getBaseArg() {
+        return args.drop(1).headOption().orSome(Identifier.UNDERSCORE);
+    }
+
+    public Identifier getSelfArg() {
+        return args.headOption().orSome(Identifier.UNDERSCORE);
     }
 
 }

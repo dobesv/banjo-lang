@@ -77,7 +77,7 @@ public class BadSourceExpr extends AbstractBadExpr implements SourceExpr, BadExp
 
 	}
 
-	protected BadSourceExpr(Set<SourceFileRange> ranges, String message, Object ... args) {
+    public BadSourceExpr(Set<SourceFileRange> ranges, String message, Object... args) {
 		super(ranges, message, args);
 	}
 

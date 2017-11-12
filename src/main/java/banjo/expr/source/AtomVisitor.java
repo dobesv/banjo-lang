@@ -7,8 +7,11 @@ import banjo.expr.token.StringLiteral;
 
 public interface AtomVisitor<T> {
 	T stringLiteral(StringLiteral stringLiteral);
-	T numberLiteral(NumberLiteral numberLiteral);
+
+    T numberLiteral(NumberLiteral numberLiteral);
+
 	T identifier(Identifier identifier);
+
 	T operator(OperatorRef operatorRef);
 
 }

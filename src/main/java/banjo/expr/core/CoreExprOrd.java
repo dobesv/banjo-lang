@@ -40,11 +40,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering call(Call call) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering objectLiteral(ObjectLiteral objectLiteral) {
                         return Ordering.LT;
                     }
@@ -70,16 +65,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -88,6 +73,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -111,11 +97,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call) {
                         return Ordering.GT;
                     }
 
@@ -145,16 +126,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -163,81 +134,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
-                });
-            }
 
-            @Override
-            public Ordering call(Call call) {
-                return a2.acceptVisitor(new CoreExprVisitor<Ordering>() {
-                    @Override
-                    public Ordering badExpr(BadCoreExpr badExpr2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering stringLiteral(StringLiteral stringLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering identifier(Identifier identifier) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
-                        return Call.CALL_ORD.compare(call, call2);
-                    }
-
-                    @Override
-                    public Ordering objectLiteral(ObjectLiteral objectLiteral) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering listLiteral(ListLiteral listLiteral) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering badIdentifier(BadIdentifier badIdentifier2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering extend(Extend extend) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering let(Let let) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering functionLiteral(FunctionLiteral f) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering projection(Projection projection) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -261,11 +158,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.GT;
                     }
 
@@ -295,16 +187,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -313,81 +195,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
-                });
-            }
 
-            @Override
-            public Ordering functionLiteral(FunctionLiteral f) {
-                return a2.acceptVisitor(new CoreExprVisitor<Ordering>() {
-                    @Override
-                    public Ordering badExpr(BadCoreExpr badExpr2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering stringLiteral(StringLiteral stringLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering identifier(Identifier identifier) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering objectLiteral(ObjectLiteral objectLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering listLiteral(ListLiteral listLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering badIdentifier(BadIdentifier badIdentifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering extend(Extend extend2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering let(Let let) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return FunctionLiteral.functionLiteralOrd.compare(f, f2);
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering projection(Projection projection) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -415,11 +223,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering call(Call call2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering objectLiteral(ObjectLiteral objectLiteral) {
                         return Ordering.LT;
                     }
@@ -445,16 +248,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -463,6 +256,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -486,11 +280,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.GT;
                     }
 
@@ -520,16 +309,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -538,6 +317,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -561,11 +341,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.GT;
                     }
 
@@ -595,16 +370,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -613,6 +378,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -636,11 +402,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.LT;
                     }
 
@@ -670,16 +431,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -688,6 +439,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -711,11 +463,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.GT;
                     }
 
@@ -745,16 +492,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -763,6 +500,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -786,11 +524,6 @@ public class CoreExprOrd {
 
                     @Override
                     public Ordering identifier(Identifier identifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
                         return Ordering.GT;
                     }
 
@@ -820,16 +553,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection2) {
                         return Projection.ORD.compare(slotReference, projection2);
                     }
@@ -838,6 +561,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
+
                 });
             }
 
@@ -865,11 +589,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering call(Call call2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering objectLiteral(ObjectLiteral objectLiteral) {
                         return Ordering.LT;
                     }
@@ -895,16 +614,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.LT;
                     }
@@ -913,81 +622,7 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                         return Ordering.LT;
                     }
-                });
-            }
 
-            @Override
-            public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-                return a2.acceptVisitor(new CoreExprVisitor<Ordering>() {
-                    @Override
-                    public Ordering badExpr(BadCoreExpr badExpr2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering stringLiteral(StringLiteral stringLiteral2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering numberLiteral(NumberLiteral numberLiteral2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering identifier(Identifier identifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering call(Call call2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering objectLiteral(ObjectLiteral objectLiteral) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering listLiteral(ListLiteral listLiteral2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering badIdentifier(BadIdentifier badIdentifier2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering extend(Extend extend2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering let(Let let2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef2) {
-                        return BaseFunctionRef.ORD.compare(baseFunctionRef, baseFunctionRef2);
-                    }
-
-                    @Override
-                    public Ordering projection(Projection projection) {
-                        return Ordering.LT;
-                    }
-
-                    @Override
-                    public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -1015,11 +650,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering call(Call call2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
                     public Ordering objectLiteral(ObjectLiteral objectLiteral) {
                         return Ordering.GT;
                     }
@@ -1045,16 +675,6 @@ public class CoreExprOrd {
                     }
 
                     @Override
-                    public Ordering functionLiteral(FunctionLiteral f2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering baseFunctionRef(BaseFunctionRef baseFunctionRef2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
                     public Ordering projection(Projection projection) {
                         return Ordering.GT;
                     }
@@ -1063,8 +683,11 @@ public class CoreExprOrd {
                     public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject2) {
                         return Ord.intOrd.compare(kernelGlobalObject1.ordinal(), kernelGlobalObject2.ordinal());
                     }
+
                 });
             }
+
+
         });
     }
 

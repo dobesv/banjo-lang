@@ -55,7 +55,7 @@ public class TestLetParser {
 
     @Test
     public void mixfix1() {
-        test("(f(x)g(y) = x + y) => f(1)g(2)", "(f _ g(x) = (y) ↦ x + y) ⇒ f _ g(1)(2)");
+        test("(f(x)g(y) = x + y) => f(1)g(2)", "(f _ g(x) = y ↦ x + y) ⇒ f _ g(1)(2)");
     }
 
     @Test

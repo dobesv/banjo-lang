@@ -22,7 +22,12 @@ public class UnaryOp extends AbstractOp implements SourceExpr {
     	this(operatorRanges.union(operand.getRanges()),
     			operator, operatorRanges, operand);
     }
-	public SourceExpr getOperand() {
+
+    public UnaryOp(Operator operator, SourceExpr operand) {
+        this(SourceFileRange.EMPTY_SET, operator, SourceFileRange.EMPTY_SET, operand);
+    }
+
+    public SourceExpr getOperand() {
 		return this.operand;
 	}
 	@Override

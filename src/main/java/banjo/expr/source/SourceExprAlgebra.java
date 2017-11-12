@@ -11,6 +11,11 @@ public interface SourceExprAlgebra<T> {
 	T emptyExpr(Set<SourceFileRange> sourceFileRanges);
 	T identifier(Set<SourceFileRange> sourceFileRanges, String id);
 	T numberLiteral(Set<SourceFileRange> sourceFileRanges, Number number);
-	T stringLiteral(Set<SourceFileRange> sourceFileRanges, String string);
+
+    T kernelNumberLiteral(Set<SourceFileRange> sourceFileRanges, Number number);
+
+    T stringLiteral(Set<SourceFileRange> sourceFileRanges, String string);
+
+    T kernelStringLiteral(Set<SourceFileRange> sourceFileRanges, String string);
 
 }

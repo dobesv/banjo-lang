@@ -356,13 +356,13 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	}
 
 	@Override
-	public SourceExprFactory stringLiteral(FileRange range, int indentColumn, String token, boolean kernelString) {
-		return visitAtom(range, indentColumn, new StringLiteral(sfr(range), indentColumn, token, kernelString));
+    public SourceExprFactory stringLiteral(FileRange range, int indentColumn, String token) {
+        return visitAtom(range, indentColumn, new StringLiteral(sfr(range), indentColumn, token));
 	}
 
     @Override
-	public SourceExprFactory numberLiteral(FileRange range, int indentColumn, Number number, String source, boolean kernelNumber) {
-		return visitAtom(range, indentColumn, new NumberLiteral(sfr(range), indentColumn, number, source, kernelNumber));
+    public SourceExprFactory numberLiteral(FileRange range, int indentColumn, Number number, String source) {
+        return visitAtom(range, indentColumn, new NumberLiteral(sfr(range), indentColumn, number, source));
 	}
 
 	@Override
@@ -397,7 +397,6 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 				switch(topOp) {
 				case PROJECTION:
 				case PROJECTION_FUNCTION:
-				case BASE_SLOT:
 				case PROJECTION_OF_MEMBERS:
 
 					// Try for an operator method - where operators change meaning based on position,
@@ -614,5 +613,6 @@ public class SourceExprFactory implements TokenVisitor<SourceExprFactory> {
 	public SourceExpr getResult() {
 		return result;
 	}
+
 
 }

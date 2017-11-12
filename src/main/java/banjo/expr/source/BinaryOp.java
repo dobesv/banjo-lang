@@ -58,9 +58,24 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 			this.right.toSource(sb, Precedence.lowest());
 			sb.append(this.operator.getParenType().getEndChar());
 		} else {
-			sb.append(' ');
-			sb.append(this.operator.getOp());
-			sb.append(' ');
+            switch (this.operator) {
+            case COMMA:
+            case PROJECTION:
+            case POW:
+                break;
+
+            default:
+                sb.append(' ');
+            }
+            sb.append(this.operator.getOp());
+            switch (this.operator) {
+            case PROJECTION:
+            case POW:
+                break;
+
+            default:
+                sb.append(' ');
+            }
 			this.right.toSource(sb, getPrecedence());
 		}
 	}
@@ -88,4 +103,14 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 	public List<BadExpr> getProblems() {
 		return this.left.getProblems().append(this.right.getProblems());
 	}
+
+    public static <T extends SourceExpr> SourceExpr insertOperator(Operator operator, List<T> operands) {
+        return operands.foldRight(
+                (T left, SourceExpr right) -> (right.isEmpty() ? left : new BinaryOp(operator, left, right)),
+                EmptyExpr.SYNTHETIC_INSTANCE);
+    }
+
+    public static <T extends SourceExpr> SourceExpr insertCommas(List<T> operands) {
+        return insertOperator(Operator.COMMA, operands);
+    }
 }

@@ -5,8 +5,8 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
+import banjo.expr.core.Projection;
 
 public class TestCallParser {
 
@@ -76,8 +76,8 @@ public class TestCallParser {
 		call(source, expectedSource, numArgs, 0);
 	}
 	public void call(String source, String expectedSource, int numArgs, int expectedErrors) {
-		ParseTestUtils.test(source, expectedErrors, null, Call.class, expectedSource);
-		Call call = (Call)CoreExpr.fromString(source);
+        ParseTestUtils.test(source, expectedErrors, null, Projection.class, expectedSource);
+        Projection call = (Projection) CoreExpr.fromString(source);
 		assertEquals(numArgs, call.args.length());
 	}
 }

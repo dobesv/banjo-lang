@@ -30,8 +30,10 @@ public abstract class AbstractAtom extends AbstractExpr {
 		toSource(sb);
 	}
 
-	@Override
-    public void toSource(StringBuffer sb) {
-		toSource(sb);
+    @Override
+    public String toSource() {
+        StringBuffer sb = new StringBuffer();
+        toSource(sb);
+        return sb.toString();
 	}
 }

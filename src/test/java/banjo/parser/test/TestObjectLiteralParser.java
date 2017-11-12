@@ -10,7 +10,6 @@ import org.junit.Test;
 
 import banjo.expr.core.CoreExpr;
 import banjo.expr.core.Extend;
-import banjo.expr.core.FunctionLiteral;
 import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Slot;
 import banjo.expr.source.BadSourceExpr;
@@ -93,7 +92,7 @@ public class TestObjectLiteralParser {
 
     @Test
     public void slotExt1() {
-        test("{a @= b}", "{__tmp.a = __tmp:a Φ b}");
+        test("{a @= b}", "{(_, __tmp).a = __tmp Φ b}");
     }
 
 
@@ -140,10 +139,12 @@ public class TestObjectLiteralParser {
 		ObjectLiteral obj = (ObjectLiteral) CoreExpr.fromString("{x.y(z) = z}");
 		assertEquals(1, obj.slots.length());
         assertTrue(obj.slots.head().name.id.equals("y"));
-        assertTrue(obj.slots.head().slotObjectRef.some().id.equals("x"));
-		FunctionLiteral func = (FunctionLiteral) obj.slots.head().body;
-		assertTrue(func.body.eql(new Identifier("z")));
-		assertEquals(1, func.args.length());
-        assertTrue(func.args.head().id.equals("z"));
+        assertTrue(obj.slots.head().args.head().id.equals("x"));
+        ObjectLiteral func = (ObjectLiteral) obj.slots.head().body;
+        assertTrue(func.slots.head().body.eql(new Identifier("z")));
+        assertEquals(3, func.slots.head().args.length());
+        assertTrue(func.slots.head().args.index(0).id.equals("_"));
+        assertTrue(func.slots.head().args.index(1).id.equals("_"));
+        assertTrue(func.slots.head().args.index(2).id.equals("z"));
 	}
 }

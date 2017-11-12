@@ -25,7 +25,6 @@ public enum Operator {
     INSPECT("$", OperatorType.FUNCTION, Precedence.UNARY_PREFIX, Position.PREFIX),
     PROJECTION_FUNCTION(".", OperatorType.BUILTIN, Precedence.SELECTOR, Position.PREFIX),
     EXTENSION_FUNCTION("Φ @", OperatorType.FUNCTION, Precedence.SELECTOR, Position.PREFIX),
-    BASE_FUNCTION("↑ ^", OperatorType.BUILTIN, Position.PREFIX, Precedence.SUFFIX),
     PASS_TO_LEFT_FUNCTION("◄ <|", OperatorType.FUNCTION, Precedence.UNARY_PREFIX, Position.PREFIX),
     QUICK_LAMBDA("?", OperatorType.BUILTIN, Position.PREFIX, Precedence.SELECTOR),
 
@@ -34,7 +33,6 @@ public enum Operator {
     EXTENSION("Φ @", OperatorType.BUILTIN, Position.INFIX, Precedence.EXTEND),
     PROJECTION(".", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
     PROJECTION_OF_MEMBERS("*.", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
-    BASE_SLOT(":", OperatorType.BUILTIN, Position.INFIX, Precedence.SUFFIX),
     POW("^", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
     MUL("× * \u2062", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
     DIV("÷ / ∕", OperatorType.METHOD, Position.INFIX, Precedence.MULDIV),
@@ -159,6 +157,7 @@ public enum Operator {
     public final Associativity associativity;
     public final Position position;
     public final String methodName;
+    public final Identifier methodIdentifier;
     public final OperatorType operatorType;
     public final String[] ops;
 
@@ -172,6 +171,7 @@ public enum Operator {
         this.associativity = requireNonNull(associativity);
         this.position = requireNonNull(position);
         this.methodName = parenType == ParenType.PARENS || methodName == null ? null : methodName.replaceFirst("\\?$", "");
+        this.methodIdentifier = this.methodName == null ? null : new Identifier(this.methodName);
     }
 
     Operator(String ops, OperatorType operatorType, ParenType parenType, Position position, Associativity associativity, Precedence leftPrecedence,

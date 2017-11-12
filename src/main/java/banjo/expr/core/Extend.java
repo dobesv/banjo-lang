@@ -1,7 +1,9 @@
 package banjo.expr.core;
 
+import banjo.expr.source.BinaryOp;
 import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExpr;
 import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
@@ -32,13 +34,9 @@ public class Extend extends AbstractCoreExpr implements CoreExpr {
 	}
 
 
-	@Override
-	public void toSource(StringBuffer sb) {
-		this.base.toSource(sb, Operator.EXTENSION.getPrecedence());
-		sb.append(' ');
-		sb.append(Operator.EXTENSION.getOp());
-		sb.append(' ');
-		this.extension.toSource(sb, Operator.EXTENSION.getPrecedence());
+    @Override
+    public SourceExpr toSourceExpr() {
+        return new BinaryOp(Operator.EXTENSION, base.toSourceExpr(), extension.toSourceExpr());
 	}
 
 	@Override

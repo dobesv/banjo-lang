@@ -52,4 +52,14 @@ public class SourceErrorGatherer implements SourceExprAlgebra<List<BadExpr>> {
 		return List.nil();
 	}
 
+    @Override
+    public List<BadExpr> kernelNumberLiteral(Set<SourceFileRange> sourceFileRanges, Number number) {
+        return List.nil();
+    }
+
+    @Override
+    public List<BadExpr> kernelStringLiteral(Set<SourceFileRange> sourceFileRanges, String string) {
+        return List.nil();
+    }
+
 }

@@ -286,7 +286,6 @@ public interface SourceExpr extends Expr, SourceNode {
                 public Ordering badIdentifier(BadIdentifier badIdentifier) {
                     return Ordering.LT;
                 }
-
             });
             }
 
@@ -494,7 +493,6 @@ public interface SourceExpr extends Expr, SourceNode {
                 public Ordering badIdentifier(BadIdentifier badIdentifier2) {
                     return BadIdentifier.ORD.compare(badIdentifier, badIdentifier2);
                 }
-
             });
             }
 
@@ -530,6 +528,21 @@ public interface SourceExpr extends Expr, SourceNode {
                 new SourceFileRange(path, FileRange.EMPTY),
                 "Source cannot be loaded: " + e);
         }
+    }
+
+    default boolean isEmpty() {
+        return this == EmptyExpr.SYNTHETIC_INSTANCE || this instanceof EmptyExpr
+                || this.acceptVisitor(new BaseSourceExprVisitor<Boolean>() {
+                    @Override
+                    public Boolean emptyExpr(EmptyExpr emptyExpr) {
+                        return true;
+                    }
+
+                    @Override
+                    public Boolean fallback(SourceExpr other) {
+                        return false;
+                    }
+                });
     }
 
 }

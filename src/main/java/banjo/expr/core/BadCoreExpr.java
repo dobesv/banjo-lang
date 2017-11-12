@@ -2,6 +2,8 @@ package banjo.expr.core;
 
 import banjo.expr.AbstractBadExpr;
 import banjo.expr.BadExpr;
+import banjo.expr.source.BadSourceExpr;
+import banjo.expr.source.SourceExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Set;
 
@@ -29,4 +31,9 @@ public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
 		return super.acceptVisitor(visitor);
 	}
+
+    @Override
+    public SourceExpr toSourceExpr() {
+        return new BadSourceExpr(this.getRanges(), this.getMessage(), this.getArgs());
+    }
 }

@@ -1,7 +1,6 @@
 package banjo.expr.core;
 
 import banjo.expr.token.Identifier;
-import fj.P;
 import fj.P2;
 import fj.data.List;
 import fj.data.Set;
@@ -12,12 +11,6 @@ public class TestAndExampleGatherer {
         @Override
         public Set<CoreExpr> fallback() {
             return CoreExpr.EMPTY_SET;
-        }
-
-        @Override
-        public Set<CoreExpr> call(Call call) {
-            Set<CoreExpr> argTests = union(call.args.map(this::visit));
-            return call.target.acceptVisitor(this).union(argTests);
         }
 
         public Set<CoreExpr> tests(List<CoreExpr> tests) {
@@ -44,7 +37,7 @@ public class TestAndExampleGatherer {
 
         @Override
         public Set<CoreExpr> objectLiteral(ObjectLiteral n) {
-            final List<Set<CoreExpr>> methodExamples = n.getSlots().map(Slot::getValue).map(this::visit);
+            final List<Set<CoreExpr>> methodExamples = n.getSlots().map(Slot::getBody).map(this::visit);
             return union(methodExamples);
         }
 
@@ -68,17 +61,8 @@ public class TestAndExampleGatherer {
         }
 
         @Override
-        public Set<CoreExpr> functionLiteral(FunctionLiteral f) {
-            Set<CoreExpr> result =
-                f.body.acceptVisitor(this).map(
-                    CoreExprOrd.ORD,
-                    e -> f.calleeBinding.map(recId -> (CoreExpr) new Let(recId.getRanges(), List.single(P.p(recId, f)), e)).orSome(e));
-            return result;
-        }
-
-        @Override
         public Set<CoreExpr> projection(Projection projection) {
-            return projection.object.acceptVisitor(this);
+            return union(projection.args.map(this::visit));
         }
     }
 
@@ -96,13 +80,6 @@ public class TestAndExampleGatherer {
                 if(binding._1().id.equals(TESTS_KEY.id))
                     return tests(List.single(binding._2()));
                 return super.binding(binding);
-            }
-
-            @Override
-            public Set<CoreExpr> call(Call call) {
-                if(call.target.eql(TESTS_KEY))
-                    return tests(call.args);
-                return super.call(call);
             }
         });
     }

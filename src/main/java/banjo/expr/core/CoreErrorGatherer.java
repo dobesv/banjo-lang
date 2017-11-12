@@ -6,84 +6,75 @@ import banjo.expr.util.SourceFileRange;
 import fj.P2;
 import fj.P3;
 import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
 
 public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
-	public static final CoreErrorGatherer INSTANCE = new CoreErrorGatherer();
-	public static List<BadExpr> problems(CoreExpr e) {
-		return e.acceptVisitor(INSTANCE);
-	}
+    public static final CoreErrorGatherer INSTANCE = new CoreErrorGatherer();
 
-	@Override
-	public List<BadExpr> badExpr(Set<SourceFileRange> ranges, String message, Object... args) {
-		return List.single(new BadCoreExpr(ranges, message, args));
-	}
+    public static List<BadExpr> problems(CoreExpr e) {
+        return e.acceptVisitor(INSTANCE);
+    }
 
-	@Override
-	public List<BadExpr> objectLiteral(Set<SourceFileRange> ranges,
-	        List<P3<Identifier, Option<Identifier>, List<BadExpr>>> slots) {
+    @Override
+    public List<BadExpr> badExpr(Set<SourceFileRange> ranges, String message, Object... args) {
+        return List.single(new BadCoreExpr(ranges, message, args));
+    }
+
+    @Override
+    public List<BadExpr> objectLiteral(Set<SourceFileRange> ranges,
+            List<P3<Identifier, List<Identifier>, List<BadExpr>>> slots) {
         return List.join(slots.map(P3.__3()));
-	}
-
-	@Override
-	public List<BadExpr> stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString) {
-		return List.nil();
-	}
-
-	@Override
-	public List<BadExpr> listLiteral(Set<SourceFileRange> ranges, List<List<BadExpr>> elements) {
-		return List.join(elements);
-	}
-
-	@Override
-	public List<BadExpr> extend(Set<SourceFileRange> ranges,
-			List<BadExpr> base, List<BadExpr> extension) {
-		return base.append(extension);
-	}
-
-	@Override
-	public List<BadExpr> numberLiteral(Set<SourceFileRange> ranges, Number value, String source, boolean kernelNumber) {
-		return List.nil();
-	}
-
-	@Override
-	public List<BadExpr> identifier(Set<SourceFileRange> ranges, String op) {
-		return List.nil();
-	}
-
-	@Override
-	public List<BadExpr> call(Set<SourceFileRange> ranges,
-	        List<BadExpr> function, List<List<BadExpr>> args) {
-	    return function.append(List.join(args));
-	}
-
-	@Override
-	public List<BadExpr> let(Set<SourceFileRange> sourceFileRanges,
-	        List<P2<Identifier, List<BadExpr>>> bindings, List<BadExpr> body) {
-        return List.join(bindings.map(p -> p._2())).append(body);
-	}
-
-	@Override
-    public List<BadExpr> functionLiteral(Set<SourceFileRange> ranges,
-        List<Identifier> args, List<BadExpr> body, Option<Identifier> calleeBinding) {
-        return body;
     }
 
-	@Override
-    public List<BadExpr> projection(Set<SourceFileRange> ranges,
-            List<BadExpr> object, List<BadExpr> projection, boolean base) {
-	    return object.append(projection);
-    }
-
-	@Override
-	public List<BadExpr> baseFunctionRef(
-	        Set<SourceFileRange> sourceFileRanges, Identifier name) {
+    @Override
+    public List<BadExpr> stringLiteral(Set<SourceFileRange> ranges, String text) {
         return List.nil();
-	}
+    }
+
+    @Override
+    public List<BadExpr> listLiteral(Set<SourceFileRange> ranges, List<List<BadExpr>> elements) {
+        return List.join(elements);
+    }
+
+    @Override
+    public List<BadExpr> extend(Set<SourceFileRange> ranges, List<BadExpr> base, List<BadExpr> extension) {
+        return base.append(extension);
+    }
+
+    @Override
+    public List<BadExpr> numberLiteral(Set<SourceFileRange> ranges, Number value, String source) {
+        return List.nil();
+    }
+
+    @Override
+    public List<BadExpr> identifier(Set<SourceFileRange> ranges, String op) {
+        return List.nil();
+    }
+
+    @Override
+    public List<BadExpr> let(Set<SourceFileRange> sourceFileRanges, List<P2<Identifier, List<BadExpr>>> bindings,
+            List<BadExpr> body) {
+        return List.join(bindings.map(p -> p._2())).append(body);
+    }
+
+    @Override
+    public List<BadExpr> projection(Set<SourceFileRange> ranges, List<List<BadExpr>> slotArgs,
+            List<BadExpr> projection) {
+        return List.join(slotArgs).append(projection);
+    }
 
     @Override
     public List<BadExpr> kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return List.nil();
+    }
+
+    @Override
+    public List<BadExpr> kernelNumberLiteral(Set<SourceFileRange> ranges, Number value, String source) {
+        return List.nil();
+    }
+
+    @Override
+    public List<BadExpr> kernelStringLiteral(Set<SourceFileRange> ranges, String text) {
         return List.nil();
     }
 

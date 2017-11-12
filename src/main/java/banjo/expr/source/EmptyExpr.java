@@ -7,9 +7,9 @@ import fj.data.List;
 import fj.data.Set;
 
 /**
- * Empty expressions help with the special case of empty parentheses: (), [], and {}.  These
- * are parsed as a parenthese with the "empty" expression inside.  This may also show up in
- * a list with consecutive or trailing separators.
+ * Empty expressions help with the special case of empty parentheses: (), [],
+ * and {}. These are parsed as a parentheses with the "empty" expression inside.
+ * This may also show up in a list with consecutive or trailing separators.
  */
 public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	public static final SourceExpr SYNTHETIC_INSTANCE = new EmptyExpr(SourceFileRange.EMPTY_SET);

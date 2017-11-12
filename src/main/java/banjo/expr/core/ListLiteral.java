@@ -1,6 +1,10 @@
 package banjo.expr.core;
 
+import banjo.expr.source.BinaryOp;
+import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.UnaryOp;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
@@ -32,21 +36,10 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-	public void toSource(StringBuffer sb) {
-		if(elements.isEmpty()) {
-			sb.append("[]");
-		} else {
-			sb.append('[');
-			boolean first = true;
-			for(final CoreExpr elt : this.elements) {
-				if(first) first = false;
-				else sb.append(", ");
-				elt.toSource(sb, Precedence.COMMA);
-			}
-			sb.append(']');
-		}
+    public SourceExpr toSourceExpr() {
+        return new UnaryOp(Operator.LIST_LITERAL,
+                BinaryOp.insertOperator(Operator.COMMA, elements.map(CoreExpr::toSourceExpr)));
 	}
-
 	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.listLiteral(this);

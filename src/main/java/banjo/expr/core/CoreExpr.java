@@ -1,6 +1,7 @@
 package banjo.expr.core;
 
 import banjo.expr.Expr;
+import banjo.expr.source.Precedence;
 import banjo.expr.source.SourceExpr;
 import fj.data.Set;
 
@@ -34,7 +35,7 @@ public interface CoreExpr extends Expr {
      * Parse a SourceExpr syntax tree into a CoreExpr AST.
      */
 	public static CoreExpr fromSourceExpr(final SourceExpr parseTree) {
-	    return new CoreExprFactory().desugar(parseTree).getValue();
+        return new CoreExprFactory().desugar(parseTree);
     }
 
 	/**
@@ -43,5 +44,30 @@ public interface CoreExpr extends Expr {
 	default boolean eql(CoreExpr other) {
         return CoreExprOrd.eql(this, other);
 	}
+
+    @Override
+    public default String toSource() {
+        return toSourceExpr().toSource();
+    }
+
+    @Override
+    public default String toSource(Precedence precedence) {
+        return toSourceExpr().toSource(precedence);
+    }
+
+    @Override
+    default void toSource(StringBuffer sb) {
+        toSourceExpr().toSource(sb);
+    }
+
+    @Override
+    public default void toSource(StringBuffer sb, Precedence precedence) {
+        toSourceExpr().toSource(sb, precedence);
+    }
+
+    /**
+     * Convert to a SourceExpr for code formatting / printing purposes.
+     */
+    public SourceExpr toSourceExpr();
 
 }

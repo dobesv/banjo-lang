@@ -1,16 +1,9 @@
 package banjo.expr.core;
 
-import banjo.eval.resolver.GlobalRef;
-import banjo.eval.resolver.InstanceAlgebra;
-import banjo.eval.resolver.NameRef;
-import banjo.eval.resolver.Resolver;
-import banjo.expr.free.FreeExpression;
-import banjo.expr.free.FreeExpressionVisitor;
-import banjo.expr.free.PartialResolver;
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
 
 /**
@@ -26,18 +19,83 @@ import fj.data.Set;
  * optimizers, and so on generally will have to treat these objects (and often
  * the objects that contain them or are produced by them) specially.
  */
-public enum KernelGlobalObject implements CoreExpr, FreeExpression {
+public enum KernelGlobalObject implements CoreExpr {
+    /** Add two kernel numbers as 32-bit integers */
+    INT32_SUM,
+    /** Add two kernel numbers as 64-bit integers */
+    INT64_SUM,
+    /** Add two kernel numbers as arbitrary sized integers */
+    INTEGER_SUM,
+    /** Add two kernel numbers as 32-bit floating point numbers */
+    FLOAT32_SUM,
+    /** Add two kernel numbers as 64-bit floating point numbers */
+    FLOAT64_SUM,
+    /** Add two kernel numbers as arbitrary sized decimals */
+    DECIMAL_SUM,
+    /** Subtract two kernel numbers as 32-bit integers */
+    INT32_DIFFERENCE,
+    /** Subtract two kernel numbers as 64-bit integers */
+    INT64_DIFFERENCE,
+    /** Subtract two kernel numbers as arbitrary sized integers */
+    INTEGER_DIFFERENCE,
+    /** Subtract two kernel numbers as 32-bit floating point numbers */
+    FLOAT32_DIFFERENCE,
+    /** Subtract two kernel numbers as 64-bit floating point numbers */
+    FLOAT64_DIFFERENCE,
+    /** Subtract two kernel numbers as arbitrary sized decimals */
+    DECIMAL_DIFFERENCE,
+    /** Multiply two kernel numbers as 32-bit integers */
+    INT32_PRODUCT,
+    /** Multiply two kernel numbers as 64-bit integers */
+    INT64_PRODUCT,
+    /** Multiply two kernel numbers as arbitrary sized integers */
+    INTEGER_PRODUCT,
+    /** Multiply two kernel numbers as 32-bit floating point numbers */
+    FLOAT32_PRODUCT,
+    /** Multiply two kernel numbers as 64-bit floating point numbers */
+    FLOAT64_PRODUCT,
+    /** Multiply two kernel numbers as 64-bit floating point numbers */
+    DECIMAL_PRODUCT,
+    /** Divide two kernel numbers as 32-bit integers */
+    INT32_QUOTIENT,
+    /** Divide two kernel numbers as 64-bit integers */
+    INT64_QUOTIENT,
+    /** Divide two kernel numbers as arbitrary sized integers */
+    INTEGER_QUOTIENT,
+    /** Divide two kernel numbers as 32-bit floating point numbers */
+    FLOAT32_QUOTIENT,
+    /** Divide two kernel numbers as 64-bit floating point numbers */
+    FLOAT64_QUOTIENT,
+    /** Divide two kernel numbers as 64-bit floating point numbers */
+    DECIMAL_QUOTIENT,
+    /**
+     * Get the integer division remainder of two kernel numbers as 32-bit
+     * integers
+     */
+    INT32_MODULO,
+    /**
+     * Get the integer division remainder of two kernel numbers as 64-bit
+     * integers
+     */
+    INT64_MODULO,
+    /**
+     * Get the integer division remainder of two kernel numbers as arbitrary
+     * sized integers
+     */
+    INTEGER_MODULO,
+
     SLOT_MAPPER_FACTORY,
     ARG_MAPPER_FACTORY,
-    DYNAMIC_CALL_PROXY_FACTORY,
     DYNAMIC_SLOT_PROXY_FACTORY,
     EXTEND_FUNCTION,
     FAIL_FUNCTION,
+
+    /**
+     * Takes two functions f and g, and return a new function fg such that
+     * fg(...) == f(g(...)). The special trick with this is that it works for
+     * any number of arguments to g.
+     */
     FUNCTION_COMPOSITION_FUNCTION,
-    REACTIVE_VALUE,
-    KERNEL_TRUE,
-    KERNEL_FALSE,
-    CHAINED_BASE_CALLABLE,
 
     /**
      * Returns a function that passes the parameters to TUPLE_FACTORY to any
@@ -48,81 +106,76 @@ public enum KernelGlobalObject implements CoreExpr, FreeExpression {
     TUPLE_FACTORY,
 
     /**
-     * When a function has a "self-name" it will be bound to one of these with
-     * two arguments - the function that was called to get into this body (might
-     * not be the same function if this function was extended) and the base
-     * function implementation if this function is used to extend another
-     * function.
-     * 
-     * For example, given:
-     * 
-     * f(x) = f g(y) = g fg = f << g
-     * 
-     * In a call f(x), "f" is bound to FUNCTION_CALLEE_REFERENCE(f, {}). In a
-     * call g(x), "g" is bound to FUNCTION_CALLEE_REFERENCE(g, {}). In a call
-     * fg(x), "g" is bound to FUNCTION_CALLEE_REFERENCE(fg, f) inside the body
-     * of g. If "g" called the base implementation of "f" then "f" would be
-     * bound to FUNCTION_CALLEE_REFERENCE(fg, {}).
+     * Global handle to all events, unfiltered. This is then processed using the
+     * other event list operations defined below.
      */
-    FUNCTION_CALLEE_REFERENCE,
+    EVENTS_STREAM,
 
     /**
-     * When a slot body is calculated it is given a reference to the original
-     * object the slot is being read from (after considering extension), plus
-     * the (lazy) value of any slot in the "base" object if the object has
-     * another definition of the same slot earlier in the extension chain of the
-     * object and the slot's name as a kernel string.
-     */
-    SLOT_OBJECT_REFERENCE,
-
-    /**
-     * A suspension of a call - takes callable, callee, baseCallable, and the
-     * actual arguments are the remainder of the call. Used as part of partial
-     * evaluation to leave a call intact.
-     */
-    APPLY_FACTORY,
-
-    /**
-     * This function takes an object, a slot name (as a kernel string), and the
-     * fallback slot value and evaluates this combination lazily.
+     * EVENTS_HEAD(stream, fallback)
      * 
-     * A normal slot reference will "forget" the original base object slot value
-     * fallback, so we use this special slot reference with a fallback function
-     * when we need to preserve the fallback value.
+     * Get the first event value in the stream as a signal. If the stream is
+     * empty, the fallback provided is used as the signal value instead.
      */
-    READ_SLOT_WITH_FALLBACK,
+    EVENTS_HEAD,
+    
+    /**
+     * EVENTS_TAIL(stream)
+     * 
+     * Get the stream of events beyond the first event in the stream as a
+     * signal. If there are fewer than two events left in the stream at this
+     * time, the tail will be empty.
+     */
+    EVENTS_TAIL,
 
     /**
-     * References the value of an expression "[]" in any scope.
-     * 
-     * This is a scope-independent lookup of the empty list in the root of the
-     * project.
+     * Global handle to the application clock as a signal. This is a 64-bit
+     * integer number of ticks. The tick rate of the application depends on its
+     * configuration.
+     */
+    APPLICATION_CLOCK,
+
+    /**
+     * Global handle to the system clock with millisecond resolution.
+     */
+    SYSTEM_CLOCK_MS,
+
+    /**
+     * Special object that is equal to the value of "language kernel number" in
+     * the project root/global scope. Used to construct numbers for number
+     * literals in any scope, even a projection.
+     */
+    NUMBER_FACTORY,
+
+    /**
+     * Special object that is equal to the value of "language kernel string" in
+     * the project root/global scope. Used to construct strings for string
+     * literals in any scope, even a projection.
+     */
+    STRING_FACTORY,
+
+    /**
+     * Special object that is equal to the value of "empty list" in the project
+     * root/global scope. Used to construct lists for list literals in any
+     * scope, even a projection.
      */
     EMPTY_LIST,
 
     /**
-     * A function "x -> [x]" that works in any lexical scope.
-     * 
-     * This is a scope-independent lookup of the single element list factory in
-     * the root of the project.
+     * Special object that is equal to the value of "single element list" in the
+     * project root/global scope. Used to construct lists for list literals in
+     * any scope, even a projection.
      */
-    SINGLE_ELEMENT_LIST_FACTORY,
+    LIST_ELEMENT_FACTORY,
 
     /**
-     * A function that wraps a "kernel string" into an object suitable for use
-     * in the language. This is needed because the kernel string is
-     * intentionally limited in its functionality; the library can thus wrap it
-     * up with all the bells and whistles.
+     * Special object that is equal to the value of "function trait" in the
+     * project root/global scope. Used to construct functions for function
+     * literals in any scope, even a projection.
      */
-    LANGUAGE_KERNEL_STRING_FACTORY,
+    FUNCTION_TRAIT,
 
-    /**
-     * A function that wraps a "kernel number" into an object suitable for use
-     * in the language. This is needed because the kernel string is
-     * intentionally limited in its functionality; the library can thus wrap it
-     * up with all the bells and whistles.
-     */
-    LANGUAGE_KERNEL_NUMBER_FACTORY;
+    ;
 
     @Override
     public void toSource(StringBuffer sb) {
@@ -149,64 +202,135 @@ public enum KernelGlobalObject implements CoreExpr, FreeExpression {
         return visitor.kernelGlobalObject(this);
     }
 
-    @Override
-    public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
-        return visitor.kernelGlobalObject(this);
-    }
+    // @Override
+    // public <T> T acceptVisitor(FreeExpressionVisitor<T> visitor) {
+    // return visitor.kernelGlobalObject(this);
+    // }
+    //
+    // @Override
+    // public Set<NameRef> getFreeRefs() {
+    // return NameRef.EMPTY_SET;
+    // }
+    //
+    // @Override
+    // public boolean hasFreeRefs() {
+    // return false;
+    // }
+    //
+    // @Override
+    // public Option<FreeExpression> partial(PartialResolver resolver) {
+    // return Option.none();
+    // }
+    //
+    // @Override
+    // public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver,
+    // InstanceAlgebra<T> algebra) {
+    // switch (this) {
+    // case FUNCTION_TRAIT:
+    // return algebra.slotValue(ctx.projectRoot, SourceFileRange.EMPTY_SET,
+    // Identifier.FUNCTION_TRAIT.id);
+    //
+    // case EMPTY_LIST:
+    // return algebra.slotValue(ctx.projectRoot, SourceFileRange.EMPTY_SET,
+    // Identifier.EMPTY_LIST.id);
+    //
+    // case LIST_ELEMENT_FACTORY:
+    // return algebra.slotValue(ctx.projectRoot, SourceFileRange.EMPTY_SET,
+    // Identifier.SINGLE_ELEMENT_LIST.id);
+    //
+    // case NUMBER_FACTORY:
+    // return algebra.slotValue(ctx.projectRoot, SourceFileRange.EMPTY_SET,
+    // Identifier.LANGUAGE_KERNEL_NUMBER.id);
+    //
+    // case STRING_FACTORY:
+    // return algebra.slotValue(ctx.projectRoot, SourceFileRange.EMPTY_SET,
+    // Identifier.LANGUAGE_KERNEL_STRING.id);
+    //
+    // default:
+    // return algebra.kernelGlobalObject(this);
+    // }
+    // }
+    //
+    // @Override
+    // public <T> T acceptVisitor(SignalVisitor<T> visitor) {
+    // return visitor.kernelGlobalObject(this);
+    // }
+    //
+    // @Override
+    // public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+    // return visitor.kernelGlobalObject(this);
+    // }
+    //
+    // @Override
+    // public Value call(EvalContext<Value> ctx, List<Value> arguments) {
+    // switch (this) {
+    // case EXTEND_FUNCTION:
+    // if(arguments.isEmpty() || arguments.tail().isEmpty())
+    // return new FailWithMessage(ctx, "Not enough arguments for " + this);
+    // return new ExtendedObject(arguments.head(), arguments.tail().head());
+    //
+    // case SLOT_MAPPER_FACTORY:
+    // if(arguments.isEmpty() || arguments.tail().isEmpty())
+    // return new FailWithMessage(ctx, "Not enough arguments for " + this);
+    // return new SlotMapper(arguments.head(), arguments.tail().head());
+    //
+    // case FUNCTION_COMPOSITION_FUNCTION:
+    // if (arguments.isEmpty() || arguments.tail().isEmpty() ||
+    // arguments.tail().tail().isEmpty())
+    // return new FailWithMessage(ctx, "Not enough arguments for " + this);
+    // Value f = arguments.head();
+    // Value g = arguments.tail().head();
+    // Value functionTrait = arguments.tail().tail().head();
+    // return new FunctionComposition(f, g, functionTrait);
+    //
+    // case DYNAMIC_SLOT_PROXY_FACTORY:
+    // if(arguments.isEmpty())
+    // return new FailWithMessage(ctx, "Missing argument to " + this);
+    // return new DynamicSlotProxy(arguments.head());
+    //
+    // case ARG_MAPPER_FACTORY:
+    // if (arguments.isEmpty() || arguments.tail().isEmpty())
+    // return new FailWithMessage(ctx, "Not enough arguments for " + this);
+    // return new ArgMapper(arguments.head(), arguments.tail().head());
+    //
+    // case TUPLE_FACTORY:
+    // return new TupleValue(arguments);
+    //
+    // case FAIL_FUNCTION:
+    // if (arguments.isEmpty())
+    // return new Fail(ctx);
+    // return new FailWithMessage(ctx, arguments.head());
+    //
+    // case FUNCTION_TRAIT:
+    // return ctx.projectRoot.callMethod(ctx, Identifier.FUNCTION_TRAIT.id,
+    // SourceFileRange.EMPTY_SET, arguments);
+    //
+    // case EMPTY_LIST:
+    // return ctx.projectRoot.callMethod(ctx, Identifier.EMPTY_LIST.id,
+    // SourceFileRange.EMPTY_SET, arguments);
+    //
+    // case LIST_ELEMENT_FACTORY:
+    // return ctx.projectRoot.callMethod(ctx, Identifier.SINGLE_ELEMENT_LIST.id,
+    // SourceFileRange.EMPTY_SET,
+    // arguments);
+    //
+    // case NUMBER_FACTORY:
+    // return ctx.projectRoot.callMethod(ctx,
+    // Identifier.LANGUAGE_KERNEL_NUMBER.id, SourceFileRange.EMPTY_SET,
+    // arguments);
+    //
+    // case STRING_FACTORY:
+    // return ctx.projectRoot.callMethod(ctx,
+    // Identifier.LANGUAGE_KERNEL_STRING.id, SourceFileRange.EMPTY_SET,
+    // arguments);
+    //
+    // default:
+    // return new FailWithMessage(ctx, "Not callable: " + this);
+    // }
+    // }
 
     @Override
-    public Set<NameRef> getFreeRefs() {
-        return NameRef.EMPTY_SET;
+    public SourceExpr toSourceExpr() {
+        return new Identifier(this.name());
     }
-
-    @Override
-    public boolean hasFreeRefs() {
-        return false;
-    }
-
-    @Override
-    public Option<FreeExpression> partial(PartialResolver resolver) {
-        return Option.none();
-    }
-
-    @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        switch(this) {
-        case APPLY_FACTORY:
-            return algebra.applyFactory();
-        case ARG_MAPPER_FACTORY:
-            return algebra.argMapperFactory();
-        case CHAINED_BASE_CALLABLE:
-            return algebra.chainedBaseCallableFactory();
-        case DYNAMIC_CALL_PROXY_FACTORY:
-            return algebra.dynamicCallProxyFactory();
-        case DYNAMIC_SLOT_PROXY_FACTORY:
-            return algebra.dynamicSlotProxyFactory();
-        case EXTEND_FUNCTION:
-            return algebra.extendFunction();
-        case FAIL_FUNCTION:
-            return algebra.failFunction();
-        case FUNCTION_CALLEE_REFERENCE:
-            return algebra.functionCalleeReferenceFactory();
-        case FUNCTION_COMPOSITION_FUNCTION:
-            return algebra.functionCompositionFunction();
-        case KERNEL_FALSE:
-            return algebra.kernelBoolean(SourceFileRange.EMPTY_SET, false, resolver.global(GlobalRef.TRUE));
-        case KERNEL_TRUE:
-            return algebra.kernelBoolean(SourceFileRange.EMPTY_SET, true, resolver.global(GlobalRef.TRUE));
-        case REACTIVE_VALUE:
-            return algebra.reactiveValueFactory();
-        case READ_SLOT_WITH_FALLBACK:
-            return algebra.slotRefWithFallbackFactory();
-        case SLOT_MAPPER_FACTORY:
-            return algebra.slotMapperFactory();
-        case SLOT_OBJECT_REFERENCE:
-            return algebra.slotObjectReferenceFactory();
-        case TUPLE_FACTORY:
-            return algebra.tupleFactory();
-        default:
-            throw new UnsupportedOperationException("Missing implemention for " + this + ".eval()");
-        }
-    }
-
 }

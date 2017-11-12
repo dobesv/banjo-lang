@@ -1,6 +1,7 @@
 package banjo.parser.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -8,9 +9,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import banjo.expr.core.Call;
 import banjo.expr.core.CoreExpr;
-import banjo.expr.core.FunctionLiteral;
+import banjo.expr.core.ObjectLiteral;
 import banjo.expr.core.Projection;
 import banjo.expr.source.Operator;
 import banjo.expr.source.OperatorType;
@@ -51,17 +51,14 @@ public class TestOperator {
 	 */
 	@Test
 	public void memberOfOperator() {
-		Call e = (Call)CoreExpr.fromString("a ∈ b");
-		assertEquals("a", e.args.head().toSource());
-		assertEquals("b", ((Projection)e.target).object.toSource());
-		assertEquals("\\∈", ((Projection)e.target).body.toSource());
+        assertTrue(CoreExpr.fromString("a ∈ b")
+                .eql(Projection.callBinaryOp(new Identifier("b"), Operator.MEMBER_OF, new Identifier("a"))));
 	}
 
 	@Test
 	public void mapProjection() {
-		Call e = (Call)CoreExpr.fromString("a*.b");
-		assertEquals("a", ((Projection)e.target).object.toSource());
-		assertEquals(1, e.args.length());
-		assertEquals("b", ((Identifier)((Projection)((FunctionLiteral)e.args.head()).body).body).id);
+        assertTrue(CoreExpr.fromString("a*.b")
+                .eql(Projection.callBinaryOp(new Identifier("a"), Operator.FUNCTION_COMPOSITION_LEFT, ObjectLiteral
+                        .functionLiteral1(Identifier.__TMP, new Projection(Identifier.__TMP, new Identifier("b"))))));
 	}
 }

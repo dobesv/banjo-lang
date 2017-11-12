@@ -1,7 +1,10 @@
 package banjo.expr.core;
 
+import banjo.expr.source.BinaryOp;
 import banjo.expr.source.Operator;
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExpr;
+import banjo.expr.source.UnaryOp;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.OrdUtil;
@@ -33,36 +36,40 @@ public class Let extends AbstractCoreExpr implements CoreExpr {
 		this(SourceFileRange.EMPTY_SET, bindings, body);
 	}
 
-	@Override
-	public void toSource(StringBuffer sb) {
-		if(bindings.isEmpty()) {
-			body.toSource(sb);
-		} else if(bindings.isSingle() && bindings.head()._1().eql(body) && bindings.head()._2() instanceof FunctionLiteral) {
-			((FunctionLiteral)bindings.head()._2()).toSourceWithSelfName(sb, (Identifier)body);
-		} else {
-			sb.append('(');
-			int start = sb.length();
-			for(P2<Identifier, CoreExpr> binding : bindings) {
-				if(sb.length() != start) sb.append(", ");
-				final Identifier name = binding._1();
-				final CoreExpr value = binding._2();
-				// Local function def ?
-				name.toSource(sb);
-				if(value instanceof FunctionLiteral &&
-						((FunctionLiteral)value).calleeBinding.map(name::equals).orSome(false)) {
-					FunctionLiteral func = (FunctionLiteral)value;
-					sb.append('(');
-					ListUtil.insertCommas(sb, func.args, a -> a.toSource(sb, Precedence.COMMA));
-					sb.append(") = ");
-					func.body.toSource(sb, Operator.FUNCTION.getRightPrecedence());
-				} else {
-					sb.append(" = ");
-					value.toSource(sb, Precedence.COMMA);
-				}
-			}
-			sb.append(") ").append(Operator.LET.getOp()).append(" ");
-			body.toSource(sb, Operator.LET.getRightPrecedence());
-		}
+    public SourceExpr bindingSourceExpr(P2<Identifier, CoreExpr> p) {
+        Identifier name = p._1();
+        CoreExpr definition = p._2();
+        return definition.acceptVisitor(new BaseCoreExprVisitor<SourceExpr>() {
+            @Override
+            public SourceExpr fallback() {
+                return new BinaryOp(Operator.ASSIGNMENT, name, definition.toSourceExpr());
+            }
+            
+            @Override
+            public SourceExpr objectLiteral(ObjectLiteral n) {
+                if(n.isFunctionLiteral()) {
+                    Slot lambda = n.slots.head();
+                    boolean sameRecArg = lambda.args.headOption().option(Boolean.FALSE, (selfName) -> selfName.id.equals(name.id)).booleanValue();
+                    boolean noBaseArg = lambda.args.drop(1).headOption().option(Boolean.TRUE, (baseName) -> baseName.id.equals(Identifier.UNDERSCORE.id));
+                    if(sameRecArg && noBaseArg) {
+                        SourceExpr argList = BinaryOp.insertOperator(Operator.COMMA, lambda.args.drop(2));
+                        SourceExpr signature = new BinaryOp(Operator.CALL, name, argList);
+                        return new BinaryOp(Operator.ASSIGNMENT, signature, lambda.body.toSourceExpr());
+                    }
+                }
+                return super.objectLiteral(n);
+            }
+        });
+    }
+
+    @Override
+    public SourceExpr toSourceExpr() {
+	    if(bindings.isEmpty())
+	        return body.toSourceExpr();
+	    
+        SourceExpr bindingsExpr = new UnaryOp(Operator.PARENS,
+                BinaryOp.insertOperator(Operator.COMMA, bindings.map(this::bindingSourceExpr)));
+        return new BinaryOp(Operator.LET, bindingsExpr, body.toSourceExpr());
 	}
 
 	@Override

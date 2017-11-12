@@ -3,8 +3,8 @@ package banjo.expr.token;
 import banjo.expr.util.FileRange;
 
 public interface TokenFold<T> {
-	T stringLiteral(T state, FileRange range, int indentColumn, String string, boolean kernelString);
-    T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source, boolean kernelNumber);
+	T stringLiteral(T state, FileRange range, int indentColumn, String string);
+    T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source);
 	T identifier(T state, FileRange range, int indentColumn, String id);
 	T operator(T state, FileRange range, int indentColumn, String op);
 	T whitespace(T state, FileRange range, String text);
@@ -15,13 +15,13 @@ public interface TokenFold<T> {
 	public static final class RecFold<T extends TokenVisitor<T>> implements TokenFold<T> {
 
 		@Override
-		public T stringLiteral(T state, FileRange range, int indentColumn, String string, boolean kernelString) {
-			return state.stringLiteral(range, indentColumn, string, kernelString);
+		public T stringLiteral(T state, FileRange range, int indentColumn, String string) {
+            return state.stringLiteral(range, indentColumn, string);
 		}
 
         @Override
-		public T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source, boolean kernelNumber) {
-            return state.numberLiteral(range, indentColumn, number, source, kernelNumber);
+		public T numberLiteral(T state, FileRange range, int indentColumn, Number number, String source) {
+            return state.numberLiteral(range, indentColumn, number, source);
 		}
 
 		@Override

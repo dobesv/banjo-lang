@@ -9,7 +9,6 @@ import fj.P2;
 import fj.P3;
 import fj.data.Either;
 import fj.data.List;
-import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 
@@ -61,33 +60,37 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 
 	@Override
     public DefRefAnalyser objectLiteral(Set<SourceFileRange> ranges,
-            List<P3<Identifier, Option<Identifier>, DefRefAnalyser>> slots) {
-	    DefRefAnalyser x = unionList(slots.map(p -> p._3().defs(p._2().toList())));
+            List<P3<Identifier, List<Identifier>, DefRefAnalyser>> slots) {
+        DefRefAnalyser x = unionList(slots.map(p -> p._3().defs(p._2())));
 	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P3.__1()));
 	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs);
     }
 
 	@Override
     public DefRefAnalyser numberLiteral(Set<SourceFileRange> ranges,
-            Number value, String source, boolean kernelNumber) {
+            Number value, String source) {
 	    return EMPTY;
     }
 
 	@Override
-    public DefRefAnalyser stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString) {
+    public DefRefAnalyser kernelNumberLiteral(Set<SourceFileRange> ranges, Number value, String source) {
+        return EMPTY;
+    }
+
+    @Override
+    public DefRefAnalyser stringLiteral(Set<SourceFileRange> ranges, String text) {
 	    return EMPTY;
+    }
+
+    @Override
+    public DefRefAnalyser kernelStringLiteral(Set<SourceFileRange> ranges, String text) {
+        return EMPTY;
     }
 
 	@Override
     public DefRefAnalyser listLiteral(Set<SourceFileRange> ranges,
             List<DefRefAnalyser> elements) {
 	    return unionList(elements);
-    }
-
-	@Override
-    public DefRefAnalyser call(Set<SourceFileRange> ranges,
-            DefRefAnalyser function, List<DefRefAnalyser> args) {
-	    return append(function, unionList(args));
     }
 
 	@Override
@@ -120,26 +123,11 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
-    public DefRefAnalyser functionLiteral(Set<SourceFileRange> ranges,
-        List<Identifier> args, DefRefAnalyser body, Option<Identifier> calleeBinding) {
-        return body.defs(args.append(calleeBinding.toList()));
-    }
-
-	@Override
-	public DefRefAnalyser baseFunctionRef(
-	        Set<SourceFileRange> sourceFileRanges, Identifier name) {
-	    return name.acceptVisitor(this);
-	}
-
-	@Override
-    public DefRefAnalyser projection(Set<SourceFileRange> ranges, DefRefAnalyser object, DefRefAnalyser body, boolean base) {
-		return new DefRefAnalyser(
-				object.unresolvedLocalRefs,
-				object.localRefs.append(body.localRefs),
-				object.localDefs.append(body.localDefs),
-				object.slotRefs.append(body.unresolvedLocalRefs).append(body.slotRefs), 
-				object.slotDefs.append(body.slotDefs)
-		);
+    public DefRefAnalyser projection(Set<SourceFileRange> ranges, List<DefRefAnalyser> args, DefRefAnalyser body) {
+        DefRefAnalyser argsAnalysis = unionList(args);
+        DefRefAnalyser bodyAnalysis = new DefRefAnalyser(List.nil(), body.localRefs, body.localDefs,
+                body.unresolvedLocalRefs.append(body.slotRefs), body.slotDefs);
+        return append(argsAnalysis, bodyAnalysis);
     }
 
 

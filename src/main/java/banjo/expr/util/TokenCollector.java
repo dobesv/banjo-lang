@@ -33,13 +33,13 @@ public class TokenCollector implements TokenVisitor<TokenCollector> {
 	}
 
 	@Override
-	public TokenCollector stringLiteral(FileRange range, int indentColumn, String string, boolean kernelString) {
-		return token(new StringLiteral(sfr(range), indentColumn, string, kernelString));
+    public TokenCollector stringLiteral(FileRange range, int indentColumn, String string) {
+        return token(new StringLiteral(sfr(range), indentColumn, string));
 	}
 
     @Override
-	public TokenCollector numberLiteral(FileRange range, int indentColumn, Number number, String source, boolean kernelNumber) {
-		return token(new NumberLiteral(sfr(range), indentColumn, number, source, kernelNumber));
+    public TokenCollector numberLiteral(FileRange range, int indentColumn, Number number, String source) {
+        return token(new NumberLiteral(sfr(range), indentColumn, number, source));
 	}
 
 	@Override
