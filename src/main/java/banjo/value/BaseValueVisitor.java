@@ -3,39 +3,23 @@ package banjo.value;
 import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
 import banjo.eval.ExtendedObject.ChainedBaseFunctionImpl;
+import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.FunctionInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
+import banjo.eval.util.LazyBoundValue;
+import banjo.eval.util.Selector;
+import banjo.expr.core.KernelGlobalObject;
+import banjo.expr.free.ProjectRootValue;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.token.StringLiteral;
 import banjo.value.fail.Fail;
-import banjo.value.kernel.KernelBiFunctionValue;
-import banjo.value.kernel.KernelBooleanValue;
-import banjo.value.kernel.KernelFunctionValue;
-import banjo.value.kernel.KernelListValue;
-import banjo.value.kernel.KernelMapValue;
-import banjo.value.kernel.KernelNumberValue;
-import banjo.value.kernel.KernelStringValue;
-import banjo.value.meta.ArgMapper;
-import banjo.value.meta.DynamicCallProxy;
-import banjo.value.meta.DynamicSlotProxy;
-import banjo.value.meta.FunctionComposition;
-import banjo.value.meta.SlotMapper;
+import banjo.value.special.ArgMapper;
+import banjo.value.special.DynamicSlotProxy;
+import banjo.value.special.FunctionComposition;
+import banjo.value.special.SlotMapper;
 
 public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     public abstract T fallback();
-
-    @Override
-    public T kernelNumber(KernelNumberValue kernelNumberValue) {
-        return fallback();
-    }
-
-    @Override
-    public T kernelBoolean(KernelBooleanValue kernelNumberValue) {
-        return fallback();
-    }
-
-    @Override
-    public T kernelString(KernelStringValue kernelStringValue) {
-        return fallback();
-    }
 
     @Override
     public T objectBaseValue(ObjectBaseValue objectBaseValue) {
@@ -48,37 +32,12 @@ public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     }
 
     @Override
-    public T kernelBiFunction(KernelBiFunctionValue javaBiFunctionValue) {
-        return fallback();
-    }
-
-    @Override
-    public T kernelFunction(KernelFunctionValue javaFunctionValue) {
-        return fallback();
-    }
-
-    @Override
     public T objectLiteralInstance(ObjectLiteralInstance objectLiteralInstance) {
         return fallback();
     }
 
     @Override
-    public T kernelList(KernelListValue kernelArrayValue) {
-        return fallback();
-    }
-
-    @Override
-    public T kernelMap(KernelMapValue kernelMapValue) {
-        return fallback();
-    }
-
-    @Override
     public T argMapper(ArgMapper argMapper) {
-        return fallback();
-    }
-
-    @Override
-    public T dynamicCallProxy(DynamicCallProxy dynamicCallProxy) {
         return fallback();
     }
 
@@ -118,7 +77,54 @@ public abstract class BaseValueVisitor<T> implements ValueVisitor<T> {
     }
 
     @Override
-    public T applyFactory() {
+    public T kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
         return fallback();
+    }
+
+    @Override
+    public T selector(Selector selector) {
+        return fallback();
+    }
+
+    @Override
+    public T tuple(TupleValue tupleValue) {
+        return fallback();
+    }
+
+    @Override
+    public T number(NumberLiteral numberLiteral) {
+        return fallback();
+    }
+
+    @Override
+    public T string(StringLiteral stringLiteral) {
+        return fallback();
+    }
+
+    public abstract T calculatedValue(CalculatedValue v);
+
+    @Override
+    public T methodCall(MethodCallInstance methodCallInstance) {
+        return calculatedValue(methodCallInstance);
+    }
+
+    @Override
+    public T slotValue(SlotValue slotValue) {
+        return calculatedValue(slotValue);
+    }
+
+    @Override
+    public T lazyBoundValue(LazyBoundValue lazyBoundValue) {
+        return calculatedValue(lazyBoundValue);
+    }
+
+    @Override
+    public T projectRoot(ProjectRootValue projectRootValue) {
+        return calculatedValue(projectRootValue);
+    }
+
+    @Override
+    public T call(CallInstance callInstance) {
+        return calculatedValue(callInstance);
     }
 }

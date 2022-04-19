@@ -1,6 +1,7 @@
 package banjo.expr.core;
 
 import banjo.expr.source.Precedence;
+import banjo.expr.source.SourceExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Set;
 
@@ -9,6 +10,7 @@ public abstract class LazyCoreExpr implements CoreExpr {
 
     public CoreExpr force() {
         if (this.memo == null) {
+            this.memo = new BadCoreExpr(SourceFileRange.EMPTY_SET, "Self referential");
             this.memo = this.calculate();
         }
         return this.memo;
@@ -39,6 +41,11 @@ public abstract class LazyCoreExpr implements CoreExpr {
     @Override
     public String toSource() {
         return force().toSource();
+    }
+
+    @Override
+    public SourceExpr toSourceExpr() {
+        return force().toSourceExpr();
     }
 
     @Override

@@ -1,10 +1,9 @@
 package banjo.expr.free;
 
-import banjo.eval.resolver.GlobalRef;
 import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
-import banjo.expr.token.StringLiteral;
+import banjo.expr.token.KernelStringLiteral;
 
 public interface FreeExpressionVisitor<T> {
 
@@ -32,11 +31,9 @@ public interface FreeExpressionVisitor<T> {
 
     T identifier(Identifier identifier);
 
-    T numberLiteral(NumberLiteral numberLiteral);
+    T kernelNumberLiteral(NumberLiteral numberLiteral);
 
-    T stringLiteral(StringLiteral stringLiteral);
-
-    T global(GlobalRef globalRef);
+    T kernelStringLiteral(KernelStringLiteral stringLiteral);
 
     T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
 }

@@ -6,8 +6,9 @@ import banjo.expr.core.CoreExprAlgebra;
 import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.token.KernelStringLiteral;
 import banjo.expr.util.SourceFileRange;
-import banjo.expr.util.SourceNumber;
 import fj.Ord;
 import fj.P;
 import fj.P2;
@@ -40,17 +41,25 @@ public class FreeExpressionFactory implements
     }
 
 	@Override
-    public FreeExpression numberLiteral(
-            Set<SourceFileRange> ranges, Number number, String source, boolean kernelNumber) {
-        if(number instanceof SourceNumber)
-            return numberLiteral(ranges, ((SourceNumber) number).getValue(), source, kernelNumber);
-        return FreeExpression.numberLiteral(ranges, number, source, kernelNumber);
+    public FreeExpression numberLiteral(Set<SourceFileRange> ranges, Number number, String source) {
+        return call(ranges, KernelGlobalObject.NUMBER_FACTORY,
+                List.single(kernelNumberLiteral(ranges, number, source)));
     }
 
 	@Override
-    public FreeExpression stringLiteral(
-            Set<SourceFileRange> ranges, String text, boolean kernelString) {
-        return FreeExpression.stringLiteral(ranges, text, kernelString);
+    public FreeExpression kernelNumberLiteral(Set<SourceFileRange> ranges, Number value, String source) {
+        return new NumberLiteral(ranges, value, source);
+    }
+
+    @Override
+    public FreeExpression stringLiteral(Set<SourceFileRange> ranges, String text) {
+        return call(ranges, KernelGlobalObject.STRING_FACTORY,
+                List.single(kernelStringLiteral(ranges, text)));
+    }
+
+    @Override
+    public FreeExpression kernelStringLiteral(Set<SourceFileRange> ranges, String text) {
+        return new KernelStringLiteral(ranges, text);
     }
 
 	@Override
@@ -60,8 +69,8 @@ public class FreeExpressionFactory implements
         // data.list.singleton(c))
         // or [] to data.list.empty
         if(elements.isEmpty())
-            return FreeExpression.emptyList();
-        FreeExpression singleElementListFactory = FreeExpression.singleElementListFactory();
+            return KernelGlobalObject.EMPTY_LIST;
+        FreeExpression singleElementListFactory = KernelGlobalObject.LIST_ELEMENT_FACTORY;
         FreeExpression head = call(ranges, singleElementListFactory, elements.take(1));
         if(elements.isSingle())
             return head;
@@ -140,7 +149,8 @@ public class FreeExpressionFactory implements
             Set<SourceFileRange> ranges, List<Identifier> args,
             FreeExpression body,
             Option<Identifier> sourceObjectBinding) {
-        final FreeFunctionLiteral f = new FreeFunctionLiteral(ranges, args.map(Identifier::getId), body, sourceObjectBinding.map(Identifier::getId));
+        final FreeFunctionLiteral f = new FreeFunctionLiteral(ranges, args.map(Identifier::getId), body,
+                KernelGlobalObject.FUNCTION_TRAIT, sourceObjectBinding.map(Identifier::getId));
 		return f;
     }
 

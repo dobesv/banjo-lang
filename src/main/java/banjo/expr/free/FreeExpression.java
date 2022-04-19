@@ -2,21 +2,20 @@ package banjo.expr.free;
 
 import java.nio.file.Path;
 
-import banjo.eval.resolver.GlobalRef;
-import banjo.eval.resolver.GlobalValueResolver;
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
 import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.eval.util.LazyPartialBoundFreeExpression;
 import banjo.expr.core.CoreExpr;
-import banjo.expr.core.CoreExprFactory;
+import banjo.expr.core.SourceExprToCoreExpr;
 import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.free.FreeBinaryKernelObject.BinaryKernelObjectFactory;
 import banjo.expr.free.FreeSingletonKernelObject.SingletonKernelObjectFactory;
 import banjo.expr.token.Identifier;
 import banjo.expr.token.NumberLiteral;
-import banjo.expr.token.StringLiteral;
+import banjo.expr.token.KernelStringLiteral;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import fj.Ord;
@@ -99,22 +98,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -186,22 +180,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -277,22 +266,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -370,22 +354,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -460,22 +439,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -550,22 +524,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -648,22 +617,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -735,22 +699,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -825,22 +784,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -912,22 +866,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -1002,22 +951,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -1089,283 +1033,17 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
                             return Ordering.LT;
                         }
 
-                    });
-                }
-
-                @Override
-                public Ordering numberLiteral(NumberLiteral numberLiteral1) {
-                    return b.acceptVisitor(new FreeExpressionVisitor<Ordering>() {
-
                         @Override
-                        public Ordering badExpr(FreeBadExpr freeBadExpr2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseFunctionRef(FreeBaseFunctionRef freeBaseFunctionRef2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseProjection(FreeBaseProjection freeBaseProjection2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering binaryKernelObject(FreeBinaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering call(FreeCall call) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering extend(FreeExtend freeExtend) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering functionLiteral(FreeFunctionLiteral freeFunctionLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering objectLiteral(FreeObjectLiteral freeObjectLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering projection(FreeProjection freeProjection) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering singletonKernelObject(FreeSingletonKernelObject obj) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering unaryKernelObject(FreeUnaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering identifier(Identifier identifier2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral2) {
-                            return Ord.stringOrd.compare(numberLiteral1.source, numberLiteral2.source);
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral) {
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
                             return Ordering.LT;
                         }
 
                         @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
-                            return Ordering.LT;
-                        }
-
-                    });
-                }
-
-                @Override
-                public Ordering stringLiteral(StringLiteral stringLiteral1) {
-                    return b.acceptVisitor(new FreeExpressionVisitor<Ordering>() {
-
-                        @Override
-                        public Ordering badExpr(FreeBadExpr freeBadExpr2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseFunctionRef(FreeBaseFunctionRef freeBaseFunctionRef2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseProjection(FreeBaseProjection freeBaseProjection2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering binaryKernelObject(FreeBinaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering call(FreeCall call) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering extend(FreeExtend freeExtend) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering functionLiteral(FreeFunctionLiteral freeFunctionLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering objectLiteral(FreeObjectLiteral freeObjectLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering projection(FreeProjection freeProjection) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering singletonKernelObject(FreeSingletonKernelObject obj) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering unaryKernelObject(FreeUnaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering identifier(Identifier identifier2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral2) {
-                            return Ord.stringOrd.compare(stringLiteral1.string, stringLiteral2.string);
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef) {
-                            return Ordering.LT;
-                        }
-
-                        @Override
-                        public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
-                            return Ordering.LT;
-                        }
-
-                    });
-                }
-
-                @Override
-                public Ordering global(GlobalRef globalRef1) {
-                    return b.acceptVisitor(new FreeExpressionVisitor<Ordering>() {
-
-                        @Override
-                        public Ordering badExpr(FreeBadExpr freeBadExpr2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseFunctionRef(FreeBaseFunctionRef freeBaseFunctionRef2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering baseProjection(FreeBaseProjection freeBaseProjection2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering binaryKernelObject(FreeBinaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering call(FreeCall call) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering extend(FreeExtend freeExtend) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering functionLiteral(FreeFunctionLiteral freeFunctionLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering objectLiteral(FreeObjectLiteral freeObjectLiteral) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering projection(FreeProjection freeProjection) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering singletonKernelObject(FreeSingletonKernelObject obj) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering unaryKernelObject(FreeUnaryKernelObject obj2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering identifier(Identifier identifier2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral2) {
-                            return Ordering.GT;
-                        }
-
-                        @Override
-                        public Ordering global(GlobalRef globalRef2) {
-                            return Ord.intOrd.compare(globalRef1.ordinal(), globalRef2.ordinal());
-                        }
-
-                        @Override
-                        public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
                             return Ordering.LT;
                         }
 
@@ -1437,23 +1115,182 @@ public interface FreeExpression {
                         }
 
                         @Override
-                        public Ordering numberLiteral(NumberLiteral numberLiteral2) {
+                        public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject2) {
+                            return Ord.intOrd.compare(kernelGlobalObject.ordinal(), kernelGlobalObject2.ordinal());
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                            return Ordering.LT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
+                            return Ordering.LT;
+                        }
+
+                    });
+                }
+
+                @Override
+                public Ordering kernelNumberLiteral(NumberLiteral numberLiteral) {
+                    return b.acceptVisitor(new FreeExpressionVisitor<Ordering>() {
+
+                        @Override
+                        public Ordering badExpr(FreeBadExpr freeBadExpr2) {
                             return Ordering.GT;
                         }
 
                         @Override
-                        public Ordering stringLiteral(StringLiteral stringLiteral2) {
+                        public Ordering baseFunctionRef(FreeBaseFunctionRef freeBaseFunctionRef2) {
                             return Ordering.GT;
                         }
 
                         @Override
-                        public Ordering global(GlobalRef globalRef2) {
+                        public Ordering baseProjection(FreeBaseProjection freeBaseProjection2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering binaryKernelObject(FreeBinaryKernelObject obj2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering call(FreeCall call) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering extend(FreeExtend freeExtend) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering functionLiteral(FreeFunctionLiteral freeFunctionLiteral) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering objectLiteral(FreeObjectLiteral freeObjectLiteral) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering projection(FreeProjection freeProjection) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering singletonKernelObject(FreeSingletonKernelObject obj) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering unaryKernelObject(FreeUnaryKernelObject obj2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering identifier(Identifier identifier2) {
                             return Ordering.GT;
                         }
 
                         @Override
                         public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject2) {
-                            return Ord.intOrd.compare(kernelGlobalObject.ordinal(), kernelGlobalObject2.ordinal());
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral2) {
+                            return NumberLiteral.ORD.compare(numberLiteral, numberLiteral2);
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
+                            return Ordering.LT;
+                        }
+
+                    });
+                }
+
+                @Override
+                public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral) {
+                    return b.acceptVisitor(new FreeExpressionVisitor<Ordering>() {
+
+                        @Override
+                        public Ordering badExpr(FreeBadExpr freeBadExpr2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering baseFunctionRef(FreeBaseFunctionRef freeBaseFunctionRef2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering baseProjection(FreeBaseProjection freeBaseProjection2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering binaryKernelObject(FreeBinaryKernelObject obj2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering call(FreeCall call) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering extend(FreeExtend freeExtend) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering functionLiteral(FreeFunctionLiteral freeFunctionLiteral) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering objectLiteral(FreeObjectLiteral freeObjectLiteral) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering projection(FreeProjection freeProjection) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering singletonKernelObject(FreeSingletonKernelObject obj) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering unaryKernelObject(FreeUnaryKernelObject obj2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering identifier(Identifier identifier2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering kernelGlobalObject(KernelGlobalObject kernelGlobalObject2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering kernelNumberLiteral(NumberLiteral numberLiteral2) {
+                            return Ordering.GT;
+                        }
+
+                        @Override
+                        public Ordering kernelStringLiteral(KernelStringLiteral stringLiteral2) {
+                            return KernelStringLiteral.ORD.compare(stringLiteral, stringLiteral2);
                         }
 
                     });
@@ -1493,28 +1330,21 @@ public interface FreeExpression {
      * Fill in the missing values to calculate the value of this expression. At
      * this point any unresolved names are an error.
      */
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra);
+    public <T> T eval(EvalContext<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra);
 
     /**
      * Create a FreeExpression for a number literal.
-     * 
-     * @param kernelNumber
-     *            TODO
      */
-    public static FreeExpression numberLiteral(Set<SourceFileRange> ranges, Number number, String source,
-            boolean kernelNumber) {
-        return new NumberLiteral(ranges, number, source, kernelNumber);
+    public static FreeExpression number(Set<SourceFileRange> ranges, Number number, String source) {
+        return new NumberLiteral(ranges, number, source);
     }
 
     /**
      * Create a string literal. The string literal will be constructed when the
      * globals true, false, and kernel string value are available.
-     * 
-     * @param kernelString
-     *            TODO
      */
-    public static FreeExpression stringLiteral(Set<SourceFileRange> ranges, String text, boolean kernelString) {
-        return new StringLiteral(ranges, text, kernelString);
+    public static FreeExpression string(Set<SourceFileRange> ranges, String text) {
+        return new KernelStringLiteral(ranges, text);
     }
 
     public static FreeExpression projection(FreeExpression object, FreeExpression projection) {
@@ -1524,14 +1354,17 @@ public interface FreeExpression {
     }
 
     public static FreeExpression forProjectAtPath(Path sourceFilePath) {
-        CoreExpr projectAst = CoreExprFactory.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
+        CoreExpr projectAst = SourceExprToCoreExpr.INSTANCE.loadProjectAstForSourcePath(sourceFilePath);
         FreeExpression projectFx = FreeExpressionFactory.apply(projectAst);
         return projectFx;
     }
 
-    public default Value evalInProject(FreeExpression projectAst) {
-        GlobalValueResolver globalValueResolver = new GlobalValueResolver(projectAst);
-        return eval(List.nil(), globalValueResolver, ValueInstanceAlgebra.INSTANCE);
+    public default Value valueInProject(FreeExpression projectAst) {
+        Value projectRoot = new ProjectRootValue(projectAst);
+        EvalContext<Value> ctx = new EvalContext<>(List.nil(), projectRoot);
+        ValueInstanceAlgebra algebra = ValueInstanceAlgebra.INSTANCE;
+        Resolver<Value> resolver = Resolver.empty(algebra).projection(projectRoot, algebra);
+        return eval(ctx, resolver, algebra);
     }
 
     public static FreeExpression call(Set<SourceFileRange> ranges, FreeExpression callee, List<FreeExpression> args) {
@@ -1561,85 +1394,11 @@ public interface FreeExpression {
         return new FreeSingletonKernelObject(name, f);
     }
 
-    public static FreeExpression functionTrait() {
-        return FreeExpressions.FUNCTION_TRAIT;
-    }
-
     public static FreeExpression kernelObject(FreeExpression a, FreeExpression b, String name,
             BinaryKernelObjectFactory f) {
         return new FreeBinaryKernelObject(a, b, name, f);
     }
 
-    public static FreeExpression trueValue() {
-        return FreeExpressions.TRUE_VALUE;
-    }
-
-    public static FreeExpression failFunction() {
-        return FreeExpressions.FAIL_FUNCTION;
-    }
-
-    public static FreeExpression extendFunction() {
-        return FreeExpressions.EXTEND_FUNCTION;
-
-    }
-
-    public static FreeExpression dynamicSlotProxyFactory() {
-        return FreeExpressions.DYNAMIC_SLOT_PROXY_FACTORY;
-    }
-
-    public static FreeExpression dynamicCallProxyFactory() {
-        return FreeExpressions.DYNAMIC_CALL_PROXY_FACTORY;
-    }
-
-    public static FreeExpression argMapperFactory() {
-        return FreeExpressions.ARG_MAPPER_FACTORY;
-    }
-
-    public static FreeExpression slotMapperFactory() {
-        return FreeExpressions.SLOT_MAPPER_FACTORY;
-    }
-
-    public static FreeExpression typeUnionFactory() {
-        return FreeExpressions.TYPE_UNION_FACTORY;
-    }
-
-    public static FreeExpression kernelBoolean(boolean value) {
-        return kernelObject(String.valueOf(value), new SingletonKernelObjectFactory() {
-
-            @Override
-            public <T> T apply(Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-                return algebra.kernelBoolean(SourceFileRange.EMPTY_SET, value, resolver.global(GlobalRef.TRUE));
-            }
-
-            @Override
-            public Set<NameRef> getFreeRefs() {
-                return Set.single(NameRef.ORD, NameRef.trueValue());
-            }
-        });
-    }
-
-    public static FreeExpression emptyList() {
-        return FreeExpressions.EMPTY_LIST;
-    }
-
-    public static FreeExpression singleElementListFactory() {
-        return FreeExpressions.SINGLE_ELEMENT_LIST_FACTORY;
-    }
-
-    public static FreeExpression global(GlobalRef global) {
-        return kernelObject(global.name, new SingletonKernelObjectFactory() {
-
-            @Override
-            public <T> T apply(Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-                return resolver.global(global);
-            }
-
-            @Override
-            public Set<NameRef> getFreeRefs() {
-                return Set.single(NameRef.ORD, global);
-            }
-        });
-    }
 
     /**
      * Construct a free expression from a source code expression string.

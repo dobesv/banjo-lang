@@ -36,11 +36,6 @@ public class ListLiteral extends AbstractCoreExpr implements CoreExpr {
 	}
 
 	@Override
-    public SourceExpr toSourceExpr() {
-        return new UnaryOp(Operator.LIST_LITERAL,
-                BinaryOp.insertOperator(Operator.COMMA, elements.map(CoreExpr::toSourceExpr)));
-	}
-	@Override
 	public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
 		return visitor.listLiteral(this);
 	}

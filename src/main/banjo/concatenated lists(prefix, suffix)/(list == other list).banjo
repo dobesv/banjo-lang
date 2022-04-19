@@ -1,0 +1,11 @@
+"
+  Compare this to another list.
+  
+  Elements are compared using `==`.
+" => (
+  prefix >> (prefix elt, remaining prefix) -> ( 
+    other list >> (other list elt, remaining other list) ->
+      prefix elt == other list elt &&
+      (remaining prefix + suffix) == remaining other list
+  ) ?: false
+) ?: (suffix == other list)

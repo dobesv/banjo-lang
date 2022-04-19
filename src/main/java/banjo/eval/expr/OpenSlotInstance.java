@@ -1,7 +1,7 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.ClosureResolver;
-import banjo.eval.resolver.GlobalRef;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
@@ -10,7 +10,6 @@ import banjo.expr.util.OrdUtil;
 import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P2;
-import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 import fj.data.Stream;
@@ -48,7 +47,7 @@ public class OpenSlotInstance<T> implements SlotInstance<T> {
      *            is defined in.
      */
 	@Override
-    public T apply(List<T> trace, T object, T prevSlotValue, InstanceAlgebra<T> algebra) {
+    public T apply(EvalContext<T> ctx, T object, Option<T> prevSlotValue, InstanceAlgebra<T> algebra) {
         NameRefAlgebra<Option<T>> localResolver = new NameRefAlgebra<Option<T>>() {
             @Override
             public String toString() {
@@ -71,7 +70,7 @@ public class OpenSlotInstance<T> implements SlotInstance<T> {
             @Override
             public Option<T> baseSlot(Set<SourceFileRange> ranges, String slotObjectRef2, String slotName) {
                 if(slotObjectRef.equals(slotObjectRef2) && slotName.equals(name)) {
-                    return Option.fromNull(prevSlotValue);
+                    return prevSlotValue;
                 } 
                 return Option.none();
             }
@@ -86,12 +85,8 @@ public class OpenSlotInstance<T> implements SlotInstance<T> {
                 return Option.none();
             }
 
-            @Override
-            public Option<T> global(GlobalRef globalRef) {
-                return Option.none();
-            }
         };
-        return body.eval(trace, new ClosureResolver<T>(closure, algebra, localResolver), algebra);
+        return body.eval(ctx, new ClosureResolver<T>(closure, algebra, localResolver), algebra);
 	}
 
 	@Override

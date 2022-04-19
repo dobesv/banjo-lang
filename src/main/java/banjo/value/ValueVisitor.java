@@ -3,59 +3,22 @@ package banjo.value;
 import banjo.eval.ClosedObject;
 import banjo.eval.ExtendedObject;
 import banjo.eval.ExtendedObject.ChainedBaseFunctionImpl;
+import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.FunctionInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
+import banjo.eval.util.LazyBoundValue;
+import banjo.eval.util.Selector;
+import banjo.expr.core.KernelGlobalObject;
+import banjo.expr.free.ProjectRootValue;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.token.StringLiteral;
 import banjo.value.fail.Fail;
-import banjo.value.kernel.KernelBiFunctionValue;
-import banjo.value.kernel.KernelBooleanValue;
-import banjo.value.kernel.KernelFunctionValue;
-import banjo.value.kernel.KernelListValue;
-import banjo.value.kernel.KernelMapValue;
-import banjo.value.kernel.KernelNumberValue;
-import banjo.value.kernel.KernelStringValue;
-import banjo.value.meta.ArgMapper;
-import banjo.value.meta.DynamicCallProxy;
-import banjo.value.meta.DynamicSlotProxy;
-import banjo.value.meta.FunctionComposition;
-import banjo.value.meta.SlotMapper;
+import banjo.value.special.ArgMapper;
+import banjo.value.special.DynamicSlotProxy;
+import banjo.value.special.FunctionComposition;
+import banjo.value.special.SlotMapper;
 
 public interface ValueVisitor<T> {
-
-    /**
-     * Primitive number
-     */
-    T kernelNumber(KernelNumberValue kernelNumberValue);
-
-    /**
-     * Primitive string
-     */
-    T kernelString(KernelStringValue kernelStringValue);
-
-    /**
-     * Primitive boolean
-     */
-    T kernelBoolean(KernelBooleanValue kernelBooleanValue);
-
-    /**
-     * Primitive function of two arguments
-     */
-    T kernelBiFunction(KernelBiFunctionValue javaBiFunctionValue);
-
-    /**
-     * Primitive function of one argument
-     */
-    T kernelFunction(KernelFunctionValue javaFunctionValue);
-
-    /**
-     * Primitive list of Value
-     */
-    T kernelList(KernelListValue kernelArrayValue);
-
-    /**
-     * Primitive map of String -> Value
-     */
-    T kernelMap(KernelMapValue kernelMapValue);
-
     /**
      * Some kind of critical programmer error
      */
@@ -76,13 +39,6 @@ public interface ValueVisitor<T> {
      * passing it along to a delegate function.
      */
     T argMapper(ArgMapper argMapper);
-
-    /**
-     * Special meta-object that intercepts a call and captures its arguments as
-     * a function that passes those same arguments to its own argument. It then
-     * passes that function to a provided delegate to do with as it pleases.
-     */
-    T dynamicCallProxy(DynamicCallProxy dynamicCallProxy);
 
     /**
      * Catch any slot access to the object and pass it as a selector to a
@@ -134,6 +90,24 @@ public interface ValueVisitor<T> {
      */
     T baseFunctionChain(ChainedBaseFunctionImpl chainedBaseFunctionImpl);
 
-    T applyFactory();
+    T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
+
+    T tuple(TupleValue tupleValue);
+
+    T selector(Selector selector);
+
+    T number(NumberLiteral numberLiteral);
+
+    T string(StringLiteral stringLiteral);
+
+    T methodCall(MethodCallInstance methodCallInstance);
+
+    T slotValue(SlotValue slotValue);
+
+    T projectRoot(ProjectRootValue projectRootValue);
+
+    T lazyBoundValue(LazyBoundValue lazyBoundValue);
+
+    T call(CallInstance callInstance);
 
 }

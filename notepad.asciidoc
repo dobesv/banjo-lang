@@ -1,0 +1,147 @@
+Next Step ??
+
+Partial & Incremental Evaluators - first partially evaluate to base state, which also provides an incremental evaluator that takes a delta to the original input.  I guess the input could be the project itself ?  Not sure ...
+
+
+
+
+
+The main benefit of language-level support for reactivity is automatic "lifting" of operations on "behaviors" (e.g. "time-varying values").
+ 
+
+Structure of a program
+
+* Underlying structure is event listener: input event -> [new procedural actions]
+* Superficial structure is FRP: all events -> time -> DOM
+* Need to transform from superficial structure program to underlying structure program
+* Ideally splitting the program up so that each source/type of events has its own listening function
+* Events coalesced into "behavior" or "value" signals and used to compute some kind of output "behavior" to display
+* Also can just map a list of events to a list of events!  Events are still processed and emitted one at a time in this case
+
+Cases:
+
+1. 1:1 (Events -> Events) (map) (easy)
+2. N:1 (Events -> Behavior) (fold) (easy)
+3. Events -> Stateful Behavior (fold) (medium difficulty)
+3. Sequence of input events to different number of output events (fold produces event list) (hard)
+
+
+One program structure:
+
+* Program is ideally a function (all events -> time -> output)
+* Practically, we want a function `events delta -> (new function, static output delta, time -> animated output delta)`
+* Need to translate the ideal function to the practical function
+* We want to optimize away that list of all events and any lists derived from it so we 
+  don't leak memory unless the developer really needs that whole list for something
+
+OR
+
+* Program is entered as a function of all events -> (time -> output)
+* Practically we want an inverse-dependency-graph we can incrementally update values in
+* Need to translate the ideal function into an inverse dependency graph plus some calculations
+* We want to optimize away that list of all events and any lists derived from it so we 
+  don't leak memory unless the developer really needs that whole list for something
+
+Normalize everything - possible?
+
+* Eliminate all function calls of user-defined functions - only "primitive" operations
+* No free variables, all inputs to an operation are "bound" to an output of another operation
+* Special construct(s) for handling the input event stream
+* Special construct(s) for recursion
+* Basically a global value dependence graph here
+
+Thought: with a value-dependence graph we should be able to do a simple but reliable strictness
+analysis because we know which conditionals depend on what values, so we make sure a value is
+calculated only in the conditional branches of the tree in which it is used.
+
+Notes Reading Flapjax / FrTime Papers
+
+* Graph is created dynamically - it's determined dynamically whether a value is a signal or not.
+  I want to use a static analysis to figure out what the signals are and to construct basically
+  a static signal graph ... right ???
+* Topological sort / priority queue is used to schedule / order updates
+  If my graph is static I should be able to figure this out statically?
+  Not necessarily a static graph for me - calculation of a behaviors from events must be done
+  "for all time" statically but intermediate values could be dynamic.  In FrTime / FlapJax the
+  event processing is done explicitly to produce these behaviors.
+  
+Static or Dynamic Signal Graph
+
+* Can I experiment here or is transitioning between them super hard?
+* Static signal graph means that dynamic elements have to be modeled as a list instead of a list of signals
+* Both probably OK for small apps, might be performance issues in bigger ones where we'll see more "wholesale"
+  updates instead of incremental ones, or too much overhead
+
+
+I think the signal graph needs to be updated eagerly - all the behaviors calculated if an event would cause
+them to update.  However, the consumption of those behaviors in the resulting value should be lazy.
+
+Ideal scenario:
+
+1. Input program is events -> output
+2. Compiler emits a procedure which takes an event and does some optimal set of mutations and procedure calls to 
+achieve the desired effects
+
+Implementation concept:
+
+1. Analyse program's dependencies on the input
+2. Analyse program effects in the output
+3. Pull out the behaviors to an inverse dependency graph (IDG)
+   * IDG roots are the leaves of the value dependence graph, the inputs
+   * IDG roots should have a predicate to determine if they are affected by an event
+   * IDG roots and branches track which nodes should be marked for update if they are affected by an event
+   * IDG leaves are actions that are taken based on the change(s) (procedures / assignments)
+   * IDG leaves should be basically idempotent
+   * IDG leaves are calculated based on the structure of the output, ideally there are multiple leaves
+   * IDG leaves contain all the non-reactive parts of the calculations
+   so that a complex output can be processed incrementally
+   * IDG nodes are sorted topologically, starting with roots, then branches, then actions
+4. Procedure takes event and scans IDG roots and marks them for update
+5. Procedure propagates updates through IDG and schedules actions to be run
+6. Actions are run  
+
+Extensibility idea:
+
+* Project local object-proxies slots from an object located by expression in the project/context of the caller.  Allows pimping objects in a library without affecting its clients.  May also be of use as a thread local concept.
+
+Reminders/Tests to Add:
+
+* You should be able to extend the project root and anything you replace in your extension would replace those globals for all the expressions in the project.
+ 
+Use URLs and Semantic Web Concepts?
+ 
+* Consider identifying inputs/resources with URLs
+* RDF?
+
+Embedding:
+
+* Select some expression that is the program
+* Construct some program object that holds the state and action definitions
+* Register actions, which are procedure that act on data, they can carry any needed references with them
+* Feed events into the program
+* Actions are run as a side effect while events are fed in
+* For animated / interactive apps we want to run timers / animation frames periodically, probably by feeding
+  in events for that
+
+2016-09-12 Reverse-order let solves annoying let problem?
+
+f(x) = (
+  something = x*x
+  bla = 10/x
+) => something / bla
+
+f(x) = something / bla <= (
+  something = x*x
+  bla = 10/x
+)
+
+(
+  something = x*x
+  bla = 10/x
+) => 
+  f(x) = something / bla
+
+Nope.
+
+Tuple syntax .(a,b,c) is not consistent with selector/projection syntax .foo(a,b,c).  .(a,b,c) should == (x -> x.(a,b,c))
+

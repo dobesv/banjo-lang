@@ -1,0 +1,28 @@
+(
+  en = "
+      Test equality of lists.
+      
+      Lists are considered equal if they have the same number of elements and
+      each element is equal to the element from the other list at the same
+      position.
+      
+      Lists cannot be compared using `==` unless the elements in one list
+      can be compared to the corresponding elements of the other list using
+      `==`.
+  " 
+  eg = [
+    [] == []
+    [1] == [1]
+    [true] == [true]
+    ([1] == []) == false
+    ([2] == [2,3]) == false
+  ]
+) ⇒ (
+  list >> 
+  (list element, remaining list elements) -> ( 
+    other list >> 
+    (other list element, remaining other list elements) -> 
+      list element == other list element &&
+      remaining list elements == remaining other list elements 
+  ) ?: false
+) ?: other list.is empty

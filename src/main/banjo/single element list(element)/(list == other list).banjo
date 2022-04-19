@@ -1,15 +1,15 @@
-(
-  "
+{
+  en = "
       The single element list is equal to another list that has only one element
       and that single element equals the element in this list.
   " 
-  usage examples = [
+  eg = [
     [1] == [1]
     [true] == [true]
     ([1] == []) == false
     ([2] == [2,3]) == false
   ]
-) ⇒ 
+} ⇒ 
 other list.is nonempty &&
 other list.after first.is empty &&
 (element.== ∘ other list) ?: false

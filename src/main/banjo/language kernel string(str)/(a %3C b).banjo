@@ -1,1 +1,1 @@
-str < b.kernel string
+STRING_COMPARE(str, b.kernel string)

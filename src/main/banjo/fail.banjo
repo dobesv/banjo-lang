@@ -1,4 +1,4 @@
-"Fail with the given reason (string)" ⇒
+{ en = "Fail with the given reason (string)" } ⇒
 (reason) -> {
   failure reason = reason
   label = "<FAILURE: "+reason+">"

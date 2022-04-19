@@ -7,99 +7,92 @@ import fj.data.Set;
 
 public class TestAndExampleGatherer {
 
-    private static class TestFindingCoreExprVisitor extends BaseCoreExprVisitor<Set<CoreExpr>> {
-        @Override
-        public Set<CoreExpr> fallback() {
-            return CoreExpr.EMPTY_SET;
-        }
+	private static class TestFindingCoreExprVisitor extends BaseCoreExprVisitor<Set<CoreExpr>> {
+		@Override
+		public Set<CoreExpr> fallback() {
+			return CoreExpr.EMPTY_SET;
+		}
 
-        public Set<CoreExpr> tests(List<CoreExpr> tests) {
-            return union(tests.map(arg -> arg.acceptVisitor(new BaseCoreExprVisitor<Set<CoreExpr>>() {
-                @Override
-                public Set<CoreExpr> fallback() {
-                    return Set.single(CoreExprOrd.ORD, arg);
-                }
+		public Set<CoreExpr> tests(List<CoreExpr> tests) {
+			return union(tests.map(arg -> arg.acceptVisitor(new BaseCoreExprVisitor<Set<CoreExpr>>() {
+				@Override
+				public Set<CoreExpr> fallback() {
+					return Set.single(CoreExprOrd.ORD, arg);
+				}
 
-                @Override
-                public Set<CoreExpr> listLiteral(ListLiteral n) {
-                    return Set.iterableSet(CoreExprOrd.ORD, n.elements);
-                }
-            })));
-        }
+				@Override
+				public Set<CoreExpr> listLiteral(ListLiteral n) {
+					return Set.iterableSet(CoreExprOrd.ORD, n.elements);
+				}
+			})));
+		}
 
-        @Override
-        public Set<CoreExpr> listLiteral(
-            ListLiteral n) {
-            List<Set<CoreExpr>> eltTests = n.elements.map(this::visit);
-            return union(eltTests);
+		@Override
+		public Set<CoreExpr> listLiteral(ListLiteral n) {
+			List<Set<CoreExpr>> eltTests = n.elements.map(this::visit);
+			return union(eltTests);
 
-        }
+		}
 
-        @Override
-        public Set<CoreExpr> objectLiteral(ObjectLiteral n) {
-            final List<Set<CoreExpr>> methodExamples = n.getSlots().map(Slot::getBody).map(this::visit);
-            return union(methodExamples);
-        }
+		public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+			return binding._2().acceptVisitor(this);
+		}
 
-        public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
-            return binding._2().acceptVisitor(this);
-        }
+		@Override
+		public Set<CoreExpr> extend(Extend n) {
+			return n.getBase().acceptVisitor(this).union(n.getExtension().acceptVisitor(this));
+		}
 
-        @Override
-        public Set<CoreExpr> let(Let let) {
-            Set<CoreExpr> examplesInBindings = union(let.bindings.map(this::binding));
-            Set<CoreExpr> examplesInBody = let.body.acceptVisitor(this);
-            Set<CoreExpr> allExamples = examplesInBindings.union(examplesInBody);
-            // Need to rewrap the example in the let so it has whatever
-            // variables from scope that it needs
-            return allExamples.map(CoreExprOrd.ORD, e -> new Let(let.getRanges(), let.bindings, e));
-        }
+		@Override
+		public Set<CoreExpr> scoped(ScopedExpr projection) {
+			return union(projection.getArgs().map(this::visit));
+		}
+	}
 
-        @Override
-        public Set<CoreExpr> extend(Extend n) {
-            return n.getBase().acceptVisitor(this).union(n.getExtension().acceptVisitor(this));
-        }
+	public static final Identifier TESTS_KEY = new Identifier("unit tests");
+	public static final Identifier EXAMPLES_KEY = new Identifier("usage examples");
 
-        @Override
-        public Set<CoreExpr> projection(Projection projection) {
-            return union(projection.args.map(this::visit));
-        }
-    }
+	public static Set<CoreExpr> union(List<Set<CoreExpr>> listOfTestSets) {
+		return listOfTestSets.foldLeft((result, tests) -> result.union(tests), CoreExpr.EMPTY_SET);
+	}
 
-    public static final Identifier TESTS_KEY = new Identifier("unit tests");
-    public static final Identifier EXAMPLES_KEY = new Identifier("usage examples");
+	static public Set<CoreExpr> findTests(CoreExpr base) {
+		return base.acceptVisitor(new TestFindingCoreExprVisitor() {
+			@Override
+			public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+				if (binding._1().id.equals(TESTS_KEY.id))
+					return tests(List.single(binding._2()));
+				return super.binding(binding);
+			}
+		});
+	}
 
-    public static Set<CoreExpr> union(List<Set<CoreExpr>> listOfTestSets) {
-        return listOfTestSets.foldLeft((result, tests) -> result.union(tests), CoreExpr.EMPTY_SET);
-    }
+	static public Set<CoreExpr> findExamples(CoreExpr base) {
+		return base.acceptVisitor(new TestFindingCoreExprVisitor() {
+			@Override
+			public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
+				if (binding._1().id.equals(EXAMPLES_KEY.id))
+					return tests(List.single(binding._2()));
+				return super.binding(binding);
+			}
+		});
+	}
 
-    static public Set<CoreExpr> findTests(CoreExpr base) {
-        return base.acceptVisitor(new TestFindingCoreExprVisitor() {
-            @Override
-            public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
-                if(binding._1().id.equals(TESTS_KEY.id))
-                    return tests(List.single(binding._2()));
-                return super.binding(binding);
-            }
-        });
-    }
+	public static CoreExpr stripScope(CoreExpr x) {
+		return x.acceptVisitor(new BaseCoreExprVisitor<CoreExpr>() {
+			@Override
+			public CoreExpr scoped(ScopedExpr projection) {
+				if (projection.isExtendingCurrentScope()) {
+					return projection.getBody().acceptVisitor(this);
+				}
+				return fallback();
+			}
 
-    static public Set<CoreExpr> findExamples(CoreExpr base) {
-        return base.acceptVisitor(new TestFindingCoreExprVisitor() {
-            @Override
-            public Set<CoreExpr> binding(P2<Identifier, CoreExpr> binding) {
-                if(binding._1().id.equals(EXAMPLES_KEY.id))
-                    return tests(List.single(binding._2()));
-                return super.binding(binding);
-    		}
-    	});
-    }
-
-    public static CoreExpr stripScope(CoreExpr x) {
-    	while(x instanceof Let) {
-    		x = ((Let)x).body;
-    	}
-    	return x;
-    }
+			@Override
+			public CoreExpr fallback() {
+				return x;
+			}
+		});
+	}
 
 }

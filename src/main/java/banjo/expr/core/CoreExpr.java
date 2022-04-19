@@ -35,7 +35,7 @@ public interface CoreExpr extends Expr {
      * Parse a SourceExpr syntax tree into a CoreExpr AST.
      */
 	public static CoreExpr fromSourceExpr(final SourceExpr parseTree) {
-        return new CoreExprFactory().desugar(parseTree);
+        return new SourceExprToCoreExpr().desugar(parseTree);
     }
 
 	/**
@@ -68,6 +68,8 @@ public interface CoreExpr extends Expr {
     /**
      * Convert to a SourceExpr for code formatting / printing purposes.
      */
-    public SourceExpr toSourceExpr();
+    public default SourceExpr toSourceExpr() {
+        return acceptVisitor(CoreExprToSourceExpr.INSTANCE);
+    }
 
 }

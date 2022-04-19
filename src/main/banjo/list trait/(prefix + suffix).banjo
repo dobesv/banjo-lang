@@ -1,0 +1,6 @@
+"
+  Sum of two lists - concatenation.  
+" =>
+if(prefix.is empty) then (suffix) else
+if(suffix.is empty) then (prefix) else
+concatenated lists(prefix, suffix)

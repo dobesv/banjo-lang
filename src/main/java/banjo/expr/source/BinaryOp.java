@@ -60,7 +60,7 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
 		} else {
             switch (this.operator) {
             case COMMA:
-            case PROJECTION:
+            case IN_SCOPE:
             case POW:
                 break;
 
@@ -69,7 +69,7 @@ public class BinaryOp extends AbstractOp implements SourceExpr {
             }
             sb.append(this.operator.getOp());
             switch (this.operator) {
-            case PROJECTION:
+            case IN_SCOPE:
             case POW:
                 break;
 

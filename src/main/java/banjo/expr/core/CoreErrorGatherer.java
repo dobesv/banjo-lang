@@ -3,8 +3,6 @@ package banjo.expr.core;
 import banjo.expr.BadExpr;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
-import fj.P2;
-import fj.P3;
 import fj.data.List;
 import fj.data.Set;
 
@@ -21,11 +19,10 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
     }
 
     @Override
-    public List<BadExpr> objectLiteral(Set<SourceFileRange> ranges,
-            List<P3<Identifier, List<Identifier>, List<BadExpr>>> slots) {
-        return List.join(slots.map(P3.__3()));
+    public List<BadExpr> binding(Identifier name, List<BadExpr> body) {
+    	return body;
     }
-
+    
     @Override
     public List<BadExpr> stringLiteral(Set<SourceFileRange> ranges, String text) {
         return List.nil();
@@ -52,15 +49,8 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
     }
 
     @Override
-    public List<BadExpr> let(Set<SourceFileRange> sourceFileRanges, List<P2<Identifier, List<BadExpr>>> bindings,
-            List<BadExpr> body) {
-        return List.join(bindings.map(p -> p._2())).append(body);
-    }
-
-    @Override
-    public List<BadExpr> projection(Set<SourceFileRange> ranges, List<List<BadExpr>> slotArgs,
-            List<BadExpr> projection) {
-        return List.join(slotArgs).append(projection);
+    public List<BadExpr> scoped(Set<SourceFileRange> ranges, List<BadExpr> body, List<BadExpr> args) {
+    	return body.append(args);
     }
 
     @Override
@@ -78,4 +68,8 @@ public class CoreErrorGatherer implements CoreExprAlgebra<List<BadExpr>> {
         return List.nil();
     }
 
+    @Override
+    public List<BadExpr> nil() {
+    	return List.nil();
+    }
 }

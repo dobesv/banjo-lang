@@ -1,10 +1,12 @@
 package banjo.value;
 
+import banjo.eval.EvalContext;
 import banjo.eval.expr.CallInstance;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.fail.Fail;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 /**
@@ -12,81 +14,77 @@ import fj.data.Set;
  * not is used as a "thunk" for lazy values and for reactive values that
  * change in response to events. 
  */
-public abstract class CalculatedValue extends ValueToStringTrait implements Value {
+public abstract class CalculatedValue implements Value {
 	public Value memo;
-
+	
 	@Override
-    public Value call(List<Value> trace, List<Value> arguments) {
-        return new CallInstance(SourceFileRange.EMPTY_SET, force(trace), arguments);
+    public Value call(EvalContext<Value> ctx, List<Value> arguments) {
+        return new CallInstance(SourceFileRange.EMPTY_SET, force(ctx), arguments);
     }
 
     @Override
-    public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
-        return force(trace).call(trace, recurse, baseImpl, arguments);
+    public Value call(EvalContext<Value> ctx, Value recurse, Value baseImpl, List<Value> arguments) {
+        return force(ctx).call(ctx, recurse, baseImpl, arguments);
     }
 
 	@Override
-    public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-        return force(trace).callMethod(trace, name, ranges, targetObject, fallback, args);
+    public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return force(ctx).callMethod(ctx, name, ranges, targetObject, fallback, args);
     }
 
 	@Override
-    public Value slot(List<Value> trace, Value self, String slotName, Set<SourceFileRange> ranges, Value fallback) {
-        Value target = force(trace);
+    public Value slot(EvalContext<Value> ctx, Value self, String slotName, Set<SourceFileRange> ranges,
+            Option<Value> fallback) {
+        Value target = force(ctx);
         return new SlotValue(target, self == this ? target : self, slotName, ranges, fallback);
     }
 
 	@Override
-	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
-        Value target = force(trace);
+	public Value slot(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges) {
+        Value target = force(ctx);
         return new SlotValue(target, ranges, name);
 	}
 
 	@Override
-	public boolean isTrue(List<Value> trace) {
-        return force(trace).isTrue(trace);
+	public boolean isTrue(EvalContext<Value> ctx) {
+        return force(ctx).isTrue(ctx);
 	}
 
 	@Override
-    public Value force(List<Value> trace) {
+    public Value force(EvalContext<Value> ctx) {
         if(this.memo == null) {
-            this.memo = calculate(trace).force(trace);
+            this.memo = calculate(ctx).force(ctx);
         }
         return memo;
     }
 
 	@Override
-	public boolean isDefined(List<Value> trace) {
-        return force(trace).isDefined(trace);
+	public boolean isDefined(EvalContext<Value> ctx) {
+        return force(ctx).isDefined(ctx);
     }
 
 	@Override
-	public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
-        Value value = force(trace);
+	public <T> Either<T, Fail> convertToJava(EvalContext<Value> ctx, Class<T> clazz) {
+        Value value = force(ctx);
 	    if(value == this)
 	    	throw new Error();
-		return value.convertToJava(trace, clazz);
+        return value.convertToJava(ctx, clazz);
     }
 
 	@Override
-	public String javaLabel(List<Value> trace) {
-        return force(trace).javaLabel(trace);
+	public String javaLabel(EvalContext<Value> ctx) {
+        return force(ctx).javaLabel(ctx);
     }
 
 	@Override
-	public String toStringFallback(List<Value> trace) {
-        return force(trace).toStringFallback(trace);
-    }
-
-    @Override
-    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
-        return force(List.nil()).acceptVisitor(visitor);
+	public String toStringFallback(EvalContext<Value> ctx) {
+        return force(ctx).toStringFallback(ctx);
     }
 
     /**
      * The subclass must implement the actual calculation for this value.
-     * @param trace TODO
+     * @param ctx TODO
      */
-	public abstract Value calculate(List<Value> trace);
+	public abstract Value calculate(EvalContext<Value> ctx);
 
 }

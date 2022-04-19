@@ -5,13 +5,13 @@ import banjo.expr.util.SourceFileRange;
 import banjo.value.MethodCallInstance;
 import banjo.value.SlotValue;
 import banjo.value.Value;
-import banjo.value.ValueToStringTrait;
 import banjo.value.ValueVisitor;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
-public class ExtendedObject extends ValueToStringTrait implements Value {
-    public static final class ChainedBaseFunctionImpl extends ValueToStringTrait implements Value {
+public class ExtendedObject implements Value {
+    public static final class ChainedBaseFunctionImpl implements Value {
 	    public final Value base;
 	    public final Value baseCallable;
 
@@ -21,8 +21,8 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
         }
 
 		@Override
-	    public Value call(List<Value> trace, Value callee, Value newBaseCallable, List<Value> arguments) {
-	    	return base.call(trace, callee, chainBaseImpl(baseCallable, newBaseCallable), arguments);
+	    public Value call(EvalContext<Value> ctx, Value callee, Value newBaseCallable, List<Value> arguments) {
+	    	return base.call(ctx, callee, chainBaseImpl(baseCallable, newBaseCallable), arguments);
 	    }
 		
 		public ChainedBaseFunctionImpl update(Value newBase, Value newPrevImpl) {
@@ -45,14 +45,15 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     }
 
 	@Override
-	public Value slot(List<Value> trace, Value object, String name, Set<SourceFileRange> ranges, Value baseSlotValue) {
+    public Value slot(EvalContext<Value> ctx, Value object, String name, Set<SourceFileRange> ranges,
+            Option<Value> baseSlotValue) {
         final Value newBaseSlotValue = new SlotValue(base, object, name, ranges, baseSlotValue);
-		return extension.slot(trace, object, name, ranges, newBaseSlotValue);
+        return extension.slot(ctx, object, name, ranges, Option.some(newBaseSlotValue));
 	}
 
 	@Override
-	public Value call(List<Value> trace, Value recurse, Value prevImpl, List<Value> arguments) {
-		return extension.call(trace, recurse, chainBaseImpl(base, prevImpl), arguments);
+	public Value call(EvalContext<Value> ctx, Value recurse, Value prevImpl, List<Value> arguments) {
+		return extension.call(ctx, recurse, chainBaseImpl(base, prevImpl), arguments);
 	}
 
 	private static Value chainBaseImpl(Value base, Value prevImpl) {
@@ -60,13 +61,13 @@ public class ExtendedObject extends ValueToStringTrait implements Value {
     }
 
 	@Override
-	public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+	public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
         final Value newFallback = new MethodCallInstance(base, name, ranges, targetObject, fallback, args);
-		return extension.callMethod(trace, name, ranges, targetObject, newFallback, args);
+        return extension.callMethod(ctx, name, ranges, targetObject, newFallback, args);
 	}
 
 	@Override
-    public String toStringFallback(List<Value> trace) {
+    public String toStringFallback(EvalContext<Value> ctx) {
 	    return base + " " + Operator.EXTENSION.getOp() + " " + extension;
 	}
 	

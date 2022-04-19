@@ -8,7 +8,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import banjo.expr.core.CoreExpr;
-import banjo.expr.core.CoreExprFactory;
+import banjo.expr.core.SourceExprToCoreExpr;
 import banjo.expr.core.Let;
 import banjo.expr.core.TestAndExampleGatherer;
 import banjo.expr.util.SourceFileRange;
@@ -40,8 +40,8 @@ public class TestRunCoreLibraryTests extends BaseExprTest {
 	}
 
 	public static List<CoreExpr> findAllTests() {
-        List<Path> paths = CoreExprFactory.projectSourcePathsForFile(Paths.get("src/test/banjo/").toAbsolutePath());
-        CoreExpr ast = CoreExprFactory.INSTANCE.loadFromDirectories(paths);
+        List<Path> paths = SourceExprToCoreExpr.projectSourcePathsForFile(Paths.get("src/test/banjo/").toAbsolutePath());
+        CoreExpr ast = SourceExprToCoreExpr.INSTANCE.loadFromDirectories(paths);
         return TestAndExampleGatherer.findTests(ast).toList();
 	}
 

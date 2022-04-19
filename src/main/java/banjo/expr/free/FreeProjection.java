@@ -1,14 +1,11 @@
 package banjo.expr.free;
 
-import banjo.eval.resolver.GlobalRef;
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
 import banjo.eval.resolver.Resolver;
-import banjo.eval.resolver.WrappedResolver;
-import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 
@@ -64,10 +61,6 @@ public class FreeProjection implements FreeExpression {
                 return true;
             }
 
-            @Override
-            public Boolean global(GlobalRef globalRef) {
-                return true;
-            }
         });
     }
 
@@ -89,39 +82,17 @@ public class FreeProjection implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        final T object = this.object.eval(trace, resolver, algebra);
-        return apply(trace, resolver, algebra, object, projection);
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        final T object = this.object.eval(ctx, resolver, algebra);
+        return apply(ctx, resolver, algebra, object, projection);
     }
 
-    public static <T> T apply(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra, final T object, final FreeExpression projection) {
-        return projection.eval(trace, projectionResolver(resolver, algebra, object), algebra);
+    public static <T> T apply(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra, final T object, final FreeExpression projection) {
+        return projection.eval(ctx, projectionResolver(resolver, algebra, object), algebra);
     }
 
     public static <T> Resolver<T> projectionResolver(Resolver<T> resolver, InstanceAlgebra<T> algebra, final T object) {
-        return new WrappedResolver<T>(resolver) {
-
-            @Override
-            public T local(Set<SourceFileRange> ranges, String name) {
-                return algebra.slotValue(object, ranges, name);
-            }
-
-            @Override
-            public T slot(NameRef object, Set<SourceFileRange> ranges, String slotName) {
-                return algebra.slotValue(object.acceptVisitor(this), ranges, slotName);
-            }
-
-            @Override
-            public T baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName) {
-                return delegate.invalid(ranges, Identifier.toSource(slotObjectRef) + " is not a slot object-ref here");
-            }
-
-            @Override
-            public T functionBase(Set<SourceFileRange> ranges, String functionSelfName) {
-                return delegate.invalid(ranges, Identifier.toSource(functionSelfName) + " is not a function self-name here");
-            }
-
-        };
+        return new ProjectionResolver<T>(resolver, algebra, object);
     }
 
 	@Override

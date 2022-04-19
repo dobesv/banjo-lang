@@ -1,0 +1,5 @@
+"
+  For boolean values, multiplications acts as a logical and.
+  
+  Thus, `true × x == x`
+" => x

@@ -1,25 +1,26 @@
-"
-  Reduce the given collection to a single value using this monoid's
-  operator and identity.
-" ⇒ 
-(usage examples = [
-  monoid(.+, 0).reducer [] == 0
-  monoid(.+, 0).reducer [1] == 1
-  monoid(.+, 0).reducer [0,1] == 1
-  monoid(.+, 0).reducer [1,1] == 2
-  monoid(.+, 0).reducer [1,2,3] == 6
-  monoid(.*, 1).reducer [] == 1
-  monoid(.*, 1).reducer [1] == 1
-  monoid(.*, 1).reducer [0,1] == 0
-  monoid(.*, 1).reducer [1,1] == 1
-  monoid(.*, 1).reducer [1,2,3] == 6
-  monoid(.+, []).reducer [] == []
-  monoid(.+, []).reducer [[1,-1]] == [1,-1]
-  monoid(.+, []).reducer [[0],[1]] == [0,1]
-  monoid(.+, []).reducer [[1,1],[2,2]] == [1,1,2,2]
-  monoid(.+, []).reducer [[1],[2,4],[3,6,9]] == [1,2,4,3,6,9]
-
-]) ⇒ (
+{
+  en = "
+    Reduce the given collection to a single value using this monoid's
+    operator and identity.
+  " 
+  eg = [
+    monoid(.+, 0).reducer [] == 0
+    monoid(.+, 0).reducer [1] == 1
+    monoid(.+, 0).reducer [0,1] == 1
+    monoid(.+, 0).reducer [1,1] == 2
+    monoid(.+, 0).reducer [1,2,3] == 6
+    monoid(.*, 1).reducer [] == 1
+    monoid(.*, 1).reducer [1] == 1
+    monoid(.*, 1).reducer [0,1] == 0
+    monoid(.*, 1).reducer [1,1] == 1
+    monoid(.*, 1).reducer [1,2,3] == 6
+    monoid(.+, []).reducer [] == []
+    monoid(.+, []).reducer [[1,-1]] == [1,-1]
+    monoid(.+, []).reducer [[0],[1]] == [0,1]
+    monoid(.+, []).reducer [[1,1],[2,2]] == [1,1,2,2]
+    monoid(.+, []).reducer [[1],[2,4],[3,6,9]] == [1,2,4,3,6,9]
+  ]
+} ⇒ (
   # Apply the binary op to
   binary op ∘
   

@@ -1,5 +1,6 @@
 package banjo.expr.free;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
@@ -58,10 +59,10 @@ public class FreeCall implements FreeExpression {
      * Bind the call to the environment, but do not evaluate it yet.
      */
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        T callee = this.callee.eval(trace, resolver, algebra);
-        List<T> args = this.args.map(arg -> arg.eval(trace, resolver, algebra));
-        return algebra.call(trace, ranges, callee, args);
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        T callee = this.callee.eval(ctx, resolver, algebra);
+        List<T> args = this.args.map(arg -> arg.eval(ctx, resolver, algebra));
+        return algebra.call(ctx, ranges, callee, args);
     }
 
 	@Override

@@ -1,7 +1,7 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Set;
 
 
@@ -11,12 +11,12 @@ public class SlotNotFound<T> extends Fail {
     public final T object;
 	public final Throwable cause;
 
-    public SlotNotFound(List<T> trace, String id, Set<SourceFileRange> ranges, T object) {
-        this(trace, id, ranges, object, null);
+    public SlotNotFound(EvalContext<T> ctx, String id, Set<SourceFileRange> ranges, T object) {
+        this(ctx, id, ranges, object, null);
     }
 
-    public SlotNotFound(List<T> trace, String id, Set<SourceFileRange> ranges, T object, Throwable cause) {
-        super(trace);
+    public SlotNotFound(EvalContext<T> ctx, String id, Set<SourceFileRange> ranges, T object, Throwable cause) {
+        super(ctx);
 		this.id = id;
         this.ranges = ranges;
 		this.object = object;

@@ -13,12 +13,11 @@ public interface CoreExprVisitor<T> {
 	T stringLiteral(StringLiteral stringLiteral);
     T numberLiteral(NumberLiteral numberLiteral);
 	T identifier(Identifier identifier);
-	T objectLiteral(ObjectLiteral objectLiteral);
 	T listLiteral(ListLiteral listLiteral);
 	T badIdentifier(BadIdentifier badIdentifier);
 	T extend(Extend extend);
-	T let(Let let);
-	T projection(Projection projection);
-
+	T scoped(ScopedExpr projection);
+	T binding(BindingExpr b);
     T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
+	T nil();
 }

@@ -1,12 +1,12 @@
 package banjo.eval.util;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
 import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeExpressionVisitor;
 import banjo.expr.free.PartialResolver;
-import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 
@@ -51,8 +51,8 @@ public class LazyPartialBoundFreeExpression implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        return get().eval(trace, resolver, algebra);
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        return get().eval(ctx, resolver, algebra);
     }
 
     @Override

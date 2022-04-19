@@ -10,8 +10,6 @@ import fj.data.Set;
 
 
 public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
-    T objectLiteral(Set<SourceFileRange> ranges, List<P3<Identifier, List<Identifier>, T>> slots);
-
     T numberLiteral(Set<SourceFileRange> ranges, Number value, String source);
 
     T kernelNumberLiteral(Set<SourceFileRange> ranges, Number value, String source);
@@ -26,9 +24,11 @@ public interface CoreExprAlgebra<T> extends ExprAlgebra<T> {
 
 	T identifier(Set<SourceFileRange> ranges, String id);
 
-	T let(Set<SourceFileRange> ranges, List<P2<Identifier, T>> bindings, T body);
-
-    T projection(Set<SourceFileRange> ranges, List<T> slotArgs, T body);
+    T scoped(Set<SourceFileRange> ranges, T body, T args);
 
     T kernelGlobalObject(KernelGlobalObject kernelGlobalObject);
+
+	T nil();
+
+	T binding(Identifier name, T body);
 }

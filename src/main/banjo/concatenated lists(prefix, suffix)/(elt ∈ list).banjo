@@ -1,0 +1,9 @@
+"
+  Check if the element is a part of the prefix or suffix of these
+  concatenated lists.
+" => (
+  usage examples = [
+    "yes" <++ (["yes"] + ["no"] + ["maybe"])
+    !("it's" <++ (["its"] + ["her", "his"]))
+  ]
+) => (elt ∈ prefix) || (elt ∈ suffix)

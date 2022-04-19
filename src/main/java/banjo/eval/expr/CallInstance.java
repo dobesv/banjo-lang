@@ -1,9 +1,11 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.CalculatedValue;
 import banjo.value.Value;
+import banjo.value.ValueVisitor;
 import fj.data.List;
 import fj.data.Set;
 
@@ -20,8 +22,8 @@ public class CallInstance extends CalculatedValue implements Value {
 	}
 
 	@Override
-	public Value calculate(List<Value> trace) {
-        return callee.call(trace, args);
+	public Value calculate(EvalContext<Value> ctx) {
+        return callee.call(ctx, args);
 	}
 	
 	public StackTraceElement makeStackTraceElement() {
@@ -36,5 +38,10 @@ public class CallInstance extends CalculatedValue implements Value {
 			return this;
 		return new CallInstance(ranges, callee, args);
 	}
+
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.call(this);
+    }
 	
 }

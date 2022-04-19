@@ -1,9 +1,9 @@
 package banjo.expr.free;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
-import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 
@@ -45,8 +45,8 @@ public class FreeBinaryKernelObject implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        return f.apply(a.eval(trace, resolver, algebra), b.eval(trace, resolver, algebra), resolver);
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        return f.apply(a.eval(ctx, resolver, algebra), b.eval(ctx, resolver, algebra), resolver);
     }
 
     @Override

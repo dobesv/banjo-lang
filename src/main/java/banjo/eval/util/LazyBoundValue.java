@@ -1,11 +1,12 @@
 package banjo.eval.util;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.Resolver;
 import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.free.FreeExpression;
 import banjo.value.CalculatedValue;
 import banjo.value.Value;
-import fj.data.List;
+import banjo.value.ValueVisitor;
 
 /**
  * An expression plus an environment = a thunk
@@ -21,8 +22,13 @@ public class LazyBoundValue extends CalculatedValue {
 	}
 	
 	@Override
-	public Value calculate(List<Value> trace) {
-        return expr.eval(trace, resolver, ValueInstanceAlgebra.INSTANCE);
+	public Value calculate(EvalContext<Value> ctx) {
+        return expr.eval(ctx, resolver, ValueInstanceAlgebra.INSTANCE);
 	}
+
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.lazyBoundValue(this);
+    }
 }
 

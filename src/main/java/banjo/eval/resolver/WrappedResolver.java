@@ -36,8 +36,4 @@ public abstract class WrappedResolver<T> implements Resolver<T> {
         return delegate.invalid(ranges, reason);
     }
 
-    @Override
-    public T global(GlobalRef globalRef) {
-        return delegate.global(globalRef);
-    }
 }

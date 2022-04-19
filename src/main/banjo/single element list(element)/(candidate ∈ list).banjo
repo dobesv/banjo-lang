@@ -1,9 +1,8 @@
-(
-  "a ∈ [b] == (a == b)"
-  usage examples = [
+{
+  en = "a ∈ [b] == (a == b)"
+  eg = [
     (1 ∈ [1]) == true
     ("a" ∈ ["c", "b", "a"]) == true  
     ("a" ∈ ["b"]) == false  
   ]
-) ⇒
-candidate == element
+} ⇒ candidate == element

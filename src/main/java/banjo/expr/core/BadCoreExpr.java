@@ -31,9 +31,4 @@ public class BadCoreExpr extends AbstractBadExpr implements CoreExpr, BadExpr {
 	public <T> T acceptVisitor(CoreExprAlgebra<T> visitor) {
 		return super.acceptVisitor(visitor);
 	}
-
-    @Override
-    public SourceExpr toSourceExpr() {
-        return new BadSourceExpr(this.getRanges(), this.getMessage(), this.getArgs());
-    }
 }

@@ -1,18 +1,19 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.util.ListUtil;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
 import banjo.value.Value;
-import banjo.value.ValueToStringTrait;
 import banjo.value.ValueVisitor;
 import fj.Ord;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 import fj.data.TreeMap;
 
-public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
+public class ObjectLiteralInstance implements Value {
     public static final Value EMPTY = new ObjectLiteralInstance();
     public final Set<SourceFileRange> ranges;
     public final TreeMap<String, SlotInstance<Value>> slots;
@@ -31,11 +32,12 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
     }
 
     @Override
-	public Value slot(List<Value> trace, Value sourceObject, String name, Set<SourceFileRange> ranges, Value fallback) {
+    public Value slot(EvalContext<Value> ctx, Value sourceObject, String name, Set<SourceFileRange> ranges,
+            Option<Value> fallback) {
         return slots.get(name)
-            .map(si -> si.apply(trace, sourceObject, fallback, ValueInstanceAlgebra.INSTANCE))
+                .map(si -> si.apply(ctx, sourceObject, fallback, ValueInstanceAlgebra.INSTANCE))
             .map(sv -> maybeAnnotateAsMethod(sv, sourceObject, name))
-            .orSome(() -> Value.super.slot(trace, sourceObject, name, ranges, fallback));
+            .orSome(() -> Value.super.slot(ctx, sourceObject, name, ranges, fallback));
 	}
 
 	public static class MethodInstance extends FunctionTrait implements Value {
@@ -45,13 +47,13 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		
 		
 		@Override
-        public Value call(List<Value> trace, Value recurse, Value prevImpl, List<Value> arguments) {
-			return f.call(trace, recurse, prevImpl, arguments);
+        public Value call(EvalContext<Value> ctx, Value recurse, Value prevImpl, List<Value> arguments) {
+			return f.call(ctx, recurse, prevImpl, arguments);
 		}
 
 		@Override
-        public Value call(List<Value> trace, List<Value> arguments) {
-			return f.call(trace, arguments);
+        public Value call(EvalContext<Value> ctx, List<Value> arguments) {
+			return f.call(ctx, arguments);
 		}
 
         @Override
@@ -60,43 +62,45 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
         }
 
         @Override
-        public Value call1(List<Value> trace, Value v) {
-            return f.call1(trace, v);
+        public Value call1(EvalContext<Value> ctx, Value v) {
+            return f.call1(ctx, v);
         }
 
         @Override
-        public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-            return f.slot(trace, self, name, ranges, fallback);
+        public Value slot(EvalContext<Value> ctx, Value self, String name, Set<SourceFileRange> ranges,
+                Option<Value> fallback) {
+            return f.slot(ctx, self, name, ranges, fallback);
         }
 
         @Override
-        public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
-            return f.slot(trace, name, ranges);
+        public Value slot(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges) {
+            return f.slot(ctx, name, ranges);
         }
 
         @Override
-        public Value slot(List<Value> trace, String name) {
-            return f.slot(trace, name);
+        public Value slot(EvalContext<Value> ctx, String name) {
+            return f.slot(ctx, name);
         }
 
         @Override
-        public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-            return f.callMethod(trace, name, ranges, targetObject, fallback, args);
+        public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+            return f.callMethod(ctx, name, ranges, targetObject, fallback, args);
         }
 
         @Override
-        public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, List<Value> args) {
-            return f.callMethod(trace, name, ranges, args);
+        public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges, List<Value> args) {
+            return f.callMethod(ctx, name, ranges, args);
         }
 
 		public MethodInstance(FunctionInstance f, Value sourceObject, String name) {
+            super(f.trait);
 			this.f = f;
 			this.sourceObject = sourceObject;
 			this.name = name;
 		}
 
 		@Override
-		public String toStringFallback(List<Value> trace) {
+		public String toStringFallback(EvalContext<Value> ctx) {
 			return sourceObject + "." + name;
 		}
 		
@@ -107,8 +111,8 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 		}
 		
 		@Override
-		public boolean isDefined(List<Value> trace) {
-			return f.isDefined(trace);
+		public boolean isDefined(EvalContext<Value> ctx) {
+			return f.isDefined(ctx);
 		}
 
         @Override
@@ -129,7 +133,7 @@ public class ObjectLiteralInstance extends ValueToStringTrait implements Value {
 	}
 
 	@Override
-	public String toStringFallback(List<Value> trace) {
+	public String toStringFallback(EvalContext<Value> ctx) {
 		StringBuffer sb = new StringBuffer();
 		sb.append("{");
 		ListUtil.insertCommas(sb, slots, slot -> {

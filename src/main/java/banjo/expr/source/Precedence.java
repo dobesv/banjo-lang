@@ -31,7 +31,8 @@ public enum Precedence {
 	ASSIGNMENT, // =, +=, *=, ...
 	COND, // '=>' let
 	COMMA, // ',' "sequence operator"
-	SEMICOLON; // ';' "sequence operator"
+	SEMICOLON, // ';' "sequence operator" 
+	NIL;  // Emptiness inside (), {}, []
 
 	public boolean isHigherThan(Precedence other) {
 		return ordinal() < other.ordinal();

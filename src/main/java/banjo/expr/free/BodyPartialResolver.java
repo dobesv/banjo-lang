@@ -2,7 +2,6 @@ package banjo.expr.free;
 
 import java.util.function.Predicate;
 
-import banjo.eval.resolver.GlobalRef;
 import banjo.eval.resolver.NameRef;
 import banjo.expr.util.SourceFileRange;
 import fj.data.Option;
@@ -58,10 +57,5 @@ public class BodyPartialResolver implements PartialResolver {
     @Override
     public Option<FreeExpression> invalid(Set<SourceFileRange> ranges, String reason) {
         return delegate.invalid(ranges, reason);
-    }
-
-    @Override
-    public Option<FreeExpression> global(GlobalRef globalRef) {
-        return delegate.global(globalRef);
     }
 }

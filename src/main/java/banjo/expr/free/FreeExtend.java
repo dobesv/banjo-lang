@@ -1,10 +1,10 @@
 package banjo.expr.free;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
 import banjo.expr.source.Operator;
-import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
 
@@ -37,9 +37,9 @@ public class FreeExtend implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        T b = base.eval(trace, resolver, algebra);
-        T e = extension.eval(trace, resolver, algebra);
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        T b = base.eval(ctx, resolver, algebra);
+        T e = extension.eval(ctx, resolver, algebra);
         return algebra.slotMemoizer(algebra.extend(b, e));
     }
 

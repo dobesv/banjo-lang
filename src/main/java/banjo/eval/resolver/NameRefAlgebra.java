@@ -18,6 +18,4 @@ public interface NameRefAlgebra<T> {
 
     T invalid(Set<SourceFileRange> ranges, String reason);
 
-    T global(GlobalRef globalRef);
-
 }

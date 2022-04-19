@@ -1,13 +1,13 @@
 package banjo.value.fail;
 
-import fj.data.List;
+import banjo.eval.EvalContext;
 
 public class ArgumentNotSupplied extends Fail {
 
 	private String arg;
 
-    public ArgumentNotSupplied(List<?> trace, String arg) {
-        super(trace);
+    public ArgumentNotSupplied(EvalContext<?> ctx, String arg) {
+        super(ctx);
 	    this.arg = arg;
     }
 	

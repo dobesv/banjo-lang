@@ -1,0 +1,6 @@
+{eg = [
+  [1,2,3].before last == [1,2]
+  ([1,2] + [3]).before last == [1,2]
+  [1,2].before last == [1]
+]} ⇒
+prefix + suffix.before last

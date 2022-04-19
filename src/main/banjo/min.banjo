@@ -1,2 +1,2 @@
-("Return the lesser of the two arguments, or the second argument if both are equal.") ⇒
+{ en = "Return the lesser of the two arguments, or the second argument if both are equal." } ⇒
 min(a, b) -> if (a < b) then (a) else (b)

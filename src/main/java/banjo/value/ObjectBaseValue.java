@@ -1,7 +1,8 @@
 package banjo.value;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 /**
@@ -21,17 +22,17 @@ public class ObjectBaseValue implements Value {
 	}
 	
 	@Override
-	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
+	public Value slot(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges) {
 		if(name.equals(slotName))
 			return slotValue;
-		return Value.super.slot(trace, name, ranges);
+		return Value.super.slot(ctx, name, ranges);
 	}
 	
 	@Override
-	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+    public Value slot(EvalContext<Value> ctx, Value self, String name, Set<SourceFileRange> ranges, Option<Value> fallback) {
 		if(name.equals(slotName))
 			return slotValue;
-		return Value.super.slot(trace, self, name, ranges, fallback);
+		return Value.super.slot(ctx, self, name, ranges, fallback);
 	}
 
 	public ObjectBaseValue update(Value newSlotValue) {

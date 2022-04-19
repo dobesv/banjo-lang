@@ -20,69 +20,79 @@ import fj.data.Set;
  * the objects that contain them or are produced by them) specially.
  */
 public enum KernelGlobalObject implements CoreExpr {
-    /** Add two kernel numbers as 32-bit integers */
+    /** Add two numbers as 32-bit integers */
     INT32_SUM,
-    /** Add two kernel numbers as 64-bit integers */
+    /** Add two numbers as 64-bit integers */
     INT64_SUM,
-    /** Add two kernel numbers as arbitrary sized integers */
+    /** Add two numbers as arbitrary sized integers */
     INTEGER_SUM,
-    /** Add two kernel numbers as 32-bit floating point numbers */
+    /** Add two numbers as 32-bit floating point numbers */
     FLOAT32_SUM,
-    /** Add two kernel numbers as 64-bit floating point numbers */
+    /** Add two numbers as 64-bit floating point numbers */
     FLOAT64_SUM,
-    /** Add two kernel numbers as arbitrary sized decimals */
+    /** Add two numbers as arbitrary sized decimals */
     DECIMAL_SUM,
-    /** Subtract two kernel numbers as 32-bit integers */
+    /** Add two numbers using whatever type can handle it */
+    GENERAL_SUM,
+    /** Subtract two numbers as 32-bit integers */
     INT32_DIFFERENCE,
-    /** Subtract two kernel numbers as 64-bit integers */
+    /** Subtract two numbers as 64-bit integers */
     INT64_DIFFERENCE,
-    /** Subtract two kernel numbers as arbitrary sized integers */
+    /** Subtract two numbers as arbitrary sized integers */
     INTEGER_DIFFERENCE,
-    /** Subtract two kernel numbers as 32-bit floating point numbers */
+    /** Subtract two numbers as 32-bit floating point numbers */
     FLOAT32_DIFFERENCE,
-    /** Subtract two kernel numbers as 64-bit floating point numbers */
+    /** Subtract two numbers as 64-bit floating point numbers */
     FLOAT64_DIFFERENCE,
-    /** Subtract two kernel numbers as arbitrary sized decimals */
+    /** Subtract two numbers as arbitrary sized decimals */
     DECIMAL_DIFFERENCE,
-    /** Multiply two kernel numbers as 32-bit integers */
+    /** Add two numbers using whatever type can handle it */
+    GENERAL_DIFFERENCE,
+    /** Multiply two numbers as 32-bit integers */
     INT32_PRODUCT,
-    /** Multiply two kernel numbers as 64-bit integers */
+    /** Multiply two numbers as 64-bit integers */
     INT64_PRODUCT,
-    /** Multiply two kernel numbers as arbitrary sized integers */
+    /** Multiply two numbers as arbitrary sized integers */
     INTEGER_PRODUCT,
-    /** Multiply two kernel numbers as 32-bit floating point numbers */
+    /** Multiply two numbers as 32-bit floating point numbers */
     FLOAT32_PRODUCT,
-    /** Multiply two kernel numbers as 64-bit floating point numbers */
+    /** Multiply two numbers as 64-bit floating point numbers */
     FLOAT64_PRODUCT,
-    /** Multiply two kernel numbers as 64-bit floating point numbers */
+    /** Multiply two numbers as 64-bit floating point numbers */
     DECIMAL_PRODUCT,
-    /** Divide two kernel numbers as 32-bit integers */
+    /** Multiply two number */
+    GENERAL_PRODUCT,
+    /** Divide two numbers as 32-bit integers */
     INT32_QUOTIENT,
-    /** Divide two kernel numbers as 64-bit integers */
+    /** Divide two numbers as 64-bit integers */
     INT64_QUOTIENT,
-    /** Divide two kernel numbers as arbitrary sized integers */
+    /** Divide two numbers as arbitrary sized integers */
     INTEGER_QUOTIENT,
-    /** Divide two kernel numbers as 32-bit floating point numbers */
+    /** Divide two numbers as 32-bit floating point numbers */
     FLOAT32_QUOTIENT,
-    /** Divide two kernel numbers as 64-bit floating point numbers */
+    /** Divide two numbers as 64-bit floating point numbers */
     FLOAT64_QUOTIENT,
-    /** Divide two kernel numbers as 64-bit floating point numbers */
+    /** Divide two numbers as 64-bit floating point numbers */
     DECIMAL_QUOTIENT,
+    /** Divide two numbers */
+    GENERAL_QUOTIENT,
+    /** Return the remainder after integer division. */
+    GENERAL_REMAINDER,
     /**
-     * Get the integer division remainder of two kernel numbers as 32-bit
-     * integers
+     * Get the integer division remainder of two numbers as 32-bit integers
      */
     INT32_MODULO,
     /**
-     * Get the integer division remainder of two kernel numbers as 64-bit
-     * integers
+     * Get the integer division remainder of two numbers as 64-bit integers
      */
     INT64_MODULO,
     /**
-     * Get the integer division remainder of two kernel numbers as arbitrary
-     * sized integers
+     * Get the integer division remainder of two numbers as arbitrary sized integers
      */
     INTEGER_MODULO,
+
+    /** General numeric equality */
+    GENERAL_EQUAL,
 
     SLOT_MAPPER_FACTORY,
     ARG_MAPPER_FACTORY,
@@ -91,9 +101,9 @@ public enum KernelGlobalObject implements CoreExpr {
     FAIL_FUNCTION,
 
     /**
-     * Takes two functions f and g, and return a new function fg such that
-     * fg(...) == f(g(...)). The special trick with this is that it works for
-     * any number of arguments to g.
+     * Takes two functions f and g, and return a new function fg such that fg(...)
+     * == f(g(...)). The special trick with this is that it works for any number of
+     * arguments to g.
      */
     FUNCTION_COMPOSITION_FUNCTION,
 
@@ -114,23 +124,23 @@ public enum KernelGlobalObject implements CoreExpr {
     /**
      * EVENTS_HEAD(stream, fallback)
      * 
-     * Get the first event value in the stream as a signal. If the stream is
-     * empty, the fallback provided is used as the signal value instead.
+     * Get the first event value in the stream as a signal. If the stream is empty,
+     * the fallback provided is used as the signal value instead.
      */
     EVENTS_HEAD,
-    
+
     /**
      * EVENTS_TAIL(stream)
      * 
-     * Get the stream of events beyond the first event in the stream as a
-     * signal. If there are fewer than two events left in the stream at this
-     * time, the tail will be empty.
+     * Get the stream of events beyond the first event in the stream as a signal. If
+     * there are fewer than two events left in the stream at this time, the tail
+     * will be empty.
      */
     EVENTS_TAIL,
 
     /**
-     * Global handle to the application clock as a signal. This is a 64-bit
-     * integer number of ticks. The tick rate of the application depends on its
+     * Global handle to the application clock as a signal. This is a 64-bit integer
+     * number of ticks. The tick rate of the application depends on its
      * configuration.
      */
     APPLICATION_CLOCK,
@@ -141,39 +151,66 @@ public enum KernelGlobalObject implements CoreExpr {
     SYSTEM_CLOCK_MS,
 
     /**
-     * Special object that is equal to the value of "language kernel number" in
-     * the project root/global scope. Used to construct numbers for number
-     * literals in any scope, even a projection.
+     * Special object that is equal to the value of "language kernel number" in the
+     * project root/global scope. Used to construct numbers for number literals in
+     * any scope, even a projection.
      */
     NUMBER_FACTORY,
 
     /**
-     * Special object that is equal to the value of "language kernel string" in
-     * the project root/global scope. Used to construct strings for string
-     * literals in any scope, even a projection.
+     * Special object that is equal to the value of "language kernel string" in the
+     * project root/global scope. Used to construct strings for string literals in
+     * any scope, even a projection.
      */
     STRING_FACTORY,
 
     /**
      * Special object that is equal to the value of "empty list" in the project
-     * root/global scope. Used to construct lists for list literals in any
-     * scope, even a projection.
+     * root/global scope. Used to construct lists for list literals in any scope,
+     * even a projection.
      */
     EMPTY_LIST,
 
     /**
      * Special object that is equal to the value of "single element list" in the
-     * project root/global scope. Used to construct lists for list literals in
-     * any scope, even a projection.
+     * project root/global scope. Used to construct lists for list literals in any
+     * scope, even a projection.
      */
     LIST_ELEMENT_FACTORY,
 
     /**
-     * Special object that is equal to the value of "function trait" in the
-     * project root/global scope. Used to construct functions for function
-     * literals in any scope, even a projection.
+     * Special object that is equal to the value of "function trait" in the project
+     * root/global scope. Used to construct functions for function literals in any
+     * scope, even a projection.
      */
     FUNCTION_TRAIT,
+    GENERAL_ORDERING,
+    GENERAL_ASCENDING,
+    GENERAL_DESCENDING,
+    PROJECT_ROOT,
+    STRING_EQUALS,
+    CURRENT_SCOPE,
+
+    /**
+     * Built-in function to apply a precondition to an expression. Takes a condition
+     * expression which must be true (or truthy); if it is not, the function caller
+     * is in violation of the contract.
+     *
+     * Because a precondition is considered a programmer error, evaluation will not
+     * proceed if a precondition fails. The development tools may be able to use
+     * some data flow analysis to warn the programmer about a possible precondition
+     * failure.
+     */
+    APPLY_PRECONDITION,
+
+    /**
+     * Built-in function to apply a postcondition to an expression. Takes a
+     * predicate and an expression. The expression is passed to the predicate; the
+     * predicate must return true, evaluation will not proceed. The error indicates
+     * a failure of the algorithm internal to the expression, or a failure in the
+     * predicate.
+     */
+    APPLY_POSTCONDITION
 
     ;
 
@@ -183,14 +220,10 @@ public enum KernelGlobalObject implements CoreExpr {
     }
 
     @Override
-    public Precedence getPrecedence() {
-        return Precedence.ATOM;
-    }
+    public Precedence getPrecedence() { return Precedence.ATOM; }
 
     @Override
-    public Set<SourceFileRange> getRanges() {
-        return SourceFileRange.EMPTY_SET;
-    }
+    public Set<SourceFileRange> getRanges() { return SourceFileRange.EMPTY_SET; }
 
     @Override
     public <T> T acceptVisitor(CoreExprVisitor<T> visitor) {
@@ -329,8 +362,10 @@ public enum KernelGlobalObject implements CoreExpr {
     // }
     // }
 
+    public final Identifier identifier = new Identifier(this.name());
+
     @Override
     public SourceExpr toSourceExpr() {
-        return new Identifier(this.name());
+        return identifier;
     }
 }

@@ -20,10 +20,9 @@ public class TestStringLiteralParser {
         testParser("  \"\n   abc\n   def\n    ghi\n   jkl\n  \"", "abc\ndef\n ghi\njkl\n");
     }
 	@Test public void testMultiline2() {
-
         ParseTestUtils.test(
-            "{\n  x.is positive = (\n    \"\n      Return `true` if this number is positive.\n    \"\n  ) ⇒ !x.negative\n}",
-            "{x.is positive = ((_ = \"Return `true` if this number is positive.\\n\") ⇒ ¬x.negative)}");
+            "{\n  x.is positive = {\n    doc = \"\n      Return `true` if this number is positive.\n    \"\n  } ⇒ !x.is negative\n}",
+            "{x.is positive = ({doc = \"Return `true` if this number is positive.\\n\"} ⇒ ¬x.is negative)}");
 	}
 
     @Test

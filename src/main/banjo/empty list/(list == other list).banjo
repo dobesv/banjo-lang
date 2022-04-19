@@ -1,2 +1,2 @@
-"The empty list is only equal to the empty list" ⇒
+{ en = "The empty list is only equal to the empty list" } ⇒
 other list.is empty

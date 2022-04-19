@@ -1,0 +1,15 @@
+= Aspirations / Dreams for Banjo
+
+* Provide a system to make abstract assertions about programs/libraries/functions in category theoretic terms, in a way that
+  can be useful for detecting errors and making programs run faster.  For example isomorphisms can be used to translate
+  between data structures so that a faster data structure can be used in place of an existing one.  The system could make
+  this selection automatically if it knew it was safe to do so.
+* Great meta-programming support through staged evaluation / compilation
+* Behaviorally defined classes/sets, e.g. List contains any object that behaves like a list (has length, 
+  is empty or non-empty, can prepend or append elements, supports fmap, etc.) and Int32 contains any object
+  that behaves like an int32 (wraps around at the upper bound, truncates on division, etc..)
+* Smart enough that lists and tuples need be no different - it can statically determine that a
+  list has at least N elements and let you access those first N elements directly without
+  verifying their existence.  And, it also knows the types of the first N elements.
+
+* Limited recursion using lists / construction / induction and generators / streams / destruction / coinduction ala Charity

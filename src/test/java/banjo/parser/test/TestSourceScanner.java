@@ -8,7 +8,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import banjo.expr.Expr;
-import banjo.expr.core.Let;
+import banjo.expr.core.ScopedExpr;
 import banjo.expr.source.SourceExprFactory;
 import banjo.expr.token.Comment;
 import banjo.expr.token.Identifier;
@@ -21,10 +21,10 @@ import fj.data.List;
 public class TestSourceScanner {
 	@Test
 	public void test1() {
-		testTokenizer("# comment\n(foo= bar bar) =>\nbaz\n", "(foo = bar bar) ⇒ baz", Let.class,
+		testTokenizer("# comment\n{foo= bar bar} =>\nbaz\n", "{foo = bar bar} ⇒ baz", ScopedExpr.class,
 				new String[] {
 			"# comment\n",
-			"(", "foo", "=",	" ", "bar bar", ")", " ", "=>", "\n",
+			"{", "foo", "=",	" ", "bar bar", "}", " ", "=>", "\n",
 			"baz", "\n"
 		}, new Class<?>[] {
 			Comment.class,

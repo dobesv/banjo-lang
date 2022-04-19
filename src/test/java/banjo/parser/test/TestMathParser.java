@@ -42,11 +42,6 @@ public class TestMathParser {
         test("3 <= 2", "3 < 2 ∨ 3 == 2");
     }
 
-    @Test
-    public void extend() {
-        test("a @ b", "a Φ b");
-    }
-
 	// TODO Support right-aligned operands
 	@Ignore @Test public void testRightAlign() { test("   1\n+ 11\n+111", "(1).\\+(11).\\+(111)"); }
 
@@ -71,7 +66,7 @@ public class TestMathParser {
 
     @Test
     public void parenMultiline1() {
-        test("{\n  x = (\n    doc = \"bla\"\n  ) => bloo(\n    1, 2, 3\n  )\n}", "{x = ((doc = \"bla\") ⇒ bloo(1, 2, 3))}");
+        test("{\n  x = {\n    doc = \"bla\"\n  } => bloo(\n    1, 2, 3\n  )\n}", "{x = ({doc = \"bla\"} ⇒ bloo(1, 2, 3))}");
     }
 
 	@Test public void negateCallResult() { test("-abs(x)", "-abs(x)"); }

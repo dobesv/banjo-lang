@@ -1,14 +1,14 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Set;
 
 public class FailWithSourceFileRangesAndMessage extends FailWithMessage {
     private final Set<SourceFileRange> ranges;
 
-    public FailWithSourceFileRangesAndMessage(List<?> trace, Set<SourceFileRange> ranges, String message) {
-        super(trace, message);
+    public FailWithSourceFileRangesAndMessage(EvalContext<?> ctx, Set<SourceFileRange> ranges, String message) {
+        super(ctx, message);
         this.ranges = ranges;
     }
 

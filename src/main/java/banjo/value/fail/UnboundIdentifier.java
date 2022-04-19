@@ -1,16 +1,15 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.Value;
-import fj.data.List;
 import fj.data.Set;
 
 public class UnboundIdentifier extends Fail {
 	public final String id;
     public final Set<SourceFileRange> ranges;
 	
-    public UnboundIdentifier(List<Value> trace, Set<SourceFileRange> ranges, String id) {
-        super(trace);
+    public UnboundIdentifier(EvalContext<?> ctx, Set<SourceFileRange> ranges, String id) {
+        super(ctx);
         this.id = id;
         this.ranges = ranges;
     }

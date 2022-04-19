@@ -1,1 +1,5 @@
-0
+(
+    usage examples = [
+        false.ordinal == 0
+    ]
+) => 0

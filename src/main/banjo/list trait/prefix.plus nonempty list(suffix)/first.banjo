@@ -1,8 +1,0 @@
-"A list containing only the the first element of this list." ⇒
-(usage examples = [
-   [1,2,3].first == [1]
-   [].first == []
-   [4,4].first == [4]
-   ([2] + [5]).first == [2]
-]) ⇒
-prefix.first

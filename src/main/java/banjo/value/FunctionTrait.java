@@ -1,30 +1,38 @@
 package banjo.value;
 
-import java.util.Arrays;
-
-import banjo.expr.source.Operator;
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
-import banjo.value.meta.FunctionComposition;
-import fj.data.List;
+import banjo.value.special.FunctionComposition;
+import fj.data.Option;
 import fj.data.Set;
 
 /**
- * Supply slots for function composition
+ * Inherit all the slots defined for a function for this value.
  */
-public abstract class FunctionTrait extends ValueToStringTrait implements Value {
+public abstract class FunctionTrait implements Value {
 
+    public final Value trait;
 
-	@Override
-	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        if(Arrays.asList(Operator.FUNCTION_COMPOSITION_LEFT.ops).contains(name)) {
-			return Value.function(this::compose);
+    public FunctionTrait(Value trait) {
+        super();
+        this.trait = trait;
+    }
+
+    @Override
+    public Value slot(EvalContext<Value> ctx, Value self, String name, Set<SourceFileRange> ranges, Option<Value> fallback) {
+        if (!name.equals("label")) {
+            return trait.slot(ctx, self, name, ranges, fallback);
 		} else {
-			return Value.super.slot(trace, self, name, ranges, fallback);
+			return Value.super.slot(ctx, self, name, ranges, fallback);
 		}
 	}
 
 	public Value compose(Value functionAfter) {
-		return new FunctionComposition(functionAfter, this);
+        return new FunctionComposition(functionAfter, this, this.trait);
 	}
+
+    public Value getTrait() {
+        return trait;
+    }
 
 }

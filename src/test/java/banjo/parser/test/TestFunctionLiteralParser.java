@@ -5,41 +5,63 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 import banjo.expr.core.CoreExpr;
-import banjo.expr.core.ObjectLiteral;
+import banjo.expr.core.BindingExpr;
 import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.ListUtil;
-
+import fj.data.List;
+import static banjo.parser.test.ParseTestUtils.test;
 
 public class TestFunctionLiteralParser {
 
-    public ObjectLiteral testParse(String source, int expectedErrors, int expectedArgCount, String expectedArgNames,
-            String expectedArgReturned) {
-		return testParse(source, expectedErrors, expectedArgCount, null, expectedArgNames, expectedArgReturned);
-	}
+    public BindingExpr testParse(
+        String source,
+        int expectedErrors,
+        int expectedArgCount,
+        String expectedArgNames,
+        String expectedArgReturned
+    )
+    {
+        return testParse(source, expectedErrors, expectedArgCount, null, expectedArgNames, expectedArgReturned);
+    }
 
-    public ObjectLiteral testParse(String source, int expectedErrors, int expectedArgCount, String selfName,
-            String expectedArgNames, final String expectedBody) {
+    public BindingExpr testParse(
+        String source,
+        int expectedErrors,
+        int expectedArgCount,
+        String selfName,
+        String expectedArgNames,
+        final String expectedBody
+    )
+    {
         final String argList = expectedArgNames.contains(",") || selfName != null ? "(" + expectedArgNames + ")"
-                : expectedArgNames;
-		final String normalizedSource =
-				(selfName==null?"":selfName)+
-                        argList + " " + Operator.FUNCTION.getOp() + " " + expectedBody;
-        ObjectLiteral func;
-        ParseTestUtils.test(source, expectedErrors, null, ObjectLiteral.class, normalizedSource);
-        func = (ObjectLiteral) CoreExpr.fromString(source);
-		final StringBuffer sb = new StringBuffer();
-        String formalArgNames = ListUtil.insertCommas(func.slots.head().args.drop(2).map(Identifier::getId));
+            : expectedArgNames;
+        final String normalizedSource = expectedArgCount == 0 && selfName == null
+            ? Operator.NULLARY_FUNCTION_LITERAL.getOp() + expectedBody
+            : (selfName == null ? "" : selfName) + argList + " " + Operator.FUNCTION_ARROW.getOp() + " " + expectedBody;
+        BindingExpr func;
+        ParseTestUtils.test(source, expectedErrors, null, BindingExpr.class, normalizedSource);
+        func = (BindingExpr) CoreExpr.fromString(source);
+        String formalArgNames = ListUtil
+            .insertCommas(func.getSimpleArgsList().orSome(List.nil()).map(Identifier::getId));
         assertEquals(expectedArgNames, formalArgNames);
-		return func;
-	}
+        return func;
+    }
 
     @Test
     public void testLazyZ() {
         testParse("↦z", 0, 0, "", "z");
     } // Lazy value
-	@Test public void testIdentity()   { testParse("a↦a", 0, 1, "a", "a"); } // Identity function
-	@Test public void testIdentity2()  { testParse("(a)↦a", 0, 1, "a", "a"); } // Identity function, parens added
+
+    @Test
+    public void testIdentity() {
+        testParse("a↦a", 0, 1, "a", "a");
+    } // Identity function
+
+    @Test
+    public void testIdentity2() {
+        testParse("(a)↦a", 0, 1, "a", "a");
+    } // Identity function, parens added
 
     @Test
     public void testFst() {
@@ -62,16 +84,24 @@ public class TestFunctionLiteralParser {
     } // Lazy value, with parens
 
     @Test
-    public void testSelfName1() {
-        testParse("s(a)↦a", 0, 0, "s", "a", "a");
-    } // Unary function, with parens and "self name"
-	@Test public void testSelfName2() { testParse("s()↦s", 0, 0, "s", "", "s"); } // Nullary function, with parens and "self name"
-
-    @Test
     public void testUnpackObjectNoParens() {
-        testParse("{a,b}↦a", 0, 1, null, "__0", "((a = __0.a, b = __0.b) ⇒ a)");
+        test("{a,b}↦a", "{a, b} ↦ a");
     }
 
-	@Test public void testUnpackObjectNested() { testParse("({character, list, boolean={true, false}}) -> a", 0, 1, "__0", "((character = __0.character, list = __0.list, true = __0.boolean.true, false = __0.boolean.false) ⇒ a)"); }
+    @Test
+    public void testUnpackObjectParens() {
+        test("({a,b})↦a", "{a, b} ↦ a");
+    }
+
+    @Test
+    public void testUnpackObjectNested() {
+        test(
+            "({character, list, boolean={true, false}}) -> a",
+            "{" + Identifier.ARG_0
+                + ".{character, list, +boolean.{true, false}} ==> "
+                + Identifier.BETA_REDUCTION
+                + " = a}"
+        );
+    }
 
 }

@@ -1,6 +1,5 @@
 package banjo.expr.free;
 
-import banjo.eval.resolver.GlobalRef;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
 import banjo.expr.util.SourceFileRange;
@@ -41,10 +40,6 @@ public interface PartialResolver extends NameRefAlgebra<Option<FreeExpression>> 
                 return translation.baseSlot(ranges, slotObjectRef, slotName).acceptVisitor(visitor);
             }
 
-            @Override
-            public Option<FreeExpression> global(GlobalRef globalRef) {
-                return translation.global(globalRef).acceptVisitor(visitor);
-            }
         };
     }
 
@@ -71,11 +66,6 @@ public interface PartialResolver extends NameRefAlgebra<Option<FreeExpression>> 
 
     @Override
     public default Option<FreeExpression> local(Set<SourceFileRange> ranges, String name) {
-        return Option.none();
-    }
-
-    @Override
-    default Option<FreeExpression> global(GlobalRef globalRef) {
         return Option.none();
     }
 
@@ -107,10 +97,6 @@ public interface PartialResolver extends NameRefAlgebra<Option<FreeExpression>> 
                 return first.slot(object, ranges, slotName).orElse(() -> second.slot(object, ranges, slotName));
             }
 
-            @Override
-            public Option<FreeExpression> global(GlobalRef globalRef) {
-                return first.global(globalRef).orElse(() -> second.global(globalRef));
-            }
             @Override
             public Option<FreeExpression> apply(NameRef ref) {
                 return first.apply(ref).orElse(() -> second.apply(ref));

@@ -45,8 +45,4 @@ public class ClosureResolver<T> implements Resolver<T> {
         return fromClosure(NameRef.invalid(ranges, reason));
     }
 
-    @Override
-    public T global(GlobalRef globalRef) {
-        return fromClosure(globalRef);
-    }
 }

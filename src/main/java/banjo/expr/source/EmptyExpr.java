@@ -2,6 +2,7 @@ package banjo.expr.source;
 
 import banjo.expr.AbstractExpr;
 import banjo.expr.BadExpr;
+import banjo.expr.core.CoreExpr;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 import fj.data.Set;
@@ -46,6 +47,10 @@ public class EmptyExpr extends AbstractExpr implements SourceExpr {
 	@Override
 	public Precedence getPrecedence() {
 		return Precedence.ATOM;
+	}
+	
+	public CoreExpr extendWith(CoreExpr other) {
+		return other;
 	}
 
 }

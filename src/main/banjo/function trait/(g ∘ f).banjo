@@ -1,7 +1,6 @@
-(
-  "Compose functions `g` and `f`, such that `(g ∘ f)(x) == g(f(x))` for any `x`"
-  usage examples = [
+{
+  en = "Compose functions `g` and `f`, such that `(g ∘ f)(x) == g(f(x))` for any `x`"
+  eg = [
     ((1.+) ∘ (2.*))(3) == (1 + (2 * 3))  
   ]
-) ⇒
-language kernel.compose(f, g)
+} ⇒ f @ ((_, r) -> g(r)) 

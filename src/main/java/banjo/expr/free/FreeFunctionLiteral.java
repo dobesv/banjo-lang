@@ -1,6 +1,6 @@
 package banjo.expr.free;
 
-import banjo.eval.resolver.GlobalRef;
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
@@ -22,12 +22,6 @@ public class FreeFunctionLiteral implements FreeExpression {
 
     // Memoization for free refs calculation
     private Set<NameRef> freeRefs;
-
-    public FreeFunctionLiteral(Set<SourceFileRange> ranges,
-        List<String> args, FreeExpression body,
-        Option<String> sourceObjectBinding) {
-        this(ranges, args, body, FreeExpression.functionTrait(), sourceObjectBinding);
-    }
 
 	public FreeFunctionLiteral(Set<SourceFileRange> ranges,
         List<String> args, FreeExpression body, FreeExpression trait,
@@ -93,10 +87,6 @@ public class FreeFunctionLiteral implements FreeExpression {
                 return true;
             }
 
-            @Override
-            public Boolean global(GlobalRef globalRef) {
-                return true;
-            }
         });
 	}
 
@@ -134,9 +124,9 @@ public class FreeFunctionLiteral implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
         // Expand closure into the function body
-        T trait = this.trait.eval(trace, resolver, algebra);
+        T trait = this.trait.eval(ctx, resolver, algebra);
         TreeMap<NameRef, T> closure = FreeFunctionLiteral.closure(args, sourceObjectBinding, body, resolver);
         return algebra.functionInstance(ranges, args, body, sourceObjectBinding, trait, closure);
     }

@@ -1,8 +1,9 @@
 (
-   "Return a new predicate that return true if this predicate would turn false, and false when this predicate would return true"
-   usage examples = [
+   en = "Return a new predicate that return true if this predicate would turn false, and false when this predicate would return true"
+   eg = [
+     (1 > 2) == true
+     (x -> x > 2).logical inverse(1) == true
      (5.<).logical inverse(6) == false
      (5.<).logical inverse(5) == true   
    ]   
-) ⇒
-f ; .! 
+) ⇒ f >> .! 

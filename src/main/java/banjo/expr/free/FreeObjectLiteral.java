@@ -1,7 +1,7 @@
 package banjo.expr.free;
 
+import banjo.eval.EvalContext;
 import banjo.eval.expr.SlotInstance;
-import banjo.eval.resolver.GlobalRef;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
@@ -72,10 +72,6 @@ public class FreeObjectLiteral implements FreeExpression {
                 return true;
             }
 
-            @Override
-            public Boolean global(GlobalRef globalRef) {
-                return true;
-            }
         });
     }
 
@@ -116,11 +112,11 @@ public class FreeObjectLiteral implements FreeExpression {
         return Option.some(new FreeObjectLiteral(ranges, newSlots));
     }
 
-    public <T> P2<String, SlotInstance<T>> bindSlot(List<T> trace, String slotName, Option<String> slotObjectRef, FreeExpression body,
+    public <T> P2<String, SlotInstance<T>> bindSlot(EvalContext<T> ctx, String slotName, Option<String> slotObjectRef, FreeExpression body,
         Resolver<T> resolver, InstanceAlgebra<T> algebra) {
         
         if(slotObjectRef.isNone()) {
-            T t = body.eval(trace, resolver, algebra);
+            T t = body.eval(ctx, resolver, algebra);
             return P.p(slotName, SlotInstance.closed(t));
         } else {
             return P.p(slotName, SlotInstance.open(slotName, slotObjectRef.some(), body, resolver));
@@ -128,8 +124,9 @@ public class FreeObjectLiteral implements FreeExpression {
     }
 
     @Override
-    public <T> T eval(List<T> trace, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
-        List<P2<String, SlotInstance<T>>> slots = this.slots.map(p -> bindSlot(trace, p._1(), p._2(), p._3(), resolver, algebra));
+    public <T> T eval(EvalContext<T> ctx, Resolver<T> resolver, InstanceAlgebra<T> algebra) {
+        List<P2<String, SlotInstance<T>>> slots = this.slots
+                .map(p -> bindSlot(ctx, p._1(), p._2(), p._3(), resolver, algebra));
         return algebra.slotMemoizer(algebra.objectLiteral(ranges, TreeMap.iterableTreeMap(Ord.stringOrd, slots)));
 	}
 

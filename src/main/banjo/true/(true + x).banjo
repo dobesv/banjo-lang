@@ -1,0 +1,5 @@
+"
+  For booleans, addition is the same as logical or.
+  
+  Thus, `true + x == true`
+" => true

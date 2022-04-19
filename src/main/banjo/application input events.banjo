@@ -1,8 +1,9 @@
-"
-  Make a list out of the application's incoming events, so we can just
-  use list operations on events.
-" ⇒ (
-  event list factory(past events) ↦ (event, future) ↦ (
+{ 
+  en = "
+    Make a list out of the application's incoming events, so we can just
+    use list operations on events.
+  " 
+  event list factory(past events) ↦ (event, future) ↦ {
     new past events = past events + [event] 
-  ) ⇒ future(new past events, event list factory(new past events))
-) ⇒ EVENT_FOLD([], single element list, .+)
+  } ⇒ future(new past events, event list factory(new past events))
+} ⇒ EVENT_FOLD([], single element list, .+)

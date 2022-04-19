@@ -1,29 +1,24 @@
 package banjo.eval.resolver;
 
 import banjo.eval.BaseSlotNotFound;
+import banjo.eval.EvalContext;
 import banjo.eval.ExtendedObject;
 import banjo.eval.expr.CallInstance;
 import banjo.eval.expr.FunctionInstance;
 import banjo.eval.expr.ObjectLiteralInstance;
 import banjo.eval.expr.SlotInstance;
+import banjo.expr.core.KernelGlobalObject;
 import banjo.expr.free.FreeExpression;
+import banjo.expr.token.NumberLiteral;
+import banjo.expr.token.StringLiteral;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.SlotValue;
 import banjo.value.Value;
-import banjo.value.fail.FailWithMessage;
 import banjo.value.fail.FailWithSourceFileRangesAndMessage;
 import banjo.value.fail.UnboundIdentifier;
 import banjo.value.fail.UnboundSlotObject;
 import banjo.value.fail.UnresolvedCodeError;
-import banjo.value.kernel.KernelBooleanValue;
-import banjo.value.kernel.KernelNumberValue;
-import banjo.value.kernel.KernelStringValue;
-import banjo.value.meta.ArgMapper;
-import banjo.value.meta.DynamicCallProxy;
-import banjo.value.meta.DynamicSlotProxy;
-import banjo.value.meta.FunctionComposition;
-import banjo.value.meta.SlotMapper;
-import banjo.value.meta.SlotMemoizer;
+import banjo.value.special.SlotMemoizer;
 import fj.data.List;
 import fj.data.Option;
 import fj.data.Set;
@@ -38,7 +33,7 @@ public class ValueInstanceAlgebra implements InstanceAlgebra<Value> {
     public static final ValueInstanceAlgebra INSTANCE = new ValueInstanceAlgebra();
 
     @Override
-    public Value call(List<Value> trace, Set<SourceFileRange> ranges, Value callee, List<Value> args) {
+    public Value call(EvalContext<Value> ctx, Set<SourceFileRange> ranges, Value callee, List<Value> args) {
         return new CallInstance(ranges, callee, args);
     }
 
@@ -59,11 +54,6 @@ public class ValueInstanceAlgebra implements InstanceAlgebra<Value> {
     }
 
     @Override
-    public Value kernelNumber(Set<SourceFileRange> ranges, Number number, Value trueValue) {
-        return new KernelNumberValue(number, trueValue);
-    }
-
-    @Override
     public Value objectLiteral(Set<SourceFileRange> ranges, TreeMap<String, SlotInstance<Value>> slots) {
         return new ObjectLiteralInstance(ranges, slots);
     }
@@ -74,18 +64,9 @@ public class ValueInstanceAlgebra implements InstanceAlgebra<Value> {
     }
 
     @Override
-    public Value slotValue(Value object, Value self, String slotName, Set<SourceFileRange> ranges, Value prevSlotValue) {
+    public Value slotValue(Value object, Value self, String slotName, Set<SourceFileRange> ranges,
+            Option<Value> prevSlotValue) {
         return new SlotValue(object, self, slotName, ranges, prevSlotValue);
-    }
-
-    @Override
-    public Value kernelString(Set<SourceFileRange> ranges, String text, Value trueValue) {
-        return new KernelStringValue(text, trueValue);
-    }
-
-    @Override
-    public Value kernelBoolean(Set<SourceFileRange> ranges, boolean value, Value trueValue) {
-        return new KernelBooleanValue(value, trueValue);
     }
 
     @Override
@@ -94,60 +75,37 @@ public class ValueInstanceAlgebra implements InstanceAlgebra<Value> {
     }
 
     @Override
-    public Value baseSlotNotFound(List<Value> trace, String slotName, Set<SourceFileRange> ranges, Value object) {
-        return new BaseSlotNotFound<Value>(trace, slotName, ranges, object);
+    public Value baseSlotNotFound(EvalContext<Value> ctx, String slotName, Set<SourceFileRange> ranges, Value object) {
+        return new BaseSlotNotFound<Value>(ctx, slotName, ranges, object);
     }
 
     @Override
-    public Value unboundSlotSelfName(List<Value> trace, Set<SourceFileRange> ranges, String id) {
-        return new UnboundSlotObject(trace, ranges, id);
-    }
-
-    @Override
-    public Value argMapperFactory() {
-        return Value.function(ArgMapper::new);
-    }
-
-    @Override
-    public Value dynamicCallProxyFactory() {
-        return Value.function(DynamicCallProxy::new);
-    }
-
-    @Override
-    public Value dynamicSlotProxyFactory() {
-        return Value.function(DynamicSlotProxy::new);
-    }
-
-    @Override
-    public Value functionCompositionFunction() {
-        return Value.function(FunctionComposition::new);
-    }
-
-    @Override
-    public Value slotMapperFactory() {
-        return Value.function(SlotMapper::new);
-    }
-
-    @Override
-    public Value failFunction() {
-        // TODO Capture the trace by creating a custom Value type and implement
-        // call().
-        return Value.function(message -> new FailWithMessage(List.nil(), message));
-    }
-
-    @Override
-    public Value extendFunction() {
-        return Value.function(ExtendedObject::new);
+    public Value unboundSlotSelfName(EvalContext<Value> ctx, Set<SourceFileRange> ranges, String id) {
+        return new UnboundSlotObject<Value>(ctx, ranges, id);
     }
 
     @Override
     public Value fail(Set<SourceFileRange> ranges, String message) {
-        return new FailWithSourceFileRangesAndMessage(List.nil(), ranges, message);
+        return new FailWithSourceFileRangesAndMessage(EvalContext.NONE, ranges, message);
     }
 
     @Override
     public Value unboundIdentifier(Set<SourceFileRange> ranges, String name) {
-        return new UnboundIdentifier(List.nil(), ranges, name);
+        return new UnboundIdentifier(EvalContext.NONE, ranges, name);
     }
 
+    @Override
+    public Value kernelGlobalObject(KernelGlobalObject ko) {
+        return ko;
+    }
+
+    @Override
+    public Value number(NumberLiteral n) {
+        return n;
+    }
+
+    @Override
+    public Value string(StringLiteral s) {
+        return s;
+    }
 }

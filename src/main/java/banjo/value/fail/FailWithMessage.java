@@ -1,20 +1,18 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.value.Value;
-import banjo.value.kernel.KernelStringValue;
-import fj.data.List;
 
 public class FailWithMessage extends Fail {
 	public final String message;
 	
-    public FailWithMessage(List<?> trace, String message) {
-        super(trace);
+    public FailWithMessage(EvalContext<?> ctx, String message) {
+        super(ctx);
 		this.message = message;
 	}
 	
-    public FailWithMessage(List<Value> trace, Value message) {
-        super(trace);
-        this.message = KernelStringValue.extractString(trace, message).orSome(message::toString);
+    public FailWithMessage(EvalContext<?> ctx, Value message) {
+        this(ctx, message.toString());
     }
 
 	@Override

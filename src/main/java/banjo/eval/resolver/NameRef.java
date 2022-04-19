@@ -41,10 +41,6 @@ public interface NameRef {
                         return Ordering.LT;
                     }
 
-                    @Override
-                    public Ordering global(GlobalRef globalRef) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -80,10 +76,6 @@ public interface NameRef {
                         return Ordering.LT;
                     }
 
-                    @Override
-                    public Ordering global(GlobalRef globalRef) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -120,10 +112,6 @@ public interface NameRef {
                         return Ordering.LT;
                     }
 
-                    @Override
-                    public Ordering global(GlobalRef globalRef) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -156,10 +144,6 @@ public interface NameRef {
                         return Ordering.LT;
                     }
 
-                    @Override
-                    public Ordering global(GlobalRef globalRef) {
-                        return Ordering.LT;
-                    }
                 });
             }
 
@@ -190,47 +174,6 @@ public interface NameRef {
                     @Override
                     public Ordering invalid(Set<SourceFileRange> ranges, String reason2) {
                         return Ord.stringOrd.compare(reason1, reason2);
-                    }
-
-                    @Override
-                    public Ordering global(GlobalRef globalRef) {
-                        return Ordering.LT;
-                    }
-                });
-            }
-
-            @Override
-            public Ordering global(GlobalRef globalRef1) {
-                return other.acceptVisitor(new NameRefAlgebra<Ordering>() {
-
-                    @Override
-                    public Ordering local(Set<SourceFileRange> ranges, String name2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering slot(NameRef object, Set<SourceFileRange> ranges, String slotName2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering baseSlot(Set<SourceFileRange> ranges, String slotObjectRef, String slotName2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering functionBase(Set<SourceFileRange> ranges, String functionSelfName2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering invalid(Set<SourceFileRange> ranges, String reason2) {
-                        return Ordering.GT;
-                    }
-
-                    @Override
-                    public Ordering global(GlobalRef globalRef2) {
-                        return Ord.intOrd.compare(globalRef1.ordinal(), globalRef2.ordinal());
                     }
                 });
             }
@@ -264,32 +207,7 @@ public interface NameRef {
         return new InvalidNameRef(ranges, reason);
     }
 
-    public static NameRef trueValue() {
-        return GlobalRef.TRUE;
-    }
-
     public default boolean eql(NameRef other) {
         return ORD.compare(this, other) == Ordering.EQ;
     }
-
-    public static NameRef functionTrait() {
-        return GlobalRef.FUNCTION_TRAIT;
-    }
-
-    public static NameRef languageKernelString() {
-        return GlobalRef.LANGUAGE_KERNEL_STRING;
-    }
-
-    public static NameRef languageKernelNumber() {
-        return GlobalRef.LANGUAGE_KERNEL_NUMBER;
-    }
-
-    public static NameRef emptyList() {
-        return GlobalRef.EMPTY_LIST;
-    }
-
-    public static NameRef singleElementListFactory() {
-        return GlobalRef.SINGLE_ELEMENT_LIST_FACTORY;
-    }
-
 }

@@ -1,6 +1,6 @@
 package banjo.value;
 
-import banjo.expr.util.ListUtil;
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
 import fj.data.List;
 import fj.data.Set;
@@ -13,8 +13,8 @@ public class MethodCallInstance extends CalculatedValue {
 	public final Value fallback;
 	public final List<Value> args;
 	
-    public MethodCallInstance(Value object, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-		super();
+    public MethodCallInstance(Value object, String name, Set<SourceFileRange> ranges,
+            Value targetObject, Value fallback, List<Value> args) {
 		this.object = object;
 		this.name = name;
         this.ranges = ranges;
@@ -24,15 +24,12 @@ public class MethodCallInstance extends CalculatedValue {
 	}
 	
 	@Override
-	public Value calculate(List<Value> trace) {
-		return object.callMethod(trace, name, ranges, targetObject, fallback, args);
-	}
-	
-	public MethodCallInstance update(Value targetObject, Value fallback, List<Value> args) {
-		if(targetObject == this.targetObject && fallback == this.fallback && 
-				ListUtil.elementsEq(args, this.args))
-			return this;
-        return new MethodCallInstance(object, name, ranges, targetObject, fallback, args);
+	public Value calculate(EvalContext<Value> ctx) {
+        return object.callMethod(ctx, name, ranges, targetObject, fallback, args);
 	}
 
+    @Override
+    public <T> T acceptVisitor(ValueVisitor<T> visitor) {
+        return visitor.methodCall(this);
+    }
 }

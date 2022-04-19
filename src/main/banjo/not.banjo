@@ -1,2 +1,2 @@
-"Function wrapper for the ! operator" ⇒
+{ en = "not(x) = !x" } ⇒
 x ↦ !x

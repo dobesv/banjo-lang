@@ -1,2 +1,2 @@
-"No element is contained in the empty list" ⇒
+{ en = "No element is contained in the empty list" } ⇒
 false

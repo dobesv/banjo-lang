@@ -1,0 +1,2 @@
+(((elt, etc, n) -> f(elt, etc + suffix, n)) ∘ prefix) + 
+(((elt, etc, n) -> f(elt, etc, n + |prefix|)) ∘ suffix)

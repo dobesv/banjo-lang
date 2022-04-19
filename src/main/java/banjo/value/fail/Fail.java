@@ -1,64 +1,67 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.Value;
 import banjo.value.ValueVisitor;
 import fj.data.Either;
 import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 
 public class Fail implements Value {
 	
-    public final List<?> trace;
+    public final EvalContext<?> ctx;
 	
-    public Fail(List<?> trace) {
-        this.trace = trace;
+    public Fail(EvalContext<?> trace) {
+        this.ctx = trace;
 	}
 
 	@Override
-	public Value slot(List<Value> trace, String name, Set<SourceFileRange> ranges) {
+    public Value slot(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges) {
 		return this;
 	}
 
 	@Override
-	public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
+    public Value slot(EvalContext<Value> ctx, Value self, String name, Set<SourceFileRange> ranges,
+            Option<Value> fallback) {
 	    return this;
 	}
 
 	@Override
-	public Value call(List<Value> trace, List<Value> arguments) {
+    public Value call(EvalContext<Value> ctx, List<Value> arguments) {
 	    return this;
 	}
 
 	@Override
-	public Value call(List<Value> trace, Value recurse, Value baseImpl, List<Value> arguments) {
+    public Value call(EvalContext<Value> ctx, Value recurse, Value baseImpl, List<Value> arguments) {
 	    return this;
 	}
 
 	@Override
-	public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges,
+    public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges,
 	        Value targetObject, Value fallback, List<Value> args) {
 	    return this;
 	}
 
 	@Override
-    public Value force(List<Value> trace) {
+    public Value force(EvalContext<Value> ctx) {
 	    return this;
 	}
 
 	@Override
-	public boolean isDefined(List<Value> trace) {
+	public boolean isDefined(EvalContext<Value> ctx) {
 		return false;
 	}
 
 	@Override
-	public boolean isTrue(List<Value> trace) {
+	public boolean isTrue(EvalContext<Value> ctx) {
 	    return false;
 	}
 
 	@Override
-	public <T> Either<T, Fail> convertToJava(List<Value> trace, Class<T> clazz) {
+	public <T> Either<T, Fail> convertToJava(EvalContext<Value> ctx, Class<T> clazz) {
 		if(clazz.isAssignableFrom(Fail.class)) {
 			return Either.left(clazz.cast(this));
 		}
@@ -66,7 +69,7 @@ public class Fail implements Value {
 	}
 
 	@Override
-	public String javaLabel(List<Value> trace) {
+	public String javaLabel(EvalContext<Value> ctx) {
 		return this.toString();
 	}
 	
@@ -78,8 +81,8 @@ public class Fail implements Value {
 		return null;
 	}
 
-    public List<?> getTrace() {
-		return trace;
+    public EvalContext<?> getTrace() {
+        return ctx;
 	}
 	
     public Set<SourceFileRange> getRanges() {
@@ -97,6 +100,6 @@ public class Fail implements Value {
     }
 
     public <T> List<T> getTrace(Class<T> clazz) {
-        return trace.filter(clazz::isInstance).map(clazz::cast);
+        return ctx.trace.filter(clazz::isInstance).map(clazz::cast);
     }
 }

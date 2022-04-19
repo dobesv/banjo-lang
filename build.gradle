@@ -6,8 +6,8 @@ apply plugin: "osgi"
 
 version = "0.1"
 group = "banjo"
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+// sourceCompatibility = JavaVersion.VERSION_11
+// targetCompatibility = JavaVersion.VERSION_11
 archivesBaseName = "banjo.banjo-lang"
 
 // Set file encoding to UTF-8 for all java files
@@ -15,9 +15,9 @@ compileJava.options.encoding = 'UTF-8'
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
-eclipseJdt << {
+eclipseJdt { doLast {
 	file(".settings/org.eclipse.core.resources.prefs").text = "eclipse.preferences.version=1\nencoding/<project>=UTF-8"
-}
+}}
 
 ext {
 	projectTitle = "Banjo Language Tools"
@@ -34,7 +34,7 @@ repositories {
 }
 
 dependencies {
-	compile 'org.functionaljava:functionaljava-java8:4.7'
+	compile 'org.functionaljava:functionaljava-java8:4.8'
 	compile 'org.apache.commons:commons-math3:3.6.1'
 	compile 'org.apache.httpcomponents:httpclient:4.5.1'	
     compile 'org.apache.httpcomponents:httpclient-osgi:4.5.1'    
@@ -81,33 +81,35 @@ eclipse {
 }
 
 // Output MANIFEST.MF statically so eclipse can see it for plugin development
-task eclipsePluginManifest(dependsOn: jar) << {
+task eclipsePluginManifest(dependsOn: jar) { doLast {
   file("META-INF").mkdirs()
   jar.manifest.writeTo(file("META-INF/MANIFEST.MF"))
-}
+}}
 
 eclipseProject.dependsOn eclipsePluginManifest
 
-task eclipseBuildProperties << {
-	Properties props = new java.util.Properties()
-	props.setProperty("source..",
-		(sourceSets.main.java.srcDirs +
-			sourceSets.test.java.srcDirs)
-		.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it)})
-		.join(","))
-	props.setProperty("src.includes",
-		(["build.gradle", "Readme.md"].collect({project.file(it)}))
-		.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it) + (it.isDirectory()?"/":"")})
-		.join(","))
-	props.setProperty("bin.includes", [
-			project.buildDir,
-			"META-INF"
-		].collect({project.file(it)})
-		.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it) + (it.isDirectory()?"/":"")})
-		.join(","))
-
-	println props.toString()
-	props.store(new FileWriter(project.file("build.properties")), "build.properties for eclipse.")
+task eclipseBuildProperties { 
+	doLast {
+		Properties props = new java.util.Properties()
+		props.setProperty("source..",
+			(sourceSets.main.java.srcDirs +
+				sourceSets.test.java.srcDirs)
+			.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it)})
+			.join(","))
+		props.setProperty("src.includes",
+			(["build.gradle", "Readme.md"].collect({project.file(it)}))
+			.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it) + (it.isDirectory()?"/":"")})
+			.join(","))
+		props.setProperty("bin.includes", [
+				project.buildDir,
+				"META-INF"
+			].collect({project.file(it)})
+			.collect({org.apache.tools.ant.util.FileUtils.getRelativePath(project.projectDir, it) + (it.isDirectory()?"/":"")})
+			.join(","))
+	
+		println props.toString()
+		props.store(new FileWriter(project.file("build.properties")), "build.properties for eclipse.")
+	}
 }
 
 eclipseProject.dependsOn eclipseBuildProperties

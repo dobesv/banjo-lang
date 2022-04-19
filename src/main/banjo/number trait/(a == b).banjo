@@ -1,0 +1,12 @@
+a.binary op type selector(b) {
+  int8 = EQ_INT8
+  int16 = EQ_INT16
+  int32 = EQ_INT32
+  int64 = EQ_INT64
+  integer = EQ_INTEGER
+  float32 = EQ_FLOAT32
+  float64 = EQ_FLOAT64
+  decimal = EQ_DECIMAL
+  general number = EQ_NUMBER
+} (a, b, true, false)
+

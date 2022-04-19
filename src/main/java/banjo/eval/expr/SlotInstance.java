@@ -1,5 +1,6 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.Resolver;
@@ -7,7 +8,7 @@ import banjo.expr.free.FreeExpression;
 import banjo.expr.free.FreeObjectLiteral;
 import fj.Ord;
 import fj.Ordering;
-import fj.data.List;
+import fj.data.Option;
 import fj.data.Set;
 
 public interface SlotInstance<T> {
@@ -62,7 +63,7 @@ public interface SlotInstance<T> {
     /**
      * Calculate the slot
      */
-    public T apply(List<T> trace, T self, T prevSlotValue, InstanceAlgebra<T> algebra);
+    public T apply(EvalContext<T> ctx, T self, Option<T> prevSlotValue, InstanceAlgebra<T> algebra);
 
     /**
      * Allow a calculation based on what type of slot this is - open or closed.

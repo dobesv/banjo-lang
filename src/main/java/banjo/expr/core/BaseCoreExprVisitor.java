@@ -29,16 +29,6 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 	}
 
 	@Override
-	public T call(Call n) {
-		return fallback();
-	}
-
-	@Override
-	public T objectLiteral(ObjectLiteral n) {
-		return fallback();
-	}
-
-	@Override
 	public T listLiteral(ListLiteral n) {
 		return fallback();
 	}
@@ -58,28 +48,22 @@ public abstract class BaseCoreExprVisitor<T> implements CoreExprVisitor<T> {
 		return fallback();
 	}
 
-	@Override
-	public T let(Let let) {
-	    return fallback();
-	}
-
-	@Override
-	public T functionLiteral(FunctionLiteral f) {
-	    return fallback();
-	}
-
-	@Override
-	public T baseFunctionRef(BaseFunctionRef baseFunctionRef) {
-	    return fallback();
-	}
-	
-	@Override
-	public T projection(Projection projection) {
+		@Override
+	public T scoped(ScopedExpr projection) {
 		return fallback();
 	}
 
     @Override
     public T kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
+        return fallback();
+    }
+    
+    @Override
+    public T binding(BindingExpr b) {
+    	return fallback();
+    }
+    @Override
+    public T nil() {
         return fallback();
     }
 }

@@ -1,7 +1,8 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.InstanceAlgebra;
-import fj.data.List;
+import fj.data.Option;
 
 /**
  * A closed slot instance is not affected by extension operations because it
@@ -17,7 +18,7 @@ public class ClosedSlotInstance<T> implements SlotInstance<T> {
     }
 
     @Override
-    public T apply(List<T> trace, T t, T u, InstanceAlgebra<T> a) {
+    public T apply(EvalContext<T> ctx, T t, Option<T> u, InstanceAlgebra<T> a) {
         return this.value;
 	}
 	

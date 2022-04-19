@@ -6,7 +6,6 @@ import banjo.expr.util.SourceFileRange;
 import fj.Ord;
 import fj.P;
 import fj.P2;
-import fj.P3;
 import fj.data.Either;
 import fj.data.List;
 import fj.data.Set;
@@ -59,14 +58,6 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
-    public DefRefAnalyser objectLiteral(Set<SourceFileRange> ranges,
-            List<P3<Identifier, List<Identifier>, DefRefAnalyser>> slots) {
-        DefRefAnalyser x = unionList(slots.map(p -> p._3().defs(p._2())));
-	    List<Identifier> newSlotDefs = x.slotDefs.append(slots.map(P3.__1()));
-	    return new DefRefAnalyser(x.unresolvedLocalRefs, x.localRefs, x.localDefs, x.slotRefs, newSlotDefs);
-    }
-
-	@Override
     public DefRefAnalyser numberLiteral(Set<SourceFileRange> ranges,
             Number value, String source) {
 	    return EMPTY;
@@ -104,13 +95,9 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	    return new DefRefAnalyser(List.single(new Identifier(ranges, 0, id)), EMPTY_LOCAL_REFS, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST, EMPTY_IDENTIFIER_LIST);
     }
 
-	@Override
-    public DefRefAnalyser let(Set<SourceFileRange> ranges,
-            List<P2<Identifier, DefRefAnalyser>> bindings, DefRefAnalyser body) {
-		DefRefAnalyser t = append(unionList(bindings.map(P2.__2())), body);
-		return t.defs(bindings.map(P2.__1()));
-    }
-
+	/**
+	 * Mark unresolved locals in this analysis as resolved using the given identifiers.
+	 */
 	private DefRefAnalyser defs(List<Identifier> newNames) {
 		TreeMap<String, Identifier> bindings = TreeMap.iterableTreeMap(Ord.stringOrd, newNames.map(name -> P.p(name.id, name)));
 	    final List<Either<Identifier,P2<Identifier,Identifier>>> boundVars = this.unresolvedLocalRefs.map(
@@ -123,8 +110,10 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     }
 
 	@Override
-    public DefRefAnalyser projection(Set<SourceFileRange> ranges, List<DefRefAnalyser> args, DefRefAnalyser body) {
+    public DefRefAnalyser scope(Set<SourceFileRange> ranges, List<DefRefAnalyser> args, DefRefAnalyser body, DefRefAnalyser baseValue, DefRefAnalyser thisObject) {
         DefRefAnalyser argsAnalysis = unionList(args);
+        // TODO Need to distinguish between WITH_SCOPE and IN_SCOPE
+        // if(baseValue.unresolvedLocalRefs.equals(List.single(KernelGlobalObject.CURRENT_SCOPE)))
         DefRefAnalyser bodyAnalysis = new DefRefAnalyser(List.nil(), body.localRefs, body.localDefs,
                 body.unresolvedLocalRefs.append(body.slotRefs), body.slotDefs);
         return append(argsAnalysis, bodyAnalysis);
@@ -174,9 +163,9 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
 	 * @param bindings
 	 * @return
 	 */
-	public static List<BadExpr> problems(CoreExpr ast, List<Slot> bindings) {
+	public static List<BadExpr> problems(CoreExpr ast, List<BindingExpr> bindings) {
 		// TODO ... actually only return problems from the given AST
-        List<Identifier> slotNames = bindings.map(Slot::getName);
+        List<Identifier> slotNames = bindings.map(BindingExpr::getName);
         return ast.acceptVisitor(new DefRefAnalyser()).defs(slotNames.cons(Identifier.LANGUAGE_KERNEL)).getProblems();
     }
 
@@ -184,5 +173,15 @@ public class DefRefAnalyser implements CoreExprAlgebra<DefRefAnalyser> {
     public DefRefAnalyser kernelGlobalObject(KernelGlobalObject kernelGlobalObject) {
         return EMPTY;
     }
+
+	@Override
+	public DefRefAnalyser nil() {
+		return EMPTY;
+	}
+
+	@Override
+	public DefRefAnalyser binding(Identifier name, List<Identifier> args, DefRefAnalyser body) {
+		return body.defs(args);
+	}
 
 }

@@ -1,0 +1,5 @@
+# If the numbers are both exact, preserve exactness by making a fraction, otherwise
+# use normal binary op logic
+language kernel number(
+    if(a.is exact && b.is exact) then (a.fraction ÷ b.fraction) else (a.binary op(.÷)(b))
+)

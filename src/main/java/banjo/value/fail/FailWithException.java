@@ -1,13 +1,12 @@
 package banjo.value.fail;
 
-import banjo.value.Value;
-import fj.data.List;
+import banjo.eval.EvalContext;
 
 public class FailWithException extends Fail {
 	public final Throwable cause;
 
-    public FailWithException(List<Value> trace, Throwable cause) {
-        super(trace);
+    public FailWithException(EvalContext<?> ctx, Throwable cause) {
+        super(ctx);
 		this.cause = cause;
 	}
 	

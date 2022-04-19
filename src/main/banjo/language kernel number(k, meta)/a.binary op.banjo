@@ -1,5 +1,5 @@
-(binary op) ↦ (b) ↦ (
-  "
+(binary op) ↦ (b) ↦ {
+  en = "
     Convert operands to a compatible type so that we can do an arithmetic operation
     with them using the kernel native operations.  The kernel operations require
     operands be the same type.

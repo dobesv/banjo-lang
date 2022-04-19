@@ -1,11 +1,12 @@
-"
-  Take a parameter first, then the function, and apply the function to the parameter.
+{
+  en = "
+    Take a parameter first, then the function, and apply the function to the parameter.
   
-  Used in conjunction with the `∘` or `;` operator, this can be used to apply a collection
-  of functions to a parameter, reversing the usual meaning of that operator. 
-" ⇒ 
-(usage examples = [
-  ◄(5) ∘ [2.+, 3.*] == [7, 15]
-  [2.+, 3.*] ; ◄(5) == [7, 15]
-]) ⇒ 
-(x) ↦ (f) ↦ f(x)
+    Used in conjunction with the `∘` or `;` operator, this can be used to apply a collection
+    of functions to a parameter, reversing the usual meaning of that operator. 
+  " 
+  eg = [
+    ◄(5) ∘ [2.+, 3.*] == [7, 15]
+    [2.+, 3.*] ; ◄(5) == [7, 15]
+  ]
+} ⇒ (x) ↦ (f) ↦ f(x)

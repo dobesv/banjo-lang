@@ -13,5 +13,6 @@
     [33].product == [33]
     [3, 11].product == [33]
     [7, 3, 3].product == [63]
+    [1, 1, 1].product == [1]
   ]
 ) => list.combine using binary operator(.*)

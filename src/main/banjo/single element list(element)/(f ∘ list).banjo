@@ -1,8 +1,8 @@
-(
-  "f ∘ [x] == [f(x)]"
-  usage examples = [  
+{
+  en = "f ∘ [x] == [f(x)]"
+  eg = [  
     (true.== ∘ [true]) == [true]
     (.is even ∘ [2]) == [true]
   ]
-) ⇒
+} ⇒
 single element list(f(element))

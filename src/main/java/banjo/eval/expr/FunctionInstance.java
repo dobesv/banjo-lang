@@ -1,12 +1,11 @@
 package banjo.eval.expr;
 
+import banjo.eval.EvalContext;
 import banjo.eval.resolver.ClosureResolver;
-import banjo.eval.resolver.GlobalRef;
 import banjo.eval.resolver.NameRef;
 import banjo.eval.resolver.NameRefAlgebra;
 import banjo.eval.resolver.ValueInstanceAlgebra;
 import banjo.expr.free.FreeExpression;
-import banjo.expr.source.Operator;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
 import banjo.value.FunctionTrait;
@@ -27,7 +26,9 @@ import fj.data.TreeMap;
  * and callee need to be bound when calling the function.
  */
 public class FunctionInstance extends FunctionTrait implements Value {
-	public static class ParameterResolver implements NameRefAlgebra<Option<Value>> {
+	private static final TreeMap<NameRef, Value> EMPTY_CLOSURE = TreeMap.<NameRef, Value>empty(NameRef.ORD);
+
+    public static class ParameterResolver implements NameRefAlgebra<Option<Value>> {
         public final FunctionInstance f;
         public final TreeMap<String, Value> passedArgMap;
         public final Value baseCallable;
@@ -65,41 +66,37 @@ public class FunctionInstance extends FunctionTrait implements Value {
             return Option.none();
         }
 
-        @Override
-        public Option<Value> global(GlobalRef g) {
-            return Option.none();
-        }
     }
 
     public final Set<SourceFileRange> ranges;
     public final List<String> args;
 	public final FreeExpression body;
     public final Option<String> calleeBinding;
-    public final Value trait;
     public final TreeMap<NameRef, Value> closure;
 
     public FunctionInstance(Set<SourceFileRange> ranges, List<String> args,
         FreeExpression body, Option<String> calleeBinding, Value trait, TreeMap<NameRef, Value> closure) {
+        super(trait);
 		this.ranges = ranges;
 		this.args = args;
 		this.body = body;
 		this.calleeBinding = calleeBinding;
-        this.trait = trait;
         this.closure = closure;
     }
 
 	@Override
-    public Value call(List<Value> trace, Value callee, Value baseCallable, List<Value> passedArgs) {
-	    List<Value> missingArgs = args.drop(passedArgs.length()).map(name -> new ArgumentNotSupplied(trace, name));
+    public Value call(EvalContext<Value> ctx, Value callee, Value baseCallable, List<Value> passedArgs) {
+        List<Value> missingArgs = args.drop(passedArgs.length()).map(name -> new ArgumentNotSupplied(ctx, name));
         TreeMap<String, Value> passedArgMap = TreeMap.iterableTreeMap(Ord.stringOrd,
                 args.zip(passedArgs.append(missingArgs)));
-	    List<Value> newTrace = trace.cons(this);
+        EvalContext<Value> newCtx = ctx.cons(this);
         NameRefAlgebra<Option<Value>> paramResolver = new ParameterResolver(this, baseCallable, passedArgMap);
-        return body.eval(newTrace, new ClosureResolver<Value>(closure, ValueInstanceAlgebra.INSTANCE, paramResolver), ValueInstanceAlgebra.INSTANCE);
+        return body.eval(newCtx, new ClosureResolver<Value>(closure, ValueInstanceAlgebra.INSTANCE, paramResolver),
+                ValueInstanceAlgebra.INSTANCE);
 	}
 
 	@Override
-    public String toStringFallback(List<Value> trace) {
+    public String toStringFallback(EvalContext<Value> ctx) {
 		final Option<SourceFileRange> loc = ranges.toStream().toOption();
         Option<String> bindingName = calleeBinding;
 		StringBuffer sb = new StringBuffer();
@@ -111,17 +108,8 @@ public class FunctionInstance extends FunctionTrait implements Value {
     }
 
     @Override
-    public Value slot(List<Value> trace, Value self, String name, Set<SourceFileRange> ranges, Value fallback) {
-        if("label".equals(name))
-            return super.slot(trace, self, name, ranges, fallback);
-        if(Operator.FUNCTION_COMPOSITION_LEFT.getOp().equals(name))
-            return Value.function(this::compose);
-        return trait.slot(trace, self, name, ranges, fallback);
-    }
-
-    @Override
-    public Value callMethod(List<Value> trace, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
-        return trait.callMethod(trace, name, ranges, targetObject, fallback, args);
+    public Value callMethod(EvalContext<Value> ctx, String name, Set<SourceFileRange> ranges, Value targetObject, Value fallback, List<Value> args) {
+        return trait.callMethod(ctx, name, ranges, targetObject, fallback, args);
     }
 
     @Override
@@ -163,6 +151,7 @@ public class FunctionInstance extends FunctionTrait implements Value {
      * Function trait that supplies helper slots for this function. Typically
      * functions all have the same trait value within a project.
      */
+    @Override
     public Value getTrait() {
         return trait;
     }
@@ -174,5 +163,23 @@ public class FunctionInstance extends FunctionTrait implements Value {
      */
     public TreeMap<NameRef, Value> getClosure() {
         return closure;
+    }
+
+    public static FunctionInstance identityFunction(Value functionTrait) {
+        return new FunctionInstance(SourceFileRange.EMPTY_SET, List.single(Identifier.ARG_1.id), Identifier.ARG_1,
+                Option.none(), functionTrait, EMPTY_CLOSURE);
+    }
+
+    /**
+     * Return a function that ignores its arguments and always returns the same
+     * value.
+     * 
+     * @param valueToReturn
+     * @param functionTrait
+     * @return
+     */
+    public static FunctionInstance constantFunction(Value valueToReturn, Value functionTrait) {
+        return new FunctionInstance(SourceFileRange.EMPTY_SET, List.nil(), Identifier.ARG_1, Option.none(),
+                functionTrait, EMPTY_CLOSURE.set(Identifier.ARG_1, valueToReturn));
     }
 }

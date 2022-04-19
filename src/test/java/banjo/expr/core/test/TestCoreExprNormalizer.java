@@ -10,8 +10,10 @@ import banjo.expr.core.CoreExprNormalizer;
 public class TestCoreExprNormalizer {
 
     @Test
-    public void testNegateKernelNumbers() {
-        testNormalize("- 1z", "-1z");
+    public void testNegate() {
+        testNormalize("-(1)", "-1");
+        testNormalize("-(-1)", "1");
+        testNormalize("-(-(-2))", "2");
     }
 
     @Test
@@ -117,6 +119,21 @@ public class TestCoreExprNormalizer {
         testNormalize("(.slot << (.condition).filter(REACTIVE_VALUE([], (a,b) -> a + [b]), x -> x).last) :? 0",
                 "REACTIVE_VALUE(0, (old value, new value) -> if(new value.condition) then(new value.slot) else (old value))"
         );
+    }
+
+    @Test
+    public void testEmptyList() {
+        testNormalize("[]", "[]");
+    }
+
+    @Test
+    public void testEmptyListFallback() {
+        testNormalize("[] ?: 1", "1");
+    }
+
+    @Test
+    public void testNonEmptyListFallback() {
+        testNormalize("[1] ?: 2", "1");
     }
 
     private void testNormalize(String src, String expectedOutput) {

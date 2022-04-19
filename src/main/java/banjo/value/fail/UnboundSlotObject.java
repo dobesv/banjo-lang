@@ -1,14 +1,14 @@
 package banjo.value.fail;
 
+import banjo.eval.EvalContext;
 import banjo.expr.token.Identifier;
 import banjo.expr.util.SourceFileRange;
-import fj.data.List;
 import fj.data.Set;
 
-public class UnboundSlotObject extends FailWithSourceFileRangesAndMessage {
+public class UnboundSlotObject<T> extends FailWithSourceFileRangesAndMessage {
 
-    public UnboundSlotObject(List<?> trace, Set<SourceFileRange> ranges, String id) {
-        super(trace, ranges, Identifier.toSource(id) + " is not a slot self-name here");
+    public UnboundSlotObject(EvalContext<T> ctx, Set<SourceFileRange> ranges, String id) {
+        super(ctx, ranges, Identifier.toSource(id) + " is not a slot self-name here");
     }
 
 }
